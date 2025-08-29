@@ -87,7 +87,7 @@ describe('NeoChessBoard Core', () => {
     });
 
     it('should handle immediate position changes', () => {
-      const testFEN = "8/8/8/8/8/8/8/8 w - - 0 1";
+      const testFEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 0 5";
       
       expect(() => {
         board.setFEN(testFEN, true);
@@ -108,7 +108,7 @@ describe('NeoChessBoard Core', () => {
       const handler = jest.fn();
       board.on('update', handler);
       
-      const testFEN = "8/8/8/8/8/8/8/8 w - - 0 1";
+      const testFEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 0 5";
       board.setFEN(testFEN);
       
       expect(handler).toHaveBeenCalledWith(

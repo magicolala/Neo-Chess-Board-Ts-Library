@@ -36,7 +36,15 @@ export class PgnNotation {
     private result: string;
 
     constructor() {
-        this.metadata = {};
+        this.metadata = {
+            Event: "Casual Game",
+            Site: "Neo Chess Board",
+            Date: new Date().toISOString().split('T')[0],
+            Round: "1",
+            White: "Player 1",
+            Black: "Player 2",
+            Result: "*"
+        };
         this.moves = [];
         this.result = "*"; // Game in progress
     }

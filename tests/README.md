@@ -10,11 +10,16 @@ tests/
 ├── core/                    # Tests pour les modules core
 │   ├── EventBus.test.ts    # Tests pour le système d'événements
 │   ├── LightRules.test.ts  # Tests pour le moteur d'échecs léger
+│   ├── ChessJsRules.test.ts # Tests pour l'adaptateur Chess.js ⭐ NOUVEAU
+│   ├── PgnNotation.test.ts # Tests pour la notation PGN standard ⭐ NOUVEAU
 │   ├── PGN.test.ts         # Tests pour l'enregistrement PGN
 │   ├── themes.test.ts      # Tests pour les thèmes visuels
 │   ├── FlatSprites.test.ts # Tests pour la génération de sprites
 │   ├── utils.test.ts       # Tests pour les fonctions utilitaires
 │   └── NeoChessBoard.test.ts # Tests pour la classe principale
+├── integration/             # Tests d'intégration ⭐ NOUVEAU
+│   └── PgnChessJsIntegration.test.ts # Tests Chess.js + PGN
+├── exports.test.ts         # Tests des exports de librairie ⭐ NOUVEAU
 ├── react/                   # Tests pour les composants React
 │   └── NeoChessBoard.test.tsx # Tests pour le composant React
 └── demo/                    # Tests pour l'application de démonstration
@@ -35,10 +40,16 @@ Les tests couvrent :
 ### Modules Core
 - **EventBus** : Système d'événements pub/sub
 - **LightRules** : Moteur d'échecs avec validation des mouvements
+- **ChessJsRules** ⭐ : Adaptateur Chess.js avec validation complète
+- **PgnNotation** ⭐ : Système PGN conforme aux standards FIDE
 - **PGNRecorder** : Enregistrement et export des parties PGN
 - **Themes** : Validation des thèmes visuels
 - **FlatSprites** : Génération des sprites de pièces
 - **Utils** : Fonctions utilitaires d'échecs
+
+### Tests d'Intégration ⭐ NOUVEAUX
+- **PgnChessJsIntegration** : Workflow complet Chess.js ↔ PGN
+- **Exports** : Validation des exports de la librairie
 
 ### Composants React
 - **NeoChessBoard** : Composant React wrapper
@@ -52,6 +63,16 @@ Les tests couvrent :
 - ✅ Changement de thèmes
 - ✅ Export de fichiers PGN
 - ✅ Gestion des erreurs
+
+#### ⭐ Nouvelles fonctionnalités Chess.js + PGN
+- ✅ **Validation complète Chess.js** : Échec, mat, pat, règles spéciales
+- ✅ **PGN Standards FIDE** : Format conforme, métadonnées, notation algébrique
+- ✅ **Export/Import PGN** : Round-trip complet, téléchargement fichiers
+- ✅ **Intégration complète** : Workflow Chess.js → PGN → Chess.js
+- ✅ **Performance** : Parties longues (100+ coups) en <1 seconde
+- ✅ **Compatibilité** : Tous logiciels d'échecs standards
+- ✅ **Coups spéciaux** : Roque (O-O, O-O-O), promotion, en passant
+- ✅ **Détection avancée** : Répétition triple, matériel insuffisant
 
 ## Mocks et setup
 
