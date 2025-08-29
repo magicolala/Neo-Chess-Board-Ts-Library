@@ -241,13 +241,18 @@
         let chessRules = new ChessJsRules();
         chessRules.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         
-        // Configurer les métadonnées PGN par défaut
+        // Configurer les métadonnées PGN par défaut conformes aux standards
         chessRules.setPgnMetadata({
-            Event: "Demo Neo Chess Board",
-            Site: "Chess.js Integration",
-            White: "Joueur Blanc",
-            Black: "Joueur Noir",
-            Date: new Date().toISOString().split('T')[0]
+            Event: "Neo Chess Board Demo",
+            Site: "Local Demo",
+            White: "Player White",
+            Black: "Player Black",
+            Date: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
+            WhiteElo: "1500",
+            BlackElo: "1500",
+            TimeControl: "300+3",
+            ECO: "?",
+            Opening: "?"
         });
 
         // Fonction pour mettre à jour le statut

@@ -93,11 +93,17 @@ export class PgnNotation {
      * Import moves from a chess.js game
      */
     importFromChessJs(chess: any): void {
-        const history = chess.history({ verbose: true });
-        const pgn = chess.pgn();
+        // Get the move history in standard algebraic notation
+        const history = chess.history(); // Cette méthode retourne la notation algébrique abrégée
+        this.moves = [];
         
-        // Parse the PGN to extract moves properly
-        this.parsePgnMoves(pgn);
+        // Process moves to create proper PGN format
+        for (let i = 0; i < history.length; i += 2) {
+            const moveNumber = Math.floor(i / 2) + 1;
+            const whiteMove = history[i];
+            const blackMove = history[i + 1];
+            this.addMove(moveNumber, whiteMove, blackMove);
+        }
         
         // Set result based on game state
         if (chess.isCheckmate()) {
@@ -195,14 +201,10 @@ export class PgnNotation {
         }
         
         // Add result
-        if (this.result && this.result !== '*') {
-            if (lineLength + this.result.length + 1 > maxLineLength) {
-                pgn += '\n';
-            } else if (lineLength > 0) {
-                pgn += ' ';
-            }
-            pgn += this.result;
+        if (lineLength > 0) {
+            pgn += ' ';
         }
+        pgn += this.result;
         
         return pgn.trim();
     }
