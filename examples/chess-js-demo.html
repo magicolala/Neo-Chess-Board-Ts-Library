@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Chess Board - Chess.js Integration Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .board-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-width: 480px;
+        }
+        .controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 350px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .feature-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .feature-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .status-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .status-box h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .status-value {
+            font-weight: bold;
+        }
+        .check { color: #dc3545; }
+        .checkmate { color: #dc3545; font-weight: bold; }
+        .stalemate { color: #ffc107; font-weight: bold; }
+        .normal { color: #28a745; }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            width: calc(50% - 10px);
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .moves-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .move-counter {
+            text-align: center;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .comparison {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .comparison h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="board-container">
+            <h1>Chess.js Integration Demo</h1>
+            <p class="subtitle">Validation robuste des coups avec chess.js</p>
+            
+            <!-- Le board sera injecté ici -->
+            <div id="board"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="comparison">
+                <h3>🆚 Comparaison des moteurs</h3>
+                <p><strong>Avant:</strong> LightRules (validation basique)</p>
+                <p><strong>Maintenant:</strong> Chess.js (validation complète)</p>
+                <p>✅ Échec et mat détecté</p>
+                <p>✅ Pat détecté</p>
+                <p>✅ Règles spéciales (roque, en passant)</p>
+                <p>✅ Historique des coups</p>
+            </div>
+            
+            <div class="move-counter">
+                <div><strong>Coup n°</strong> <span id="move-number">1</span></div>
+                <div>Au trait: <span id="current-turn">Blancs</span></div>
+            </div>
+            
+            <div class="status-box">
+                <h3>État de la partie:</h3>
+                <div class="status-item">
+                    <span>Statut:</span>
+                    <span id="game-status" class="status-value normal">En cours</span>
+                </div>
+                <div class="status-item">
+                    <span>Échec:</span>
+                    <span id="check-status" class="status-value">Non</span>
+                </div>
+                <div class="status-item">
+                    <span>Coups possibles:</span>
+                    <span id="moves-count" class="status-value">20</span>
+                </div>
+                <div class="status-item">
+                    <span>Demi-coups:</span>
+                    <span id="half-moves" class="status-value">0</span>
+                </div>
+            </div>
+            
+            <div class="feature-box">
+                <h3>🎯 Fonctionnalités Chess.js</h3>
+                <ul>
+                    <li><strong>Validation complète</strong> des coups</li>
+                    <li><strong>Détection automatique</strong> échec/mat/pat</li>
+                    <li><strong>Gestion des règles</strong> spéciales</li>
+                    <li><strong>Historique</strong> des coups</li>
+                    <li><strong>Positions FEN</strong> validées</li>
+                </ul>
+            </div>
+            
+            <h3>Actions rapides:</h3>
+            <button onclick="resetGame()">🔄 Nouvelle partie</button>
+            <button onclick="undoMove()" id="undo-btn">↶ Annuler</button>
+            <button onclick="loadPosition('scholar')">🎓 Mat du berger</button>
+            <button onclick="loadPosition('stalemate')">⚖️ Position de pat</button>
+            <button onclick="loadPosition('endgame')">♔ Fin de partie</button>
+            <button onclick="loadPosition('castling')">🏰 Test roque</button>
+            
+            <h3>Historique des coups:</h3>
+            <div class="moves-list" id="moves-history">
+                Position initiale
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { NeoChessBoard, ChessJsRules } from '../dist/index.js';
+
+        // Créer le board avec ChessJsRules
+        const board = new NeoChessBoard('#board', {
+            position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            rulesAdapter: new ChessJsRules(), // Utiliser explicitement ChessJsRules
+            showArrows: true,
+            showHighlights: true,
+            rightClickHighlights: true,
+            interactive: true,
+            showCoordinates: true
+        });
+
+        // Variables globales - Créer une instance séparée pour les fonctions avancées
+        let chessRules = new ChessJsRules();
+        chessRules.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+
+        // Fonction pour mettre à jour le statut
+        function updateStatus() {
+            const moveNumber = chessRules.moveNumber();
+            const turn = chessRules.turn();
+            const inCheck = chessRules.inCheck();
+            const isCheckmate = chessRules.isCheckmate();
+            const isStalemate = chessRules.isStalemate();
+            const isGameOver = chessRules.isGameOver();
+            const moves = chessRules.getAllMoves();
+            const halfMoves = chessRules.halfMoves();
+            const history = chessRules.history();
+
+            // Mettre à jour l'affichage
+            document.getElementById('move-number').textContent = moveNumber;
+            document.getElementById('current-turn').textContent = turn === 'w' ? 'Blancs' : 'Noirs';
+            document.getElementById('moves-count').textContent = moves.length;
+            document.getElementById('half-moves').textContent = halfMoves;
+
+            // Statut d'échec
+            const checkEl = document.getElementById('check-status');
+            if (inCheck) {
+                checkEl.textContent = 'Oui';
+                checkEl.className = 'status-value check';
+            } else {
+                checkEl.textContent = 'Non';
+                checkEl.className = 'status-value';
+            }
+
+            // Statut de la partie
+            const statusEl = document.getElementById('game-status');
+            if (isCheckmate) {
+                statusEl.textContent = '🏆 Échec et mat';
+                statusEl.className = 'status-value checkmate';
+            } else if (isStalemate) {
+                statusEl.textContent = '⚖️ Pat';
+                statusEl.className = 'status-value stalemate';
+            } else if (isGameOver) {
+                statusEl.textContent = '🏁 Partie terminée';
+                statusEl.className = 'status-value';
+            } else {
+                statusEl.textContent = '⚡ En cours';
+                statusEl.className = 'status-value normal';
+            }
+
+            // Historique des coups
+            const historyEl = document.getElementById('moves-history');
+            if (history.length === 0) {
+                historyEl.textContent = 'Position initiale';
+            } else {
+                historyEl.innerHTML = history.map((move, i) => {
+                    const moveNum = Math.floor(i / 2) + 1;
+                    const isWhite = i % 2 === 0;
+                    return isWhite ? `${moveNum}. ${move}` : `${move}`;
+                }).join(' ');
+            }
+
+            // Bouton Annuler
+            const undoBtn = document.getElementById('undo-btn');
+            undoBtn.disabled = history.length === 0;
+        }
+
+        // Actions globales
+        window.resetGame = function() {
+            chessRules.reset();
+            board.setPosition(chessRules.getFEN(), true);
+            updateStatus();
+        };
+
+        window.undoMove = function() {
+            if (chessRules.undo()) {
+                board.setPosition(chessRules.getFEN(), true);
+                updateStatus();
+            }
+        };
+
+        window.loadPosition = function(positionType) {
+            let fen;
+            
+            switch (positionType) {
+                case 'scholar':
+                    // Mat du berger
+                    fen = 'rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/3P1Q2/PPP2PPP/RNB1K1NR b KQkq - 0 4';
+                    break;
+                case 'stalemate':
+                    // Position de pat
+                    fen = 'k7/8/1K6/8/8/8/8/1Q6 b - - 0 1';
+                    break;
+                case 'endgame':
+                    // Fin de partie roi + dame vs roi
+                    fen = '8/8/8/8/8/3k4/8/K2Q4 w - - 0 1';
+                    break;
+                case 'castling':
+                    // Position pour tester les roques
+                    fen = 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1';
+                    break;
+                default:
+                    fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+            }
+            
+            chessRules.setFEN(fen);
+            board.setPosition(fen, true);
+            updateStatus();
+        };
+
+        // Écouter les événements du board
+        board.on('move', (data) => {
+            console.log('Coup joué:', data);
+            // Synchroniser l'instance de suivi avec le board
+            chessRules.setFEN(data.fen);
+            updateStatus();
+            
+            // Vérifier la fin de partie
+            if (chessRules.isGameOver()) {
+                setTimeout(() => {
+                    let message;
+                    if (chessRules.isCheckmate()) {
+                        const winner = chessRules.turn() === 'w' ? 'Noirs' : 'Blancs';
+                        message = `🎉 Échec et mat ! Les ${winner} ont gagné !`;
+                    } else if (chessRules.isStalemate()) {
+                        message = '⚖️ Pat ! Match nul.';
+                    } else {
+                        message = '🏁 Partie terminée. Match nul.';
+                    }
+                    alert(message);
+                }, 100);
+            }
+        });
+
+        board.on('illegal', (data) => {
+            console.log('Coup illégal tenté:', data);
+            alert(`Coup illégal: ${data.from}-${data.to}\nRaison: ${data.reason}`);
+        });
+
+        // Mise à jour initiale
+        updateStatus();
+
+        // Démo automatique (optionnel)
+        let demoMoves = ['e2', 'e4', 'e7', 'e5', 'f1', 'c4', 'b8', 'c6', 'd1', 'h5'];
+        let demoIndex = 0;
+        let demoMode = false;
+
+        window.startDemo = function() {
+            if (demoMode) return;
+            demoMode = true;
+            
+            const playNextMove = () => {
+                if (demoIndex >= demoMoves.length - 1 || chessRules.isGameOver()) {
+                    demoMode = false;
+                    return;
+                }
+                
+                const from = demoMoves[demoIndex];
+                const to = demoMoves[demoIndex + 1];
+                
+                // Simuler un coup
+                const moveResult = chessRules.move({ from, to });
+                if (moveResult.ok) {
+                    board.setPosition(chessRules.getFEN());
+                    updateStatus();
+                }
+                
+                demoIndex += 2;
+                setTimeout(playNextMove, 1500);
+            };
+            
+            resetGame();
+            setTimeout(playNextMove, 1000);
+        };
+    </script>
+</body>
+</html>

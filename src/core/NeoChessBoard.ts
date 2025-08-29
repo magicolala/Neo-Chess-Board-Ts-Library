@@ -3,6 +3,7 @@ import { parseFEN, FILES, RANKS, isWhitePiece, sq, sqToFR, clamp, lerp, easeOutC
 import { THEMES } from "./themes";
 import { FlatSprites } from "./FlatSprites";
 import { LightRules } from "./LightRules";
+import { ChessJsRules } from "./ChessJsRules";
 import { DrawingManager } from "./DrawingManager";
 import type { Square, BoardOptions, Move, RulesAdapter, Arrow, SquareHighlight, HighlightType, Premove } from "./types";
 
@@ -83,8 +84,8 @@ export class NeoChessBoard {
     this.showHighlights = options.showHighlights !== false;
     this.rightClickHighlights = options.rightClickHighlights !== false;
 
-    // Initialize rules adapter
-    this.rules = options.rulesAdapter || new LightRules();
+    // Initialize rules adapter - Utilise ChessJsRules par défaut pour une validation robuste
+    this.rules = options.rulesAdapter || new ChessJsRules();
     if (options.fen) {
       this.rules.setFEN(options.fen);
     }

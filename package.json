@@ -72,12 +72,13 @@
     "react-dom": ">=18"
   },
   "optionalDependencies": {
-    "chess.js": "^1.0.0"
+    "chess.js": "^1.4.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/chess.js": "^0.13.7",
     "@types/jest": "^30.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
