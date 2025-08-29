@@ -971,25 +971,28 @@ body {
 
 /* Boutons sobres */
 .buttonGroup {
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
 }
 
 .button {
-  padding: 10px 14px;
-  background: #1b1f26;
+  padding: 6px 10px;
+  background: #2a2f38;
   border: none;
-  color: var(--text);
+  color: var(--text-dim);
   border-radius: 0;
   box-shadow: none;
-  transition: background .15s ease;
+  transition: background .15s ease, color .15s ease;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .button:hover {
-  background: #232833;
+  background: #3a3f48;
   border: none;
   transform: none;
   box-shadow: none;
+  color: var(--text);
 }
 
 .button:active {
@@ -997,34 +1000,38 @@ body {
 }
 
 .buttonPrimary {
-  background: var(--primary);
+  background: #4a5568;
   border: none;
-  color: #06110a;
+  color: var(--text);
 }
 
 .buttonPrimary:hover {
-  background: var(--primary-600);
+  background: #5a6578;
   border: none;
   color: #fff;
 }
 
 .buttonSuccess {
-  background: #16a34a;
+  background: #4a5568;
   border: none;
+  color: var(--text);
 }
 
 .buttonSuccess:hover {
-  background: var(--success-600);
+  background: #5a6578;
+  color: #fff;
 }
 
 .buttonWarning {
-  background: #f59e0b;
+  background: #6b7280;
   border: none;
+  color: var(--text);
 }
 
 .buttonWarning:hover {
-  background: #b45309;
+  background: #7b8290;
   border: none;
+  color: #fff;
 }
 
 /* Info box discrète */
