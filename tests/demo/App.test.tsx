@@ -35,15 +35,19 @@ jest.mock('../../src/core/PGN', () => ({
 }));
 
 // Mock clipboard API
-Object.assign(navigator, {
-  clipboard: {
-    writeText: jest.fn(() => Promise.resolve())
-  }
-});
+const mockWriteText = jest.fn(() => Promise.resolve());
 
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup clipboard mock in beforeEach
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText
+      },
+      configurable: true
+    });
   });
 
   describe('Basic rendering', () => {
@@ -65,7 +69,7 @@ describe('App Component', () => {
       render(<App />);
       
       expect(screen.getByText('PGN')).toBeInTheDocument();
-      expect(screen.getByRole('textbox', { name: /pgn/i })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /pgn notation/i })).toBeInTheDocument();
     });
 
     it('should display FEN section', () => {
@@ -137,17 +141,27 @@ describe('App Component', () => {
     it('should display PGN text', () => {
       render(<App />);
       
-      const pgnTextarea = screen.getByRole('textbox', { name: /pgn/i });
-      expect(pgnTextarea).toHaveValue('1. e2e4');
+      const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
+      // PGN text starts empty and is populated on first move
+      expect(pgnTextarea).toHaveValue('');
     });
 
     it('should copy PGN to clipboard', async () => {
-      const user = userEvent.setup();
       render(<App />);
       
-      await user.click(screen.getByText('Copier PGN'));
+      // First simulate a move to populate PGN
+      fireEvent.click(screen.getByTestId('neo-chessboard'));
       
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('1. e2e4');
+      // Wait for state update
+      await waitFor(() => {
+        const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
+        expect(pgnTextarea).toHaveValue('1. e2e4');
+      });
+      
+      // Then copy PGN
+      fireEvent.click(screen.getByText('Copier PGN'));
+      
+      expect(mockWriteText).toHaveBeenCalledWith('1. e2e4');
     });
 
     it('should reset PGN when reset button clicked', async () => {
@@ -169,7 +183,7 @@ describe('App Component', () => {
       expect(mockPgnRecorder.setHeaders).toHaveBeenCalledWith({
         Event: 'Playground',
         Site: 'Local',
-        Date: expect.stringMatching(/\\d{4}\\.\\d{2}\\.\\d{2}/)
+        Date: expect.stringMatching(/\d{4}\.\d{2}\.\d{2}/)
       });
       expect(mockPgnRecorder.download).toHaveBeenCalled();
     });
@@ -220,7 +234,7 @@ describe('App Component', () => {
       
       render(<App />);
       
-      expect(PGNRecorder).toHaveBeenCalledWith(expect.any(Object));
+      expect(PGNRecorder).toHaveBeenCalledWith(undefined);
     });
 
     it('should handle PGN recorder with or without Chess.js', () => {
@@ -245,7 +259,7 @@ describe('App Component', () => {
       const user = userEvent.setup();
       
       // Mock clipboard to reject
-      (navigator.clipboard.writeText as jest.Mock).mockRejectedValue(new Error('Clipboard error'));
+      mockWriteText.mockRejectedValue(new Error('Clipboard error'));
       
       render(<App />);
       

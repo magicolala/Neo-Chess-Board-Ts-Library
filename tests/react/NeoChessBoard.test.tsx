@@ -21,8 +21,8 @@ describe('NeoChessBoard React Component', () => {
 
   describe('Basic rendering', () => {
     it('should render without crashing', () => {
-      render(<NeoChessBoard />);
-      expect(screen.getByRole('generic')).toBeInTheDocument();
+      const { container } = render(<NeoChessBoard />);
+      expect(container.firstChild).toBeInTheDocument();
     });
 
     it('should apply className prop', () => {
@@ -169,6 +169,10 @@ describe('NeoChessBoard React Component', () => {
       const testFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
       
       const { rerender } = render(<NeoChessBoard fen={testFEN} />);
+      
+      // Clear the mock after initial render
+      mockBoard.setPosition.mockClear();
+      
       rerender(<NeoChessBoard fen={testFEN} />);
       
       expect(mockBoard.setPosition).toHaveBeenCalledTimes(0);

@@ -51,7 +51,12 @@ export const App: React.FC = () => {
       </div>
       <div>
         <h3>PGN</h3>
-        <textarea value={pgnText} readOnly style={{ width: "100%", height: 220 }} />
+        <textarea 
+          value={pgnText} 
+          readOnly 
+          style={{ width: "100%", height: 220 }} 
+          aria-label="PGN notation"
+        />
         <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             onClick={() => {
@@ -69,7 +74,12 @@ export const App: React.FC = () => {
           <button onClick={exportPGN}>Exporter .pgn</button>
         </div>
         <h3 style={{ marginTop: 18 }}>FEN</h3>
-        <textarea value={fen || ""} onChange={(e) => setFen(e.target.value)} style={{ width: "100%", height: 80 }} />
+        <textarea 
+          value={fen || ""} 
+          onChange={(e) => setFen(e.target.value)} 
+          style={{ width: "100%", height: 80 }} 
+          aria-label="FEN position"
+        />
       </div>
     </div>
   );
