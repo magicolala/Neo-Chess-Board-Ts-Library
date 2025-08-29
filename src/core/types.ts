@@ -21,11 +21,12 @@ export interface Arrow {
   knightMove?: boolean;
 }
 
-export type HighlightType = 'green' | 'red' | 'blue' | 'yellow' | 'orange' | 'purple';
+export type HighlightType = 'green' | 'red' | 'blue' | 'yellow' | 'orange' | 'purple' | 'circle';
 
 export interface SquareHighlight {
   square: Square;
   type: HighlightType;
+  color?: string;
   opacity?: number;
 }
 

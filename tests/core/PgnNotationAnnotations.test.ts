@@ -7,7 +7,7 @@ describe('PgnNotation with Annotations', () => {
 
   beforeEach(() => {
     rules = new ChessJsRules();
-    pgnNotation = new PgnNotation(rules);
+    pgnNotation = new PgnNotation();
   });
 
   describe('Loading PGN with annotations', () => {
@@ -242,7 +242,7 @@ describe('PgnNotation with Annotations', () => {
       expect(exportedPgn).toContain('Great move!');
       
       // Parse the exported PGN again
-      const secondPgnNotation = new PgnNotation(new ChessJsRules());
+      const secondPgnNotation = new PgnNotation();
       secondPgnNotation.loadPgnWithAnnotations(exportedPgn);
       
       // Should have same moves and annotations
