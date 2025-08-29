@@ -1,24 +1,14 @@
 /**
- * Parseur pour les annotations PGN avec flèches et cercles
- * Supporte les extensions %cal (arrows) et %csl (circles) populaires sur lichess.org et chesscafe.com
+ * Parser for PGN annotations with arrows and circles
+ * Supports %cal (arrows) and %csl (circles) extensions popular on lichess.org and chesscafe.com
  */
 
-import type { Square, Arrow, SquareHighlight, HighlightType } from './types';
-
-export interface PgnArrowAnnotation {
-  color: string;
-  from: Square;
-  to: Square;
-}
-
-export interface PgnCircleAnnotation {
-  color: string;
-  square: Square;
-}
+import type { Square, Arrow, SquareHighlight } from './types';
 
 export interface ParsedAnnotations {
-  arrows: PgnArrowAnnotation[];
-  circles: PgnCircleAnnotation[];
+  arrows: Arrow[];
+  circles: Array<SquareHighlight & { color: string }>;
+  textComment: string;
 }
 
 export class PgnAnnotationParser {

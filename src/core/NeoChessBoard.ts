@@ -54,6 +54,10 @@ export class NeoChessBoard {
   private showArrows: boolean;
   private showHighlights: boolean;
   private rightClickHighlights: boolean;
+  private soundEnabled: boolean;
+  
+  // Audio elements
+  private moveSound: HTMLAudioElement | null = null;
 
   // State tracking
   private _lastMove: { from: Square; to: Square } | null = null;
@@ -83,6 +87,10 @@ export class NeoChessBoard {
     this.showArrows = options.showArrows !== false;
     this.showHighlights = options.showHighlights !== false;
     this.rightClickHighlights = options.rightClickHighlights !== false;
+    this.soundEnabled = options.soundEnabled !== false;
+    
+    // Initialiser le son
+    this._initializeSound();
 
     // Initialize rules adapter - Utilise ChessJsRules par défaut pour une validation robuste
     this.rules = options.rulesAdapter || new ChessJsRules();
@@ -531,6 +539,9 @@ export class NeoChessBoard {
           this.drawingManager.clearArrows();
         }
         
+        // Jouer le son du mouvement
+        this._playMoveSound();
+        
         this._animateTo(next, old);
         this.bus.emit("move", { from, to: drop!, fen });
         
@@ -663,6 +674,43 @@ export class NeoChessBoard {
         if (board[r][f] === piece && start[r][f] !== piece) return { r, f };
       }
     return null;
+  }
+
+  // ---- Sound methods ----
+  private _initializeSound() {
+    if (!this.soundEnabled || typeof Audio === 'undefined') return;
+    
+    try {
+      // Créer l'élément audio pour le son de mouvement
+      this.moveSound = new Audio('./assets/souffle.ogg');
+      this.moveSound.volume = 0.3; // Volume modéré
+      this.moveSound.preload = 'auto';
+    } catch (error) {
+      console.warn('Impossible de charger le son de mouvement:', error);
+      this.moveSound = null;
+    }
+  }
+
+  private _playMoveSound() {
+    if (!this.soundEnabled || !this.moveSound) return;
+    
+    try {
+      // Remettre le son au début et le jouer
+      this.moveSound.currentTime = 0;
+      this.moveSound.play().catch(error => {
+        // Ignorer les erreurs de lecture (par exemple si l'utilisateur n'a pas encore interagi avec la page)
+        console.debug('Son non joué:', error.message);
+      });
+    } catch (error) {
+      console.debug('Erreur lors de la lecture du son:', error);
+    }
+  }
+
+  public setSoundEnabled(enabled: boolean) {
+    this.soundEnabled = enabled;
+    if (enabled && !this.moveSound) {
+      this._initializeSound();
+    }
   }
 
   // ---- Private methods for premove execution ----
