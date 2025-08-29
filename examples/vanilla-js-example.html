@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Chess Board - Vanilla JS Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .game-area {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        
+        #chess-board {
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 200px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button {
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #45b7aa;
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.3);
+        }
+        
+        .game-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .status {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .status.playing { background: #e6ffe6; color: #2d5016; }
+        .status.check { background: #ffe6e6; color: #8b0000; }
+        .status.checkmate { background: #ffcccc; color: #8b0000; }
+        
+        #moves-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .move-entry {
+            margin-bottom: 2px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .move-entry:hover {
+            background: #f0f0f0;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            #chess-board {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Neo Chess Board</h1>
+        
+        <div class="game-area">
+            <div>
+                <canvas id="chess-board" width="500" height="500"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="theme-select">Theme:</label>
+                    <select id="theme-select">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="wood">Wood</option>
+                        <option value="glass">Glass</option>
+                        <option value="neon">Neon</option>
+                        <option value="retro">Retro</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="orientation-select">Orientation:</label>
+                    <select id="orientation-select">
+                        <option value="white">White</option>
+                        <option value="black">Black</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <button id="new-game-btn">🆕 New Game</button>
+                    <button id="flip-board-btn">🔄 Flip Board</button>
+                    <button id="export-pgn-btn">📋 Export PGN</button>
+                </div>
+                
+                <div class="control-group">
+                    <label for="fen-input">FEN Position:</label>
+                    <textarea 
+                        id="fen-input" 
+                        placeholder="Enter FEN string..."
+                        rows="3"
+                        style="font-family: monospace; font-size: 11px;"
+                    ></textarea>
+                    <button id="load-position-btn">Load Position</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <div>
+                <strong>Status:</strong>
+                <span id="game-status" class="status playing">Playing</span>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <strong>Current Player:</strong>
+                <span id="current-player">White</span>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <strong>Move History:</strong>
+                <div id="moves-list">
+                    <em>No moves yet</em>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { NeoChessBoard } from './dist/index.js';
+        
+        // Initialize board
+        const canvas = document.getElementById('chess-board');
+        const board = new NeoChessBoard(canvas, {
+            theme: 'light',
+            showCoordinates: true,
+            draggable: true
+        });
+        
+        // Game state
+        let gameStatus = 'playing';
+        let currentPlayer = 'white';
+        let moveCount = 0;
+        
+        // DOM elements
+        const themeSelect = document.getElementById('theme-select');
+        const orientationSelect = document.getElementById('orientation-select');
+        const newGameBtn = document.getElementById('new-game-btn');
+        const flipBoardBtn = document.getElementById('flip-board-btn');
+        const exportPgnBtn = document.getElementById('export-pgn-btn');
+        const fenInput = document.getElementById('fen-input');
+        const loadPositionBtn = document.getElementById('load-position-btn');
+        const gameStatusElement = document.getElementById('game-status');
+        const currentPlayerElement = document.getElementById('current-player');
+        const movesList = document.getElementById('moves-list');
+        
+        // Event listeners for board events
+        board.on('move', (move) => {
+            moveCount++;
+            currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+            
+            // Update UI
+            updateMovesList(move);
+            updateCurrentPlayer();
+            updateFenInput(move.fen || board.getFEN());
+            
+            console.log(`Move ${moveCount}:`, move);
+        });
+        
+        board.on('check', (color) => {
+            gameStatus = 'check';
+            updateGameStatus(`${color} king is in check!`, 'check');
+        });
+        
+        board.on('checkmate', (color) => {
+            gameStatus = 'checkmate';
+            const winner = color === 'white' ? 'Black' : 'White';
+            updateGameStatus(`Checkmate! ${winner} wins!`, 'checkmate');
+        });
+        
+        board.on('stalemate', () => {
+            gameStatus = 'stalemate';
+            updateGameStatus('Stalemate - Draw!', 'checkmate');
+        });
+        
+        board.on('promotion', (square, color) => {
+            // Simple promotion to queen (in real app, show dialog)
+            board.promote(square, 'queen');
+            console.log(`${color} pawn promoted to queen at ${square}`);
+        });
+        
+        board.on('illegalMove', (from, to) => {
+            console.log(`Illegal move: ${from} to ${to}`);
+            // You could show a brief visual indication here
+        });
+        
+        // Control event listeners
+        themeSelect.addEventListener('change', (e) => {
+            board.setTheme(e.target.value);
+        });
+        
+        orientationSelect.addEventListener('change', (e) => {
+            board.setOrientation(e.target.value);
+        });
+        
+        newGameBtn.addEventListener('click', () => {
+            board.reset();
+            resetGameState();
+        });
+        
+        flipBoardBtn.addEventListener('click', () => {
+            const currentOrientation = orientationSelect.value;
+            const newOrientation = currentOrientation === 'white' ? 'black' : 'white';
+            orientationSelect.value = newOrientation;
+            board.setOrientation(newOrientation);
+        });
+        
+        exportPgnBtn.addEventListener('click', () => {
+            const pgn = board.exportPGN();
+            downloadText(pgn, 'chess-game.pgn');
+        });
+        
+        loadPositionBtn.addEventListener('click', () => {
+            const fen = fenInput.value.trim();
+            if (fen) {
+                try {
+                    board.loadPosition(fen);
+                    resetGameState();
+                    console.log('Position loaded:', fen);
+                } catch (error) {
+                    alert('Invalid FEN string: ' + error.message);
+                }
+            }
+        });
+        
+        // Helper functions
+        function updateMovesList(move) {
+            const moveDiv = document.createElement('div');
+            moveDiv.className = 'move-entry';
+            
+            const moveNumber = Math.floor((moveCount + 1) / 2);
+            const isWhiteMove = moveCount % 2 === 1;
+            const movePrefix = isWhiteMove ? `${moveNumber}.` : `${moveNumber}...`;
+            
+            moveDiv.textContent = `${movePrefix} ${move.san || move.from + '-' + move.to}`;
+            
+            if (movesList.children.length === 1 && movesList.children[0].tagName === 'EM') {
+                movesList.innerHTML = '';
+            }
+            
+            movesList.appendChild(moveDiv);
+            movesList.scrollTop = movesList.scrollHeight;
+        }
+        
+        function updateGameStatus(message, statusClass) {
+            gameStatusElement.textContent = message;
+            gameStatusElement.className = `status ${statusClass}`;
+        }
+        
+        function updateCurrentPlayer() {
+            currentPlayerElement.textContent = currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1);
+        }
+        
+        function updateFenInput(fen) {
+            fenInput.value = fen;
+        }
+        
+        function resetGameState() {
+            gameStatus = 'playing';
+            currentPlayer = 'white';
+            moveCount = 0;
+            
+            updateGameStatus('Playing', 'playing');
+            updateCurrentPlayer();
+            
+            movesList.innerHTML = '<em>No moves yet</em>';
+            updateFenInput('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        }
+        
+        function downloadText(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Initialize FEN display
+        updateFenInput('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        
+        console.log('Neo Chess Board initialized!');
+        console.log('Try making some moves, changing themes, or loading positions.');
+    </script>
+</body>
+</html>

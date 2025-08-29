@@ -1,0 +1,433 @@
+# API Documentation
+
+## Core Classes
+
+### NeoChessBoard
+
+The main chess board class that handles rendering, interaction, and game state.
+
+#### Constructor
+
+```typescript
+constructor(canvas: HTMLCanvasElement, options?: Partial<BoardOptions>)
+```
+
+**Parameters:**
+- `canvas: HTMLCanvasElement` - The canvas element to render the board on
+- `options?: Partial<BoardOptions>` - Optional board configuration
+
+#### Methods
+
+##### `loadPosition(fen: string): void`
+Load a chess position from FEN notation.
+
+**Parameters:**
+- `fen: string` - Valid FEN string representing the position
+
+**Example:**
+```typescript
+board.loadPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+```
+
+##### `makeMove(from: Square, to: Square): boolean`
+Attempt to make a move on the board.
+
+**Parameters:**
+- `from: Square` - Source square (e.g., 'e2')
+- `to: Square` - Destination square (e.g., 'e4')
+
+**Returns:**
+- `boolean` - True if move was successful, false otherwise
+
+##### `setTheme(theme: ThemeName | Theme): void`
+Change the visual theme of the board.
+
+**Parameters:**
+- `theme: ThemeName | Theme` - Theme name or custom theme object
+
+##### `setOrientation(color: 'white' | 'black'): void`
+Flip the board orientation.
+
+**Parameters:**
+- `color: 'white' | 'black'` - Which color should be at the bottom
+
+##### `reset(): void`
+Reset the board to the initial chess position.
+
+##### `exportPGN(): string`
+Export the current game as PGN format.
+
+**Returns:**
+- `string` - PGN representation of the game
+
+##### `destroy(): void`
+Clean up event listeners and resources.
+
+#### Events
+
+The board emits events through the EventBus system:
+
+- `move` - When a move is made
+- `check` - When a king is in check
+- `checkmate` - When checkmate occurs
+- `stalemate` - When stalemate occurs
+- `promotion` - When pawn promotion is needed
+
+### EventBus
+
+Event handling system for the chess board.
+
+#### Methods
+
+##### `on(event: string, callback: Function): void`
+Subscribe to an event.
+
+**Parameters:**
+- `event: string` - Event name
+- `callback: Function` - Event handler function
+
+##### `off(event: string, callback: Function): void`
+Unsubscribe from an event.
+
+##### `emit(event: string, ...args: any[]): void`
+Emit an event with optional arguments.
+
+### LightRules
+
+Chess rules validation engine.
+
+#### Constructor
+
+```typescript
+constructor(initialFen?: string)
+```
+
+#### Methods
+
+##### `isValidMove(from: Square, to: Square): boolean`
+Check if a move is valid according to chess rules.
+
+##### `makeMove(from: Square, to: Square): Move | null`
+Make a move and return move details or null if invalid.
+
+##### `isInCheck(color: Color): boolean`
+Check if the specified color's king is in check.
+
+##### `isCheckmate(color: Color): boolean`
+Check if the specified color is in checkmate.
+
+##### `isStalemate(color: Color): boolean`
+Check if the specified color is in stalemate.
+
+##### `getFen(): string`
+Get the current position as FEN string.
+
+##### `loadFen(fen: string): void`
+Load a position from FEN string.
+
+### PGNRecorder
+
+Records and manages PGN game data.
+
+#### Constructor
+
+```typescript
+constructor(headers?: PGNHeaders)
+```
+
+#### Methods
+
+##### `addMove(move: Move): void`
+Add a move to the game record.
+
+##### `setHeader(key: string, value: string): void`
+Set a PGN header value.
+
+##### `exportPGN(): string`
+Export the complete game as PGN format.
+
+##### `reset(): void`
+Reset the recorder and start a new game.
+
+### FlatSprites
+
+Handles piece sprite rendering.
+
+#### Constructor
+
+```typescript
+constructor(canvas: HTMLCanvasElement | OffscreenCanvas, theme: Theme)
+```
+
+#### Methods
+
+##### `drawPiece(ctx: CanvasRenderingContext2D, piece: Piece, x: number, y: number, size: number): void`
+Draw a piece at the specified position.
+
+##### `updateTheme(theme: Theme): void`
+Update the sprite theme.
+
+## React Component
+
+### NeoChessBoard (React)
+
+React wrapper component for the core chess board.
+
+#### Props
+
+```typescript
+interface NeoChessBoardProps {
+  position?: string;           // FEN string
+  orientation?: 'white' | 'black';
+  theme?: ThemeName | Theme;
+  draggable?: boolean;
+  showCoordinates?: boolean;
+  onMove?: (move: Move) => void;
+  onCheck?: () => void;
+  onCheckmate?: () => void;
+  onStalemate?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
+```
+
+#### Usage
+
+```typescript path=null start=null
+import { NeoChessBoard } from 'neochessboard/react';
+
+function App() {
+  const handleMove = (move) => {
+    console.log('Move made:', move);
+  };
+
+  return (
+    <NeoChessBoard
+      theme="dark"
+      orientation="white"
+      draggable={true}
+      onMove={handleMove}
+    />
+  );
+}
+```
+
+## Type Definitions
+
+### BoardOptions
+
+```typescript
+interface BoardOptions {
+  theme: ThemeName | Theme;
+  orientation: 'white' | 'black';
+  draggable: boolean;
+  showCoordinates: boolean;
+  animationDuration: number;
+  highlightLastMove: boolean;
+  highlightLegalMoves: boolean;
+}
+```
+
+### Theme
+
+```typescript
+interface Theme {
+  name: string;
+  board: {
+    light: string;    // Light square color
+    dark: string;     // Dark square color
+    border: string;   // Board border color
+  };
+  pieces: {
+    [key in PieceType]: {
+      white: string;  // White piece color
+      black: string;  // Black piece color
+    };
+  };
+  highlights: {
+    lastMove: string;     // Last move highlight
+    legalMove: string;    // Legal move highlight
+    check: string;        // Check highlight
+    selected: string;     // Selected square
+  };
+}
+```
+
+### Move
+
+```typescript
+interface Move {
+  from: Square;
+  to: Square;
+  piece: Piece;
+  captured?: Piece;
+  promotion?: PieceType;
+  castling?: 'kingside' | 'queenside';
+  enPassant?: boolean;
+  ep?: boolean;
+  check?: boolean;
+  checkmate?: boolean;
+  stalemate?: boolean;
+}
+```
+
+### Piece
+
+```typescript
+interface Piece {
+  type: PieceType;
+  color: Color;
+}
+
+type PieceType = 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
+type Color = 'white' | 'black';
+```
+
+### Square
+
+```typescript
+type Square = 'a1' | 'a2' | ... | 'h8'; // All 64 chess squares
+```
+
+### PGNHeaders
+
+```typescript
+interface PGNHeaders {
+  Event?: string;
+  Site?: string;
+  Date?: string;
+  Round?: string;
+  White?: string;
+  Black?: string;
+  Result?: string;
+  [key: string]: string | undefined;
+}
+```
+
+## Utilities
+
+### Chess Utilities
+
+#### `parseSquare(square: string): [number, number] | null`
+Convert algebraic notation to file/rank coordinates.
+
+#### `squareToCoords(square: Square): [number, number]`
+Convert square to board coordinates.
+
+#### `coordsToSquare(file: number, rank: number): Square`
+Convert coordinates to square notation.
+
+#### `isValidSquare(square: string): boolean`
+Validate if a string represents a valid chess square.
+
+#### `oppositeColor(color: Color): Color`
+Get the opposite color.
+
+## Built-in Themes
+
+### Available Themes
+
+- **`light`** - Classic light wood theme
+- **`dark`** - Modern dark theme
+- **`wood`** - Traditional wooden board
+- **`glass`** - Transparent glass effect
+- **`neon`** - Futuristic neon theme
+- **`retro`** - Vintage computer theme
+
+### Using Themes
+
+```typescript path=null start=null
+// Built-in theme
+board.setTheme('dark');
+
+// Custom theme
+const customTheme: Theme = {
+  name: 'custom',
+  board: {
+    light: '#f0d9b5',
+    dark: '#b58863',
+    border: '#8b4513'
+  },
+  pieces: {
+    king: { white: '#ffffff', black: '#000000' },
+    // ... other pieces
+  },
+  highlights: {
+    lastMove: 'rgba(255, 255, 0, 0.5)',
+    legalMove: 'rgba(0, 255, 0, 0.3)',
+    check: 'rgba(255, 0, 0, 0.7)',
+    selected: 'rgba(0, 0, 255, 0.3)'
+  }
+};
+
+board.setTheme(customTheme);
+```
+
+## Error Handling
+
+### Common Errors
+
+#### `InvalidMoveError`
+Thrown when attempting to make an invalid move.
+
+#### `InvalidFenError`
+Thrown when loading an invalid FEN string.
+
+#### `InvalidSquareError`
+Thrown when referencing a non-existent square.
+
+### Error Handling Examples
+
+```typescript path=null start=null
+try {
+  board.makeMove('e2', 'e5'); // Invalid move
+} catch (error) {
+  if (error instanceof InvalidMoveError) {
+    console.log('Invalid move:', error.message);
+  }
+}
+
+try {
+  board.loadPosition('invalid fen');
+} catch (error) {
+  console.log('Invalid FEN:', error.message);
+}
+```
+
+## Performance Considerations
+
+### Canvas Optimization
+- Use `OffscreenCanvas` when available for better performance
+- Minimize redraws by only updating changed areas
+- Use efficient sprite rendering for pieces
+
+### Memory Management
+- Call `destroy()` method when removing board instances
+- Remove event listeners properly
+- Clean up canvas contexts
+
+## Browser Compatibility
+
+### Minimum Requirements
+- Modern browsers with Canvas API support
+- ES2015+ JavaScript support
+- For React: React 18+
+
+### Feature Support
+- **Canvas API**: Required for basic functionality
+- **OffscreenCanvas**: Optional, used for performance optimization
+- **ResizeObserver**: Optional, used for responsive sizing
+
+## Examples
+
+See the `examples/` directory and the demo application for comprehensive usage examples.
+
+## Migration Guide
+
+### From Version 0.0.x to 0.1.0
+- No breaking changes in this initial release
+- All APIs are stable for the 0.1.x series
+
+---
+
+For more detailed examples and guides, see the main [README.md](../README.md) and [examples documentation](./EXAMPLES.md).

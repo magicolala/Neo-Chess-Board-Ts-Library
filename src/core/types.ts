@@ -1,0 +1,54 @@
+export type Square = `${"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"}${"1" | "2" | "3" | "4" | "5" | "6" | "7" | "8"}`;
+export type Color = "w" | "b";
+export type Piece = "K" | "Q" | "R" | "B" | "N" | "P" | "k" | "q" | "r" | "b" | "n" | "p";
+
+export interface Move {
+  from: Square;
+  to: Square;
+  promotion?: "q" | "r" | "b" | "n";
+  captured?: string | null;
+  san?: string;
+  ep?: boolean;
+}
+
+export interface RulesAdapter {
+  setFEN(fen: string): void;
+  getFEN(): string;
+  turn(): Color;
+  movesFrom(square: Square): Move[];
+  move(m: {
+    from: Square;
+    to: Square;
+    promotion?: Move["promotion"];
+  }): { ok: boolean; fen?: string; state?: any; move?: any; reason?: string } | null | undefined;
+  // Optional API if provided by chess.js
+  getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here
+  header?: (h: Record<string, string>) => void; // chess.js header
+}
+
+export interface Theme {
+  light: string;
+  dark: string;
+  boardBorder: string;
+  whitePiece: string;
+  blackPiece: string;
+  pieceShadow: string;
+  moveFrom: string;
+  moveTo: string;
+  lastMove: string;
+  premove: string;
+  dot: string;
+  arrow: string;
+}
+
+export interface BoardOptions {
+  size?: number;
+  orientation?: "white" | "black";
+  interactive?: boolean;
+  theme?: "classic" | "midnight";
+  showCoordinates?: boolean;
+  animationMs?: number;
+  highlightLegal?: boolean;
+  fen?: string;
+  rulesAdapter?: RulesAdapter;
+}
