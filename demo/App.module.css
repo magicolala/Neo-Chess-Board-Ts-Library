@@ -1,33 +1,74 @@
-/* Variables CSS pour un design system cohérent */
+/* Variables CSS pour un design system cohérent avec glassmorphism */
 :root {
   --primary-bg: #0b1426;
   --secondary-bg: #1a2332;
-  --card-bg: #232b3d;
+  --card-bg: rgba(35, 43, 61, 0.7);
+  --card-bg-solid: #232b3d;
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(148, 163, 184, 0.2);
+  --glass-highlight: rgba(248, 250, 252, 0.1);
   --accent-color: #4f46e5;
   --accent-hover: #6366f1;
+  --accent-glass: rgba(79, 70, 229, 0.8);
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --border-color: #334155;
   --success-color: #10b981;
   --warning-color: #f59e0b;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius: 16px;
+  --radius-sm: 10px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --blur-amount: 20px;
 }
 
-/* Layout principal */
+/* Layout principal avec glassmorphism */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--primary-bg) 0%, #0f172a 50%, var(--primary-bg) 100%);
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, var(--primary-bg) 0%, #0f172a 50%, var(--primary-bg) 100%);
   display: grid;
   grid-template-columns: minmax(320px, 1fr) 440px;
   gap: 32px;
   padding: 32px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Éléments décoratifs flottants */
+.container::before,
+.container::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container::before {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+  animation: float 20s ease-in-out infinite;
+}
+
+.container::after {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  bottom: -150px;
+  left: -150px;
+  animation: float 25s ease-in-out infinite reverse;
 }
 
 @media (max-width: 1200px) {
@@ -50,6 +91,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -57,11 +100,24 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: var(--card-bg);
+  background: var(--glass-bg);
   border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
 }
 
 .title {
@@ -87,8 +143,11 @@
   color: var(--text-muted);
   font-weight: 500;
   text-transform: capitalize;
-  padding: 4px 12px;
-  background: var(--secondary-bg);
+  padding: 6px 14px;
+  background: rgba(26, 35, 50, 0.6);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 20px;
   font-size: 0.875rem;
 }
@@ -96,42 +155,81 @@
 .themeButtons {
   display: flex;
   gap: 8px;
-  background: var(--secondary-bg);
+  background: rgba(26, 35, 50, 0.5);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .themeButton {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.themeButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .themeButton:hover {
-  background: var(--border-color);
+  background: rgba(51, 65, 85, 0.6);
+  border-color: var(--glass-border);
   color: var(--text-primary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.themeButton:hover::before {
+  opacity: 1;
 }
 
 .themeButton.active {
-  background: var(--accent-color);
+  background: var(--accent-glass);
+  border-color: var(--accent-color);
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
 }
 
 .boardWrapper {
   display: flex;
   justify-content: center;
   padding: 24px;
-  background: var(--card-bg);
+  background: var(--glass-bg);
   border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.boardWrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
 }
 
 /* Section des contrôles */
@@ -139,20 +237,37 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .panel {
-  background: var(--card-bg);
+  background: var(--glass-bg);
   border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
   overflow: hidden;
+  position: relative;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
 }
 
 .panelHeader {
   padding: 16px 20px;
-  background: var(--secondary-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: rgba(26, 35, 50, 0.6);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .panelTitle {
@@ -173,21 +288,36 @@
   width: 100%;
   min-height: 200px;
   padding: 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  background: var(--secondary-bg);
+  background: rgba(26, 35, 50, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   resize: vertical;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.textarea::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
+  pointer-events: none;
 }
 
 .textarea:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2), var(--shadow-glass);
+  background: rgba(26, 35, 50, 0.6);
 }
 
 .textarea::placeholder {
@@ -206,62 +336,88 @@
 }
 
 .button {
-  padding: 10px 20px;
-  border: 1px solid var(--border-color);
+  padding: 12px 20px;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  background: var(--secondary-bg);
+  background: rgba(26, 35, 50, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--text-primary);
   font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .button:hover {
-  background: var(--border-color);
+  background: rgba(51, 65, 85, 0.6);
   border-color: var(--accent-color);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass), 0 0 20px rgba(79, 70, 229, 0.2);
+}
+
+.button:hover::after {
+  opacity: 1;
 }
 
 .button:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
 }
 
 .buttonPrimary {
-  background: var(--accent-color);
+  background: var(--accent-glass);
   border-color: var(--accent-color);
   color: white;
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
 }
 
 .buttonPrimary:hover {
-  background: var(--accent-hover);
+  background: rgba(99, 102, 241, 0.9);
   border-color: var(--accent-hover);
+  box-shadow: var(--shadow-glass), 0 0 30px rgba(79, 70, 229, 0.4);
 }
 
 .buttonSuccess {
-  background: var(--success-color);
+  background: rgba(16, 185, 129, 0.8);
   border-color: var(--success-color);
   color: white;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
 .buttonSuccess:hover {
-  background: #059669;
+  background: rgba(5, 150, 105, 0.9);
   border-color: #059669;
+  box-shadow: var(--shadow-glass), 0 0 30px rgba(16, 185, 129, 0.4);
 }
 
 .buttonWarning {
-  background: var(--warning-color);
+  background: rgba(245, 158, 11, 0.8);
   border-color: var(--warning-color);
   color: white;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
 }
 
 .buttonWarning:hover {
-  background: #d97706;
+  background: rgba(217, 119, 6, 0.9);
   border-color: #d97706;
+  box-shadow: var(--shadow-glass), 0 0 30px rgba(245, 158, 11, 0.4);
 }
 
 /* Icons pour les boutons */
@@ -341,17 +497,31 @@
 
 /* InfoBox pour les instructions */
 .infoBox {
-  background: var(--secondary-bg);
-  border: 1px solid var(--border-color);
+  background: rgba(26, 35, 50, 0.4);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  padding: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 18px;
   margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.infoBox::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--glass-highlight) 50%, transparent 100%);
 }
 
 .infoBox p {
   color: var(--text-primary);
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   font-size: 0.875rem;
 }
 
@@ -360,11 +530,11 @@
   padding-left: 20px;
   color: var(--text-secondary);
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .infoBox li {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .infoBox li:last-child {
@@ -518,6 +688,26 @@
   background-color: var(--accent-color);
   border-radius: 100%;
   animation: pulse 1.0s infinite ease-in-out;
+}
+
+/* Animation float pour les éléments flottants */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-20px) scale(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-10px) scale(0.9);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateY(-25px) scale(1.05);
+    opacity: 0.9;
+  }
 }
 
 /* Animations pour les loaders */
