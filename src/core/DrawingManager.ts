@@ -28,8 +28,8 @@ export class DrawingManager {
   }
 
   public updateDimensions(): void {
-    const rect = this.canvas.getBoundingClientRect();
-    this.boardSize = Math.min(rect.width, rect.height);
+    // Utiliser la vraie taille du canvas en pixels, pas la taille DOM
+    this.boardSize = Math.min(this.canvas.width, this.canvas.height);
     this.squareSize = this.boardSize / 8;
   }
 
@@ -309,10 +309,10 @@ export class DrawingManager {
   // Utilitaires pour les interactions
   public getSquareFromMousePosition(mouseX: number, mouseY: number): Square | null {
     const rect = this.canvas.getBoundingClientRect();
-    const x = mouseX - rect.left;
-    const y = mouseY - rect.top;
+    const x = (mouseX - rect.left) * (this.canvas.width / rect.width);
+    const y = (mouseY - rect.top) * (this.canvas.height / rect.height);
     
-    if (x < 0 || y < 0 || x >= this.boardSize || y >= this.boardSize) {
+    if (x < 0 || y < 0 || x >= this.canvas.width || y >= this.canvas.height) {
       return null;
     }
     
