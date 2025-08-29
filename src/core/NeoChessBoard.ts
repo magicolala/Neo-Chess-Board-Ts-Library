@@ -46,7 +46,7 @@ export class NeoChessBoard {
   private ctxO!: CanvasRenderingContext2D;
 
   // Drawing manager for arrows, highlights, premoves
-  private drawingManager!: DrawingManager;
+  public drawingManager!: DrawingManager;
   
   // Nouvelles options
   private allowPremoves: boolean;
@@ -448,11 +448,21 @@ export class NeoChessBoard {
           handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
         }
         
-        // Si aucune flèche n'a été créée et que c'était un simple clic, gérer les highlights avec modificateurs
-        if (!handled && pt && this.rightClickHighlights) {
-          const square = this._xyToSquare(pt.x, pt.y);
-          if (this.drawingManager) {
-            this.drawingManager.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
+        // Si aucune flèche n'a été créée et que c'était un simple clic
+        if (!handled && pt) {
+          // Vérifier s'il y a un premove actif et l'annuler
+          if (this.drawingManager && this.drawingManager.getPremove()) {
+            this.drawingManager.clearPremove();
+            this._premove = null; // Compatibilité
+            console.log("Premove annulé par clic droit");
+            handled = true;
+          }
+          // Sinon, gérer les highlights avec modificateurs
+          else if (this.rightClickHighlights) {
+            const square = this._xyToSquare(pt.x, pt.y);
+            if (this.drawingManager) {
+              this.drawingManager.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
+            }
           }
         }
         
@@ -508,6 +518,11 @@ export class NeoChessBoard {
         this._selected = null;
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
+        
+        // Effacer toutes les flèches après chaque coup joué
+        if (this.drawingManager) {
+          this.drawingManager.clearArrows();
+        }
         
         this._animateTo(next, old);
         this.bus.emit("move", { from, to: drop!, fen });
@@ -667,8 +682,9 @@ export class NeoChessBoard {
         this.state = newState;
         this._lastMove = { from: premove.from, to: premove.to };
         
-        // Effacer le premove
+        // Effacer le premove et toutes les flèches
         this.drawingManager?.clearPremove();
+        this.drawingManager?.clearArrows();
         this._premove = null;
         
         // Animer le mouvement du premove
