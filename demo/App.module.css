@@ -339,6 +339,38 @@
   background: var(--text-muted);
 }
 
+/* InfoBox pour les instructions */
+.infoBox {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.infoBox p {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+}
+
+.infoBox ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.infoBox li {
+  margin-bottom: 4px;
+}
+
+.infoBox li:last-child {
+  margin-bottom: 0;
+}
+
 /* Loaders et animations */
 .loader {
   display: inline-block;

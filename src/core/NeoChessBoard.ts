@@ -116,10 +116,20 @@ export class NeoChessBoard {
 
   public setFEN(fen: string, immediate = false) {
     const old = this.state;
+    const oldTurn = this.state.turn;
     this.rules.setFEN(fen);
     this.state = parseFEN(this.rules.getFEN());
     this._lastMove = null;
+    
+    // Si le tour a changé (l'adversaire a joué), essayer d'exécuter le premove
+    const newTurn = this.state.turn;
+    if (oldTurn !== newTurn) {
+      this._executePremoveIfValid();
+    }
+    
+    // Effacer l'ancien système de premove
     this._premove = null;
+    
     if (immediate) {
       this._clearAnim();
       this.renderAll();
@@ -388,6 +398,19 @@ export class NeoChessBoard {
       const piece = this._pieceAt(from);
       if (!piece) return;
       const side = isWhitePiece(piece) ? "w" : "b";
+      
+      // Si ce n'est pas le tour du joueur et que les premoves sont autorisés
+      if (side !== (this.state.turn as any) && this.allowPremoves) {
+        // Commencer un premove drag
+        this._selected = from;
+        this._legalCached = []; // Pas de validation légale pour les premoves
+        this._dragging = { from, piece, x: pt.x, y: pt.y };
+        this._hoverSq = from;
+        this.renderAll();
+        return;
+      }
+      
+      // Logique normale pour les mouvements du tour actuel
       if (side !== (this.state.turn as any)) return;
       this._selected = from;
       this._legalCached = this.rules.movesFrom(from);
@@ -446,14 +469,36 @@ export class NeoChessBoard {
       if (!this._dragging) return;
       const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
       const from = this._dragging.from;
+      const piece = this._dragging.piece;
+      const side = isWhitePiece(piece) ? "w" : "b";
+      
       this._dragging = null;
       this._hoverSq = null;
+      
       if (!drop) {
         this._selected = null;
         this._legalCached = null;
         this.renderAll();
         return;
       }
+      
+      // Vérifier si c'est un premove (pas le tour du joueur)
+      const isPremove = side !== (this.state.turn as any) && this.allowPremoves;
+      
+      if (isPremove) {
+        // C'est un premove - le stocker sans l'exécuter
+        if (this.drawingManager) {
+          this.drawingManager.setPremove(from, drop!);
+          // Effacer l'ancien premove dans _premove (compatibilité)
+          this._premove = { from, to: drop! };
+        }
+        this._selected = null;
+        this._legalCached = null;
+        this.renderAll();
+        return;
+      }
+      
+      // Mouvement normal (c'est le tour du joueur)
       const legal = this.rules.move({ from, to: drop! });
       if (legal && (legal as any).ok) {
         const fen = this.rules.getFEN();
@@ -464,31 +509,14 @@ export class NeoChessBoard {
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
         
-        // Exécuter le premove s'il y en a un
-        if (this.drawingManager) {
-          const premove = this.drawingManager.getPremove();
-          if (premove && this.allowPremoves) {
-            // Essayer d'exécuter le premove après un délai
-            setTimeout(() => {
-              const premoveResult = this.rules.move(premove);
-              if (premoveResult && (premoveResult as any).ok) {
-                const newFen = this.rules.getFEN();
-                const newState = parseFEN(newFen);
-                this.state = newState;
-                this._lastMove = { from: premove.from, to: premove.to };
-                this.drawingManager?.clearPremove();
-                this.renderAll();
-                this.bus.emit("move", { from: premove.from, to: premove.to, fen: newFen });
-              } else {
-                this.drawingManager?.clearPremove();
-                this.renderAll();
-              }
-            }, 100);
-          }
-        }
-        
         this._animateTo(next, old);
         this.bus.emit("move", { from, to: drop!, fen });
+        
+        // Après avoir joué un coup, vérifier et exécuter le premove s'il y en a un
+        // Le faire après l'animation pour éviter les conflits
+        setTimeout(() => {
+          this._executePremoveIfValid();
+        }, this.animationMs + 50); // Attendre que l'animation soit terminée
       } else {
         this._selected = null;
         this._legalCached = null;
@@ -615,6 +643,48 @@ export class NeoChessBoard {
     return null;
   }
 
+  // ---- Private methods for premove execution ----
+  
+  /**
+   * Exécuter le premove s'il est valide après qu'un coup adverse ait été joué
+   */
+  private _executePremoveIfValid(): void {
+    if (!this.allowPremoves || !this.drawingManager) return;
+    
+    const premove = this.drawingManager.getPremove();
+    if (!premove) return;
+    
+    // Vérifier si le premove est légal dans la nouvelle position
+    const premoveResult = this.rules.move({ from: premove.from, to: premove.to, promotion: premove.promotion });
+    
+    if (premoveResult && (premoveResult as any).ok) {
+      // Le premove est légal, l'exécuter après un court délai
+      setTimeout(() => {
+        const newFen = this.rules.getFEN();
+        const newState = parseFEN(newFen);
+        const oldState = this.state;
+        
+        this.state = newState;
+        this._lastMove = { from: premove.from, to: premove.to };
+        
+        // Effacer le premove
+        this.drawingManager?.clearPremove();
+        this._premove = null;
+        
+        // Animer le mouvement du premove
+        this._animateTo(newState, oldState);
+        
+        // Émettre l'événement de mouvement
+        this.bus.emit("move", { from: premove.from, to: premove.to, fen: newFen });
+      }, 150); // Délai légèrement plus long pour que l'animation du coup adverse se termine
+    } else {
+      // Le premove n'est pas légal, l'effacer silencieusement
+      this.drawingManager.clearPremove();
+      this._premove = null;
+      this.renderAll();
+    }
+  }
+  
   // ---- New feature methods ----
   
   /**

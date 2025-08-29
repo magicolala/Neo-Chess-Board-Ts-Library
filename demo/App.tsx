@@ -234,6 +234,43 @@ export const App: React.FC = () => {
             />
           </div>
         </div>
+        
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>⚡ Test des Premoves</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <div className={styles.infoBox}>
+              <p><strong>Comment tester les premoves:</strong></p>
+              <ul>
+                <li>Utilisez les positions d'exemple ci-dessous</li>
+                <li>Essayez de déplacer une pièce qui n'est pas de votre tour</li>
+                <li>Le coup sera stocké comme "premove" (flèche orange pointillée)</li>
+                <li>Jouez un coup normal - le premove s'exécutera automatiquement s'il est légal</li>
+              </ul>
+            </div>
+            <div className={styles.buttonGroup}>
+              <button 
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => setFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")}
+              >
+                Position d'ouverture
+              </button>
+              <button 
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => setFen("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")}
+              >
+                Milieu de partie
+              </button>
+              <button 
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => setFen("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1")}
+              >
+                Finale simple
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

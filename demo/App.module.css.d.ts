@@ -34,5 +34,6 @@ declare const styles: {
   readonly boardLoading: string;
   readonly dotLoader: string;
   readonly pulseLoader: string;
+  readonly infoBox: string;
 };
 export = styles;

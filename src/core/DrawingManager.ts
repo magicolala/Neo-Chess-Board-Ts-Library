@@ -250,7 +250,10 @@ export class DrawingManager {
     ctx.globalAlpha = 0.7;
     ctx.strokeStyle = '#ff9800';
     ctx.lineWidth = 3;
-    ctx.setLineDash([8, 4]);
+    // Utiliser setLineDash seulement si disponible (test environnements)
+    if (ctx.setLineDash) {
+      ctx.setLineDash([8, 4]);
+    }
     ctx.lineCap = 'round';
     
     const centerFromX = fromX + this.squareSize / 2;
@@ -265,7 +268,9 @@ export class DrawingManager {
     ctx.stroke();
     
     // Dessiner les cases de départ et d'arrivée
-    ctx.setLineDash([]);
+    if (ctx.setLineDash) {
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = 'rgba(255, 152, 0, 0.3)';
     
     // Case de départ
