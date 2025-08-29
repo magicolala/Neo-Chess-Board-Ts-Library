@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { NeoChessBoard } from "../src/react/NeoChessBoard";
-import { PGNRecorder } from "../src/core/PGN";
-import { NeoChessBoard as Chessboard } from '../src/core/NeoChessBoard';
+import { ChessJsRules } from "../src/core/ChessJsRules";
 import styles from './App.module.css';
 import { 
   LoadingButton, 
@@ -15,7 +14,7 @@ import {
 export const App: React.FC = () => {
   const [fen, setFen] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<"midnight" | "classic">("midnight");
-  const pgn = useMemo(() => new PGNRecorder((window as any).Chess ? (Chessboard as any) : undefined), []);
+  const chessRules = useMemo(() => new ChessJsRules(), []);
   const [pgnText, setPgnText] = useState("");
   
   // États de loading pour démonstration
@@ -26,6 +25,23 @@ export const App: React.FC = () => {
   
   // Simuler le chargement initial (désactivé pendant les tests)
   const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1500);
+  
+  // Synchroniser la position FEN avec l'instance ChessJsRules uniquement pour les changements manuels de FEN
+  // (pas lors des coups joués sur l'échiquier)
+  const [isManualFenChange, setIsManualFenChange] = useState(false);
+  
+  useEffect(() => {
+    if (fen && isManualFenChange) {
+      try {
+        chessRules.setFEN(fen);
+        setPgnText(chessRules.toPgn());
+        setIsManualFenChange(false);
+      } catch (error) {
+        console.error('FEN invalide:', error);
+        setIsManualFenChange(false);
+      }
+    }
+  }, [fen, chessRules, isManualFenChange]);
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
@@ -48,8 +64,9 @@ export const App: React.FC = () => {
     if (process.env.NODE_ENV !== 'test') {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    pgn.reset();
-    setPgnText(pgn.getPGN());
+    chessRules.reset();
+    setPgnText(chessRules.toPgn());
+    setFen(chessRules.getFEN());
     setIsResetting(false);
   };
 
@@ -60,12 +77,12 @@ export const App: React.FC = () => {
       if (process.env.NODE_ENV !== 'test') {
         await new Promise(resolve => setTimeout(resolve, 1200));
       }
-      pgn.setHeaders({
+      chessRules.setPgnMetadata({
         Event: "Playground",
         Site: "Local",
         Date: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
       });
-      pgn.download();
+      chessRules.downloadPgn();
     } catch (error) {
       console.error('Erreur lors de l\'export:', error);
     } finally {
@@ -172,8 +189,10 @@ export const App: React.FC = () => {
             theme={theme}
             fen={fen}
             onMove={({ from, to, fen }) => {
-              pgn.push({ from, to });
-              setPgnText(pgn.getPGN());
+              // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
+              chessRules.move({ from, to });
+              // Obtenir la notation PGN standard depuis chess.js
+              setPgnText(chessRules.toPgn());
               setFen(fen);
             }}
             style={{ width: "min(90vmin,720px)", aspectRatio: "1/1" }}
@@ -228,7 +247,10 @@ export const App: React.FC = () => {
             <textarea 
               className={`${styles.textarea} ${styles.textareaSmall}`}
               value={fen || ""} 
-              onChange={(e) => setFen(e.target.value)} 
+              onChange={(e) => {
+                setFen(e.target.value);
+                setIsManualFenChange(true);
+              }} 
               aria-label="FEN position"
               placeholder="Saisissez une position FEN pour définir l'échiquier..."
             />
@@ -252,19 +274,28 @@ export const App: React.FC = () => {
             <div className={styles.buttonGroup}>
               <button 
                 className={`${styles.button} ${styles.buttonPrimary}`}
-                onClick={() => setFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")}
+                onClick={() => {
+                  setFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+                  setIsManualFenChange(true);
+                }}
               >
                 Position d'ouverture
               </button>
               <button 
                 className={`${styles.button} ${styles.buttonPrimary}`}
-                onClick={() => setFen("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")}
+                onClick={() => {
+                  setFen("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4");
+                  setIsManualFenChange(true);
+                }}
               >
                 Milieu de partie
               </button>
               <button 
                 className={`${styles.button} ${styles.buttonPrimary}`}
-                onClick={() => setFen("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1")}
+                onClick={() => {
+                  setFen("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1");
+                  setIsManualFenChange(true);
+                }}
               >
                 Finale simple
               </button>
