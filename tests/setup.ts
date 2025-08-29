@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
 
+// Configure React testing environment
+(global as any).IS_REACT_ACT_ENVIRONMENT = true;
+
 // Mock canvas API pour les tests
 global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
   if (contextId === '2d') {

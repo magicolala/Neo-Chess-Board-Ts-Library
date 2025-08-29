@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../demo/App';
 
@@ -147,10 +147,11 @@ describe('App Component', () => {
     });
 
     it('should copy PGN to clipboard', async () => {
+      const user = userEvent.setup();
       render(<App />);
       
       // First simulate a move to populate PGN
-      fireEvent.click(screen.getByTestId('neo-chessboard'));
+      await user.click(screen.getByTestId('neo-chessboard'));
       
       // Wait for state update
       await waitFor(() => {
@@ -158,10 +159,13 @@ describe('App Component', () => {
         expect(pgnTextarea).toHaveValue('1. e2e4');
       });
       
-      // Then copy PGN
-      fireEvent.click(screen.getByText('Copier'));
+      // Then copy PGN using userEvent which handles async properly
+      await user.click(screen.getByText('Copier'));
       
-      expect(mockWriteText).toHaveBeenCalledWith('1. e2e4');
+      // Wait a bit for the async operation
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalledWith('1. e2e4');
+      });
     });
 
     it('should reset PGN when reset button clicked', async () => {

@@ -248,7 +248,10 @@ describe('ChessJsRules', () => {
 
   describe('Error Handling', () => {
     test('should handle invalid FEN', () => {
+      // Suppress expected console error for this test
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       expect(() => rules.setFEN('invalid fen')).toThrow();
+      consoleSpy.mockRestore();
     });
 
     test('should handle moves from empty squares', () => {
