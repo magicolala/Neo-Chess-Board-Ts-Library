@@ -39,7 +39,7 @@ export class PgnNotation {
         this.metadata = {
             Event: "Casual Game",
             Site: "Neo Chess Board",
-            Date: new Date().toISOString().split('T')[0],
+            Date: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
             Round: "1",
             White: "Player 1",
             Black: "Player 2",
@@ -58,7 +58,7 @@ export class PgnNotation {
         // Set default values if not provided
         if (!this.metadata.Event) this.metadata.Event = "Casual Game";
         if (!this.metadata.Site) this.metadata.Site = "Neo Chess Board";
-        if (!this.metadata.Date) this.metadata.Date = new Date().toISOString().split('T')[0];
+        if (!this.metadata.Date) this.metadata.Date = new Date().toISOString().split('T')[0].replace(/-/g, '.');
         if (!this.metadata.Round) this.metadata.Round = "1";
         if (!this.metadata.White) this.metadata.White = "Player 1";
         if (!this.metadata.Black) this.metadata.Black = "Player 2";
@@ -101,16 +101,45 @@ export class PgnNotation {
      * Import moves from a chess.js game
      */
     importFromChessJs(chess: any): void {
-        // Get the move history in standard algebraic notation
-        const history = chess.history(); // Cette méthode retourne la notation algébrique abrégée
-        this.moves = [];
-        
-        // Process moves to create proper PGN format
-        for (let i = 0; i < history.length; i += 2) {
-            const moveNumber = Math.floor(i / 2) + 1;
-            const whiteMove = history[i];
-            const blackMove = history[i + 1];
-            this.addMove(moveNumber, whiteMove, blackMove);
+        try {
+            // Try to get PGN directly from chess.js which should have proper SAN notation
+            if (typeof chess.pgn === 'function') {
+                const pgnString = chess.pgn();
+                // Parse the PGN string to extract moves
+                this.parsePgnMoves(pgnString);
+            } else {
+                // Fallback: try to get moves from detailed history
+                const detailedHistory = chess.history({ verbose: true });
+                this.moves = [];
+                
+                for (let i = 0; i < detailedHistory.length; i++) {
+                    const move = detailedHistory[i];
+                    const moveNumber = Math.floor(i / 2) + 1;
+                    const isWhite = i % 2 === 0;
+                    
+                    if (isWhite) {
+                        this.addMove(moveNumber, move.san);
+                    } else {
+                        const existingMove = this.moves.find(m => m.moveNumber === moveNumber);
+                        if (existingMove) {
+                            existingMove.black = move.san;
+                        } else {
+                            this.addMove(moveNumber, undefined, move.san);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            // Final fallback: use simple history (might be in wrong format but at least something)
+            console.warn('Failed to import proper PGN notation, using fallback:', error);
+            const history = chess.history();
+            this.moves = [];
+            for (let i = 0; i < history.length; i += 2) {
+                const moveNumber = Math.floor(i / 2) + 1;
+                const whiteMove = history[i];
+                const blackMove = history[i + 1];
+                this.addMove(moveNumber, whiteMove, blackMove);
+            }
         }
         
         // Set result based on game state
@@ -130,7 +159,15 @@ export class PgnNotation {
         this.moves = [];
         
         // Remove comments and variations for now (simple implementation)
-        const cleanPgn = pgnText.replace(/\{[^}]*\}/g, '').replace(/\([^)]*\)/g, '');
+        let cleanPgn = pgnText.replace(/\{[^}]*\}/g, '').replace(/\([^)]*\)/g, '');
+        
+        // Extract and remove the result from the end if present
+        const resultPattern = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/;
+        const resultMatch = cleanPgn.match(resultPattern);
+        if (resultMatch) {
+            this.setResult(resultMatch[1]);
+            cleanPgn = cleanPgn.replace(resultPattern, '');
+        }
         
         // Split by move numbers and process
         const movePattern = /(\d+)\.\s*([^\s]+)(?:\s+([^\s]+))?/g;
@@ -141,8 +178,11 @@ export class PgnNotation {
             const whiteMove = match[2];
             const blackMove = match[3];
             
+            // Additional check to make sure we don't include result markers as moves
             if (whiteMove && !['1-0', '0-1', '1/2-1/2', '*'].includes(whiteMove)) {
-                this.addMove(moveNumber, whiteMove, blackMove);
+                // Filter out result markers from black move as well
+                const filteredBlackMove = blackMove && !['1-0', '0-1', '1/2-1/2', '*'].includes(blackMove) ? blackMove : undefined;
+                this.addMove(moveNumber, whiteMove, filteredBlackMove);
             }
         }
     }

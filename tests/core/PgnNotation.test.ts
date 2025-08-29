@@ -7,7 +7,18 @@ import { PgnNotation, PgnMetadata } from '../../src/core/PgnNotation';
 
 // Mock chess.js for testing
 const mockChess = {
-  history: () => ['e4', 'e5', 'Nf3', 'Nc6'],
+  history: (options?: { verbose?: boolean }) => {
+    if (options?.verbose) {
+      return [
+        { san: 'e4', from: 'e2', to: 'e4' },
+        { san: 'e5', from: 'e7', to: 'e5' },
+        { san: 'Nf3', from: 'g1', to: 'f3' },
+        { san: 'Nc6', from: 'b8', to: 'c6' }
+      ];
+    }
+    return ['e4', 'e5', 'Nf3', 'Nc6'];
+  },
+  pgn: () => '1. e4 e5 2. Nf3 Nc6',
   isCheckmate: () => false,
   isStalemate: () => false,
   isThreefoldRepetition: () => false,
@@ -72,7 +83,7 @@ describe('PgnNotation', () => {
       expect(pgnOutput).toContain('[Site "Neo Chess Board"]');
       expect(pgnOutput).toContain('[White "Player 1"]');
       expect(pgnOutput).toContain('[Black "Player 2"]');
-      expect(pgnOutput).toMatch(/\[Date "\d{4}-\d{2}-\d{2}"\]/);
+      expect(pgnOutput).toMatch(/\[Date "\d{4}\.\d{2}\.\d{2}"\]/);
     });
 
     test('should place required headers first', () => {
