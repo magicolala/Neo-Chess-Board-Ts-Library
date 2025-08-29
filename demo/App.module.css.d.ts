@@ -23,5 +23,16 @@ declare const styles: {
   readonly buttonCopy: string;
   readonly buttonReset: string;
   readonly buttonExport: string;
+  readonly loader: string;
+  readonly loaderLarge: string;
+  readonly loadingOverlay: string;
+  readonly loadingText: string;
+  readonly skeletonLoader: string;
+  readonly skeletonText: string;
+  readonly skeletonButton: string;
+  readonly buttonLoading: string;
+  readonly boardLoading: string;
+  readonly dotLoader: string;
+  readonly pulseLoader: string;
 };
 export = styles;

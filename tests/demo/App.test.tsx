@@ -170,6 +170,9 @@ describe('App Component', () => {
       
       await user.click(screen.getByText('Reset'));
       
+      // Attendre que l'opération asynchrone se termine
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       expect(mockPgnRecorder.reset).toHaveBeenCalled();
       expect(mockPgnRecorder.getPGN).toHaveBeenCalled();
     });
@@ -179,6 +182,9 @@ describe('App Component', () => {
       render(<App />);
       
       await user.click(screen.getByText('Exporter'));
+      
+      // Attendre que l'opération asynchrone se termine
+      await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(mockPgnRecorder.setHeaders).toHaveBeenCalledWith({
         Event: 'Playground',
@@ -222,8 +228,9 @@ describe('App Component', () => {
     it('should have correct button layout', () => {
       render(<App />);
       
-      const buttonContainer = screen.getByText('Copier').parentElement;
-      expect(buttonContainer).toHaveClass('buttonGroup');
+      // Le bouton est maintenant un LoadingButton, on cherche le conteneur des boutons
+      const buttonContainer = screen.getByText('Copier').closest('.buttonGroup');
+      expect(buttonContainer).toBeInTheDocument();
     });
   });
 

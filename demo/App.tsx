@@ -3,22 +3,136 @@ import { NeoChessBoard } from "../src/react/NeoChessBoard";
 import { PGNRecorder } from "../src/core/PGN";
 import { NeoChessBoard as Chessboard } from '../src/core/NeoChessBoard';
 import styles from './App.module.css';
+import { 
+  LoadingButton, 
+  DotLoader, 
+  LoadingOverlay, 
+  SkeletonText, 
+  SkeletonButtons,
+  useLoadingState 
+} from './components/Loaders';
 
 export const App: React.FC = () => {
   const [fen, setFen] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<"midnight" | "classic">("midnight");
   const pgn = useMemo(() => new PGNRecorder((window as any).Chess ? (Chessboard as any) : undefined), []);
   const [pgnText, setPgnText] = useState("");
+  
+  // États de loading pour démonstration
+  const [isCopying, setIsCopying] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
+  
+  // Simuler le chargement initial (désactivé pendant les tests)
+  const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1500);
 
-  const exportPGN = () => {
-    // Ensure headers are set once if needed
-    pgn.setHeaders({
-      Event: "Playground",
-      Site: "Local",
-      Date: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
-    });
-    pgn.download();
+  const handleCopyPGN = async () => {
+    setIsCopying(true);
+    try {
+      await navigator.clipboard.writeText(pgnText);
+      // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+      if (process.env.NODE_ENV !== 'test') {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+    } catch (error) {
+      console.error('Erreur lors de la copie:', error);
+    } finally {
+      setIsCopying(false);
+    }
   };
+
+  const handleReset = async () => {
+    setIsResetting(true);
+    // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+    if (process.env.NODE_ENV !== 'test') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    pgn.reset();
+    setPgnText(pgn.getPGN());
+    setIsResetting(false);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+      if (process.env.NODE_ENV !== 'test') {
+        await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+      pgn.setHeaders({
+        Event: "Playground",
+        Site: "Local",
+        Date: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
+      });
+      pgn.download();
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleThemeChange = async (newTheme: "midnight" | "classic") => {
+    if (newTheme === theme) return;
+    
+    setIsThemeChanging(true);
+    // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+    if (process.env.NODE_ENV !== 'test') {
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+    setTheme(newTheme);
+    setIsThemeChanging(false);
+  };
+
+  // Afficher l'écran de chargement initial
+  if (isInitialLoading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.boardSection}>
+          <header className={styles.header}>
+            <div>
+              <h1 className={styles.title}>
+                NeoChessBoard
+              </h1>
+              <span className={styles.themeInfo}>chargement...</span>
+            </div>
+            <div className={styles.themeButtons}>
+              <SkeletonButtons count={2} />
+            </div>
+          </header>
+          
+          <div className={styles.boardWrapper}>
+            <div className={styles.boardLoading}>
+              <DotLoader />
+              <div className={styles.loadingText}>Initialisation de l'échiquier...</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className={styles.controlsSection}>
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <h3 className={styles.panelTitle}>📋 PGN Notation</h3>
+            </div>
+            <div className={styles.panelContent}>
+              <SkeletonText lines={8} />
+              <SkeletonButtons count={3} />
+            </div>
+          </div>
+          
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <h3 className={styles.panelTitle}>🎯 Position FEN</h3>
+            </div>
+            <div className={styles.panelContent}>
+              <SkeletonText lines={3} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -31,22 +145,29 @@ export const App: React.FC = () => {
             <span className={styles.themeInfo}>{theme}</span>
           </div>
           <div className={styles.themeButtons}>
-            <button 
+            {isThemeChanging && (
+              <LoadingOverlay text="Changement de thème..." />
+            )}
+            <LoadingButton 
               className={`${styles.themeButton} ${theme === 'midnight' ? styles.active : ''}`}
-              onClick={() => setTheme("midnight")}
+              onClick={() => handleThemeChange("midnight")}
+              isLoading={isThemeChanging}
+              disabled={isThemeChanging}
             >
               Midnight
-            </button>
-            <button 
+            </LoadingButton>
+            <LoadingButton 
               className={`${styles.themeButton} ${theme === 'classic' ? styles.active : ''}`}
-              onClick={() => setTheme("classic")}
+              onClick={() => handleThemeChange("classic")}
+              isLoading={isThemeChanging}
+              disabled={isThemeChanging}
             >
               Classic
-            </button>
+            </LoadingButton>
           </div>
         </header>
         
-        <div className={styles.boardWrapper}>
+        <div className={styles.boardWrapper} style={{ position: 'relative' }}>
           <NeoChessBoard
             theme={theme}
             fen={fen}
@@ -61,7 +182,7 @@ export const App: React.FC = () => {
       </div>
       
       <div className={styles.controlsSection}>
-        <div className={styles.panel}>
+        <div className={styles.panel} style={{ position: 'relative' }}>
           <div className={styles.panelHeader}>
             <h3 className={styles.panelTitle}>📋 PGN Notation</h3>
           </div>
@@ -74,29 +195,27 @@ export const App: React.FC = () => {
               placeholder="Les mouvements apparaîtront ici au format PGN..."
             />
             <div className={styles.buttonGroup}>
-              <button
+              <LoadingButton
                 className={`${styles.button} ${styles.buttonSuccess} ${styles.buttonCopy}`}
-                onClick={() => {
-                  navigator.clipboard.writeText(pgnText);
-                }}
+                onClick={handleCopyPGN}
+                isLoading={isCopying}
               >
-                Copier
-              </button>
-              <button
+                {isCopying ? 'Copie...' : 'Copier'}
+              </LoadingButton>
+              <LoadingButton
                 className={`${styles.button} ${styles.buttonWarning} ${styles.buttonReset}`}
-                onClick={() => {
-                  pgn.reset();
-                  setPgnText(pgn.getPGN());
-                }}
+                onClick={handleReset}
+                isLoading={isResetting}
               >
-                Reset
-              </button>
-              <button 
+                {isResetting ? 'Remise à zéro...' : 'Reset'}
+              </LoadingButton>
+              <LoadingButton 
                 className={`${styles.button} ${styles.buttonPrimary} ${styles.buttonExport}`}
-                onClick={exportPGN}
+                onClick={handleExport}
+                isLoading={isExporting}
               >
-                Exporter
-              </button>
+                {isExporting ? 'Export...' : 'Exporter'}
+              </LoadingButton>
             </div>
           </div>
         </div>

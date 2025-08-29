@@ -339,6 +339,211 @@
   background: var(--text-muted);
 }
 
+/* Loaders et animations */
+.loader {
+  display: inline-block;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.loader:after {
+  content: " ";
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-color: currentColor transparent currentColor transparent;
+  animation: spin 1.2s linear infinite;
+}
+
+.loaderLarge {
+  width: 40px;
+  height: 40px;
+  margin: 20px auto;
+}
+
+.loaderLarge:after {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--accent-color);
+  border-color: var(--accent-color) transparent var(--accent-color) transparent;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 20, 38, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+.loadingText {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.skeletonLoader {
+  background: linear-gradient(
+    90deg,
+    var(--secondary-bg) 25%,
+    var(--border-color) 50%,
+    var(--secondary-bg) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeletonText {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeletonButton {
+  height: 40px;
+  width: 80px;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.buttonLoading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.buttonLoading .loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
+
+.boardLoading {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--secondary-bg);
+  border-radius: var(--radius-sm);
+}
+
+.dotLoader {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.dotLoader div {
+  position: absolute;
+  top: 33px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.dotLoader div:nth-child(1) {
+  left: 8px;
+  animation: dot1 0.6s infinite;
+}
+
+.dotLoader div:nth-child(2) {
+  left: 8px;
+  animation: dot2 0.6s infinite;
+}
+
+.dotLoader div:nth-child(3) {
+  left: 32px;
+  animation: dot2 0.6s infinite;
+}
+
+.dotLoader div:nth-child(4) {
+  left: 56px;
+  animation: dot3 0.6s infinite;
+}
+
+.pulseLoader {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-color);
+  border-radius: 100%;
+  animation: pulse 1.0s infinite ease-in-out;
+}
+
+/* Animations pour les loaders */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes dot1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes dot3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes dot2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1.0);
+    opacity: 0;
+  }
+}
+
 /* Mode responsive amélioré */
 @media (max-width: 640px) {
   .header {
@@ -354,5 +559,9 @@
   .button {
     flex: 1;
     justify-content: center;
+  }
+  
+  .dotLoader {
+    transform: scale(0.8);
   }
 }
