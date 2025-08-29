@@ -149,6 +149,7 @@
                 <p>✅ Pat détecté</p>
                 <p>✅ Règles spéciales (roque, en passant)</p>
                 <p>✅ Historique des coups</p>
+                <p>✅ Export/Import PGN complet</p>
             </div>
             
             <div class="move-counter">
@@ -194,10 +195,30 @@
             <button onclick="loadPosition('stalemate')">⚖️ Position de pat</button>
             <button onclick="loadPosition('endgame')">♔ Fin de partie</button>
             <button onclick="loadPosition('castling')">🏰 Test roque</button>
+            <button onclick="loadFamousGame()">🌟 Partie Immortelle</button>
+            
+            <h3>Export PGN:</h3>
+            <button onclick="exportPgn()">📄 Voir PGN</button>
+            <button onclick="downloadPgn()">💾 Télécharger PGN</button>
+            <button onclick="showLoadPgnDialog()">📂 Charger PGN</button>
+            <button onclick="copyPgnToClipboard()">📋 Copier PGN</button>
             
             <h3>Historique des coups:</h3>
             <div class="moves-list" id="moves-history">
                 Position initiale
+            </div>
+            
+            <!-- Modal pour afficher/charger PGN -->
+            <div id="pgn-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; max-width: 600px; width: 90%;">
+                    <h3 id="modal-title">Export PGN</h3>
+                    <textarea id="pgn-content" style="width: 100%; height: 200px; font-family: monospace; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; resize: vertical;"></textarea>
+                    <div style="margin-top: 15px; text-align: right;">
+                        <button onclick="closePgnModal()" style="background: #6c757d; margin-right: 10px;">Fermer</button>
+                        <button id="load-pgn-btn" onclick="loadFromPgn()" style="display: none; background: #28a745;">Charger</button>
+                        <button onclick="copyPgnToClipboard()" style="background: #007bff;">Copier</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -219,6 +240,15 @@
         // Variables globales - Créer une instance séparée pour les fonctions avancées
         let chessRules = new ChessJsRules();
         chessRules.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        
+        // Configurer les métadonnées PGN par défaut
+        chessRules.setPgnMetadata({
+            Event: "Demo Neo Chess Board",
+            Site: "Chess.js Integration",
+            White: "Joueur Blanc",
+            Black: "Joueur Noir",
+            Date: new Date().toISOString().split('T')[0]
+        });
 
         // Fonction pour mettre à jour le statut
         function updateStatus() {
@@ -388,6 +418,88 @@
             resetGame();
             setTimeout(playNextMove, 1000);
         };
+        
+        // Fonctions PGN
+        window.exportPgn = function() {
+            const pgn = chessRules.toPgn();
+            document.getElementById('pgn-content').value = pgn;
+            document.getElementById('modal-title').textContent = 'Export PGN - Partie Actuelle';
+            document.getElementById('load-pgn-btn').style.display = 'none';
+            document.getElementById('pgn-modal').style.display = 'block';
+        };
+        
+        window.downloadPgn = function() {
+            const filename = `chess-game-${new Date().toISOString().split('T')[0]}.pgn`;
+            chessRules.downloadPgn(filename);
+        };
+        
+        window.showLoadPgnDialog = function() {
+            document.getElementById('pgn-content').value = '';
+            document.getElementById('modal-title').textContent = 'Charger PGN - Coller votre PGN ici';
+            document.getElementById('load-pgn-btn').style.display = 'inline-block';
+            document.getElementById('pgn-modal').style.display = 'block';
+        };
+        
+        window.loadFromPgn = function() {
+            const pgn = document.getElementById('pgn-content').value.trim();
+            if (!pgn) {
+                alert('Veuillez saisir un PGN valide.');
+                return;
+            }
+            
+            const success = chessRules.loadPgn(pgn);
+            if (success) {
+                board.setPosition(chessRules.getFEN(), true);
+                updateStatus();
+                closePgnModal();
+                alert('PGN chargé avec succès !');
+            } else {
+                alert('Erreur: PGN invalide. Vérifiez le format.');
+            }
+        };
+        
+        window.closePgnModal = function() {
+            document.getElementById('pgn-modal').style.display = 'none';
+        };
+        
+        window.copyPgnToClipboard = function() {
+            const pgnContent = document.getElementById('pgn-content');
+            pgnContent.select();
+            pgnContent.setSelectionRange(0, 99999); // Pour mobile
+            
+            try {
+                document.execCommand('copy');
+                alert('PGN copié dans le presse-papiers !');
+            } catch (err) {
+                console.error('Erreur lors de la copie:', err);
+                alert('Erreur lors de la copie. Sélectionnez et copiez manuellement.');
+            }
+        };
+        
+        // Exemple de PGN célèbre pour les tests
+        window.loadFamousGame = function() {
+            const immortalGame = `[Event "Immortal Game"]
+[Site "London"]
+[Date "1851.06.21"]
+[Round "?"]
+[White "Anderssen, Adolf"]
+[Black "Kieseritzky, Lionel"]
+[Result "1-0"]
+
+1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5 5. Bxb5 Nf6 6. Nf3 Qh6 7. d3 Nh5 8. Nh4 Qg5 9. Nf5 c6 10. g4 Nf6 11. Rg1 cxb5 12. h4 Qg6 13. h5 Qg5 14. Qf3 Ng8 15. Bxf4 Qf6 16. Nc3 Bc5 17. Nd5 Qxb2 18. Bd6 Bxg1 19. e5 Qxa1+ 20. Ke2 Na6 21. Nxg7+ Kd8 22. Qf6+ Nxf6 23. Be7# 1-0`;
+            
+            document.getElementById('pgn-content').value = immortalGame;
+            document.getElementById('modal-title').textContent = 'PGN - Partie Immortelle (Anderssen vs Kieseritzky, 1851)';
+            document.getElementById('load-pgn-btn').style.display = 'inline-block';
+            document.getElementById('pgn-modal').style.display = 'block';
+        };
+        
+        // Fermer le modal en cliquant à l'extérieur
+        document.getElementById('pgn-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePgnModal();
+            }
+        });
     </script>
 </body>
 </html>

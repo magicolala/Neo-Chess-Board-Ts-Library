@@ -3,6 +3,7 @@ export * from "./core/themes";
 export * from "./core/EventBus";
 export * from "./core/LightRules";
 export * from "./core/ChessJsRules";
+export * from "./core/PgnNotation";
 export * from "./core/FlatSprites";
 export * from ".";
 export * from "./core/PGN";

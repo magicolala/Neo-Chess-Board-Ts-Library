@@ -1,14 +1,17 @@
 import { Chess } from 'chess.js';
 import type { RulesAdapter, Move } from './types';
+import { PgnNotation, PgnMetadata } from './PgnNotation';
 
 /**
  * Adapter de règles utilisant chess.js pour une validation complète des coups
  */
 export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
+  private pgnNotation: PgnNotation;
 
   constructor(fen?: string) {
     this.chess = new Chess(fen);
+    this.pgnNotation = new PgnNotation();
   }
 
   /**
@@ -290,5 +293,63 @@ export class ChessJsRules implements RulesAdapter {
    */
   generateFEN(): string {
     return this.chess.fen();
+  }
+
+  /**
+   * Définir les métadonnées PGN pour la partie actuelle
+   */
+  setPgnMetadata(metadata: Partial<PgnMetadata>): void {
+    this.pgnNotation.setMetadata(metadata);
+  }
+
+  /**
+   * Exporter la partie actuelle au format PGN
+   */
+  toPgn(): string {
+    this.pgnNotation.importFromChessJs(this.chess);
+    return this.pgnNotation.toPgn();
+  }
+
+  /**
+   * Télécharger la partie actuelle sous forme de fichier PGN (navigateur uniquement)
+   */
+  downloadPgn(filename?: string): void {
+    this.pgnNotation.importFromChessJs(this.chess);
+    this.pgnNotation.downloadPgn(filename);
+  }
+
+  /**
+   * Obtenir l'instance PgnNotation pour une manipulation avancée
+   */
+  getPgnNotation(): PgnNotation {
+    return this.pgnNotation;
+  }
+
+  /**
+   * Charger une partie à partir d'une chaîne PGN
+   */
+  loadPgn(pgn: string): boolean {
+    try {
+      this.chess.loadPgn(pgn);
+      this.pgnNotation.importFromChessJs(this.chess);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Obtenir la notation PGN du dernier coup joué
+   */
+  getLastMoveNotation(): string | null {
+    const history = this.chess.history();
+    return history.length > 0 ? history[history.length - 1] : null;
+  }
+
+  /**
+   * Obtenir toute l'historique des coups en notation PGN
+   */
+  getPgnMoves(): string[] {
+    return this.chess.history();
   }
 }
