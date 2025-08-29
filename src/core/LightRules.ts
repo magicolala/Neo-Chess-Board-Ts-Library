@@ -142,7 +142,7 @@ export class LightRules implements RulesAdapter {
     return pushes.map(({ f, r, ep }) => ({
       from: (FILES[f0] + RANKS[r0]) as Square,
       to: sq(f, r),
-      ...(ep ? { captured: "p" } : {}),
+      ...(ep ? { captured: "p", ep: true } : {}),
     }));
   }
   move({ from, to, promotion }: { from: Square; to: Square; promotion?: Move["promotion"] }) {

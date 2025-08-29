@@ -373,25 +373,17 @@ export class NeoChessBoard {
       if (!pt) return;
       if (!this.interactive) return;
       
-      // Gestion du clic droit pour les highlights
-      if (e.button === 2 && this.rightClickHighlights) {
+      // Gestion du clic droit pour les flèches (drag & drop)
+      if (e.button === 2) {
         e.preventDefault();
-        const square = this._xyToSquare(pt.x, pt.y);
-        if (this.drawingManager) {
-          this.drawingManager.handleRightClick(square);
+        if (this.drawingManager && this.drawingManager.handleRightMouseDown(pt.x, pt.y)) {
           this.renderAll();
+          return;
         }
-        return;
       }
       
       if (e.button !== 0) return;
       const from = this._xyToSquare(pt.x, pt.y);
-      
-      // Déléguer à DrawingManager pour les interactions avec flèches/highlights
-      if (this.drawingManager && this.drawingManager.handleMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey)) {
-        this.renderAll();
-        return;
-      }
       
       const piece = this._pieceAt(from);
       if (!piece) return;
@@ -425,7 +417,27 @@ export class NeoChessBoard {
     const onUp = (e: PointerEvent) => {
       const pt = this._evt(e);
       
-      // Déléguer à DrawingManager
+      // Gestion du relâchement du clic droit pour les flèches
+      if (e.button === 2) {
+        let handled = false;
+        
+        if (this.drawingManager && pt) {
+          handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
+        }
+        
+        // Si aucune flèche n'a été créée et que c'était un simple clic, gérer le cycle des highlights
+        if (!handled && pt && this.rightClickHighlights) {
+          const square = this._xyToSquare(pt.x, pt.y);
+          if (this.drawingManager) {
+            this.drawingManager.cycleHighlight(square);
+          }
+        }
+        
+        this.renderAll();
+        return;
+      }
+      
+      // Déléguer à DrawingManager pour les autres interactions
       if (this.drawingManager && this.drawingManager.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
         this.renderAll();
         return;

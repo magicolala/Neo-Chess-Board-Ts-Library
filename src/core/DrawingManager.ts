@@ -406,16 +406,16 @@ export class DrawingManager {
   private currentAction: { type: 'none' | 'drawing_arrow', startSquare?: Square } = { type: 'none' };
 
   public handleMouseDown(x: number, y: number, shiftKey: boolean, ctrlKey: boolean): boolean {
-    const square = this.getSquareFromMousePosition(x, y);
-    if (!square) return false;
-
-    if (shiftKey) {
-      // Commencer à dessiner une flèche
-      this.currentAction = { type: 'drawing_arrow', startSquare: square };
-      return true;
-    }
-
+    // Ne pas gérer le clic gauche ici, les flèches se font maintenant au clic droit
     return false;
+  }
+
+  public handleRightMouseDown(x: number, y: number): boolean {
+    const square = this.coordsToSquare(x, y);
+    
+    // Commencer à dessiner une flèche au clic droit
+    this.currentAction = { type: 'drawing_arrow', startSquare: square };
+    return true;
   }
 
   public handleMouseMove(x: number, y: number): boolean {
@@ -424,9 +424,15 @@ export class DrawingManager {
   }
 
   public handleMouseUp(x: number, y: number): boolean {
+    // Cette méthode n'est plus utilisée pour les flèches (clic droit)
+    this.currentAction = { type: 'none' };
+    return false;
+  }
+
+  public handleRightMouseUp(x: number, y: number): boolean {
     if (this.currentAction.type === 'drawing_arrow' && this.currentAction.startSquare) {
-      const endSquare = this.getSquareFromMousePosition(x, y);
-      if (endSquare && endSquare !== this.currentAction.startSquare) {
+      const endSquare = this.coordsToSquare(x, y);
+      if (endSquare !== this.currentAction.startSquare) {
         this.addArrow(this.currentAction.startSquare, endSquare);
         this.currentAction = { type: 'none' };
         return true;

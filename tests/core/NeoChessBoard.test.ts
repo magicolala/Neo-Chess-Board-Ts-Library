@@ -1,8 +1,10 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 
 // Mock DOM environment
+let originalCreateElement: typeof document.createElement;
+
 const createMockElement = (tag: string) => {
-  const element = document.createElement(tag);
+  const element = originalCreateElement.call(document, tag);
   
   // Mock getBoundingClientRect for canvas elements
   if (tag === 'canvas') {
@@ -27,10 +29,12 @@ describe('NeoChessBoard Core', () => {
   let board: NeoChessBoard;
 
   beforeEach(() => {
+    // Store original createElement
+    originalCreateElement = document.createElement;
+    
     container = createMockElement('div') as HTMLDivElement;
     
     // Mock document.createElement
-    const originalCreateElement = document.createElement;
     document.createElement = jest.fn((tag) => createMockElement(tag));
     
     // Mock document.head for style injection

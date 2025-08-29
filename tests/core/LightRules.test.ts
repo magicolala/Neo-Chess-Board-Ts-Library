@@ -56,7 +56,7 @@ describe('LightRules', () => {
       rules.setFEN(fen);
       
       const moves = rules.movesFrom('e5');
-      expect(moves).toContainEqual({ from: 'e5', to: 'd6', captured: 'p' });
+      expect(moves).toContainEqual({ from: 'e5', to: 'd6', captured: 'p', ep: true });
     });
 
     it('should not allow pawn to move if blocked', () => {

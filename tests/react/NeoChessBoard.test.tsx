@@ -112,7 +112,7 @@ describe('NeoChessBoard React Component', () => {
       const onMove = jest.fn();
       let moveCallback: any;
       
-      mockBoard.on.mockImplementation((event, callback) => {
+      (mockBoard.on as jest.Mock).mockImplementation((event: string, callback: Function) => {
         if (event === 'move') {
           moveCallback = callback;
         }
