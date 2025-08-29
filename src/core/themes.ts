@@ -5,7 +5,7 @@ export const THEMES: Record<string, Theme> = {
     light: "#EBEDF0",
     dark: "#B3C0CE",
     boardBorder: "#0F172A0F",
-    whitePiece: "#f8fafc",
+    whitePiece: "#9ca3af",
     blackPiece: "#0f172a",
     pieceShadow: "rgba(0,0,0,0.15)",
     moveFrom: "rgba(250,204,21,0.55)",
