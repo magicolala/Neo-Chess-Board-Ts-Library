@@ -454,7 +454,21 @@ export class DrawingManager {
           color = '#f59e0b'; // orange/jaune
         }
         
-        this.addArrow(this.currentAction.startSquare, endSquare, color);
+        // Vérifier s'il existe déjà une flèche identique (même from, to, et couleur)
+        const existingArrow = this.state.arrows.find(arrow => 
+          arrow.from === this.currentAction.startSquare && 
+          arrow.to === endSquare && 
+          arrow.color === color
+        );
+        
+        if (existingArrow) {
+          // Supprimer la flèche identique
+          this.removeArrow(this.currentAction.startSquare, endSquare);
+        } else {
+          // Ajouter ou remplacer la flèche avec la nouvelle couleur
+          this.addArrow(this.currentAction.startSquare, endSquare, color);
+        }
+        
         this.currentAction = { type: 'none' };
         return true;
       }
