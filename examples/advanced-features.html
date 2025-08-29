@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neo Chess Board - Advanced Features</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 30px;
+      align-items: start;
+    }
+    
+    .board-container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .board-wrapper {
+      width: 500px;
+      height: 500px;
+      margin: 0 auto;
+    }
+    
+    .controls {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .control-group {
+      margin-bottom: 20px;
+    }
+    
+    .control-group h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #e2e8f0;
+    }
+    
+    button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 4px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .instructions {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    
+    h2 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="board-container">
+      <h1>🎯 Advanced Features Demo</h1>
+      <div class="board-wrapper">
+        <div id="board"></div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <h2>✨ New Features</h2>
+      
+      <div class="control-group">
+        <h3>🏹 Arrows</h3>
+        <button onclick="addSampleArrow()">Add Arrow e2→e4</button>
+        <button onclick="addColoredArrow()">Add Red Arrow d1→d8</button>
+        <button onclick="board.clearArrows()">Clear Arrows</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>🎨 Highlights</h3>
+        <button onclick="addHighlight('e5', 'green')">Highlight e5 (Green)</button>
+        <button onclick="addHighlight('d4', 'red')">Highlight d4 (Red)</button>
+        <button onclick="addHighlight('f6', 'blue')">Highlight f6 (Blue)</button>
+        <button onclick="board.clearHighlights()">Clear Highlights</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>⚡ Premoves</h3>
+        <button onclick="setPremoveExample()">Set Premove g1→f3</button>
+        <button onclick="board.clearPremove()">Clear Premove</button>
+        <button onclick="showPremoveStatus()">Show Premove Status</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>🎮 Game Control</h3>
+        <button onclick="board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')">Reset Board</button>
+        <button onclick="board.setPosition('rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 4 4')">Test Position</button>
+        <button onclick="board.clearAllDrawings()">Clear All Drawings</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>💾 State Management</h3>
+        <button onclick="exportDrawings()">Export State</button>
+        <button onclick="importDrawings()">Import State</button>
+      </div>
+      
+      <div class="instructions">
+        <h3>📖 Instructions</h3>
+        <ul>
+          <li><strong>Right-click</strong> on squares to cycle through highlight colors</li>
+          <li><strong>Shift + drag</strong> to draw arrows between squares</li>
+          <li>Use premoves when it's not your turn to prepare the next move</li>
+          <li>Press <strong>Escape</strong> to cancel current drawing action</li>
+        </ul>
+      </div>
+      
+      <div class="status" id="status">
+        Ready to test advanced features!
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { NeoChessBoard } from '../dist/index.js';
+    
+    // Create board with all advanced features enabled
+    window.board = new NeoChessBoard(document.getElementById('board'), {
+      theme: 'classic',
+      orientation: 'white',
+      interactive: true,
+      showCoordinates: true,
+      highlightLegal: true,
+      animationMs: 300,
+      
+      // New advanced options
+      allowPremoves: true,
+      showArrows: true,
+      showHighlights: true,
+      rightClickHighlights: true
+    });
+    
+    // Event listeners
+    board.on('move', (data) => {
+      updateStatus(`Move: ${data.from}→${data.to}`);
+    });
+    
+    board.on('illegal', (data) => {
+      updateStatus(`Illegal move: ${data.from}→${data.to} (${data.reason})`);
+    });
+    
+    board.on('update', (data) => {
+      console.log('Position updated:', data.fen);
+    });
+    
+    // Helper functions
+    window.addSampleArrow = () => {
+      board.addArrow({
+        from: 'e2',
+        to: 'e4', 
+        color: '#ffeb3b',
+        width: 4,
+        opacity: 0.8
+      });
+      updateStatus('Added arrow from e2 to e4');
+    };
+    
+    window.addColoredArrow = () => {
+      board.addArrow({
+        from: 'd1',
+        to: 'd8',
+        color: '#f44336',
+        width: 5,
+        opacity: 0.9
+      });
+      updateStatus('Added red arrow from d1 to d8');
+    };
+    
+    window.addHighlight = (square, type) => {
+      board.addHighlight({
+        square: square,
+        type: type,
+        opacity: 0.7
+      });
+      updateStatus(`Highlighted ${square} in ${type}`);
+    };
+    
+    window.setPremoveExample = () => {
+      board.setPremove({
+        from: 'g1',
+        to: 'f3'
+      });
+      updateStatus('Set premove: g1→f3');
+    };
+    
+    window.showPremoveStatus = () => {
+      const premove = board.getPremove();
+      if (premove) {
+        updateStatus(`Current premove: ${premove.from}→${premove.to}`);
+      } else {
+        updateStatus('No premove set');
+      }
+    };
+    
+    window.exportDrawings = () => {
+      const state = board.exportDrawings();
+      localStorage.setItem('neo-chess-drawings', state);
+      updateStatus('Drawings exported to localStorage');
+    };
+    
+    window.importDrawings = () => {
+      const state = localStorage.getItem('neo-chess-drawings');
+      if (state) {
+        board.importDrawings(state);
+        updateStatus('Drawings imported from localStorage');
+      } else {
+        updateStatus('No saved drawings found');
+      }
+    };
+    
+    window.updateStatus = (message) => {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      setTimeout(() => {
+        status.textContent = 'Ready to test advanced features!';
+      }, 3000);
+    };
+    
+    console.log('Advanced features demo loaded!');
+  </script>
+</body>
+</html>

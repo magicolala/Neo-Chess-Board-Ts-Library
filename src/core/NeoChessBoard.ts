@@ -3,7 +3,8 @@ import { parseFEN, FILES, RANKS, isWhitePiece, sq, sqToFR, clamp, lerp, easeOutC
 import { THEMES } from "./themes";
 import { FlatSprites } from "./FlatSprites";
 import { LightRules } from "./LightRules";
-import type { Square, BoardOptions, Move, RulesAdapter } from "./types";
+import { DrawingManager } from "./DrawingManager";
+import type { Square, BoardOptions, Move, RulesAdapter, Arrow, SquareHighlight, HighlightType, Premove } from "./types";
 
 interface BoardState {
   board: (string | null)[][];
@@ -44,6 +45,15 @@ export class NeoChessBoard {
   private ctxP!: CanvasRenderingContext2D;
   private ctxO!: CanvasRenderingContext2D;
 
+  // Drawing manager for arrows, highlights, premoves
+  private drawingManager!: DrawingManager;
+  
+  // Nouvelles options
+  private allowPremoves: boolean;
+  private showArrows: boolean;
+  private showHighlights: boolean;
+  private rightClickHighlights: boolean;
+
   // State tracking
   private _lastMove: { from: Square; to: Square } | null = null;
   private _premove: { from: Square; to: Square } | null = null;
@@ -54,6 +64,9 @@ export class NeoChessBoard {
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
   private _customHighlights: { squares: Square[] } | null = null;
   private _raf = 0;
+  
+  // État pour le dessin des flèches
+  private _drawingArrow: { from: Square } | null = null;
 
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
@@ -63,6 +76,12 @@ export class NeoChessBoard {
     this.showCoords = options.showCoordinates || false;
     this.highlightLegal = options.highlightLegal !== false;
     this.animationMs = options.animationMs || 300;
+    
+    // Nouvelles options
+    this.allowPremoves = options.allowPremoves !== false;
+    this.showArrows = options.showArrows !== false;
+    this.showHighlights = options.showHighlights !== false;
+    this.rightClickHighlights = options.rightClickHighlights !== false;
 
     // Initialize rules adapter
     this.rules = options.rulesAdapter || new LightRules();
@@ -125,6 +144,11 @@ export class NeoChessBoard {
     this.ctxB = this.cBoard.getContext("2d")!;
     this.ctxP = this.cPieces.getContext("2d")!;
     this.ctxO = this.cOverlay.getContext("2d")!;
+    
+    // Initialiser le DrawingManager
+    this.drawingManager = new DrawingManager(this.cOverlay);
+    this.drawingManager.setOrientation(this.orientation);
+    
     this._rasterize();
     const ro = new ResizeObserver(() => this.resize());
     ro.observe(this.root);
@@ -147,6 +171,12 @@ export class NeoChessBoard {
     this.sizePx = sz;
     this.square = (sz * dpr) / 8;
     this.dpr = dpr;
+    
+    // Mettre à jour les dimensions du DrawingManager
+    if (this.drawingManager) {
+      this.drawingManager.updateDimensions();
+    }
+    
     this.renderAll();
   }
   private _rasterize() {
@@ -237,6 +267,8 @@ export class NeoChessBoard {
       H = this.cOverlay.height;
     ctx.clearRect(0, 0, W, H);
     const s = this.square;
+    
+    // Rendu des éléments classiques (lastMove, selected, etc.)
     if (this._lastMove) {
       const { from, to } = this._lastMove;
       const A = this._sqToXY(from),
@@ -266,9 +298,12 @@ export class NeoChessBoard {
         }
       }
     }
+    
+    // Rendu classique des flèches anciennes (pour compatibilité)
     for (const a of this._arrows) {
       this._drawArrow(a.from, a.to, a.color || (this.theme as any).arrow);
     }
+    
     if (this._premove) {
       const A = this._sqToXY(this._premove.from),
         B = this._sqToXY(this._premove.to);
@@ -280,6 +315,19 @@ export class NeoChessBoard {
       const B = this._sqToXY(this._hoverSq);
       ctx.fillStyle = (this.theme as any).moveTo;
       ctx.fillRect(B.x, B.y, s, s);
+    }
+    
+    // Déléguer le rendu des nouveaux dessins au DrawingManager
+    if (this.drawingManager) {
+      if (this.showArrows) {
+        this.drawingManager.renderArrows();
+      }
+      if (this.showHighlights) {
+        this.drawingManager.renderHighlights();
+      }
+      if (this.allowPremoves) {
+        this.drawingManager.renderPremove();
+      }
     }
   }
   private _drawArrow(from: Square, to: Square, color: string) {
@@ -324,8 +372,27 @@ export class NeoChessBoard {
       const pt = this._evt(e);
       if (!pt) return;
       if (!this.interactive) return;
+      
+      // Gestion du clic droit pour les highlights
+      if (e.button === 2 && this.rightClickHighlights) {
+        e.preventDefault();
+        const square = this._xyToSquare(pt.x, pt.y);
+        if (this.drawingManager) {
+          this.drawingManager.handleRightClick(square);
+          this.renderAll();
+        }
+        return;
+      }
+      
       if (e.button !== 0) return;
       const from = this._xyToSquare(pt.x, pt.y);
+      
+      // Déléguer à DrawingManager pour les interactions avec flèches/highlights
+      if (this.drawingManager && this.drawingManager.handleMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey)) {
+        this.renderAll();
+        return;
+      }
+      
       const piece = this._pieceAt(from);
       if (!piece) return;
       const side = isWhitePiece(piece) ? "w" : "b";
@@ -336,9 +403,16 @@ export class NeoChessBoard {
       this._hoverSq = from;
       this.renderAll();
     };
+    
     const onMove = (e: PointerEvent) => {
       const pt = this._evt(e);
       if (!pt) return;
+      
+      // Déléguer à DrawingManager
+      if (this.drawingManager && this.drawingManager.handleMouseMove(pt.x, pt.y)) {
+        this.renderAll();
+      }
+      
       if (this._dragging) {
         this._dragging.x = pt.x;
         this._dragging.y = pt.y;
@@ -347,9 +421,17 @@ export class NeoChessBoard {
         this._drawOverlay();
       }
     };
+    
     const onUp = (e: PointerEvent) => {
-      if (!this._dragging) return;
       const pt = this._evt(e);
+      
+      // Déléguer à DrawingManager
+      if (this.drawingManager && this.drawingManager.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
+        this.renderAll();
+        return;
+      }
+      
+      if (!this._dragging) return;
       const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
       const from = this._dragging.from;
       this._dragging = null;
@@ -369,6 +451,30 @@ export class NeoChessBoard {
         this._selected = null;
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
+        
+        // Exécuter le premove s'il y en a un
+        if (this.drawingManager) {
+          const premove = this.drawingManager.getPremove();
+          if (premove && this.allowPremoves) {
+            // Essayer d'exécuter le premove après un délai
+            setTimeout(() => {
+              const premoveResult = this.rules.move(premove);
+              if (premoveResult && (premoveResult as any).ok) {
+                const newFen = this.rules.getFEN();
+                const newState = parseFEN(newFen);
+                this.state = newState;
+                this._lastMove = { from: premove.from, to: premove.to };
+                this.drawingManager?.clearPremove();
+                this.renderAll();
+                this.bus.emit("move", { from: premove.from, to: premove.to, fen: newFen });
+              } else {
+                this.drawingManager?.clearPremove();
+                this.renderAll();
+              }
+            }, 100);
+          }
+        }
+        
         this._animateTo(next, old);
         this.bus.emit("move", { from, to: drop!, fen });
       } else {
@@ -378,17 +484,46 @@ export class NeoChessBoard {
         this.bus.emit("illegal", { from, to: drop!, reason: (legal as any)?.reason || "illegal" });
       }
     };
+    
+    // Gestionnaire pour les touches clavier
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Effacer toutes les sélections et dessins temporaires
+        this._selected = null;
+        this._legalCached = null;
+        this._dragging = null;
+        this._hoverSq = null;
+        if (this.drawingManager) {
+          this.drawingManager.cancelCurrentAction();
+        }
+        this.renderAll();
+      }
+    };
+    
+    // Gestionnaire pour le menu contextuel (désactiver le clic droit)
+    const onContextMenu = (e: Event) => {
+      if (this.rightClickHighlights) {
+        e.preventDefault();
+      }
+    };
+    
     this.cOverlay.addEventListener("pointerdown", onDown as any);
+    this.cOverlay.addEventListener("contextmenu", onContextMenu);
     (this as any)._onPointerDown = onDown;
+    (this as any)._onContextMenu = onContextMenu;
     globalThis.addEventListener("pointermove", onMove as any);
     (this as any)._onPointerMove = onMove;
     globalThis.addEventListener("pointerup", onUp as any);
     (this as any)._onPointerUp = onUp;
+    globalThis.addEventListener("keydown", onKeyDown);
+    (this as any)._onKeyDown = onKeyDown;
   }
   private _removeEvents() {
     this.cOverlay.removeEventListener("pointerdown", (this as any)._onPointerDown);
+    this.cOverlay.removeEventListener("contextmenu", (this as any)._onContextMenu);
     globalThis.removeEventListener("pointermove", (this as any)._onPointerMove);
     globalThis.removeEventListener("pointerup", (this as any)._onPointerUp);
+    globalThis.removeEventListener("keydown", (this as any)._onKeyDown);
     (this as any)._ro?.disconnect();
   }
   private _evt(e: PointerEvent) {
@@ -466,5 +601,121 @@ export class NeoChessBoard {
         if (board[r][f] === piece && start[r][f] !== piece) return { r, f };
       }
     return null;
+  }
+
+  // ---- New feature methods ----
+  
+  /**
+   * Ajouter une flèche sur l'échiquier
+   */
+  public addArrow(arrow: Arrow) {
+    if (this.drawingManager) {
+      this.drawingManager.addArrowFromObject(arrow);
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Supprimer une flèche de l'échiquier
+   */
+  public removeArrow(from: Square, to: Square) {
+    if (this.drawingManager) {
+      this.drawingManager.removeArrow(from, to);
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Vider toutes les flèches
+   */
+  public clearArrows() {
+    if (this.drawingManager) {
+      this.drawingManager.clearArrows();
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Ajouter un highlight sur une case
+   */
+  public addHighlight(highlight: SquareHighlight) {
+    if (this.drawingManager) {
+      this.drawingManager.addHighlightFromObject(highlight);
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Supprimer un highlight d'une case
+   */
+  public removeHighlight(square: Square) {
+    if (this.drawingManager) {
+      this.drawingManager.removeHighlight(square);
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Vider tous les highlights
+   */
+  public clearHighlights() {
+    if (this.drawingManager) {
+      this.drawingManager.clearHighlights();
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Définir un premove
+   */
+  public setPremove(premove: Premove) {
+    if (this.drawingManager && this.allowPremoves) {
+      this.drawingManager.setPremoveFromObject(premove);
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Effacer le premove actuel
+   */
+  public clearPremove() {
+    if (this.drawingManager) {
+      this.drawingManager.clearPremove();
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Obtenir le premove actuel
+   */
+  public getPremove(): Premove | null {
+    return this.drawingManager ? this.drawingManager.getPremove() || null : null;
+  }
+
+  /**
+   * Vider tous les dessins (flèches, highlights, premoves)
+   */
+  public clearAllDrawings() {
+    if (this.drawingManager) {
+      this.drawingManager.clearAll();
+      this.renderAll();
+    }
+  }
+
+  /**
+   * Exporter l'état des dessins
+   */
+  public exportDrawings() {
+    return this.drawingManager ? this.drawingManager.exportState() : null;
+  }
+
+  /**
+   * Importer l'état des dessins
+   */
+  public importDrawings(state: any) {
+    if (this.drawingManager) {
+      this.drawingManager.importState(state);
+      this.renderAll();
+    }
   }
 }

@@ -11,6 +11,35 @@ export interface Move {
   ep?: boolean;
 }
 
+// Nouveaux types pour les fonctionnalités avancées
+export interface Arrow {
+  from: Square;
+  to: Square;
+  color: string;
+  width?: number;
+  opacity?: number;
+}
+
+export type HighlightType = 'green' | 'red' | 'blue' | 'yellow' | 'orange' | 'purple';
+
+export interface SquareHighlight {
+  square: Square;
+  type: HighlightType;
+  opacity?: number;
+}
+
+export interface Premove {
+  from: Square;
+  to: Square;
+  promotion?: "q" | "r" | "b" | "n";
+}
+
+export interface DrawingState {
+  arrows: Arrow[];
+  highlights: SquareHighlight[];
+  premove?: Premove;
+}
+
 export interface RulesAdapter {
   setFEN(fen: string): void;
   getFEN(): string;
@@ -51,4 +80,11 @@ export interface BoardOptions {
   highlightLegal?: boolean;
   fen?: string;
   rulesAdapter?: RulesAdapter;
+  // Nouvelles options
+  allowPremoves?: boolean;
+  showArrows?: boolean;
+  showHighlights?: boolean;
+  rightClickHighlights?: boolean;
+  maxArrows?: number;
+  maxHighlights?: number;
 }
