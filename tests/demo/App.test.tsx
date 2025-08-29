@@ -68,14 +68,14 @@ describe('App Component', () => {
     it('should display PGN section', () => {
       render(<App />);
       
-      expect(screen.getByText('PGN')).toBeInTheDocument();
+      expect(screen.getByText('Copier')).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /pgn notation/i })).toBeInTheDocument();
     });
 
     it('should display FEN section', () => {
       render(<App />);
       
-      expect(screen.getByText('FEN')).toBeInTheDocument();
+      expect(screen.getByText('🎯 Position FEN')).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /fen/i })).toBeInTheDocument();
     });
   });
@@ -159,7 +159,7 @@ describe('App Component', () => {
       });
       
       // Then copy PGN
-      fireEvent.click(screen.getByText('Copier PGN'));
+      fireEvent.click(screen.getByText('Copier'));
       
       expect(mockWriteText).toHaveBeenCalledWith('1. e2e4');
     });
@@ -178,7 +178,7 @@ describe('App Component', () => {
       const user = userEvent.setup();
       render(<App />);
       
-      await user.click(screen.getByText('Exporter .pgn'));
+      await user.click(screen.getByText('Exporter'));
       
       expect(mockPgnRecorder.setHeaders).toHaveBeenCalledWith({
         Event: 'Playground',
@@ -216,15 +216,14 @@ describe('App Component', () => {
       const { container } = render(<App />);
       
       const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer.style.display).toBe('grid');
-      expect(mainContainer.style.gridTemplateColumns).toBe('minmax(280px,1fr) 420px');
+      expect(mainContainer).toHaveClass('container');
     });
 
     it('should have correct button layout', () => {
       render(<App />);
       
-      const buttonContainer = screen.getByText('Copier PGN').parentElement;
-      expect(buttonContainer).toHaveStyle('display: flex');
+      const buttonContainer = screen.getByText('Copier').parentElement;
+      expect(buttonContainer).toHaveClass('buttonGroup');
     });
   });
 
@@ -263,7 +262,7 @@ describe('App Component', () => {
       
       render(<App />);
       
-      expect(() => user.click(screen.getByText('Copier PGN'))).not.toThrow();
+      expect(() => user.click(screen.getByText('Copier'))).not.toThrow();
     });
   });
 });

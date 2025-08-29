@@ -1,0 +1,358 @@
+/* Variables CSS pour un design system cohérent */
+:root {
+  --primary-bg: #0b1426;
+  --secondary-bg: #1a2332;
+  --card-bg: #232b3d;
+  --accent-color: #4f46e5;
+  --accent-hover: #6366f1;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Layout principal */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, #0f172a 50%, var(--primary-bg) 100%);
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 440px;
+  gap: 32px;
+  padding: 32px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (max-width: 1200px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+    gap: 16px;
+  }
+}
+
+/* Section de l'échiquier */
+.boardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title::before {
+  content: "♔";
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.themeInfo {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: capitalize;
+  padding: 4px 12px;
+  background: var(--secondary-bg);
+  border-radius: 20px;
+  font-size: 0.875rem;
+}
+
+.themeButtons {
+  display: flex;
+  gap: 8px;
+  background: var(--secondary-bg);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.themeButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.themeButton:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.themeButton.active {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.boardWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Section des contrôles */
+.controlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: 16px 20px;
+  background: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panelTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panelContent {
+  padding: 20px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--secondary-bg);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.1);
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.textareaSmall {
+  min-height: 80px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.button {
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--secondary-bg);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button:hover {
+  background: var(--border-color);
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.buttonPrimary {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.buttonPrimary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.buttonSuccess {
+  background: var(--success-color);
+  border-color: var(--success-color);
+  color: white;
+}
+
+.buttonSuccess:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.buttonWarning {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+  color: white;
+}
+
+.buttonWarning:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+/* Icons pour les boutons */
+.button::before {
+  font-size: 1rem;
+}
+
+.buttonCopy::before {
+  content: "📋";
+}
+
+.buttonReset::before {
+  content: "🔄";
+}
+
+.buttonExport::before {
+  content: "📥";
+}
+
+/* Animations et effets */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container > * {
+  animation: slideIn 0.6s ease-out;
+}
+
+.boardSection {
+  animation-delay: 0.1s;
+}
+
+.controlsSection {
+  animation-delay: 0.2s;
+}
+
+/* Effets de survol améliorés */
+.panel:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.header:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+  transition: all 0.3s ease;
+}
+
+/* Scrollbar personnalisée */
+.textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.textarea::-webkit-scrollbar-track {
+  background: var(--secondary-bg);
+  border-radius: 4px;
+}
+
+.textarea::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Mode responsive amélioré */
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .buttonGroup {
+    justify-content: center;
+  }
+  
+  .button {
+    flex: 1;
+    justify-content: center;
+  }
+}

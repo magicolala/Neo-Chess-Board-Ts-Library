@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { NeoChessBoard } from "../src/react/NeoChessBoard";
 import { PGNRecorder } from "../src/core/PGN";
 import { NeoChessBoard as Chessboard } from '../src/core/NeoChessBoard';
+import styles from './App.module.css';
 
 export const App: React.FC = () => {
   const [fen, setFen] = useState<string | undefined>(undefined);
@@ -20,66 +21,100 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(280px,1fr) 420px",
-        gap: 18,
-        padding: 18,
-        minHeight: "100dvh",
-      }}>
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+    <div className={styles.container}>
+      <div className={styles.boardSection}>
+        <header className={styles.header}>
           <div>
-            NeoChessBoard · <span style={{ opacity: 0.7 }}>{theme}</span>
+            <h1 className={styles.title}>
+              NeoChessBoard
+            </h1>
+            <span className={styles.themeInfo}>{theme}</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setTheme("midnight")}>Midnight</button>
-            <button onClick={() => setTheme("classic")}>Classic</button>
+          <div className={styles.themeButtons}>
+            <button 
+              className={`${styles.themeButton} ${theme === 'midnight' ? styles.active : ''}`}
+              onClick={() => setTheme("midnight")}
+            >
+              Midnight
+            </button>
+            <button 
+              className={`${styles.themeButton} ${theme === 'classic' ? styles.active : ''}`}
+              onClick={() => setTheme("classic")}
+            >
+              Classic
+            </button>
           </div>
-        </div>
-        <NeoChessBoard
-          theme={theme}
-          fen={fen}
-          onMove={({ from, to, fen }) => {
-            pgn.push({ from, to });
-            setPgnText(pgn.getPGN());
-            setFen(fen);
-          }}
-          style={{ width: "min(90vmin,720px)", aspectRatio: "1/1" }}
-        />
-      </div>
-      <div>
-        <h3>PGN</h3>
-        <textarea 
-          value={pgnText} 
-          readOnly 
-          style={{ width: "100%", height: 220 }} 
-          aria-label="PGN notation"
-        />
-        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(pgnText);
-            }}>
-            Copier PGN
-          </button>
-          <button
-            onClick={() => {
-              pgn.reset();
+        </header>
+        
+        <div className={styles.boardWrapper}>
+          <NeoChessBoard
+            theme={theme}
+            fen={fen}
+            onMove={({ from, to, fen }) => {
+              pgn.push({ from, to });
               setPgnText(pgn.getPGN());
-            }}>
-            Reset
-          </button>
-          <button onClick={exportPGN}>Exporter .pgn</button>
+              setFen(fen);
+            }}
+            style={{ width: "min(90vmin,720px)", aspectRatio: "1/1" }}
+          />
         </div>
-        <h3 style={{ marginTop: 18 }}>FEN</h3>
-        <textarea 
-          value={fen || ""} 
-          onChange={(e) => setFen(e.target.value)} 
-          style={{ width: "100%", height: 80 }} 
-          aria-label="FEN position"
-        />
+      </div>
+      
+      <div className={styles.controlsSection}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>📋 PGN Notation</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <textarea 
+              className={styles.textarea}
+              value={pgnText} 
+              readOnly 
+              aria-label="PGN notation"
+              placeholder="Les mouvements apparaîtront ici au format PGN..."
+            />
+            <div className={styles.buttonGroup}>
+              <button
+                className={`${styles.button} ${styles.buttonSuccess} ${styles.buttonCopy}`}
+                onClick={() => {
+                  navigator.clipboard.writeText(pgnText);
+                }}
+              >
+                Copier
+              </button>
+              <button
+                className={`${styles.button} ${styles.buttonWarning} ${styles.buttonReset}`}
+                onClick={() => {
+                  pgn.reset();
+                  setPgnText(pgn.getPGN());
+                }}
+              >
+                Reset
+              </button>
+              <button 
+                className={`${styles.button} ${styles.buttonPrimary} ${styles.buttonExport}`}
+                onClick={exportPGN}
+              >
+                Exporter
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>🎯 Position FEN</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <textarea 
+              className={`${styles.textarea} ${styles.textareaSmall}`}
+              value={fen || ""} 
+              onChange={(e) => setFen(e.target.value)} 
+              aria-label="FEN position"
+              placeholder="Saisissez une position FEN pour définir l'échiquier..."
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

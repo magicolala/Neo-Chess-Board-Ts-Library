@@ -15,7 +15,8 @@ export default {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   extensionsToTreatAsEsm: ['.ts', '.tsx']
 };

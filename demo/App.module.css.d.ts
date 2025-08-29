@@ -1,0 +1,27 @@
+declare const styles: {
+  readonly container: string;
+  readonly boardSection: string;
+  readonly header: string;
+  readonly title: string;
+  readonly themeInfo: string;
+  readonly themeButtons: string;
+  readonly themeButton: string;
+  readonly active: string;
+  readonly boardWrapper: string;
+  readonly controlsSection: string;
+  readonly panel: string;
+  readonly panelHeader: string;
+  readonly panelTitle: string;
+  readonly panelContent: string;
+  readonly textarea: string;
+  readonly textareaSmall: string;
+  readonly buttonGroup: string;
+  readonly button: string;
+  readonly buttonPrimary: string;
+  readonly buttonSuccess: string;
+  readonly buttonWarning: string;
+  readonly buttonCopy: string;
+  readonly buttonReset: string;
+  readonly buttonExport: string;
+};
+export = styles;
