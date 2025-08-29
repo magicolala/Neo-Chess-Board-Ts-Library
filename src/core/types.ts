@@ -18,6 +18,7 @@ export interface Arrow {
   color: string;
   width?: number;
   opacity?: number;
+  knightMove?: boolean;
 }
 
 export type HighlightType = 'green' | 'red' | 'blue' | 'yellow' | 'orange' | 'purple';
@@ -53,6 +54,7 @@ export interface RulesAdapter {
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here
   header?: (h: Record<string, string>) => void; // chess.js header
+  history?(): any[]; // Move history for annotation purposes
 }
 
 export interface Theme {

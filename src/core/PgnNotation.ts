@@ -325,4 +325,230 @@ export class PgnNotation {
             URL.revokeObjectURL(url);
         }
     }
+
+    /**
+     * Add visual annotations to a move
+     */
+    addMoveAnnotations(moveNumber: number, isWhite: boolean, annotations: PgnMoveAnnotations): void {
+        const existingMoveIndex = this.moves.findIndex(move => move.moveNumber === moveNumber);
+        
+        if (existingMoveIndex >= 0) {
+            if (isWhite) {
+                this.moves[existingMoveIndex].whiteAnnotations = annotations;
+            } else {
+                this.moves[existingMoveIndex].blackAnnotations = annotations;
+            }
+        } else {
+            // Create new move if it doesn't exist
+            const newMove: PgnMove = {
+                moveNumber,
+                ...(isWhite ? { whiteAnnotations: annotations } : { blackAnnotations: annotations })
+            };
+            this.moves.push(newMove);
+        }
+    }
+
+    /**
+     * Parse a PGN string with comments containing visual annotations
+     */
+    loadPgnWithAnnotations(pgnString: string): void {
+        // Implementation simplifiée - dans une vraie implémentation,
+        // il faudrait parser complètement le PGN avec toutes ses variations
+        const lines = pgnString.split('\n');
+        let inMoves = false;
+        let movesText = '';
+        
+        for (const line of lines) {
+            if (line.startsWith('[')) {
+                // Header line
+                const match = line.match(/\[([^\s]+)\s+"([^"]*)"]/);
+                if (match) {
+                    this.metadata[match[1]] = match[2];
+                }
+            } else if (line.trim() && !line.startsWith('[')) {
+                inMoves = true;
+                movesText += line + ' ';
+            }
+        }
+        
+        if (inMoves) {
+            this.parseMovesWithAnnotations(movesText);
+        }
+    }
+
+    /**
+     * Parse moves string with embedded annotations
+     */
+    private parseMovesWithAnnotations(movesText: string): void {
+        this.moves = [];
+        
+        // Pattern pour capturer les mouvements avec commentaires
+        const movePattern = /(\d+)\.(\s*)([^\s{]+)(?:\s*\{([^}]*)\})?(?:\s+([^\s{]+)(?:\s*\{([^}]*)\})?)?/g;
+        let match;
+        
+        while ((match = movePattern.exec(movesText)) !== null) {
+            const moveNumber = parseInt(match[1]);
+            const whiteMove = match[3];
+            const whiteComment = match[4];
+            const blackMove = match[5];
+            const blackComment = match[6];
+            
+            // Créer le mouvement de base
+            const pgnMove: PgnMove = {
+                moveNumber,
+                white: whiteMove,
+                black: blackMove
+            };
+            
+            // Parser les annotations dans les commentaires
+            if (whiteComment) {
+                const parsed = PgnAnnotationParser.parseComment(whiteComment);
+                const { arrows, highlights } = PgnAnnotationParser.toDrawingObjects(parsed);
+                
+                pgnMove.whiteComment = PgnAnnotationParser.stripAnnotations(whiteComment);
+                pgnMove.whiteAnnotations = {
+                    arrows,
+                    circles: highlights,
+                    textComment: pgnMove.whiteComment
+                };
+            }
+            
+            if (blackComment) {
+                const parsed = PgnAnnotationParser.parseComment(blackComment);
+                const { arrows, highlights } = PgnAnnotationParser.toDrawingObjects(parsed);
+                
+                pgnMove.blackComment = PgnAnnotationParser.stripAnnotations(blackComment);
+                pgnMove.blackAnnotations = {
+                    arrows,
+                    circles: highlights,
+                    textComment: pgnMove.blackComment
+                };
+            }
+            
+            this.moves.push(pgnMove);
+        }
+    }
+
+    /**
+     * Generate PGN with visual annotations embedded in comments
+     */
+    toPgnWithAnnotations(): string {
+        let pgn = '';
+        
+        // Add headers
+        const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
+        
+        // Add required headers first
+        for (const header of requiredHeaders) {
+            if (this.metadata[header]) {
+                pgn += `[${header} "${this.metadata[header]}"]\n`;
+            }
+        }
+        
+        // Add optional headers
+        for (const [key, value] of Object.entries(this.metadata)) {
+            if (!requiredHeaders.includes(key) && value) {
+                pgn += `[${key} "${value}"]\n`;
+            }
+        }
+        
+        pgn += '\n'; // Empty line after headers
+        
+        // Add moves with annotations
+        let lineLength = 0;
+        const maxLineLength = 80;
+        
+        for (const move of this.moves) {
+            let moveText = `${move.moveNumber}.`;
+            
+            if (move.white) {
+                moveText += ` ${move.white}`;
+                
+                // Add white annotations
+                let whiteComment = '';
+                if (move.whiteAnnotations) {
+                    const annotationText = PgnAnnotationParser.fromDrawingObjects(
+                        move.whiteAnnotations.arrows || [],
+                        move.whiteAnnotations.circles || []
+                    );
+                    whiteComment = annotationText;
+                    if (move.whiteAnnotations.textComment) {
+                        whiteComment = whiteComment ? 
+                            `${annotationText} ${move.whiteAnnotations.textComment}` :
+                            move.whiteAnnotations.textComment;
+                    }
+                } else if (move.whiteComment) {
+                    whiteComment = move.whiteComment;
+                }
+                
+                if (whiteComment) {
+                    moveText += ` {${whiteComment}}`;
+                }
+            }
+            
+            if (move.black) {
+                moveText += ` ${move.black}`;
+                
+                // Add black annotations
+                let blackComment = '';
+                if (move.blackAnnotations) {
+                    const annotationText = PgnAnnotationParser.fromDrawingObjects(
+                        move.blackAnnotations.arrows || [],
+                        move.blackAnnotations.circles || []
+                    );
+                    blackComment = annotationText;
+                    if (move.blackAnnotations.textComment) {
+                        blackComment = blackComment ? 
+                            `${annotationText} ${move.blackAnnotations.textComment}` :
+                            move.blackAnnotations.textComment;
+                    }
+                } else if (move.blackComment) {
+                    blackComment = move.blackComment;
+                }
+                
+                if (blackComment) {
+                    moveText += ` {${blackComment}}`;
+                }
+            }
+            
+            // Check if we need a new line
+            if (lineLength + moveText.length + 1 > maxLineLength) {
+                pgn += '\n';
+                lineLength = 0;
+            }
+            
+            if (lineLength > 0) {
+                pgn += ' ';
+                lineLength++;
+            }
+            
+            pgn += moveText;
+            lineLength += moveText.length;
+        }
+        
+        // Add result
+        if (lineLength > 0) {
+            pgn += ' ';
+        }
+        pgn += this.result;
+        
+        return pgn.trim();
+    }
+
+    /**
+     * Get annotations for a specific move
+     */
+    getMoveAnnotations(moveNumber: number, isWhite: boolean): PgnMoveAnnotations | undefined {
+        const move = this.moves.find(m => m.moveNumber === moveNumber);
+        if (!move) return undefined;
+        
+        return isWhite ? move.whiteAnnotations : move.blackAnnotations;
+    }
+
+    /**
+     * Get all moves with their annotations
+     */
+    getMovesWithAnnotations(): PgnMove[] {
+        return [...this.moves];
+    }
 }

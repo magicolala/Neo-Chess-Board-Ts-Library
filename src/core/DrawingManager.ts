@@ -43,7 +43,8 @@ export class DrawingManager {
       arrow.from === from && arrow.to === to
     );
 
-    const newArrow: Arrow = { from, to, color, width, opacity: 0.8 };
+    const isKnightMove = this.isKnightMove(from, to);
+    const newArrow: Arrow = { from, to, color, width, opacity: 0.8, knightMove: isKnightMove };
 
     if (existingIndex >= 0) {
       this.state.arrows[existingIndex] = newArrow;
@@ -137,6 +138,20 @@ export class DrawingManager {
     return `${fileChar}${rankChar}` as Square;
   }
 
+  // Détection des mouvements de cavalier
+  private isKnightMove(from: Square, to: Square): boolean {
+    const fromFile = from.charCodeAt(0) - 97; // 'a' = 0, 'b' = 1, etc.
+    const fromRank = parseInt(from[1]) - 1;   // '1' = 0, '2' = 1, etc.
+    const toFile = to.charCodeAt(0) - 97;
+    const toRank = parseInt(to[1]) - 1;
+    
+    const dx = Math.abs(toFile - fromFile);
+    const dy = Math.abs(toRank - fromRank);
+    
+    // Un mouvement de cavalier est caractérisé par un mouvement de (1,2) ou (2,1)
+    return (dx === 1 && dy === 2) || (dx === 2 && dy === 1);
+  }
+
   // Rendu des flèches
   public drawArrows(ctx: CanvasRenderingContext2D): void {
     ctx.save();
@@ -149,6 +164,14 @@ export class DrawingManager {
   }
 
   private drawArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
+    if (arrow.knightMove) {
+      this.drawKnightArrow(ctx, arrow);
+    } else {
+      this.drawStraightArrow(ctx, arrow);
+    }
+  }
+
+  private drawStraightArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
     
@@ -198,6 +221,99 @@ export class DrawingManager {
     ctx.lineTo(
       endX - arrowHeadSize * Math.cos(angle + arrowAngle),
       endY - arrowHeadSize * Math.sin(angle + arrowAngle)
+    );
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  private drawKnightArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
+    const [fromX, fromY] = this.squareToCoords(arrow.from);
+    const [toX, toY] = this.squareToCoords(arrow.to);
+    
+    // Centrer les coordonnées sur les cases
+    const centerFromX = fromX + this.squareSize / 2;
+    const centerFromY = fromY + this.squareSize / 2;
+    const centerToX = toX + this.squareSize / 2;
+    const centerToY = toY + this.squareSize / 2;
+    
+    // Calculer le mouvement du cavalier
+    const dx = centerToX - centerFromX;
+    const dy = centerToY - centerFromY;
+    
+    // Déterminer l'orientation du L (horizontal puis vertical ou vertical puis horizontal)
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    
+    let cornerX: number, cornerY: number;
+    
+    // Si le mouvement horizontal est plus grand, on va d'abord horizontalement
+    if (absDx > absDy) {
+      cornerX = centerToX;
+      cornerY = centerFromY;
+    } else {
+      // Sinon, on va d'abord verticalement
+      cornerX = centerFromX;
+      cornerY = centerToY;
+    }
+    
+    // Configuration du style
+    ctx.globalAlpha = arrow.opacity || 0.8;
+    ctx.strokeStyle = arrow.color;
+    ctx.fillStyle = arrow.color;
+    ctx.lineWidth = arrow.width || 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    // Ajustement pour éviter le chevauchement avec les pièces
+    const offset = this.squareSize * 0.2;
+    
+    // Calculer les points de départ et d'arrivée ajustés
+    let startX = centerFromX;
+    let startY = centerFromY;
+    let endX = centerToX;
+    let endY = centerToY;
+    
+    // Ajuster le point de départ
+    if (absDx > absDy) {
+      // Premier segment horizontal
+      startX += dx > 0 ? offset : -offset;
+      endX += dx > 0 ? -offset : offset;
+    } else {
+      // Premier segment vertical
+      startY += dy > 0 ? offset : -offset;
+      endY += dy > 0 ? -offset : offset;
+    }
+    
+    // Dessiner le L avec deux segments
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(cornerX, cornerY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    
+    // Dessiner la pointe de la flèche à la fin
+    const arrowHeadSize = (arrow.width || 4) * 3;
+    const arrowAngle = Math.PI / 6; // 30 degrés
+    
+    // Calculer l'angle du dernier segment
+    let finalAngle: number;
+    if (absDx > absDy) {
+      // Le dernier segment est vertical
+      finalAngle = dy > 0 ? Math.PI / 2 : -Math.PI / 2;
+    } else {
+      // Le dernier segment est horizontal
+      finalAngle = dx > 0 ? 0 : Math.PI;
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+      endX - arrowHeadSize * Math.cos(finalAngle - arrowAngle),
+      endY - arrowHeadSize * Math.sin(finalAngle - arrowAngle)
+    );
+    ctx.lineTo(
+      endX - arrowHeadSize * Math.cos(finalAngle + arrowAngle),
+      endY - arrowHeadSize * Math.sin(finalAngle + arrowAngle)
     );
     ctx.closePath();
     ctx.fill();

@@ -43,5 +43,34 @@ export const NeoChessBoard: React.FC<NeoChessProps> = ({
     boardRef.current.setPosition(fen);
   }, [fen]);
 
+  // Effet pour gérer les changements de thème
+  useEffect(() => {
+    if (!boardRef.current || !opts.theme) return;
+    boardRef.current.setTheme(opts.theme);
+  }, [opts.theme]);
+
+  // Effet pour gérer les autres changements d'options qui nécessitent une recréation
+  useEffect(() => {
+    if (!boardRef.current) return;
+    
+    // Recréer le board avec les nouvelles options (sauf le thème)
+    const currentFen = boardRef.current.getPosition();
+    boardRef.current.destroy();
+    
+    if (!ref.current) return;
+    const b = new Chessboard(ref.current, { ...opts, fen: currentFen });
+    boardRef.current = b;
+    
+    const off1 = b.on("move", (e) => onMove?.(e));
+    const off2 = b.on("illegal", (e) => onIllegal?.(e));
+    const off3 = b.on("update", (e) => onUpdate?.(e));
+    
+    return () => {
+      off1?.();
+      off2?.();
+      off3?.();
+    };
+  }, [opts.orientation, opts.interactive, opts.showCoordinates]);
+
   return <div ref={ref} className={className} style={style} />;
 };

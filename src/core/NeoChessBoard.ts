@@ -115,6 +115,12 @@ export class NeoChessBoard {
     this.root.innerHTML = "";
   }
 
+  public setTheme(themeName: string) {
+    this.theme = THEMES[themeName] || THEMES["classic"];
+    this._rasterize();
+    this.renderAll();
+  }
+
   public setFEN(fen: string, immediate = false) {
     const old = this.state;
     const oldTurn = this.state.turn;
@@ -816,5 +822,130 @@ export class NeoChessBoard {
       this.drawingManager.importState(state);
       this.renderAll();
     }
+  }
+
+  /**
+   * Charger un PGN avec annotations visuelles
+   */
+  public loadPgnWithAnnotations(pgnString: string): boolean {
+    try {
+      // D'abord charger le PGN normalement dans les règles
+      const success = (this.rules as any).loadPgn ? (this.rules as any).loadPgn(pgnString) : false;
+      
+      if (success) {
+        // Puis extraire et afficher les annotations visuelles
+        const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
+        if (pgnNotation) {
+          pgnNotation.loadPgnWithAnnotations(pgnString);
+          this.displayAnnotationsFromPgn(pgnNotation);
+        }
+        
+        // Mettre à jour l'état du board
+        this.state = parseFEN(this.rules.getFEN());
+        this.renderAll();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Erreur lors du chargement du PGN avec annotations:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Afficher les annotations du dernier coup joué
+   */
+  private displayAnnotationsFromPgn(pgnNotation: any): void {
+    if (!this.drawingManager) return;
+    
+    // Effacer les annotations précédentes
+    this.drawingManager.clearArrows();
+    this.drawingManager.clearHighlights();
+    
+    // Obtenir le dernier coup joué
+    const moves = pgnNotation.getMovesWithAnnotations();
+    if (moves.length === 0) return;
+    
+    const lastMove = moves[moves.length - 1];
+    const moveCount = (lastMove.white ? 1 : 0) + (lastMove.black ? 1 : 0);
+    const totalMoves = moves.reduce((acc: number, move: any) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0), 0);
+    
+    // Déterminer quelles annotations afficher (du dernier coup effectué)
+    let annotationsToShow: any = null;
+    
+    if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
+      // Le dernier coup était noir
+      annotationsToShow = lastMove.blackAnnotations;
+    } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
+      // Le dernier coup était blanc
+      annotationsToShow = lastMove.whiteAnnotations;
+    }
+    
+    if (annotationsToShow) {
+      // Afficher les flèches
+      if (annotationsToShow.arrows) {
+        for (const arrow of annotationsToShow.arrows) {
+          this.drawingManager.addArrowFromObject(arrow);
+        }
+      }
+      
+      // Afficher les cercles
+      if (annotationsToShow.circles) {
+        for (const circle of annotationsToShow.circles) {
+          this.drawingManager.addHighlightFromObject(circle);
+        }
+      }
+    }
+  }
+
+  /**
+   * Ajouter des annotations visuelles au coup actuel et les sauvegarder dans le PGN
+   */
+  public addAnnotationsToCurrentMove(arrows: Arrow[] = [], circles: SquareHighlight[] = [], comment: string = ''): void {
+    if (!this.drawingManager) return;
+    
+    // Obtenir la notation PGN si disponible
+    const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
+    
+    if (pgnNotation) {
+      // Déterminer le numéro de coup et la couleur
+      const moveHistory = this.rules.history ? this.rules.history() : [];
+      const moveCount = moveHistory.length;
+      const moveNumber = Math.floor(moveCount / 2) + 1;
+      const isWhite = moveCount % 2 === 0;
+      
+      // Ajouter les annotations au PGN
+      pgnNotation.addMoveAnnotations(moveNumber, isWhite, {
+        arrows,
+        circles,
+        textComment: comment
+      });
+    }
+    
+    // Afficher immédiatement les annotations sur l'échiquier
+    for (const arrow of arrows) {
+      this.drawingManager.addArrowFromObject(arrow);
+    }
+    
+    for (const circle of circles) {
+      this.drawingManager.addHighlightFromObject(circle);
+    }
+    
+    this.renderAll();
+  }
+
+  /**
+   * Exporter le PGN avec toutes les annotations visuelles
+   */
+  public exportPgnWithAnnotations(): string {
+    const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
+    
+    if (pgnNotation && typeof pgnNotation.toPgnWithAnnotations === 'function') {
+      return pgnNotation.toPgnWithAnnotations();
+    }
+    
+    // Fallback vers le PGN standard
+    return (this.rules as any).toPgn ? (this.rules as any).toPgn() : '';
   }
 }
