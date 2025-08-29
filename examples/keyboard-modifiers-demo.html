@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Chess Board - Keyboard Modifiers Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .board-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        .color-legend {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .color-legend h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .color-square {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+        }
+        .green { background-color: #22c55e; }
+        .red { background-color: #ef4444; }
+        .yellow { background-color: #f59e0b; }
+        .blue { background-color: #3b82f6; }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="board-container">
+            <h1>Keyboard Modifiers Demo</h1>
+            <p class="subtitle">Test les modificateurs clavier avec les flèches et highlights</p>
+            
+            <!-- Le board sera injecté ici -->
+            <div id="board"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="instructions">
+                <h3>🖱️ Comment utiliser:</h3>
+                <ul>
+                    <li><strong>Flèches:</strong> Clic droit + glisser</li>
+                    <li><strong>Highlights:</strong> Clic droit sur une case</li>
+                    <li><strong>Modificateurs:</strong>
+                        <ul>
+                            <li><kbd>Shift</kbd> = Vert</li>
+                            <li><kbd>Ctrl</kbd> = Rouge</li>
+                            <li><kbd>Alt</kbd> = Jaune</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="color-legend">
+                <h3>Légende des couleurs:</h3>
+                <div class="color-item">
+                    <div class="color-square green"></div>
+                    <span><kbd>Shift</kbd> + clic droit</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-square red"></div>
+                    <span><kbd>Ctrl</kbd> + clic droit</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-square yellow"></div>
+                    <span><kbd>Alt</kbd> + clic droit</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-square blue"></div>
+                    <span>Sans modificateur (cycle)</span>
+                </div>
+            </div>
+            
+            <h3>Actions rapides:</h3>
+            <button onclick="clearAll()">🗑️ Effacer tout</button>
+            <button onclick="clearArrows()">🏹 Effacer flèches</button>
+            <button onclick="clearHighlights()">🎯 Effacer highlights</button>
+            <button onclick="addTestArrows()">✨ Flèches test</button>
+            <button onclick="addTestHighlights()">🎨 Highlights test</button>
+            
+            <h3>État actuel:</h3>
+            <div id="status">
+                <p><strong>Flèches:</strong> <span id="arrow-count">0</span></p>
+                <p><strong>Highlights:</strong> <span id="highlight-count">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { NeoChessBoard } from '../dist/index.js';
+
+        // Créer le board
+        const board = new NeoChessBoard('#board', {
+            position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            showArrows: true,
+            showHighlights: true,
+            rightClickHighlights: true,
+            interactive: true
+        });
+
+        // Fonction pour mettre à jour le statut
+        function updateStatus() {
+            if (!board.drawingManager) return;
+            
+            const arrows = board.drawingManager.getArrows();
+            const highlights = board.drawingManager.getHighlights();
+            
+            document.getElementById('arrow-count').textContent = arrows.length;
+            document.getElementById('highlight-count').textContent = highlights.length;
+        }
+
+        // Actions globales
+        window.clearAll = function() {
+            if (board.drawingManager) {
+                board.drawingManager.clearAllDrawings();
+                board.renderAll();
+                updateStatus();
+            }
+        };
+
+        window.clearArrows = function() {
+            if (board.drawingManager) {
+                board.drawingManager.clearArrows();
+                board.renderAll();
+                updateStatus();
+            }
+        };
+
+        window.clearHighlights = function() {
+            if (board.drawingManager) {
+                board.drawingManager.clearHighlights();
+                board.renderAll();
+                updateStatus();
+            }
+        };
+
+        window.addTestArrows = function() {
+            if (!board.drawingManager) return;
+            
+            // Ajouter quelques flèches de test avec différentes couleurs
+            board.drawingManager.addArrow('e2', 'e4', '#22c55e'); // Vert
+            board.drawingManager.addArrow('d2', 'd4', '#ef4444'); // Rouge
+            board.drawingManager.addArrow('c2', 'c4', '#f59e0b'); // Jaune
+            board.drawingManager.addArrow('f2', 'f4', '#ffeb3b'); // Défaut
+            
+            board.renderAll();
+            updateStatus();
+        };
+
+        window.addTestHighlights = function() {
+            if (!board.drawingManager) return;
+            
+            // Ajouter quelques highlights de test
+            board.drawingManager.addHighlight('e1', 'green');
+            board.drawingManager.addHighlight('d1', 'red');
+            board.drawingManager.addHighlight('c1', 'yellow');
+            board.drawingManager.addHighlight('f1', 'blue');
+            
+            board.renderAll();
+            updateStatus();
+        };
+
+        // Écouter les événements pour mettre à jour le statut
+        board.bus.on('*', (event, data) => {
+            // Mettre à jour le statut après un court délai
+            setTimeout(updateStatus, 50);
+        });
+
+        // Mise à jour initiale
+        updateStatus();
+
+        // Ajouter des événements de suivi de la souris pour afficher les modificateurs actifs
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt') {
+                document.body.style.cursor = 'crosshair';
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt') {
+                document.body.style.cursor = 'default';
+            }
+        });
+    </script>
+</body>
+</html>

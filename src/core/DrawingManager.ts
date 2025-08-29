@@ -408,18 +408,24 @@ export class DrawingManager {
   }
 
   // Méthodes d'interaction pour NeoChessBoard
-  private currentAction: { type: 'none' | 'drawing_arrow', startSquare?: Square } = { type: 'none' };
+  private currentAction: { 
+    type: 'none' | 'drawing_arrow', 
+    startSquare?: Square,
+    shiftKey?: boolean,
+    ctrlKey?: boolean,
+    altKey?: boolean
+  } = { type: 'none' };
 
   public handleMouseDown(x: number, y: number, shiftKey: boolean, ctrlKey: boolean): boolean {
     // Ne pas gérer le clic gauche ici, les flèches se font maintenant au clic droit
     return false;
   }
 
-  public handleRightMouseDown(x: number, y: number): boolean {
+  public handleRightMouseDown(x: number, y: number, shiftKey: boolean = false, ctrlKey: boolean = false, altKey: boolean = false): boolean {
     const square = this.coordsToSquare(x, y);
     
-    // Commencer à dessiner une flèche au clic droit
-    this.currentAction = { type: 'drawing_arrow', startSquare: square };
+    // Commencer à dessiner une flèche au clic droit avec les modificateurs
+    this.currentAction = { type: 'drawing_arrow', startSquare: square, shiftKey, ctrlKey, altKey };
     return true;
   }
 
@@ -438,7 +444,17 @@ export class DrawingManager {
     if (this.currentAction.type === 'drawing_arrow' && this.currentAction.startSquare) {
       const endSquare = this.coordsToSquare(x, y);
       if (endSquare !== this.currentAction.startSquare) {
-        this.addArrow(this.currentAction.startSquare, endSquare);
+        // Déterminer la couleur selon les modificateurs
+        let color = '#ffeb3b'; // jaune par défaut
+        if (this.currentAction.shiftKey) {
+          color = '#22c55e'; // vert
+        } else if (this.currentAction.ctrlKey) {
+          color = '#ef4444'; // rouge
+        } else if (this.currentAction.altKey) {
+          color = '#f59e0b'; // orange/jaune
+        }
+        
+        this.addArrow(this.currentAction.startSquare, endSquare, color);
         this.currentAction = { type: 'none' };
         return true;
       }
@@ -446,6 +462,31 @@ export class DrawingManager {
     
     this.currentAction = { type: 'none' };
     return false;
+  }
+
+  public handleHighlightClick(square: Square, shiftKey: boolean = false, ctrlKey: boolean = false, altKey: boolean = false): void {
+    if (shiftKey || ctrlKey || altKey) {
+      // Avec modificateurs, appliquer directement la couleur correspondante
+      let highlightType: HighlightType = 'green';
+      if (shiftKey) {
+        highlightType = 'green';
+      } else if (ctrlKey) {
+        highlightType = 'red';
+      } else if (altKey) {
+        highlightType = 'yellow';
+      }
+      
+      // Si un highlight existe déjà avec la même couleur, le supprimer
+      const existing = this.state.highlights.find(h => h.square === square && h.type === highlightType);
+      if (existing) {
+        this.removeHighlight(square);
+      } else {
+        this.addHighlight(square, highlightType);
+      }
+    } else {
+      // Sans modificateurs, conserver le comportement de cycle existant
+      this.cycleHighlight(square);
+    }
   }
 
   public handleRightClick(square: Square): void {

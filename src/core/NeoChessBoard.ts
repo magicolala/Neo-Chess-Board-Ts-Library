@@ -386,7 +386,7 @@ export class NeoChessBoard {
       // Gestion du clic droit pour les flèches (drag & drop)
       if (e.button === 2) {
         e.preventDefault();
-        if (this.drawingManager && this.drawingManager.handleRightMouseDown(pt.x, pt.y)) {
+        if (this.drawingManager && this.drawingManager.handleRightMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey, e.altKey)) {
           this.renderAll();
           return;
         }
@@ -448,11 +448,11 @@ export class NeoChessBoard {
           handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
         }
         
-        // Si aucune flèche n'a été créée et que c'était un simple clic, gérer le cycle des highlights
+        // Si aucune flèche n'a été créée et que c'était un simple clic, gérer les highlights avec modificateurs
         if (!handled && pt && this.rightClickHighlights) {
           const square = this._xyToSquare(pt.x, pt.y);
           if (this.drawingManager) {
-            this.drawingManager.cycleHighlight(square);
+            this.drawingManager.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
           }
         }
         
