@@ -1,7 +1,11 @@
 /**
  * PGN (Portable Game Notation) generator for chess games
  * Provides functionality to export games in standard PGN format
+ * Supports visual annotations (%cal arrows and %csl circles)
  */
+import { PgnAnnotationParser, type ParsedAnnotations } from './PgnAnnotationParser';
+import type { Arrow, SquareHighlight } from './types';
+
 export interface PgnMetadata {
     Event?: string;
     Site?: string;
@@ -22,12 +26,20 @@ export interface PgnMetadata {
     [key: string]: string | undefined;
 }
 
+export interface PgnMoveAnnotations {
+    arrows?: Arrow[];
+    circles?: SquareHighlight[];
+    textComment?: string;
+}
+
 export interface PgnMove {
     moveNumber: number;
     white?: string;
     black?: string;
     whiteComment?: string;
     blackComment?: string;
+    whiteAnnotations?: PgnMoveAnnotations;
+    blackAnnotations?: PgnMoveAnnotations;
 }
 
 export class PgnNotation {
