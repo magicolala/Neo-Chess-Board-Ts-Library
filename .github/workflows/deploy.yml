@@ -82,11 +82,11 @@ jobs:
     - name: Build documentation
       run: npm run docs:build
 
-    - name: Create dist directory if it doesn't exist
-      run: mkdir -p dist
+    - name: Copy documentation to dist/docs
+      run: cp -r docs-site/docs/.vitepress/dist/* dist/docs/
 
-    - name: Copy documentation to dist
-      run: cp -r docs-site/docs/.vitepress/dist/* dist/
+    - name: Copy index.html to dist
+      run: cp index.html dist/
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
