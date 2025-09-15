@@ -165,54 +165,54 @@ export class DrawingManager {
 
     ctx.save();
     ctx.scale(dpr, dpr);
-    
+
     const squareSize = this.squareSize / dpr;
     const fontSize = Math.max(10, squareSize * 0.18); // Taille de police légèrement réduite
     const filePadding = squareSize * 0.1;
     const rankPadding = squareSize * 0.15;
-    
+
     // Style de police plus discret
     ctx.font = `500 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textBaseline = 'middle';
-    
+
     // Couleurs plus discrètes avec opacité
     const lightSquareColor = 'rgba(240, 217, 181, 0.7)';
     const darkSquareColor = 'rgba(181, 136, 99, 0.7)';
-    
+
     // Dessiner les lettres de colonne (a-h)
     for (let file = 0; file < 8; file++) {
       const char = String.fromCharCode(97 + file); // a-h
-      const x = file * squareSize + (orientation === 'white' ? filePadding : squareSize - filePadding);
-      const y = orientation === 'white' 
-        ? this.canvas.height / dpr - filePadding 
-        : filePadding + fontSize / 2;
-      
+      const x =
+        file * squareSize + (orientation === 'white' ? filePadding : squareSize - filePadding);
+      const y =
+        orientation === 'white'
+          ? this.canvas.height / dpr - filePadding
+          : filePadding + fontSize / 2;
+
       // Utiliser la bonne couleur en fonction de l'orientation et de la case
       const isLightSquare = (file + (orientation === 'white' ? 7 : 0)) % 2 === 1;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-      
+
       ctx.textAlign = orientation === 'white' ? 'left' : 'right';
       ctx.fillText(char, x, y);
     }
-    
+
     // Dessiner les numéros de rangée (1-8)
     for (let rank = 0; rank < 8; rank++) {
       const num = orientation === 'white' ? 8 - rank : rank + 1;
-      const x = orientation === 'white' 
-        ? rankPadding 
-        : this.canvas.width / dpr - rankPadding;
-      const y = rank * squareSize + (orientation === 'white' 
-        ? squareSize - rankPadding 
-        : rankPadding + fontSize / 2);
-      
+      const x = orientation === 'white' ? rankPadding : this.canvas.width / dpr - rankPadding;
+      const y =
+        rank * squareSize +
+        (orientation === 'white' ? squareSize - rankPadding : rankPadding + fontSize / 2);
+
       // Utiliser la bonne couleur en fonction de l'orientation et de la case
       const isLightSquare = (rank + (orientation === 'white' ? 1 : 0)) % 2 === 0;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-      
+
       ctx.textAlign = orientation === 'white' ? 'left' : 'right';
       ctx.fillText(num.toString(), x, y);
     }
-    
+
     ctx.restore();
   }
 
