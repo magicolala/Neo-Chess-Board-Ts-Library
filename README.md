@@ -13,7 +13,7 @@
 
 *Perfect for creating chess applications with Chessbook-like feel and performance*
 
-[🎮 Live Demo](#demo) • [📖 Documentation](#documentation) • [⚡ Quick Start](#quick-start) • [🎨 Themes](#themes)
+[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](#documentation) • [⚡ Quick Start](#quick-start) • [🎨 Themes](#themes)
 
 </div>
 
