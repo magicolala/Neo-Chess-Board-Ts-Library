@@ -91,6 +91,7 @@ export interface BoardOptions {
   maxArrows?: number;
   maxHighlights?: number;
   soundEnabled?: boolean;
+  showSquareNames?: boolean; // Added for square names
 }
 
 export interface PgnMoveAnnotations {

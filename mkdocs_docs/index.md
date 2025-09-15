@@ -119,10 +119,10 @@ Neo Chess Board comes with beautiful built-in themes:
 
 ## 📖 Documentation
 
-- [API Reference](/Neo-Chess-Board-Ts-Library/api.md)
-- [Examples](/Neo-Chess-Board-Ts-Library/examples.md)
-- [PGN Features](/Neo-Chess-Board-Ts-Library/pgn-features.md)
-- [Themes](/Neo-Chess-Board-Ts-Library/themes.md)
+- [API Reference](api.md)
+- [Examples](examples.md)
+- [PGN Features](pgn-features.md)
+- [Themes](themes.md)
 
 ### Core Components
 
