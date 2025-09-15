@@ -6,33 +6,33 @@ export default defineConfig({
   description: "Documentation for Neo Chess Board Library",
   themeConfig: {
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'API', link: '/api' },
-      { text: 'Examples', link: '/examples' },
-      { text: 'Themes', link: '/themes' },
-      { text: 'PGN Features', link: '/pgn-features' },
+      { text: 'Home', link: '/Neo-Chess-Board-Ts-Library/docs/' },
+      { text: 'API', link: '/Neo-Chess-Board-Ts-Library/api.md' },
+      { text: 'Examples', link: '/Neo-Chess-Board-Ts-Library/examples.md' },
+      { text: 'Themes', link: '/Neo-Chess-Board-Ts-Library/themes.md' },
+      { text: 'PGN Features', link: '/Neo-Chess-Board-Ts-Library/pgn-features.md' },
       { text: 'GitHub', link: 'https://github.com/magicolala/Neo-Chess-Board-Ts-Library' }
     ],
     sidebar: [
       {
         text: 'Introduction',
         items: [
-          { text: 'Getting Started', link: '/' },
-          { text: 'Features', link: '/features' }
+          { text: 'Getting Started', link: '/Neo-Chess-Board-Ts-Library/docs/' },
+          { text: 'Features', link: '/Neo-Chess-Board-Ts-Library/docs/features.md' }
         ]
       },
       {
         text: 'Core Concepts',
         items: [
-          { text: 'API Reference', link: '/api' },
-          { text: 'PGN Features', link: '/pgn-features' },
-          { text: 'Themes', link: '/themes' },
+          { text: 'API Reference', link: '/Neo-Chess-Board-Ts-Library/api.md' },
+          { text: 'PGN Features', link: '/Neo-Chess-Board-Ts-Library/pgn-features.md' },
+          { text: 'Themes', link: '/Neo-Chess-Board-Ts-Library/themes.md' },
         ]
       },
       {
         text: 'Examples',
         items: [
-          { text: 'Basic Usage', link: '/examples' },
+          { text: 'Basic Usage', link: '/Neo-Chess-Board-Ts-Library/examples.md' },
           // More specific examples can be added here later
         ]
       }
