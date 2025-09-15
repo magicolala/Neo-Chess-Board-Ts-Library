@@ -30,6 +30,8 @@ theme:
       primary: black
       accent: indigo
 
+docs_dir: mkdocs_docs
+
 nav:
   - Home: index.md
   - API Reference: api.md
