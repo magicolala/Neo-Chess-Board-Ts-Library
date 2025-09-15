@@ -1,97 +1,17 @@
 {
-  "name": "neochessboard",
+  "name": "@magicolala/neo-chess-board",
   "version": "0.1.0",
-  "description": "Canvas chessboard library with React bindings and PGN recorder (Chessbook-like feel)",
-  "keywords": [
-    "chess",
-    "chessboard",
-    "canvas",
-    "react",
-    "typescript",
-    "pgn",
-    "board-games",
-    "ui-components",
-    "game-development",
-    "chess-engine",
-    "interactive",
-    "visualization"
-  ],
-  "author": {
-    "name": "Your Name",
-    "email": "your.email@example.com",
-    "url": "https://github.com/yourusername"
-  },
-  "homepage": "https://github.com/yourusername/neochessboard",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/neochessboard.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/neochessboard/issues"
-  },
-  "type": "module",
-  "main": "dist/index.js",
+  "description": "TS chess board lib",
+  "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  },
+  "repository": "https://github.com/magicolala/Neo-Chess-Board-Ts-Library.git",
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -p tsconfig.json && vite build",
-    "build:lib": "tsc -p tsconfig.json",
-    "build:demo": "vite build",
-    "preview": "vite preview",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false",
-    "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build:lib"
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
-  "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
-  },
-  "optionalDependencies": {
-    "chess.js": "^1.4.0"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/chess.js": "^0.13.7",
-    "@types/jest": "^30.0.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^5.0.2",
-    "identity-obj-proxy": "^3.0.0",
-    "jest": "^30.1.1",
-    "jest-environment-jsdom": "^30.1.1",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "terser": "^5.43.1",
-    "ts-jest": "^29.4.1",
-    "typescript": "^5.5.4",
-    "vite": "^6.3.5"
-  },
-  "license": "MIT"
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }
