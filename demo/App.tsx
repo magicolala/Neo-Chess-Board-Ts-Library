@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { NeoChessBoard } from '../src/react/NeoChessBoard';
 import { ChessJsRules } from '../src/core/ChessJsRules';
 import styles from './App.module.css';
@@ -11,11 +11,32 @@ import {
   useLoadingState,
 } from './components/Loaders';
 
+// Type pour les options de l'échiquier
+interface BoardOptions {
+  showArrows: boolean;
+  showHighlights: boolean;
+  allowPremoves: boolean;
+  showSquareNames: boolean;
+  soundEnabled: boolean;
+  orientation: 'white' | 'black';
+  highlightLegal: boolean;
+}
+
 export const App: React.FC = () => {
   const [fen, setFen] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
   const chessRules = useMemo(() => new ChessJsRules(), []);
   const [pgnText, setPgnText] = useState('');
+  const [boardOptions, setBoardOptions] = useState<BoardOptions>({
+    showArrows: true,
+    showHighlights: true,
+    allowPremoves: true,
+    showSquareNames: true,
+    soundEnabled: true,
+    orientation: 'white',
+    highlightLegal: true,
+  });
+  const boardRef = useRef<any>(null);
 
   // États de loading pour démonstration
   const [isCopying, setIsCopying] = useState(false);
@@ -103,6 +124,81 @@ export const App: React.FC = () => {
     setIsThemeChanging(false);
   };
 
+  const toggleOption = useCallback((option: keyof BoardOptions) => {
+    setBoardOptions((prev) => ({
+      ...prev,
+      [option]: !prev[option],
+    }));
+  }, []);
+
+  const toggleOrientation = useCallback(() => {
+    setBoardOptions((prev) => ({
+      ...prev,
+      orientation: prev.orientation === 'white' ? 'black' : 'white',
+    }));
+  }, []);
+
+  // Ajouter une flèche personnalisée
+  const addRandomArrow = useCallback(() => {
+    if (!boardRef.current) return;
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    const randomSquare = () => {
+      const file = files[Math.floor(Math.random() * files.length)];
+      const rank = ranks[Math.floor(Math.random() * ranks.length)];
+      return `${file}${rank}` as any;
+    };
+
+    const from = randomSquare();
+    let to = randomSquare();
+
+    // S'assurer que les cases sont différentes
+    while (to === from) {
+      to = randomSquare();
+    }
+
+    const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    boardRef.current.addArrow({
+      from,
+      to,
+      color,
+    });
+  }, []);
+
+  // Ajouter une surbrillance personnalisée
+  const addRandomHighlight = useCallback(() => {
+    if (!boardRef.current) return;
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    const randomSquare = () => {
+      const file = files[Math.floor(Math.random() * files.length)];
+      const rank = ranks[Math.floor(Math.random() * ranks.length)];
+      return `${file}${rank}` as any;
+    };
+
+    const square = randomSquare();
+    const types: any[] = ['move', 'capture', 'check', 'selected'];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    boardRef.current.addHighlight({
+      square,
+      type,
+    });
+  }, []);
+
+  // Effacer toutes les surbrillances et flèches
+  const clearAll = useCallback(() => {
+    if (!boardRef.current) return;
+    boardRef.current.clearArrows();
+    boardRef.current.clearHighlights();
+  }, []);
+
   // Afficher l'écran de chargement initial
   if (isInitialLoading) {
     return (
@@ -181,6 +277,7 @@ export const App: React.FC = () => {
 
         <div className={styles.boardWrapper} style={{ position: 'relative' }}>
           <NeoChessBoard
+            ref={boardRef}
             theme={theme}
             fen={fen}
             onMove={({ from, to, fen }) => {
@@ -191,12 +288,89 @@ export const App: React.FC = () => {
               setFen(fen);
             }}
             style={{ width: 'min(90vmin,720px)', aspectRatio: '1/1' }}
-            showSquareNames={true}
+            showSquareNames={boardOptions.showSquareNames}
+            showArrows={boardOptions.showArrows}
+            showHighlights={boardOptions.showHighlights}
+            allowPremoves={boardOptions.allowPremoves}
+            soundEnabled={boardOptions.soundEnabled}
+            orientation={boardOptions.orientation}
+            highlightLegal={boardOptions.highlightLegal}
           />
         </div>
       </div>
 
       <div className={styles.controlsSection}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>⚙️ Options de l'échiquier</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <div className={styles.optionGrid}>
+              <button 
+                className={`${styles.optionButton} ${boardOptions.showArrows ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('showArrows')}
+              >
+                {boardOptions.showArrows ? '✅' : '❌'} Flèches
+              </button>
+              
+              <button 
+                className={`${styles.optionButton} ${boardOptions.showHighlights ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('showHighlights')}
+              >
+                {boardOptions.showHighlights ? '✅' : '❌'} Surbrillances
+              </button>
+
+              <button
+                className={`${styles.optionButton} ${boardOptions.allowPremoves ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('allowPremoves')}
+              >
+                {boardOptions.allowPremoves ? '✅' : '❌'} Pré-mouvements
+              </button>
+
+              <button
+                className={`${styles.optionButton} ${boardOptions.showSquareNames ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('showSquareNames')}
+              >
+                {boardOptions.showSquareNames ? '✅' : '❌'} Noms des cases
+              </button>
+
+              <button
+                className={`${styles.optionButton} ${boardOptions.soundEnabled ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('soundEnabled')}
+              >
+                {boardOptions.soundEnabled ? '🔊' : '🔇'} Sons
+              </button>
+
+              <button
+                className={`${styles.optionButton} ${boardOptions.highlightLegal ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('highlightLegal')}
+              >
+                {boardOptions.highlightLegal ? '✅' : '❌'} Surbrillance légale
+              </button>
+
+              <button className={styles.optionButton} onClick={toggleOrientation}>
+                🔄 Orientation: {boardOptions.orientation === 'white' ? 'Blanc' : 'Noir'}
+              </button>
+
+              <button className={styles.optionButton} onClick={addRandomArrow}>
+                🎯 Ajouter une flèche aléatoire
+              </button>
+
+              <button className={styles.optionButton} onClick={addRandomHighlight}>
+                ✨ Ajouter une surbrillance
+              </button>
+
+              <button
+                className={styles.optionButton}
+                onClick={clearAll}
+                style={{ backgroundColor: '#ffebee', color: '#c62828' }}
+              >
+                🗑️ Tout effacer
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className={styles.panel} style={{ position: 'relative' }}>
           <div className={styles.panelHeader}>
             <h3 className={styles.panelTitle}>📋 PGN Notation</h3>

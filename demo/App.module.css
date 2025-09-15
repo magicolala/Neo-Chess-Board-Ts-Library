@@ -75,6 +75,74 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ===== OPTIONS DE L'ECHIQUIER ===== */
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.optionButton {
+  padding: 10px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.optionButton:hover {
+  background-color: var(--bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.optionButton:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.optionButton.optionActive {
+  background-color: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.optionButton svg {
+  font-size: 1.1em;
+}
+
+/* Style spécifique pour les boutons d'action */
+.optionButton.action {
+  background-color: var(--accent-primary);
+  color: white;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.optionButton.action:hover {
+  background-color: var(--accent-primary-hover);
+}
+
+.optionButton.danger {
+  background-color: var(--error-light);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.optionButton.danger:hover {
+  background-color: #fee2e2;
+}
+
 /* ===== LAYOUT PRINCIPAL ===== */
 
 .container {
