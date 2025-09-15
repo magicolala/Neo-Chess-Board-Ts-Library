@@ -8,7 +8,7 @@ describe('PgnNotation with Annotations', () => {
 
   beforeEach(() => {
     rules = new ChessJsRules();
-    pgnNotation = new PgnNotation();
+    pgnNotation = new PgnNotation(rules);
   });
 
   describe('Loading PGN with annotations', () => {
@@ -26,7 +26,7 @@ describe('PgnNotation with Annotations', () => {
       expect(firstMove.whiteAnnotations?.arrows).toHaveLength(2);
       expect(firstMove.whiteAnnotations?.arrows?.some(a => a.from === 'e1' && a.to === 'e4')).toBe(true);
       expect(firstMove.whiteAnnotations?.arrows?.some(a => a.from === 'd1' && a.to === 'h5')).toBe(true);
-      expect(firstMove.whiteAnnotations?.textComment).toBe('Great opening move! ');
+      expect(firstMove.whiteAnnotations?.textComment).toBe('Great opening move!');
       
       // Check second move (2. Nf3)
       const secondMove = moves[1];
@@ -70,7 +70,7 @@ describe('PgnNotation with Annotations', () => {
       // White annotations
       expect(move.whiteAnnotations?.arrows).toHaveLength(1);
       expect(move.whiteAnnotations?.circles).toHaveLength(2);
-      expect(move.whiteAnnotations?.textComment).toBe('Excellent! ');
+      expect(move.whiteAnnotations?.textComment).toBe('Excellent!');
       
       // Black annotations
       expect(move.blackAnnotations?.arrows).toHaveLength(1);
@@ -83,8 +83,11 @@ describe('PgnNotation with Annotations', () => {
   describe('Adding annotations to moves', () => {
     it('should add annotations to a specific move', () => {
       // Make some moves first
-      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
-      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       const arrows = [{ from: 'e1' as Square, to: 'e4' as Square, color: '#ff0000' }];
       const circles = [{ square: 'e4' as Square, type: 'circle' as const, color: '#00ff00' }];
@@ -106,8 +109,11 @@ describe('PgnNotation with Annotations', () => {
 
     it('should add annotations to black moves', () => {
       // Make some moves first
-      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
-      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       const circles = [{ square: 'e5' as Square, type: 'circle' as const, color: '#ffff00' }];
       
@@ -146,14 +152,17 @@ describe('PgnNotation with Annotations', () => {
   describe('Exporting PGN with annotations', () => {
     it('should export PGN with arrow annotations', () => {
       // Make some moves
-      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
-      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       // Add annotations
       pgnNotation.addMoveAnnotations(1, true, {
         arrows: [
-          { from: 'e1' as Square, to: 'e4' as Square, color: '#ff0000' },
-          { from: 'd1' as Square, to: 'h5' as Square, color: '#00ff00' }
+          { from: 'e1', to: 'e4', color: '#ff0000' },
+          { from: 'd1', to: 'h5', color: '#00ff00' }
         ],
         circles: [],
         textComment: 'Strong opening'
@@ -168,14 +177,17 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should export PGN with circle annotations', () => {
-      rules.move({ from: 'd2' as Square, to: 'd4' as Square });
-      rules.move({ from: 'd7' as Square, to: 'd5' as Square });
+      rules.move({ from: 'd2', to: 'd4' });
+      rules.move({ from: 'd7', to: 'd5' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       pgnNotation.addMoveAnnotations(1, true, {
         arrows: [],
         circles: [
-          { square: 'd4' as Square, type: 'circle' as const, color: '#ff0000' },
-          { square: 'e4' as Square, type: 'circle' as const, color: '#ffff00' }
+          { square: 'd4', type: 'circle', color: '#ff0000' },
+          { square: 'e4', type: 'circle', color: '#ffff00' }
         ],
         textComment: 'Central control'
       });
@@ -187,18 +199,21 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should export PGN with combined annotations', () => {
-      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
-      rules.move({ from: 'c7' as Square, to: 'c5' as Square });
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'c7', to: 'c5' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       pgnNotation.addMoveAnnotations(1, true, {
-        arrows: [{ from: 'e1' as Square, to: 'e4' as Square, color: '#0000ff' }],
-        circles: [{ square: 'e4' as Square, type: 'circle' as const, color: '#00ff00' }],
+        arrows: [{ from: 'e1', to: 'e4', color: '#0000ff' }],
+        circles: [{ square: 'e4', type: 'circle', color: '#00ff00' }],
         textComment: 'King pawn opening'
       });
       
       pgnNotation.addMoveAnnotations(1, false, {
-        arrows: [{ from: 'c7' as Square, to: 'c5' as Square, color: '#ff0000' }],
-        circles: [{ square: 'c5' as Square, type: 'circle' as const, color: '#ff0000' }],
+        arrows: [{ from: 'c7', to: 'c5', color: '#ff0000' }],
+        circles: [{ square: 'c5', type: 'circle', color: '#ff0000' }],
         textComment: 'Sicilian Defense'
       });
       
@@ -213,9 +228,12 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should preserve standard PGN format when no annotations are present', () => {
-      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
-      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
-      rules.move({ from: 'g1' as Square, to: 'f3' as Square });
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+      rules.move({ from: 'g1', to: 'f3' });
+
+      // Import moves into pgnNotation instance
+      pgnNotation.importFromChessJs(rules.getChessInstance());
       
       const standardPgn = pgnNotation.toPgn();
       const annotatedPgn = pgnNotation.toPgnWithAnnotations();
@@ -243,7 +261,7 @@ describe('PgnNotation with Annotations', () => {
       expect(exportedPgn).toContain('Great move!');
       
       // Parse the exported PGN again
-      const secondPgnNotation = new PgnNotation();
+      const secondPgnNotation = new PgnNotation(new ChessJsRules());
       secondPgnNotation.loadPgnWithAnnotations(exportedPgn);
       
       // Should have same moves and annotations

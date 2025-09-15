@@ -25,52 +25,41 @@ export const NeoChessBoard: React.FC<NeoChessProps> = ({
 
   useEffect(() => {
     if (!ref.current) return;
-    const b = new Chessboard(ref.current, { ...opts, fen });
-    boardRef.current = b;
-    const off1 = b.on("move", (e) => onMove?.(e));
-    const off2 = b.on("illegal", (e) => onIllegal?.(e));
-    const off3 = b.on("update", (e) => onUpdate?.(e));
+
+    if (!boardRef.current) {
+      const b = new Chessboard(ref.current, { ...opts, fen });
+      boardRef.current = b;
+    } else {
+      // Update individual options that can be changed after initialization
+      if (fen !== undefined && boardRef.current.getPosition() !== fen) {
+        boardRef.current.setFEN(fen);
+      }
+      if (opts.theme !== undefined) {
+        boardRef.current.setTheme(opts.theme as string);
+      }
+      if (opts.soundEnabled !== undefined) {
+        boardRef.current.setSoundEnabled(opts.soundEnabled);
+      }
+      // Other options like interactive, showCoordinates, etc., are not designed to be changed after initialization.
+      // If they need to be changed, the board instance would need to be re-created.
+    }
+
+    const off1 = boardRef.current.on("move", (e) => onMove?.(e));
+    const off2 = boardRef.current.on("illegal", (e) => onIllegal?.(e));
+    const off3 = boardRef.current.on("update", (e) => onUpdate?.(e));
+
     return () => {
       off1?.();
       off2?.();
       off3?.();
-      b.destroy();
+    };
+  }, [fen, opts, onMove, onIllegal, onUpdate]);
+
+  useEffect(() => {
+    return () => {
+      boardRef.current?.destroy();
     };
   }, []);
-
-  useEffect(() => {
-    if (!boardRef.current || !fen) return;
-    boardRef.current.setPosition(fen);
-  }, [fen]);
-
-  // Effet pour gérer les changements de thème
-  useEffect(() => {
-    if (!boardRef.current || !opts.theme) return;
-    boardRef.current.setTheme(opts.theme);
-  }, [opts.theme]);
-
-  // Effet pour gérer les autres changements d'options qui nécessitent une recréation
-  useEffect(() => {
-    if (!boardRef.current) return;
-    
-    // Recréer le board avec les nouvelles options (sauf le thème)
-    const currentFen = boardRef.current.getPosition();
-    boardRef.current.destroy();
-    
-    if (!ref.current) return;
-    const b = new Chessboard(ref.current, { ...opts, fen: currentFen });
-    boardRef.current = b;
-    
-    const off1 = b.on("move", (e) => onMove?.(e));
-    const off2 = b.on("illegal", (e) => onIllegal?.(e));
-    const off3 = b.on("update", (e) => onUpdate?.(e));
-    
-    return () => {
-      off1?.();
-      off2?.();
-      off3?.();
-    };
-  }, [opts.orientation, opts.interactive, opts.showCoordinates]);
 
   return <div ref={ref} className={className} style={style} />;
 };

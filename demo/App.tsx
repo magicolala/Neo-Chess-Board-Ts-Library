@@ -34,7 +34,8 @@ export const App: React.FC = () => {
     if (fen && isManualFenChange) {
       try {
         chessRules.setFEN(fen);
-        setPgnText(chessRules.toPgn());
+        setFen(chessRules.getFEN()); // Update FEN state with corrected FEN
+        setPgnText(chessRules.toPgn(false));
         setIsManualFenChange(false);
       } catch (error) {
         console.error('FEN invalide:', error);
@@ -65,7 +66,7 @@ export const App: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     chessRules.reset();
-    setPgnText(chessRules.toPgn());
+    setPgnText(chessRules.toPgn(false));
     setFen(chessRules.getFEN());
     setIsResetting(false);
   };
@@ -192,7 +193,7 @@ export const App: React.FC = () => {
               // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
               chessRules.move({ from, to });
               // Obtenir la notation PGN standard depuis chess.js
-              setPgnText(chessRules.toPgn());
+              setPgnText(chessRules.toPgn(false));
               setFen(fen);
             }}
             style={{ width: "min(90vmin,720px)", aspectRatio: "1/1" }}

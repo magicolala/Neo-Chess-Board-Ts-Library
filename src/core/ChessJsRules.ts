@@ -9,6 +9,10 @@ export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
   private pgnNotation: PgnNotation;
 
+  public getChessInstance(): Chess {
+    return this.chess;
+  }
+
   constructor(fen?: string) {
     this.chess = new Chess(fen);
     this.pgnNotation = new PgnNotation();
@@ -26,6 +30,14 @@ export class ChessJsRules implements RulesAdapter {
    */
   setFEN(fen: string): void {
     try {
+      console.log('Attempting to load FEN:', fen);
+      // Ensure FEN has all 6 parts, adding default if missing
+      const fenParts = fen.split(' ');
+      if (fenParts.length === 4) { // Missing en passant, halfmove clock and fullmove number
+        fen += ' - 0 1'; // Default values
+      } else if (fenParts.length === 5) { // Missing fullmove number
+        fen += ' 1'; // Default value
+      }
       this.chess.load(fen);
     } catch (error) {
       console.error('Invalid FEN:', fen, error);
@@ -305,9 +317,9 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Exporter la partie actuelle au format PGN
    */
-  toPgn(): string {
+    toPgn(includeHeaders: boolean = true): string {
     this.pgnNotation.importFromChessJs(this.chess);
-    return this.pgnNotation.toPgn();
+    return this.pgnNotation.toPgn(includeHeaders);
   }
 
   /**

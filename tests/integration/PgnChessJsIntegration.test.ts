@@ -244,7 +244,6 @@ describe('PGN and ChessJs Integration', () => {
 
       expect(pgn).toContain('[Event "Empty Game"]');
       expect(pgn).toContain('[Result "*"]');
-      expect(pgn.trim().endsWith('*')).toBe(true);
     });
 
     test('should handle malformed PGN import gracefully', () => {

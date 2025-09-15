@@ -92,3 +92,19 @@ export interface BoardOptions {
   maxHighlights?: number;
   soundEnabled?: boolean;
 }
+
+export interface PgnMoveAnnotations {
+  arrows?: Arrow[];
+  circles?: SquareHighlight[];
+  textComment?: string;
+}
+
+export interface PgnMove {
+  moveNumber: number;
+  white?: string;
+  black?: string;
+  whiteComment?: string;
+  blackComment?: string;
+  whiteAnnotations?: PgnMoveAnnotations;
+  blackAnnotations?: PgnMoveAnnotations;
+}

@@ -14,7 +14,7 @@ export interface ParsedAnnotations {
 // Regular expressions for parsing annotations
 const CAL_REGEX = /%cal\s+([^%\s]+)/g;
 const CSL_REGEX = /%csl\s+([^%\s]+)/g;
-const VISUAL_ANNOTATION_REGEX = /%(?:cal|csl)\s+[^%\s]+/g;
+const VISUAL_ANNOTATION_REGEX = /%(?:cal|csl)\s+[^%\s]+/;
 const SQUARE_REGEX = /^[a-h][1-8]$/;
 
 // Color mapping
@@ -37,12 +37,16 @@ export class PgnAnnotationParser {
    * Parse visual annotations from a PGN comment
    */
   static parseComment(comment: string): ParsedAnnotations {
+    // Strip outer curly braces if present
+    let processingComment = comment.startsWith('{') && comment.endsWith('}')
+      ? comment.substring(1, comment.length - 1)
+      : comment;
+
     const arrows: Arrow[] = [];
     const highlights: Array<SquareHighlight & { color: string }> = [];
-    let textComment = comment;
-
+    
     // Parse arrows (%cal)
-    const arrowMatches = comment.matchAll(CAL_REGEX);
+    const arrowMatches = [...processingComment.matchAll(CAL_REGEX)]; // Use spread to get all matches at once
     for (const match of arrowMatches) {
       const arrowSpecs = match[1].split(',');
       for (const spec of arrowSpecs) {
@@ -61,12 +65,12 @@ export class PgnAnnotationParser {
           }
         }
       }
-      // Remove this annotation from text
-      textComment = textComment.replace(match[0], ' ');
+      // Remove this annotation from the processingComment
+      processingComment = processingComment.replace(match[0], ' ');
     }
 
     // Parse circles (%csl)
-    const circleMatches = comment.matchAll(CSL_REGEX);
+    const circleMatches = [...processingComment.matchAll(CSL_REGEX)]; // Use spread to get all matches at once
     for (const match of circleMatches) {
       const circleSpecs = match[1].split(',');
       for (const spec of circleSpecs) {
@@ -84,12 +88,12 @@ export class PgnAnnotationParser {
           }
         }
       }
-      // Remove this annotation from text
-      textComment = textComment.replace(match[0], ' ');
+      // Remove this annotation from the processingComment
+      processingComment = processingComment.replace(match[0], ' ');
     }
 
-    // Clean up the text comment
-    textComment = textComment.replace(/\s+/g, ' ').trim();
+    // The remaining text in processingComment is the actual text comment
+    let textComment = processingComment.replace(/\s+/g, ' ').trim();
 
     return {
       arrows,
@@ -113,7 +117,7 @@ export class PgnAnnotationParser {
    */
   static stripAnnotations(comment: string): string {
     return comment
-      .replace(VISUAL_ANNOTATION_REGEX, ' ')
+      .replace(new RegExp(VISUAL_ANNOTATION_REGEX.source, 'g'), '')
       .replace(/\s+/g, ' ')
       .trim();
   }

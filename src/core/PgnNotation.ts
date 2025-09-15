@@ -4,7 +4,7 @@
  * Supports visual annotations (%cal arrows and %csl circles)
  */
 import { PgnAnnotationParser, type ParsedAnnotations } from './PgnAnnotationParser';
-import type { Arrow, SquareHighlight } from './types';
+import type { Arrow, SquareHighlight, RulesAdapter, PgnMove, PgnMoveAnnotations } from './types';
 
 export interface PgnMetadata {
     Event?: string;
@@ -26,28 +26,14 @@ export interface PgnMetadata {
     [key: string]: string | undefined;
 }
 
-export interface PgnMoveAnnotations {
-    arrows?: Arrow[];
-    circles?: SquareHighlight[];
-    textComment?: string;
-}
-
-export interface PgnMove {
-    moveNumber: number;
-    white?: string;
-    black?: string;
-    whiteComment?: string;
-    blackComment?: string;
-    whiteAnnotations?: PgnMoveAnnotations;
-    blackAnnotations?: PgnMoveAnnotations;
-}
-
 export class PgnNotation {
     private metadata: PgnMetadata;
     private moves: PgnMove[];
     private result: string;
+    private rulesAdapter?: RulesAdapter;
 
-    constructor() {
+    constructor(rulesAdapter?: RulesAdapter) {
+        this.rulesAdapter = rulesAdapter;
         this.metadata = {
             Event: "Casual Game",
             Site: "Neo Chess Board",
@@ -85,10 +71,14 @@ export class PgnNotation {
         
         if (existingMoveIndex >= 0) {
             // Update existing move
-            if (whiteMove) this.moves[existingMoveIndex].white = whiteMove;
-            if (blackMove) this.moves[existingMoveIndex].black = blackMove;
-            if (whiteComment) this.moves[existingMoveIndex].whiteComment = whiteComment;
-            if (blackComment) this.moves[existingMoveIndex].blackComment = blackComment;
+            const move = this.moves[existingMoveIndex];
+            if (whiteMove) move.white = whiteMove;
+            if (blackMove) move.black = blackMove;
+            if (whiteComment) move.whiteComment = whiteComment;
+            if (blackComment) move.blackComment = blackComment;
+            // Ensure annotations are initialized if they don't exist
+            if (!move.whiteAnnotations) move.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
+            if (!move.blackAnnotations) move.blackAnnotations = { arrows: [], circles: [], textComment: '' };
         } else {
             // Add new move
             this.moves.push({
@@ -96,7 +86,9 @@ export class PgnNotation {
                 white: whiteMove,
                 black: blackMove,
                 whiteComment,
-                blackComment
+                blackComment,
+                whiteAnnotations: { arrows: [], circles: [], textComment: '' },
+                blackAnnotations: { arrows: [], circles: [], textComment: '' }
             });
         }
     }
@@ -114,13 +106,13 @@ export class PgnNotation {
      */
     importFromChessJs(chess: any): void {
         try {
-            // Try to get PGN directly from chess.js which should have proper SAN notation
-            if (typeof chess.pgn === 'function') {
+            if (this.rulesAdapter && typeof this.rulesAdapter.getPGN === 'function') {
+                const pgnString = this.rulesAdapter.getPGN();
+                this.parsePgnMoves(pgnString);
+            } else if (typeof chess.pgn === 'function') {
                 const pgnString = chess.pgn();
-                // Parse the PGN string to extract moves
                 this.parsePgnMoves(pgnString);
             } else {
-                // Fallback: try to get moves from detailed history
                 const detailedHistory = chess.history({ verbose: true });
                 this.moves = [];
                 
@@ -190,7 +182,7 @@ export class PgnNotation {
             const whiteMove = match[2];
             const blackMove = match[3];
             
-            // Additional check to make sure we don't include result markers as moves
+            // Additional check to make sure we don\'t include result markers as moves
             if (whiteMove && !['1-0', '0-1', '1/2-1/2', '*'].includes(whiteMove)) {
                 // Filter out result markers from black move as well
                 const filteredBlackMove = blackMove && !['1-0', '0-1', '1/2-1/2', '*'].includes(blackMove) ? blackMove : undefined;
@@ -202,70 +194,79 @@ export class PgnNotation {
     /**
      * Generate the complete PGN string
      */
-    toPgn(): string {
+    toPgn(includeHeaders: boolean = true): string {
         let pgn = '';
-        
-        // Add headers
-        const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
-        
-        // Add required headers first
-        for (const header of requiredHeaders) {
-            if (this.metadata[header]) {
-                pgn += `[${header} "${this.metadata[header]}"]\n`;
+
+        if (includeHeaders) {
+            // Add headers
+            const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
+
+            // Add required headers first
+            for (const header of requiredHeaders) {
+                if (this.metadata[header]) {
+                    pgn += `[${header} "${this.metadata[header]}"]\n`;
+                }
             }
-        }
-        
-        // Add optional headers
-        for (const [key, value] of Object.entries(this.metadata)) {
-            if (!requiredHeaders.includes(key) && value) {
-                pgn += `[${key} "${value}"]\n`;
+
+            // Add optional headers
+            for (const [key, value] of Object.entries(this.metadata)) {
+                if (!requiredHeaders.includes(key) && value) {
+                    pgn += `[${key} "${value}"]\n`;
+                }
             }
+
+            pgn += '\n'; // Empty line after headers
         }
-        
-        pgn += '\n'; // Empty line after headers
+
+        // If no moves and no headers, return just the result (which should be '*')
+        if (this.moves.length === 0 && !includeHeaders) {
+            return this.result;
+        }
         
         // Add moves
         let lineLength = 0;
         const maxLineLength = 80;
-        
+
         for (const move of this.moves) {
             let moveText = `${move.moveNumber}.`;
-            
+
             if (move.white) {
                 moveText += ` ${move.white}`;
                 if (move.whiteComment) {
                     moveText += ` {${move.whiteComment}}`;
                 }
             }
-            
+
             if (move.black) {
                 moveText += ` ${move.black}`;
                 if (move.blackComment) {
                     moveText += ` {${move.blackComment}}`;
                 }
             }
-            
+
             // Check if we need a new line
             if (lineLength + moveText.length + 1 > maxLineLength) {
                 pgn += '\n';
                 lineLength = 0;
             }
-            
+
             if (lineLength > 0) {
                 pgn += ' ';
                 lineLength++;
             }
-            
+
             pgn += moveText;
             lineLength += moveText.length;
         }
-        
-        // Add result
-        if (lineLength > 0) {
-            pgn += ' ';
+
+        // Add result only if the game is over
+        if (this.result !== '*') {
+            if (lineLength > 0 && this.moves.length > 0) { // Only add space if there are moves
+                pgn += ' ';
+            }
+            pgn += this.result;
         }
-        pgn += this.result;
-        
+
         return pgn.trim();
     }
 
@@ -314,7 +315,7 @@ export class PgnNotation {
      */
     downloadPgn(filename: string = 'game.pgn'): void {
         if (typeof window !== 'undefined' && window.document) {
-            const blob = new Blob([this.toPgn()], { type: 'application/x-chess-pgn' });
+            const blob = new Blob([this.toPgnWithAnnotations()], { type: 'application/x-chess-pgn' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -338,13 +339,6 @@ export class PgnNotation {
             } else {
                 this.moves[existingMoveIndex].blackAnnotations = annotations;
             }
-        } else {
-            // Create new move if it doesn't exist
-            const newMove: PgnMove = {
-                moveNumber,
-                ...(isWhite ? { whiteAnnotations: annotations } : { blackAnnotations: annotations })
-            };
-            this.moves.push(newMove);
         }
     }
 
@@ -361,7 +355,7 @@ export class PgnNotation {
         for (const line of lines) {
             if (line.startsWith('[')) {
                 // Header line
-                const match = line.match(/\[([^\s]+)\s+"([^"]*)"]/);
+                const match = line.match(/\[(\w+)\s+\"([^\"]*)\"\]/);
                 if (match) {
                     this.metadata[match[1]] = match[2];
                 }
@@ -382,46 +376,43 @@ export class PgnNotation {
     private parseMovesWithAnnotations(movesText: string): void {
         this.moves = [];
         
-        // Pattern pour capturer les mouvements avec commentaires
-        const movePattern = /(\d+)\.(\s*)([^\s{]+)(?:\s*\{([^}]*)\})?(?:\s+([^\s{]+)(?:\s*\{([^}]*)\})?)?/g;
+        // Regex to find move number, white move, white comment, black move, black comment
+        // This regex is designed to be more robust in handling comments and moves.
+        const movePattern = /(\d+)\.\s*([^\s{]+)(?:\s*(\{[^}]+\}))?(?:\s+([^\s{]+)(?:\s*(\{[^}]+\}))?)?/g;
         let match;
         
         while ((match = movePattern.exec(movesText)) !== null) {
             const moveNumber = parseInt(match[1]);
-            const whiteMove = match[3];
-            const whiteComment = match[4];
-            const blackMove = match[5];
-            const blackComment = match[6];
-            
-            // Créer le mouvement de base
+            const whiteMoveSan = match[2];
+            const whiteCommentRaw = match[3];
+            const blackMoveSan = match[4];
+            const blackCommentRaw = match[5];
+
             const pgnMove: PgnMove = {
                 moveNumber,
-                white: whiteMove,
-                black: blackMove
+                white: whiteMoveSan,
+                black: blackMoveSan,
+                whiteAnnotations: { arrows: [], circles: [], textComment: '' }, // Initialize
+                blackAnnotations: { arrows: [], circles: [], textComment: '' }  // Initialize
             };
-            
-            // Parser les annotations dans les commentaires
-            if (whiteComment) {
-                const parsed = PgnAnnotationParser.parseComment(whiteComment);
-                const { arrows, highlights } = PgnAnnotationParser.toDrawingObjects(parsed);
-                
-                pgnMove.whiteComment = PgnAnnotationParser.stripAnnotations(whiteComment);
+
+            if (whiteCommentRaw) {
+                const parsed = PgnAnnotationParser.parseComment(whiteCommentRaw);
+                pgnMove.whiteComment = whiteCommentRaw;
                 pgnMove.whiteAnnotations = {
-                    arrows,
-                    circles: highlights,
-                    textComment: pgnMove.whiteComment
+                    arrows: parsed.arrows,
+                    circles: parsed.highlights,
+                    textComment: parsed.textComment
                 };
             }
-            
-            if (blackComment) {
-                const parsed = PgnAnnotationParser.parseComment(blackComment);
-                const { arrows, highlights } = PgnAnnotationParser.toDrawingObjects(parsed);
-                
-                pgnMove.blackComment = PgnAnnotationParser.stripAnnotations(blackComment);
+
+            if (blackMoveSan && blackCommentRaw) { // Only process black comment if black move exists
+                const parsed = PgnAnnotationParser.parseComment(blackCommentRaw);
+                pgnMove.blackComment = blackCommentRaw;
                 pgnMove.blackAnnotations = {
-                    arrows,
-                    circles: highlights,
-                    textComment: pgnMove.blackComment
+                    arrows: parsed.arrows,
+                    circles: parsed.highlights,
+                    textComment: parsed.textComment
                 };
             }
             
@@ -464,50 +455,44 @@ export class PgnNotation {
             if (move.white) {
                 moveText += ` ${move.white}`;
                 
-                // Add white annotations
-                let whiteComment = '';
+                let fullWhiteComment = '';
                 if (move.whiteAnnotations) {
-                    const annotationText = PgnAnnotationParser.fromDrawingObjects(
+                    const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
                         move.whiteAnnotations.arrows || [],
                         move.whiteAnnotations.circles || []
                     );
-                    whiteComment = annotationText;
-                    if (move.whiteAnnotations.textComment) {
-                        whiteComment = whiteComment ? 
-                            `${annotationText} ${move.whiteAnnotations.textComment}` :
-                            move.whiteAnnotations.textComment;
-                    }
-                } else if (move.whiteComment) {
-                    whiteComment = move.whiteComment;
+                    const textComment = move.whiteAnnotations.textComment || '';
+                    fullWhiteComment = [visualAnnotations, textComment].filter(Boolean).join(' ').trim();
+                }
+                // If there's a whiteComment but no whiteAnnotations, use it as a fallback
+                else if (move.whiteComment) {
+                    fullWhiteComment = move.whiteComment;
                 }
                 
-                if (whiteComment) {
-                    moveText += ` {${whiteComment}}`;
+                if (fullWhiteComment) {
+                    moveText += ` {${fullWhiteComment}}`;
                 }
             }
             
             if (move.black) {
                 moveText += ` ${move.black}`;
                 
-                // Add black annotations
-                let blackComment = '';
+                let fullBlackComment = '';
                 if (move.blackAnnotations) {
-                    const annotationText = PgnAnnotationParser.fromDrawingObjects(
+                    const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
                         move.blackAnnotations.arrows || [],
                         move.blackAnnotations.circles || []
                     );
-                    blackComment = annotationText;
-                    if (move.blackAnnotations.textComment) {
-                        blackComment = blackComment ? 
-                            `${annotationText} ${move.blackAnnotations.textComment}` :
-                            move.blackAnnotations.textComment;
-                    }
-                } else if (move.blackComment) {
-                    blackComment = move.blackComment;
+                    const textComment = move.blackAnnotations.textComment || '';
+                    fullBlackComment = [visualAnnotations, textComment].filter(Boolean).join(' ').trim();
+                }
+                // If there's a blackComment but no blackAnnotations, use it as a fallback
+                else if (move.blackComment) {
+                    fullBlackComment = move.blackComment;
                 }
                 
-                if (blackComment) {
-                    moveText += ` {${blackComment}}`;
+                if (fullBlackComment) {
+                    moveText += ` {${fullBlackComment}}`;
                 }
             }
             
@@ -526,11 +511,13 @@ export class PgnNotation {
             lineLength += moveText.length;
         }
         
-        // Add result
-        if (lineLength > 0) {
-            pgn += ' ';
+        // Add result only if the game is over
+        if (this.result !== '*') {
+            if (lineLength > 0) {
+                pgn += ' ';
+            }
+            pgn += this.result;
         }
-        pgn += this.result;
         
         return pgn.trim();
     }

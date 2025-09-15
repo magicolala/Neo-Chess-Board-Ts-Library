@@ -14,12 +14,15 @@ const createMockAdapter = (pgnOverride?: string): RulesAdapter => ({
 
 describe('PGNRecorder', () => {
   let pgn: PGNRecorder;
+  let mockedDate: string;
 
   beforeEach(() => {
-    pgn = new PGNRecorder();
     // Mock Date pour des tests consistants
     jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-15'));
+    const date = new Date('2024-01-15');
+    jest.setSystemTime(date);
+    mockedDate = date.toISOString().slice(0, 10).replace(/-/g, '.');
+    pgn = new PGNRecorder();
   });
 
   afterEach(() => {
@@ -32,7 +35,7 @@ describe('PGNRecorder', () => {
       
       expect(result).toContain('[Event "Casual Game"]');
       expect(result).toContain('[Site "Local"]');
-      expect(result).toContain('[Date "2025.08.29"]');
+      expect(result).toContain(`[Date "${mockedDate}"]`);
       expect(result).toContain('[Round "1"]');
       expect(result).toContain('[White "White"]');
       expect(result).toContain('[Black "Black"]');

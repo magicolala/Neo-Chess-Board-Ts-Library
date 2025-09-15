@@ -3,10 +3,16 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 
 // Mock the core NeoChessBoard class
+let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
+
 const mockBoard = {
   on: jest.fn(() => jest.fn()), // Return unsubscribe function
   destroy: jest.fn(),
-  setPosition: jest.fn()
+  getPosition: jest.fn(() => currentFen), // Mock getPosition to return currentFen
+  setTheme: jest.fn(),
+  setFEN: jest.fn((fen: string) => { // Mock setFEN to update currentFen
+    currentFen = fen;
+  }),
 };
 
 jest.mock('../../src/core/NeoChessBoard', () => ({
@@ -17,6 +23,7 @@ describe('NeoChessBoard React Component', () => {
   afterEach(() => {
     cleanup();
     jest.clearAllMocks();
+    currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Reset FEN after each test
   });
 
   describe('Basic rendering', () => {
@@ -154,7 +161,7 @@ describe('NeoChessBoard React Component', () => {
       
       rerender(<NeoChessBoard fen={testFEN2} />);
       
-      expect(mockBoard.setPosition).toHaveBeenCalledWith(testFEN2);
+      expect(mockBoard.setFEN).toHaveBeenCalledWith(testFEN2);
     });
 
     it('should not update position when fen is undefined', () => {
@@ -162,7 +169,7 @@ describe('NeoChessBoard React Component', () => {
       
       rerender(<NeoChessBoard fen={undefined} />);
       
-      expect(mockBoard.setPosition).not.toHaveBeenCalled();
+      expect(mockBoard.setFEN).not.toHaveBeenCalled();
     });
 
     it('should not update position when fen does not change', () => {
@@ -171,11 +178,11 @@ describe('NeoChessBoard React Component', () => {
       const { rerender } = render(<NeoChessBoard fen={testFEN} />);
       
       // Clear the mock after initial render
-      mockBoard.setPosition.mockClear();
+      mockBoard.setFEN.mockClear();
       
       rerender(<NeoChessBoard fen={testFEN} />);
       
-      expect(mockBoard.setPosition).toHaveBeenCalledTimes(0);
+      expect(mockBoard.setFEN).toHaveBeenCalledTimes(0);
     });
   });
 
