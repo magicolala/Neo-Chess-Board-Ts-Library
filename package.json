@@ -63,7 +63,9 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build:lib"
+    "prepublishOnly": "npm run build:lib",
+    "docs:dev": "vitepress dev docs-site",
+    "docs:build": "vitepress build docs-site"
   },
   "peerDependencies": {
     "react": ">=18",
