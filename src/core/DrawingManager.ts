@@ -332,7 +332,16 @@ export class DrawingManager {
 
   private drawHighlight(ctx: CanvasRenderingContext2D, highlight: SquareHighlight): void {
     const [x, y] = this.squareToCoords(highlight.square);
-    const color = this.HIGHLIGHT_COLORS[highlight.type];
+    
+    let color: string;
+    if (highlight.type === 'circle') {
+      // PGN annotations provide the color directly.
+      // Default to a color if not provided, although it should be.
+      color = highlight.color || 'rgba(255, 255, 0, 0.5)';
+    } else {
+      // Other highlights get their color from the type.
+      color = this.HIGHLIGHT_COLORS[highlight.type as keyof typeof this.HIGHLIGHT_COLORS];
+    }
     
     ctx.globalAlpha = highlight.opacity || 0.6;
     ctx.fillStyle = color;
