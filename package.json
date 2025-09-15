@@ -63,9 +63,7 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build:lib",
-    "docs:dev": "cd docs-site && npm run dev",
-    "docs:build": "cd docs-site && npm run build"
+    "prepublishOnly": "npm run build:lib"
   },
   "peerDependencies": {
     "react": ">=18",
