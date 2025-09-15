@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
+  base: '/Neo-Chess-Board-Ts-Library/docs/',
   title: "Neo Chess Board Docs",
   description: "Documentation for Neo Chess Board Library",
   themeConfig: {
