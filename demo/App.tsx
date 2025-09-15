@@ -306,14 +306,14 @@ export const App: React.FC = () => {
           </div>
           <div className={styles.panelContent}>
             <div className={styles.optionGrid}>
-              <button 
+              <button
                 className={`${styles.optionButton} ${boardOptions.showArrows ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('showArrows')}
               >
                 {boardOptions.showArrows ? '✅' : '❌'} Flèches
               </button>
-              
-              <button 
+
+              <button
                 className={`${styles.optionButton} ${boardOptions.showHighlights ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('showHighlights')}
               >

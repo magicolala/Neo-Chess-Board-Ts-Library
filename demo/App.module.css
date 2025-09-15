@@ -1,5 +1,36 @@
 /* ===== DESIGN FLAT MINIMALISTE MODERN ===== */
 
+/* Options Grid */
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.optionButton {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: var(--spacing-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.optionButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-medium);
+}
+
+.optionActive {
+  background: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
 /* Variables CSS - Design System Minimaliste */
 :root {
   /* Couleurs principales - palette neutre moderne */

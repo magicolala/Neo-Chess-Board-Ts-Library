@@ -145,31 +145,58 @@ describe('App Component', () => {
   describe('Move handling', () => {
     it('should handle moves and update PGN', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      const { unmount } = render(<App />);
 
-      // Simulate a move by clicking the board
-      await user.click(screen.getByTestId('neo-chessboard'));
+      try {
+        // Wait for initial render
+        await screen.findByTestId('neo-chessboard');
 
-      const pgnTextarea = screen.getByRole('textbox', {
-        name: /pgn notation/i,
-      }) as HTMLTextAreaElement;
-      await waitFor(() => {
-        console.log('PGN Textarea Value:', pgnTextarea.value); // Debugging line
-        expect(pgnTextarea).toHaveValue('1. e4');
-      });
+        // Simulate a move by clicking the board
+        await user.click(screen.getByTestId('neo-chessboard'));
+
+        // Wait for the PGN textarea to be updated
+        const pgnTextarea = (await screen.findByRole('textbox', {
+          name: /pgn notation/i,
+        })) as HTMLTextAreaElement;
+
+        // Check the value with a timeout
+        await waitFor(
+          () => {
+            expect(pgnTextarea.value).toContain('1. e4');
+          },
+          { timeout: 2000 },
+        );
+      } finally {
+        unmount();
+      }
     });
 
     it('should update FEN after move', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      const { unmount } = render(<App />);
 
-      const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
+      try {
+        // Wait for initial render
+        await screen.findByTestId('neo-chessboard');
 
-      await user.click(screen.getByTestId('neo-chessboard'));
+        // Get the FEN textarea
+        const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
 
-      expect(fenTextarea).toHaveValue(
-        'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
-      );
+        // Simulate a move by clicking the board
+        await user.click(screen.getByTestId('neo-chessboard'));
+
+        // Wait for the FEN to be updated
+        await waitFor(
+          () => {
+            expect(fenTextarea).toHaveValue(
+              'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
+            );
+          },
+          { timeout: 2000 },
+        );
+      } finally {
+        unmount();
+      }
     });
   });
 

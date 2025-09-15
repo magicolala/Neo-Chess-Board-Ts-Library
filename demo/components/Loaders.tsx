@@ -68,8 +68,8 @@ export const SkeletonButtons: React.FC<{
 );
 
 // Hook pour simuler les états de loading
-export const useLoadingState = (duration: number = 2000) => {
-  const [isLoading, setIsLoading] = React.useState(true);
+export const useLoadingState = (duration: number = 2000): boolean => {
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
