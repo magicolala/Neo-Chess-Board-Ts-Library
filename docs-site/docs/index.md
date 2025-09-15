@@ -419,7 +419,7 @@ Check out these amazing projects built with Neo Chess Board:
 
 ## 🤝 Contributing
 
-We love contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+We love contributions! See [CONTRIBUTING.md](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/CONTRIBUTING.md) for details.
 
 - 🐛 [Report bugs](https://github.com/yourusername/neochessboard/issues)
 - 💡 [Request features](https://github.com/yourusername/neochessboard/issues)
