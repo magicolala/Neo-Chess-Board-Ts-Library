@@ -80,8 +80,7 @@ jobs:
       run: pip install mkdocs mkdocs-material
 
     - name: Build documentation
-      run: mkdocs build --site-dir ../dist/docs
-      working-directory: mkdocs_docs
+      run: mkdocs build --site-dir dist/docs
 
     - name: Copy index.html to dist
       run: cp index.html dist/
