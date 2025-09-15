@@ -18,22 +18,113 @@ Le Neo Chess Board inclut maintenant un support complet du format PGN (Portable 
 - **Échecs et mats** : + pour échec, # pour mat
 - **Promotions** : e8=Q, a1=R, etc.
 
+#### 🎨 **Annotations Visuelles PGN**
+- **Support des extensions `%cal` et `%csl`** : Dessinez des flèches et des cercles directement dans vos commentaires PGN.
+- **Couleurs personnalisables** : Rouge (R), Vert (G), Jaune (Y), Bleu (B).
+- **Intégration transparente** : Les annotations sont parsées et générées automatiquement.
+
 #### 📄 **Génération PGN**
+
+Utilisez `PgnNotation` pour une gestion avancée du PGN, y compris les annotations visuelles.
+
 ```typescript
-// Export PGN de la partie courante
-const pgnString = chessRules.toPgn();
+import { PgnNotation } from 'neochessboard';
+
+const pgn = new PgnNotation();
+pgn.setMetadata({
+  Event: 'Partie Annotée',
+  White: 'Joueur Blanc',
+  Black: 'Joueur Noir',
+});
+
+pgn.addMove(1, 'e4', 'e5', 'Ouverture classique.', '{%cal Ge2e4,Re7e5}');
+pgn.addMove(2, 'Nf3', 'Nc6', 'Développement des cavaliers.', '{%csl Gf3,Gc6}');
+
+const pgnString = pgn.toPgnWithAnnotations();
+console.log(pgnString);
 
 // Télécharger un fichier PGN
-chessRules.downloadPgn('ma-partie.pgn');
+pgn.downloadPgn('ma-partie-annotee.pgn');
 ```
 
 #### 📥 **Import PGN**
+
+`PgnNotation` peut également charger des PGN avec des annotations visuelles.
+
 ```typescript
-// Charger une partie depuis PGN
-const success = chessRules.loadPgn(pgnString);
-if (success) {
-    board.setPosition(chessRules.getFEN());
-}
+import { PgnNotation } from 'neochessboard';
+
+const pgn = new PgnNotation();
+const annotatedPgnString = `[Event "Partie Annotée"]
+[Site "Neo Chess Board"]
+[Date "2025.08.29"]
+[Round "1"]
+[White "Joueur Blanc"]
+[Black "Joueur Noir"]
+[Result "*"]
+
+1. e4 {%cal Ge2e4,Re7e5} e5 {Ouverture classique.}
+2. Nf3 {%csl Gf3,Gc6} Nc6 {Développement des cavaliers.}
+`;
+
+pgn.loadPgnWithAnnotations(annotatedPgnString);
+
+// Accéder aux annotations du premier coup blanc
+const firstMoveAnnotations = pgn.getMoveAnnotations(1, true);
+console.log(firstMoveAnnotations?.arrows); // [{ from: 'e2', to: 'e4', color: '#00ff00' }]
+```
+
+### 📋 **Exemple de PGN Généré**
+
+```pgn
+[Event "Partie Annotée"]
+[Site "Neo Chess Board"]
+[Date "2025.08.29"]
+[Round "1"]
+[White "Joueur Blanc"]
+[Black "Joueur Noir"]
+[Result "*"]
+
+1. e4 {%cal Ge2e4,Re7e5} e5 {Ouverture classique.}
+2. Nf3 {%csl Gf3,Gc6} Nc6 {Développement des cavaliers.}
+```
+
+### 🛠️ **Utilisation de l'API**
+
+#### Configuration des Métadonnées
+```typescript
+chessRules.setPgnMetadata({
+    Event: "Championnat du Monde",
+    Site: "Paris FRA",
+    White: "Carlsen, Magnus",
+    Black: "Nepomniachtchi, Ian",
+    WhiteElo: "2855",
+    BlackElo: "2792",
+    TimeControl: "40/7200+30",
+    ECO: "C84",
+    Opening: "Ruy Lopez: Closed Defence"
+});
+```
+
+#### Méthodes Disponibles
+
+Le `ChessJsRules` adapteur utilise désormais `PgnNotation` en interne, vous pouvez y accéder pour des fonctionnalités PGN avancées.
+
+```typescript
+// Export/Import PGN simple (sans annotations visuelles)
+const pgnString = chessRules.toPgn();
+chessRules.loadPgn(pgnString);
+chessRules.downloadPgn(filename);
+
+// Accès avancé à PgnNotation pour les annotations
+const pgnNotation = chessRules.getPgnNotation();
+
+// Ajouter un coup avec un commentaire et une annotation visuelle
+pgnNotation.addMove(1, "e4", "e5", "Coup d'ouverture.", '{%cal Ge2e4}');
+
+// Obtenir le PGN avec annotations
+const annotatedPgn = pgnNotation.toPgnWithAnnotations();
+console.log(annotatedPgn);
 ```
 
 ### 📋 **Exemple de PGN Généré**

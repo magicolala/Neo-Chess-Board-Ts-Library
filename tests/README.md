@@ -38,6 +38,7 @@ tests/
 Les tests couvrent :
 
 ### Modules Core
+
 - **EventBus** : Système d'événements pub/sub
 - **LightRules** : Moteur d'échecs avec validation des mouvements
 - **ChessJsRules** ⭐ : Adaptateur Chess.js avec validation complète
@@ -48,14 +49,17 @@ Les tests couvrent :
 - **Utils** : Fonctions utilitaires d'échecs
 
 ### Tests d'Intégration ⭐ NOUVEAUX
+
 - **PgnChessJsIntegration** : Workflow complet Chess.js ↔ PGN
 - **Exports** : Validation des exports de la librairie
 
 ### Composants React
+
 - **NeoChessBoard** : Composant React wrapper
 - **App** : Application de démonstration complète
 
 ### Fonctionnalités testées
+
 - ✅ Validation des mouvements d'échecs
 - ✅ Gestion des événements
 - ✅ Formats FEN et PGN
@@ -65,6 +69,7 @@ Les tests couvrent :
 - ✅ Gestion des erreurs
 
 #### ⭐ Nouvelles fonctionnalités Chess.js + PGN
+
 - ✅ **Validation complète Chess.js** : Échec, mat, pat, règles spéciales
 - ✅ **PGN Standards FIDE** : Format conforme, métadonnées, notation algébrique
 - ✅ **Export/Import PGN** : Round-trip complet, téléchargement fichiers
@@ -77,6 +82,7 @@ Les tests couvrent :
 ## Mocks et setup
 
 Le fichier `setup.ts` configure :
+
 - Mocks pour l'API Canvas (getContext, drawImage, etc.)
 - Mock pour ResizeObserver
 - Mock pour OffscreenCanvas

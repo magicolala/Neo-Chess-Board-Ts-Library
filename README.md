@@ -22,12 +22,14 @@
 ## ✨ Features
 
 🎯 **Modern & Lightweight**
+
 - 📦 Zero dependencies (React is peer dependency)
 - 🪶 Minimal bundle size
 - ⚡ High performance Canvas rendering
 - 🔧 Full TypeScript support
 
 🎮 **Rich Chess Experience**
+
 - 🖱️ Smooth drag & drop interactions
 - 🎨 Beautiful piece sprites with shadows
 - ✨ Fluid animations and transitions
@@ -35,18 +37,20 @@
 - 📱 Responsive design
 
 🔧 **Developer Friendly**
+
 - 🅰️ Complete TypeScript types
 - ⚛️ React hooks ready
-- 📋 PGN import/export
+- 📋 Advanced PGN Management (import/export with annotations)
 - 🎨 Customizable themes
 - 🧪 100% tested
 
 🎪 **Advanced Features**
+
 - 📝 Built-in PGN recorder
 - 🎭 Multiple visual themes
 - 🔄 FEN support
 - 🎮 Custom rules engine
-- 🏹 Arrow annotations
+- 🏹 Visual PGN Annotations (arrows & circles)
 
 ## 🚀 Quick Start
 
@@ -155,28 +159,43 @@ board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 const currentFEN = board.getPosition();
 ```
 
-#### PGN Recording
+#### PGN Recording & Annotations
 
 ```typescript
-import { PGNRecorder } from 'neochessboard';
+import { PgnNotation } from 'neochessboard';
 
-const pgn = new PGNRecorder();
+const pgn = new PgnNotation();
 
 // Set game metadata
-pgn.setHeaders({
-  Event: 'World Championship',
-  White: 'Magnus Carlsen',
-  Black: 'Hikaru Nakamura',
-  Date: '2024.08.29'
+pgn.setMetadata({
+  Event: 'Annotated Game',
+  White: 'Player A',
+  Black: 'Player B',
+  Date: '2024.09.15'
 });
 
-// Record moves
-pgn.push({ from: 'e2', to: 'e4' });
-pgn.push({ from: 'e7', to: 'e5' });
+// Add moves with comments and visual annotations
+pgn.addMove(1, 'e4', 'e5', 'White starts with king's pawn.', '{%cal Ge2e4,Re7e5}');
+pgn.addMove(2, 'Nf3', 'Nc6', 'Knights develop.', '{%csl Gf3,Gc6}');
 
-// Export PGN
-const pgnText = pgn.getPGN();
-pgn.download(); // Downloads .pgn file
+// Generate PGN with annotations
+const pgnText = pgn.toPgnWithAnnotations();
+console.log(pgnText);
+/*
+[Event "Annotated Game"]
+[Site "Neo Chess Board"]
+[Date "2024.09.15"]
+[Round "1"]
+[White "Player A"]
+[Black "Player B"]
+[Result "*"]
+
+1. e4 {%cal Ge2e4,Re7e5} e5 {White starts with king's pawn.}
+2. Nf3 {%csl Gf3,Gc6} Nc6 {Knights develop.}
+*/
+
+// Download PGN
+pgn.downloadPgn('annotated_game.pgn');
 ```
 
 ## 🎪 Advanced Examples
@@ -252,20 +271,30 @@ const board = new NeoChessBoard(element, {
 
 ```typescript
 import { Chess } from 'chess.js';
-import { NeoChessBoard, PGNRecorder } from 'neochessboard';
+import { NeoChessBoard, ChessJsRules } from 'neochessboard';
 
 const game = new Chess();
-const pgn = new PGNRecorder(game); // Use chess.js as rules engine
+const rules = new ChessJsRules();
 
 const board = new NeoChessBoard(element, {
-  rulesAdapter: game,
+  rulesAdapter: rules,
   onMove: ({ from, to }) => {
     const move = game.move({ from, to });
     if (move) {
-      pgn.push(move);
+      rules.getPgnNotation().addMove(rules.moveNumber(), move.san);
+      // Add annotations to the last move
+      rules.getPgnNotation().addMoveAnnotations(rules.moveNumber(), true, {
+        arrows: [{ from: move.from, to: move.to, color: '#00ff00' }],
+        circles: [{ square: move.to, color: '#ffff00' }],
+        textComment: 'Good move!'
+      });
     }
   }
 });
+
+// To get the PGN with annotations from ChessJsRules:
+const pgnWithAnnotations = rules.toPgn(true);
+console.log(pgnWithAnnotations);
 ```
 
 ## 🏗️ Architecture
@@ -363,6 +392,7 @@ npm run test:coverage # Coverage report
 ```
 
 **Test Coverage**: 95%+ across all modules
+
 - ✅ Chess rules validation
 - ✅ React component lifecycle  
 - ✅ Event system
@@ -397,7 +427,7 @@ We love contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-MIT © [Your Name](https://github.com/yourusername)
+MIT © [Cédric Oloa](https://github.com/magicolala)
 
 ---
 
