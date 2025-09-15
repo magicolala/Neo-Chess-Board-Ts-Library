@@ -86,7 +86,7 @@ jobs:
       run: mkdir -p dist
 
     - name: Copy documentation to dist
-      run: cp -r docs-site/.vitepress/dist/* dist/
+      run: cp -r docs-site/docs/.vitepress/dist/* dist/
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
