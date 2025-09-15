@@ -845,10 +845,8 @@ export class DrawingManager {
     this.setPremove(premove.from, premove.to, premove.promotion);
   }
 
-  // Alias pour compatibilité
-  public clearAll(): void {
-    this.clearAllDrawings();
-  }
+  // Alias for clearAllDrawings for backward compatibility
+  public clearAll = this.clearAllDrawings;
 
   private _drawSquareNames(ctx: CanvasRenderingContext2D): void {
     ctx.save();
@@ -884,5 +882,32 @@ export class DrawingManager {
       }
     }
     ctx.restore();
+  }
+  // Ajouter ces méthodes à la classe DrawingManager
+
+  /**
+   * Render arrows on the canvas
+   */
+  public renderArrows(): void {
+    const ctx = this.canvas.getContext('2d');
+    if (ctx) {
+      this.drawArrows(ctx);
+    }
+  }
+
+  /**
+   * Cancel the current drawing action
+   */
+  public cancelCurrentAction(): void {
+    this.currentAction = { type: 'none' };
+  }
+
+  /**
+   * Clear all drawings (arrows, highlights, premoves)
+   */
+  public clearAllDrawings(): void {
+    this.state.arrows = [];
+    this.state.highlights = [];
+    this.state.premove = undefined;
   }
 }
