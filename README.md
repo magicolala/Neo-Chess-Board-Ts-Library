@@ -11,7 +11,7 @@
 
 **A modern, lightweight, and beautiful chess board library built with Canvas and TypeScript**
 
-*Perfect for creating chess applications with Chessbook-like feel and performance*
+_Perfect for creating chess applications with Chessbook-like feel and performance_
 
 [🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](#documentation) • [⚡ Quick Start](#quick-start) • [🎨 Themes](#themes)
 
@@ -72,7 +72,7 @@ import { NeoChessBoard } from 'neochessboard';
 
 function ChessApp() {
   const [fen, setFen] = useState();
-  
+
   return (
     <NeoChessBoard
       theme="midnight"
@@ -94,7 +94,7 @@ import { NeoChessBoard } from 'neochessboard';
 const board = new NeoChessBoard(document.getElementById('board'), {
   theme: 'classic',
   interactive: true,
-  showCoordinates: true
+  showCoordinates: true,
 });
 
 board.on('move', ({ from, to, fen }) => {
@@ -106,10 +106,10 @@ board.on('move', ({ from, to, fen }) => {
 
 Neo Chess Board comes with beautiful built-in themes:
 
-| Theme | Preview | Colors |
-|-------|---------|--------|
-| **Classic** | ![Classic Theme](https://via.placeholder.com/100x100/EBEDF0/B3C0CE?text=♔) | Light & clean design |
-| **Midnight** | ![Midnight Theme](https://via.placeholder.com/100x100/2A2F3A/1F242E?text=♔) | Dark & modern feel |
+| Theme        | Preview                                                                     | Colors               |
+| ------------ | --------------------------------------------------------------------------- | -------------------- |
+| **Classic**  | ![Classic Theme](https://via.placeholder.com/100x100/EBEDF0/B3C0CE?text=♔)  | Light & clean design |
+| **Midnight** | ![Midnight Theme](https://via.placeholder.com/100x100/2A2F3A/1F242E?text=♔) | Dark & modern feel   |
 
 ```tsx
 // Switch themes dynamically
@@ -125,17 +125,17 @@ Neo Chess Board comes with beautiful built-in themes:
 
 ```typescript
 interface NeoChessProps {
-  fen?: string;                    // Chess position in FEN notation
+  fen?: string; // Chess position in FEN notation
   theme?: 'classic' | 'midnight'; // Visual theme
   orientation?: 'white' | 'black'; // Board orientation
-  interactive?: boolean;           // Enable drag & drop
-  showCoordinates?: boolean;       // Show file/rank labels
-  animationMs?: number;           // Animation duration
-  highlightLegal?: boolean;       // Highlight legal moves
-  onMove?: (move) => void;        // Move event handler
-  onIllegal?: (attempt) => void;  // Illegal move handler
-  style?: React.CSSProperties;    // CSS styling
-  className?: string;             // CSS class
+  interactive?: boolean; // Enable drag & drop
+  showCoordinates?: boolean; // Show file/rank labels
+  animationMs?: number; // Animation duration
+  highlightLegal?: boolean; // Highlight legal moves
+  onMove?: (move) => void; // Move event handler
+  onIllegal?: (attempt) => void; // Illegal move handler
+  style?: React.CSSProperties; // CSS styling
+  className?: string; // CSS class
 }
 ```
 
@@ -171,11 +171,11 @@ pgn.setMetadata({
   Event: 'Annotated Game',
   White: 'Player A',
   Black: 'Player B',
-  Date: '2024.09.15'
+  Date: '2024.09.15',
 });
 
 // Add moves with comments and visual annotations
-pgn.addMove(1, 'e4', 'e5', 'White starts with king\'s pawn.', '{%cal Ge2e4,Re7e5}');
+pgn.addMove(1, 'e4', 'e5', "White starts with king's pawn.", '{%cal Ge2e4,Re7e5}');
 pgn.addMove(2, 'Nf3', 'Nc6', 'Knights develop.', '{%csl Gf3,Gc6}');
 
 // Generate PGN with annotations
@@ -210,21 +210,21 @@ function ChessGame() {
   const [fen, setFen] = useState();
   const [theme, setTheme] = useState('midnight');
   const pgn = useMemo(() => new PGNRecorder(), []);
-  
+
   const handleMove = ({ from, to, fen }) => {
     pgn.push({ from, to });
     setFen(fen);
   };
-  
+
   const exportGame = () => {
     pgn.setHeaders({
       Event: 'Online Game',
       Site: 'My App',
-      Date: new Date().toISOString().slice(0, 10)
+      Date: new Date().toISOString().slice(0, 10),
     });
     pgn.download();
   };
-  
+
   return (
     <div className="chess-game">
       <div className="board-controls">
@@ -232,7 +232,7 @@ function ChessGame() {
         <button onClick={() => setTheme('midnight')}>Midnight</button>
         <button onClick={exportGame}>Export PGN</button>
       </div>
-      
+
       <NeoChessBoard
         theme={theme}
         fen={fen}
@@ -240,7 +240,7 @@ function ChessGame() {
         showCoordinates
         style={{ width: '100%', maxWidth: '500px' }}
       />
-      
+
       <div className="game-info">
         <textarea value={pgn.getPGN()} readOnly />
       </div>
@@ -258,12 +258,12 @@ import { NeoChessBoard, THEMES } from 'neochessboard';
 const customTheme = {
   ...THEMES.midnight,
   moveFrom: 'rgba(255, 215, 0, 0.6)', // Golden highlight
-  moveTo: 'rgba(0, 255, 127, 0.4)',   // Spring green
+  moveTo: 'rgba(0, 255, 127, 0.4)', // Spring green
 };
 
 // Apply custom theme
 const board = new NeoChessBoard(element, {
-  theme: customTheme
+  theme: customTheme,
 });
 ```
 
@@ -286,10 +286,10 @@ const board = new NeoChessBoard(element, {
       rules.getPgnNotation().addMoveAnnotations(rules.moveNumber(), true, {
         arrows: [{ from: move.from, to: move.to, color: '#00ff00' }],
         circles: [{ square: move.to, color: '#ffff00' }],
-        textComment: 'Good move!'
+        textComment: 'Good move!',
       });
     }
-  }
+  },
 });
 
 // To get the PGN with annotations from ChessJsRules:
@@ -318,15 +318,15 @@ neochessboard/
 
 ## 🎯 Why Neo Chess Board?
 
-| Feature | Neo Chess Board | Other Libraries |
-|---------|----------------|-----------------|
-| **Bundle Size** | 🟢 ~15kb | 🔴 50-200kb |
-| **TypeScript** | 🟢 Full support | 🟡 Partial |
-| **React Ready** | 🟢 Native hooks | 🔴 Wrapper needed |
-| **Performance** | 🟢 Canvas optimized | 🟡 DOM heavy |
-| **Themes** | 🟢 Built-in + custom | 🔴 Limited |
-| **PGN Export** | 🟢 Included | 🔴 External dep |
-| **Modern Code** | 🟢 ES2022+ | 🔴 Legacy |
+| Feature         | Neo Chess Board      | Other Libraries   |
+| --------------- | -------------------- | ----------------- |
+| **Bundle Size** | 🟢 ~15kb             | 🔴 50-200kb       |
+| **TypeScript**  | 🟢 Full support      | 🟡 Partial        |
+| **React Ready** | 🟢 Native hooks      | 🔴 Wrapper needed |
+| **Performance** | 🟢 Canvas optimized  | 🟡 DOM heavy      |
+| **Themes**      | 🟢 Built-in + custom | 🔴 Limited        |
+| **PGN Export**  | 🟢 Included          | 🔴 External dep   |
+| **Modern Code** | 🟢 ES2022+           | 🔴 Legacy         |
 
 ## 📋 API Reference
 
@@ -335,24 +335,24 @@ neochessboard/
 ```typescript
 interface NeoChessProps {
   // Position & Rules
-  fen?: string;                    // Position in FEN notation
-  rulesAdapter?: RulesAdapter;     // Custom rules engine
-  
-  // Visual Appearance  
+  fen?: string; // Position in FEN notation
+  rulesAdapter?: RulesAdapter; // Custom rules engine
+
+  // Visual Appearance
   theme?: 'classic' | 'midnight'; // Built-in themes
   orientation?: 'white' | 'black'; // Board flip
-  showCoordinates?: boolean;       // A-H, 1-8 labels
-  
+  showCoordinates?: boolean; // A-H, 1-8 labels
+
   // Interaction
-  interactive?: boolean;           // Enable piece dragging
-  highlightLegal?: boolean;       // Show legal move dots
-  animationMs?: number;           // Move animation speed
-  
+  interactive?: boolean; // Enable piece dragging
+  highlightLegal?: boolean; // Show legal move dots
+  animationMs?: number; // Move animation speed
+
   // Event Handlers
   onMove?: (move: MoveEvent) => void;
   onIllegal?: (attempt: IllegalMoveEvent) => void;
   onUpdate?: (state: UpdateEvent) => void;
-  
+
   // Styling
   style?: React.CSSProperties;
   className?: string;
@@ -363,21 +363,21 @@ interface NeoChessProps {
 
 ```typescript
 class NeoChessBoard {
-  constructor(element: HTMLElement, options?: BoardOptions)
-  
+  constructor(element: HTMLElement, options?: BoardOptions);
+
   // Position Management
-  getPosition(): string
-  setPosition(fen: string, immediate?: boolean): void
-  
+  getPosition(): string;
+  setPosition(fen: string, immediate?: boolean): void;
+
   // Event System
-  on<T>(event: string, handler: (data: T) => void): () => void
-  
+  on<T>(event: string, handler: (data: T) => void): () => void;
+
   // Rendering
-  resize(): void
-  renderAll(): void
-  
+  resize(): void;
+  renderAll(): void;
+
   // Cleanup
-  destroy(): void
+  destroy(): void;
 }
 ```
 
@@ -394,7 +394,7 @@ npm run test:coverage # Coverage report
 **Test Coverage**: 95%+ across all modules
 
 - ✅ Chess rules validation
-- ✅ React component lifecycle  
+- ✅ React component lifecycle
 - ✅ Event system
 - ✅ PGN import/export
 - ✅ Theme system
@@ -413,7 +413,7 @@ npm run test:coverage # Coverage report
 Check out these amazing projects built with Neo Chess Board:
 
 - 🏆 [Tournament Manager](https://example.com) - Complete tournament system
-- 🎓 [Chess Trainer](https://example.com) - Interactive learning platform  
+- 🎓 [Chess Trainer](https://example.com) - Interactive learning platform
 - 📱 [Mobile Chess](https://example.com) - Touch-optimized interface
 - 🤖 [AI Chess](https://example.com) - Play against computer
 

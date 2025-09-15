@@ -19,10 +19,10 @@ const SQUARE_REGEX = /^[a-h][1-8]$/;
 
 // Color mapping
 const COLOR_MAP: Record<string, string> = {
-  'R': '#ff0000', // Red
-  'G': '#00ff00', // Green
-  'Y': '#ffff00', // Yellow
-  'B': '#0000ff', // Blue
+  R: '#ff0000', // Red
+  G: '#00ff00', // Green
+  Y: '#ffff00', // Yellow
+  B: '#0000ff', // Blue
 };
 
 export class PgnAnnotationParser {
@@ -38,13 +38,14 @@ export class PgnAnnotationParser {
    */
   static parseComment(comment: string): ParsedAnnotations {
     // Strip outer curly braces if present
-    let processingComment = comment.startsWith('{') && comment.endsWith('}')
-      ? comment.substring(1, comment.length - 1)
-      : comment;
+    let processingComment =
+      comment.startsWith('{') && comment.endsWith('}')
+        ? comment.substring(1, comment.length - 1)
+        : comment;
 
     const arrows: Arrow[] = [];
     const highlights: Array<SquareHighlight & { color: string }> = [];
-    
+
     // Parse arrows (%cal)
     const arrowMatches = [...processingComment.matchAll(CAL_REGEX)]; // Use spread to get all matches at once
     for (const match of arrowMatches) {
@@ -55,12 +56,15 @@ export class PgnAnnotationParser {
           const colorCode = trimmed[0];
           const fromSquare = trimmed.slice(1, 3) as Square;
           const toSquare = trimmed.slice(3, 5) as Square;
-          
-          if (PgnAnnotationParser.isValidSquare(fromSquare) && PgnAnnotationParser.isValidSquare(toSquare)) {
+
+          if (
+            PgnAnnotationParser.isValidSquare(fromSquare) &&
+            PgnAnnotationParser.isValidSquare(toSquare)
+          ) {
             arrows.push({
               from: fromSquare,
               to: toSquare,
-              color: PgnAnnotationParser.colorToHex(colorCode)
+              color: PgnAnnotationParser.colorToHex(colorCode),
             });
           }
         }
@@ -78,12 +82,12 @@ export class PgnAnnotationParser {
         if (trimmed.length >= 3) {
           const colorCode = trimmed[0];
           const square = trimmed.slice(1, 3) as Square;
-          
+
           if (PgnAnnotationParser.isValidSquare(square)) {
             highlights.push({
               square,
               type: 'circle' as any, // Cast to avoid type issues
-              color: PgnAnnotationParser.colorToHex(colorCode)
+              color: PgnAnnotationParser.colorToHex(colorCode),
             });
           }
         }
@@ -98,18 +102,21 @@ export class PgnAnnotationParser {
     return {
       arrows,
       highlights,
-      textComment: textComment || ''
+      textComment: textComment || '',
     };
   }
 
   /**
    * Returns drawing objects from parsed annotations
    */
-  static toDrawingObjects(parsed: ParsedAnnotations): { arrows: Arrow[], highlights: SquareHighlight[] } {
-      return {
-          arrows: parsed.arrows,
-          highlights: parsed.highlights
-      };
+  static toDrawingObjects(parsed: ParsedAnnotations): {
+    arrows: Arrow[];
+    highlights: SquareHighlight[];
+  } {
+    return {
+      arrows: parsed.arrows,
+      highlights: parsed.highlights,
+    };
   }
 
   /**
@@ -129,16 +136,16 @@ export class PgnAnnotationParser {
     const parts: string[] = [];
 
     if (arrows.length > 0) {
-      const arrowSpecs = arrows.map(arrow => 
-        `${PgnAnnotationParser.hexToColor(arrow.color)}${arrow.from}${arrow.to}`
-      ).join(',');
+      const arrowSpecs = arrows
+        .map((arrow) => `${PgnAnnotationParser.hexToColor(arrow.color)}${arrow.from}${arrow.to}`)
+        .join(',');
       parts.push(`%cal ${arrowSpecs}`);
     }
 
     if (highlights.length > 0) {
-      const circleSpecs = highlights.map(circle => 
-        `${PgnAnnotationParser.hexToColor((circle as any).color)}${circle.square}`
-      ).join(',');
+      const circleSpecs = highlights
+        .map((circle) => `${PgnAnnotationParser.hexToColor((circle as any).color)}${circle.square}`)
+        .join(',');
       parts.push(`%csl ${circleSpecs}`);
     }
 

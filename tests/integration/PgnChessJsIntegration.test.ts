@@ -21,7 +21,7 @@ describe('PGN and ChessJs Integration', () => {
         Site: 'Test Environment',
         White: 'Beginner',
         Black: 'Victim',
-        Date: '2025.08.29'
+        Date: '2025.08.29',
       });
 
       // Play scholar's mate
@@ -57,7 +57,7 @@ describe('PGN and ChessJs Integration', () => {
       rules.setPgnMetadata({
         Event: 'Round Trip Test',
         White: 'Player 1',
-        Black: 'Player 2'
+        Black: 'Player 2',
       });
 
       // Play some moves
@@ -84,15 +84,15 @@ describe('PGN and ChessJs Integration', () => {
       // Rather than using a complex position that might fail
       expect(typeof rules.isStalemate).toBe('function');
       expect(typeof rules.isGameOver).toBe('function');
-      
+
       // Test PGN generation for a draw result
       rules.setPgnMetadata({
         Event: 'Stalemate Test',
         White: 'Player A',
         Black: 'Player B',
-        Result: '1/2-1/2'
+        Result: '1/2-1/2',
       });
-      
+
       // Manually set the result to test PGN generation
       rules.getPgnNotation().setResult('1/2-1/2');
       const pgn = rules.getPgnNotation().toPgn(); // Use PgnNotation directly
@@ -146,7 +146,7 @@ describe('PGN and ChessJs Integration', () => {
         WhiteElo: '2830',
         BlackElo: '2792',
         TimeControl: '40/7200+30',
-        ECO: 'C84'
+        ECO: 'C84',
       });
 
       rules.move({ from: 'e2', to: 'e4' });
@@ -170,22 +170,37 @@ describe('PGN and ChessJs Integration', () => {
       expect(pgn).toContain('[ECO "C84"]');
 
       // Verify empty line between headers and moves
-      const emptyLineIndex = lines.findIndex(line => line.trim() === '');
+      const emptyLineIndex = lines.findIndex((line) => line.trim() === '');
       expect(emptyLineIndex).toBeGreaterThan(0);
 
       // Verify moves start after headers
-      const moveLineIndex = lines.findIndex(line => line.includes('1. e4'));
+      const moveLineIndex = lines.findIndex((line) => line.includes('1. e4'));
       expect(moveLineIndex).toBeGreaterThan(emptyLineIndex);
     });
 
     test('should respect 80-character line limit', () => {
       // Play a game with many moves to test line wrapping
       const moves = [
-        ['e2', 'e4'], ['e7', 'e5'], ['g1', 'f3'], ['b8', 'c6'],
-        ['f1', 'b5'], ['a7', 'a6'], ['b5', 'a4'], ['g8', 'f6'],
-        ['e1', 'g1'], ['f8', 'e7'], ['f1', 'e1'], ['b7', 'b5'],
-        ['a4', 'b3'], ['d7', 'd6'], ['c2', 'c3'], ['e8', 'g8'],
-        ['h2', 'h3'], ['c6', 'b8'], ['d2', 'd4'], ['b8', 'd7']
+        ['e2', 'e4'],
+        ['e7', 'e5'],
+        ['g1', 'f3'],
+        ['b8', 'c6'],
+        ['f1', 'b5'],
+        ['a7', 'a6'],
+        ['b5', 'a4'],
+        ['g8', 'f6'],
+        ['e1', 'g1'],
+        ['f8', 'e7'],
+        ['f1', 'e1'],
+        ['b7', 'b5'],
+        ['a4', 'b3'],
+        ['d7', 'd6'],
+        ['c2', 'c3'],
+        ['e8', 'g8'],
+        ['h2', 'h3'],
+        ['c6', 'b8'],
+        ['d2', 'd4'],
+        ['b8', 'd7'],
       ];
 
       moves.forEach(([from, to]) => {
@@ -196,11 +211,11 @@ describe('PGN and ChessJs Integration', () => {
       const lines = pgn.split('\n');
 
       // Check that move lines don't exceed 80 characters
-      const moveLines = lines.filter(line => 
-        !line.startsWith('[') && line.trim() !== '' && line.includes('.')
+      const moveLines = lines.filter(
+        (line) => !line.startsWith('[') && line.trim() !== '' && line.includes('.'),
       );
 
-      moveLines.forEach(line => {
+      moveLines.forEach((line) => {
         expect(line.length).toBeLessThanOrEqual(80);
       });
     });
@@ -218,12 +233,12 @@ describe('PGN and ChessJs Integration', () => {
       const history = rules.history();
 
       // Verify algebraic notation format
-      expect(history[0]).toBe('e4');     // Not 'e2-e4' or 'e2e4'
-      expect(history[1]).toBe('e5');     // Not 'e7-e5'
-      expect(history[2]).toBe('Nf3');    // Knight to f3
-      expect(history[3]).toBe('Nc6');    // Knight to c6
-      expect(history[4]).toBe('Bc4');    // Bishop to c4
-      expect(history[5]).toBe('Nf6');    // Knight to f6
+      expect(history[0]).toBe('e4'); // Not 'e2-e4' or 'e2e4'
+      expect(history[1]).toBe('e5'); // Not 'e7-e5'
+      expect(history[2]).toBe('Nf3'); // Knight to f3
+      expect(history[3]).toBe('Nc6'); // Knight to c6
+      expect(history[4]).toBe('Bc4'); // Bishop to c4
+      expect(history[5]).toBe('Nf6'); // Knight to f6
 
       // Verify PGN contains proper notation
       expect(pgn).toContain('1. e4 e5');
@@ -237,7 +252,7 @@ describe('PGN and ChessJs Integration', () => {
       rules.setPgnMetadata({
         Event: 'Empty Game',
         White: 'Nobody',
-        Black: 'Noone'
+        Black: 'Noone',
       });
 
       const pgn = rules.toPgn();
@@ -309,8 +324,18 @@ describe('PGN and ChessJs Integration', () => {
   describe('Real Game Scenarios', () => {
     test('should handle famous game (Immortal Game)', () => {
       const immortalGameMoves = [
-        ['e2', 'e4'], ['e7', 'e5'], ['f2', 'f4'], ['e5', 'f4'], ['f1', 'c4'], ['d8', 'h4'],
-        ['e1', 'f1'], ['b7', 'b5'], ['c4', 'b5'], ['g8', 'f6'], ['g1', 'f3'], ['d7', 'd6']
+        ['e2', 'e4'],
+        ['e7', 'e5'],
+        ['f2', 'f4'],
+        ['e5', 'f4'],
+        ['f1', 'c4'],
+        ['d8', 'h4'],
+        ['e1', 'f1'],
+        ['b7', 'b5'],
+        ['c4', 'b5'],
+        ['g8', 'f6'],
+        ['g1', 'f3'],
+        ['d7', 'd6'],
         // Truncated for test brevity
       ];
 
@@ -319,7 +344,7 @@ describe('PGN and ChessJs Integration', () => {
         Site: 'London',
         Date: '1851.06.21',
         White: 'Anderssen, Adolf',
-        Black: 'Kieseritzky, Lionel'
+        Black: 'Kieseritzky, Lionel',
       });
 
       immortalGameMoves.forEach(([from, to]) => {

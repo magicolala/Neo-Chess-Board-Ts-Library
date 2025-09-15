@@ -9,7 +9,7 @@ const createMockAdapter = (pgnOverride?: string): RulesAdapter => ({
   movesFrom: jest.fn(() => []),
   move: jest.fn(() => ({ ok: true })),
   getPGN: pgnOverride ? jest.fn(() => pgnOverride) : undefined,
-  header: jest.fn()
+  header: jest.fn(),
 });
 
 describe('PGNRecorder', () => {
@@ -32,7 +32,7 @@ describe('PGNRecorder', () => {
   describe('Initialization', () => {
     it('should initialize with default headers', () => {
       const result = pgn.getPGN();
-      
+
       expect(result).toContain('[Event "Casual Game"]');
       expect(result).toContain('[Site "Local"]');
       expect(result).toContain(`[Date "${mockedDate}"]`);
@@ -45,7 +45,7 @@ describe('PGNRecorder', () => {
     it('should work with external adapter', () => {
       const adapter = createMockAdapter('1. e4 e5 2. Nf3');
       const pgnWithAdapter = new PGNRecorder(adapter);
-      
+
       expect(pgnWithAdapter.getPGN()).toBe('1. e4 e5 2. Nf3');
     });
   });
@@ -55,7 +55,7 @@ describe('PGNRecorder', () => {
       pgn.setHeaders({
         Event: 'Test Tournament',
         White: 'Magnus',
-        Black: 'Hikaru'
+        Black: 'Hikaru',
       });
 
       const result = pgn.getPGN();
@@ -67,7 +67,7 @@ describe('PGNRecorder', () => {
 
     it('should set result correctly', () => {
       pgn.setResult('1-0');
-      
+
       const result = pgn.getPGN();
       expect(result).toContain('[Result "1-0"]');
       expect(result.endsWith(' 1-0')).toBe(true);
@@ -76,12 +76,14 @@ describe('PGNRecorder', () => {
     it('should call adapter header method when available', () => {
       const adapter = createMockAdapter();
       const pgnWithAdapter = new PGNRecorder(adapter);
-      
+
       pgnWithAdapter.setHeaders({ Event: 'Test' });
-      
-      expect(adapter.header).toHaveBeenCalledWith(expect.objectContaining({
-        Event: 'Test'
-      }));
+
+      expect(adapter.header).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Event: 'Test',
+        }),
+      );
     });
   });
 
@@ -97,14 +99,14 @@ describe('PGNRecorder', () => {
 
     it('should handle captures in move notation', () => {
       pgn.push({ from: 'e4', to: 'd5', captured: 'p' });
-      
+
       const result = pgn.getPGN();
       expect(result).toContain('1. e4xd5');
     });
 
     it('should handle promotions', () => {
       pgn.push({ from: 'a7', to: 'a8', promotion: 'q' });
-      
+
       const result = pgn.getPGN();
       expect(result).toContain('1. a7a8=Q');
     });
@@ -112,10 +114,10 @@ describe('PGNRecorder', () => {
     it('should reset moves correctly', () => {
       pgn.push({ from: 'e2', to: 'e4' });
       pgn.push({ from: 'e7', to: 'e5' });
-      
+
       let result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5');
-      
+
       pgn.reset();
       result = pgn.getPGN();
       expect(result).not.toContain('1. e2e4 e7e5');
@@ -129,19 +131,19 @@ describe('PGNRecorder', () => {
         href: '',
         download: '',
         click: jest.fn(),
-        style: {}
+        style: {},
       })) as any;
-      
+
       global.document.body.appendChild = jest.fn();
       global.document.body.removeChild = jest.fn();
-      
+
       global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
       global.URL.revokeObjectURL = jest.fn();
     });
 
     it('should create correct blob', () => {
       pgn.push({ from: 'e2', to: 'e4' });
-      
+
       const blob = pgn.toBlob();
       expect(blob).toBeInstanceOf(Blob);
       expect(blob.type).toBe('application/x-chess-pgn');
@@ -151,9 +153,9 @@ describe('PGNRecorder', () => {
       pgn.setHeaders({
         White: 'Magnus Carlsen',
         Black: 'Hikaru Nakamura',
-        Date: '2024.01.15'
+        Date: '2024.01.15',
       });
-      
+
       const filename = pgn.suggestFilename();
       expect(filename).toBe('Magnus_Carlsen_vs_Hikaru_Nakamura_2024-01-15.pgn');
     });
@@ -163,14 +165,14 @@ describe('PGNRecorder', () => {
         White: 'Player@#$%One',
         Black: 'Player Two!',
       });
-      
+
       const filename = pgn.suggestFilename();
       expect(filename).toMatch(/Player.*One_vs_Player.*Two.*\d{4}-\d{2}-\d{2}\.pgn/);
     });
 
     it('should download file when in browser environment', () => {
       pgn.download('test.pgn');
-      
+
       expect(global.URL.createObjectURL).toHaveBeenCalled();
       expect(global.document.createElement).toHaveBeenCalledWith('a');
       expect(global.document.body.appendChild).toHaveBeenCalled();
@@ -179,11 +181,11 @@ describe('PGNRecorder', () => {
     it('should handle SSR environment gracefully', () => {
       const originalDocument = global.document;
       delete (global as any).document;
-      
+
       expect(() => {
         pgn.download('test.pgn');
       }).not.toThrow();
-      
+
       global.document = originalDocument;
     });
   });
@@ -192,7 +194,7 @@ describe('PGNRecorder', () => {
     it('should generate proper PGN header format', () => {
       const result = pgn.getPGN();
       const lines = result.split('\n');
-      
+
       expect(lines[0]).toMatch(/^\[Event ".*"\]$/);
       expect(lines[1]).toMatch(/^\[Site ".*"\]$/);
       expect(lines[2]).toMatch(/^\[Date ".*"\]$/);
@@ -200,7 +202,7 @@ describe('PGNRecorder', () => {
 
     it('should separate headers from moves with blank line', () => {
       pgn.push({ from: 'e2', to: 'e4' });
-      
+
       const result = pgn.getPGN();
       expect(result).toContain(']\n\n1.');
     });
@@ -209,7 +211,7 @@ describe('PGNRecorder', () => {
       pgn.push({ from: 'e2', to: 'e4' });
       pgn.push({ from: 'e7', to: 'e5' });
       pgn.push({ from: 'g1', to: 'f3' }); // White's second move
-      
+
       const result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5 2. g1f3');
     });

@@ -62,7 +62,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "lint": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "prepublishOnly": "npm run build:lib"
   },
   "peerDependencies": {
@@ -80,15 +81,22 @@
     "@types/jest": "^30.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@vitejs/plugin-react": "^5.0.2",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.1.1",
     "jest-environment-jsdom": "^30.1.1",
+    "prettier": "^3.6.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "terser": "^5.43.1",
     "ts-jest": "^29.4.1",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.43.0",
     "vite": "^6.3.5"
   },
   "license": "MIT"

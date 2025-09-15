@@ -15,14 +15,12 @@ export const LargeLoader: React.FC<{ text?: string }> = ({ text }) => (
 );
 
 // Overlay de loading
-export const LoadingOverlay: React.FC<{ 
-  children?: React.ReactNode; 
+export const LoadingOverlay: React.FC<{
+  children?: React.ReactNode;
   text?: string;
 }> = ({ children, text = 'Chargement...' }) => (
   <div className={styles.loadingOverlay}>
-    <div>
-      {children || <LargeLoader text={text} />}
-    </div>
+    <div>{children || <LargeLoader text={text} />}</div>
   </div>
 );
 
@@ -42,14 +40,14 @@ export const PulseLoader: React.FC<{ className?: string }> = ({ className = '' }
 );
 
 // Skeleton loader pour le texte
-export const SkeletonText: React.FC<{ 
-  lines?: number; 
+export const SkeletonText: React.FC<{
+  lines?: number;
   className?: string;
 }> = ({ lines = 3, className = '' }) => (
   <div className={className}>
     {Array.from({ length: lines }, (_, i) => (
-      <div 
-        key={i} 
+      <div
+        key={i}
         className={`${styles.skeletonLoader} ${styles.skeletonText}`}
         style={{ width: `${80 + Math.random() * 20}%` }}
       />
@@ -58,16 +56,13 @@ export const SkeletonText: React.FC<{
 );
 
 // Skeleton loader pour les boutons
-export const SkeletonButtons: React.FC<{ 
-  count?: number; 
+export const SkeletonButtons: React.FC<{
+  count?: number;
   className?: string;
 }> = ({ count = 3, className = '' }) => (
   <div className={`${styles.buttonGroup} ${className}`}>
     {Array.from({ length: count }, (_, i) => (
-      <div 
-        key={i} 
-        className={`${styles.skeletonLoader} ${styles.skeletonButton}`}
-      />
+      <div key={i} className={`${styles.skeletonLoader} ${styles.skeletonButton}`} />
     ))}
   </div>
 );
@@ -75,15 +70,15 @@ export const SkeletonButtons: React.FC<{
 // Hook pour simuler les états de loading
 export const useLoadingState = (duration: number = 2000) => {
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, duration);
-    
+
     return () => clearTimeout(timer);
   }, [duration]);
-  
+
   return isLoading;
 };
 
@@ -102,8 +97,6 @@ export const LoadingButton: React.FC<{
     style={{ position: 'relative' }}
   >
     {isLoading && <InlineLoader />}
-    <span style={{ opacity: isLoading ? 0 : 1 }}>
-      {children}
-    </span>
+    <span style={{ opacity: isLoading ? 0 : 1 }}>{children}</span>
   </button>
 );

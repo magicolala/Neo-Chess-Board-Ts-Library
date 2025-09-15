@@ -34,24 +34,24 @@ export function demonstratePgnAnnotations() {
     showArrows: true,
     showHighlights: true,
     rightClickHighlights: true,
-    rulesAdapter: rules
+    rulesAdapter: rules,
   });
 
   // Load the PGN with annotations
   const success = board.loadPgnWithAnnotations(pgnWithAnnotations);
-  
+
   if (success) {
     console.log('PGN loaded successfully with annotations!');
-    
+
     // Export the PGN with annotations to verify it worked
     const exportedPgn = board.exportPgnWithAnnotations();
     console.log('Exported PGN:', exportedPgn);
-    
+
     // You can also manually add annotations
     board.addAnnotationsToCurrentMove(
       [{ from: 'e1', to: 'g1', color: '#0000ff' }], // Blue arrow from e1 to g1
       [{ square: 'g1', type: 'circle', color: '#ffff00' }], // Yellow circle on g1
-      'King safety move'
+      'King safety move',
     );
   } else {
     console.error('Failed to load PGN');
@@ -61,33 +61,33 @@ export function demonstratePgnAnnotations() {
 // Demonstrate individual components
 export function demonstrateAnnotationParsing() {
   const pgnNotation = new PgnNotation();
-  
+
   // Example of adding annotations programmatically
   const rules = new ChessJsRules();
   rules.move({ from: 'e2', to: 'e4' });
   rules.move({ from: 'e7', to: 'e5' });
-  
+
   // Add annotations to the first move
   pgnNotation.addMoveAnnotations(1, true, {
     arrows: [
       { from: 'e1', to: 'e4', color: '#ff0000' }, // Red arrow
-      { from: 'd1', to: 'h5', color: '#00ff00' }  // Green arrow
+      { from: 'd1', to: 'h5', color: '#00ff00' }, // Green arrow
     ],
     circles: [
       { square: 'd4', type: 'circle', color: '#ff0000' }, // Red circle
-      { square: 'e4', type: 'circle', color: '#00ff00' }  // Green circle
+      { square: 'e4', type: 'circle', color: '#00ff00' }, // Green circle
     ],
-    textComment: 'Excellent opening move!'
+    textComment: 'Excellent opening move!',
   });
-  
+
   // Export the PGN with annotations
   const pgnWithAnnotations = pgnNotation.toPgnWithAnnotations();
   console.log('Generated PGN:', pgnWithAnnotations);
-  
+
   // Parse it back
   const newPgnNotation = new PgnNotation();
   newPgnNotation.loadPgnWithAnnotations(pgnWithAnnotations);
-  
+
   const moves = newPgnNotation.getMovesWithAnnotations();
   console.log('Parsed moves:', moves);
 }
@@ -99,30 +99,30 @@ export const annotationExamples = {
     simple: '%cal Re1e4',
     multiple: '%cal Re1e4,Gd1h5,Yg1f3',
     colors: {
-      red: 'R',      // %cal Re1e4
-      green: 'G',    // %cal Ga1a2  
-      yellow: 'Y',   // %cal Yb1b2
-      blue: 'B'      // %cal Cc1c2
-    }
+      red: 'R', // %cal Re1e4
+      green: 'G', // %cal Ga1a2
+      yellow: 'Y', // %cal Yb1b2
+      blue: 'B', // %cal Cc1c2
+    },
   },
-  
-  // Circle annotations  
+
+  // Circle annotations
   circles: {
     simple: '%csl Rd4',
     multiple: '%csl Rd4,Gd5,Yf7',
     colors: {
-      red: 'R',      // %csl Re4
-      green: 'G',    // %csl Gd5
-      yellow: 'Y',   // %csl Yf7
-      blue: 'B'      // %csl Bc6
-    }
+      red: 'R', // %csl Re4
+      green: 'G', // %csl Gd5
+      yellow: 'Y', // %csl Yf7
+      blue: 'B', // %csl Bc6
+    },
   },
-  
+
   // Combined annotations
   combined: 'Great move! %cal Re1e4 %csl Gd4 This secures the center.',
-  
+
   // Real game example
-  gamePosition: `1. e4 {The king's pawn opening %cal Re1e4 %csl Gd4,Ge4} e5 {Symmetrical response %cal Ge7e5 %csl Re5}`
+  gamePosition: `1. e4 {The king's pawn opening %cal Re1e4 %csl Gd4,Ge4} e5 {Symmetrical response %cal Ge7e5 %csl Re5}`,
 };
 
 // Call demonstration functions when this module is imported

@@ -41,8 +41,8 @@ describe('ChessJsRules', () => {
     test('should get moves from a square', () => {
       const moves = rules.movesFrom('e2');
       expect(moves.length).toBeGreaterThan(0);
-      expect(moves.some(move => move.to === 'e4')).toBe(true);
-      expect(moves.some(move => move.to === 'e3')).toBe(true);
+      expect(moves.some((move) => move.to === 'e4')).toBe(true);
+      expect(moves.some((move) => move.to === 'e3')).toBe(true);
     });
 
     test('should get all possible moves', () => {
@@ -61,7 +61,7 @@ describe('ChessJsRules', () => {
       rules.move({ from: 'd1', to: 'h5' });
       rules.move({ from: 'g8', to: 'f6' });
       rules.move({ from: 'h5', to: 'f7' }); // Check!
-      
+
       expect(rules.inCheck()).toBe(true);
     });
 
@@ -71,7 +71,7 @@ describe('ChessJsRules', () => {
       rules.move({ from: 'e7', to: 'e5' });
       rules.move({ from: 'g2', to: 'g4' });
       rules.move({ from: 'd8', to: 'h4' });
-      
+
       expect(rules.isCheckmate()).toBe(true);
       expect(rules.isGameOver()).toBe(true);
     });
@@ -80,7 +80,7 @@ describe('ChessJsRules', () => {
       // Test stalemate detection methods exist
       expect(typeof rules.isStalemate).toBe('function');
       expect(typeof rules.isGameOver).toBe('function');
-      
+
       // Test a known stalemate position
       try {
         rules.setFEN('k7/8/1K6/8/8/8/8/1R6 b - - 0 1');
@@ -100,7 +100,7 @@ describe('ChessJsRules', () => {
     test('should get correct game result', () => {
       // Test ongoing game
       expect(rules.getGameResult()).toBe('*');
-      
+
       // Test checkmate
       rules.setFEN('rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2');
       rules.move({ from: 'd8', to: 'h4' });
@@ -112,10 +112,10 @@ describe('ChessJsRules', () => {
     test('should handle castling', () => {
       // Set up castling position
       rules.setFEN('r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1');
-      
+
       expect(rules.canCastle('k', 'w')).toBe(true);
       expect(rules.canCastle('q', 'w')).toBe(true);
-      
+
       const castlingMove = rules.move({ from: 'e1', to: 'g1' });
       expect(castlingMove.ok).toBe(true);
     });
@@ -123,10 +123,10 @@ describe('ChessJsRules', () => {
     test('should handle pawn promotion', () => {
       // Set up promotion scenario
       rules.setFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1');
-      
+
       const promotionMove = rules.move({ from: 'a7', to: 'a8', promotion: 'q' });
       expect(promotionMove.ok).toBe(true);
-      
+
       const piece = rules.get('a8');
       expect(piece?.type).toBe('q');
       expect(piece?.color).toBe('w');
@@ -141,7 +141,9 @@ describe('ChessJsRules', () => {
     });
 
     test('should validate FEN', () => {
-      expect(ChessJsRules.isValidFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')).toBe(true);
+      expect(
+        ChessJsRules.isValidFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),
+      ).toBe(true);
       expect(ChessJsRules.isValidFEN('invalid fen')).toBe(false);
     });
 
@@ -149,7 +151,7 @@ describe('ChessJsRules', () => {
       const piece = rules.get('e1');
       expect(piece?.type).toBe('k');
       expect(piece?.color).toBe('w');
-      
+
       expect(rules.get('e5')).toBeNull();
     });
 
@@ -163,7 +165,7 @@ describe('ChessJsRules', () => {
       rules.move({ from: 'e2', to: 'e4' });
       const cloned = rules.clone();
       expect(cloned.getFEN()).toBe(rules.getFEN());
-      
+
       // Verify they are independent
       cloned.move({ from: 'e7', to: 'e5' }); // Black's move
       expect(cloned.getFEN()).not.toBe(rules.getFEN());
@@ -173,10 +175,10 @@ describe('ChessJsRules', () => {
   describe('Move History', () => {
     test('should track move history', () => {
       expect(rules.history()).toEqual([]);
-      
+
       rules.move({ from: 'e2', to: 'e4' });
       rules.move({ from: 'e7', to: 'e5' });
-      
+
       const history = rules.history();
       expect(history).toEqual(['e4', 'e5']);
     });
@@ -184,15 +186,15 @@ describe('ChessJsRules', () => {
     test('should undo moves', () => {
       rules.move({ from: 'e2', to: 'e4' });
       rules.move({ from: 'e7', to: 'e5' });
-      
+
       expect(rules.undo()).toBe(true);
       expect(rules.history()).toEqual(['e4']);
       expect(rules.turn()).toBe('b');
-      
+
       expect(rules.undo()).toBe(true);
       expect(rules.history()).toEqual([]);
       expect(rules.turn()).toBe('w');
-      
+
       // Can't undo from starting position
       expect(rules.undo()).toBe(false);
     });
@@ -207,7 +209,7 @@ describe('ChessJsRules', () => {
 
     test('should get last move', () => {
       expect(rules.getLastMove()).toBeNull();
-      
+
       rules.move({ from: 'e2', to: 'e4' });
       const lastMove = rules.getLastMove();
       expect(lastMove.from).toBe('e2');
@@ -216,7 +218,7 @@ describe('ChessJsRules', () => {
 
     test('should get last move notation', () => {
       expect(rules.getLastMoveNotation()).toBeNull();
-      
+
       rules.move({ from: 'e2', to: 'e4' });
       expect(rules.getLastMoveNotation()).toBe('e4');
     });
@@ -224,7 +226,7 @@ describe('ChessJsRules', () => {
     test('should get PGN moves', () => {
       rules.move({ from: 'e2', to: 'e4' });
       rules.move({ from: 'e7', to: 'e5' });
-      
+
       const pgnMoves = rules.getPgnMoves();
       expect(pgnMoves).toEqual(['e4', 'e5']);
     });
@@ -240,7 +242,7 @@ describe('ChessJsRules', () => {
       rules.move({ from: 'd1', to: 'h5' });
       rules.move({ from: 'g8', to: 'f6' });
       rules.move({ from: 'h5', to: 'f7' }); // Checkmate
-      
+
       const checkSquares = rules.getCheckSquares();
       expect(checkSquares).toContain('e8'); // Black king in check
     });
@@ -271,9 +273,9 @@ describe('ChessJsRules', () => {
         Event: 'Test Tournament',
         Site: 'Test Site',
         White: 'Player 1',
-        Black: 'Player 2'
+        Black: 'Player 2',
       };
-      
+
       expect(() => rules.setPgnMetadata(metadata)).not.toThrow();
     });
 
@@ -281,12 +283,12 @@ describe('ChessJsRules', () => {
       rules.setPgnMetadata({
         Event: 'Test Game',
         White: 'Alice',
-        Black: 'Bob'
+        Black: 'Bob',
       });
-      
+
       rules.move({ from: 'e2', to: 'e4' });
       rules.move({ from: 'e7', to: 'e5' });
-      
+
       const pgn = rules.toPgn();
       expect(pgn).toContain('[Event "Test Game"]');
       expect(pgn).toContain('[White "Alice"]');
@@ -308,7 +310,7 @@ describe('ChessJsRules', () => {
 
       const success = rules.loadPgn(testPgn);
       expect(success).toBe(true);
-      
+
       const history = rules.history();
       expect(history).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
     });
@@ -335,29 +337,29 @@ describe('ChessJsRules', () => {
       rules.move({ from: 'd1', to: 'h5' });
       rules.move({ from: 'g8', to: 'f6' });
       rules.move({ from: 'h5', to: 'f7' });
-      
+
       expect(rules.isCheckmate()).toBe(true);
       expect(rules.getGameResult()).toBe('1-0');
-      
+
       const pgn = rules.toPgn();
       expect(pgn).toContain('1-0');
     });
 
     test('should maintain consistency across operations', () => {
       const originalFen = rules.getFEN();
-      
+
       // Make some moves
       rules.move({ from: 'e2', to: 'e4' });
       rules.move({ from: 'e7', to: 'e5' });
-      
+
       // Get PGN
       const pgn = rules.toPgn();
       expect(pgn).toContain('1. e4 e5');
-      
+
       // Reset and load PGN
       rules.reset();
       expect(rules.getFEN()).toBe(originalFen);
-      
+
       const loaded = rules.loadPgn(pgn);
       expect(loaded).toBe(true);
       expect(rules.history()).toEqual(['e4', 'e5']);

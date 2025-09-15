@@ -8,48 +8,48 @@
   --bg-card: #ffffff;
   --bg-hover: #f0f1f3;
   --bg-active: #e8eaed;
-  
+
   /* Bordures subtiles */
   --border-light: #e3e5e8;
   --border-medium: #d1d5db;
   --border-focus: #6366f1;
-  
+
   /* Texte - hiérarchie claire */
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
   --text-placeholder: #d1d5db;
-  
+
   /* Couleurs d'accent - minimalistes */
   --accent-primary: #6366f1;
   --accent-primary-hover: #4f46e5;
   --accent-primary-light: #eef2ff;
-  
+
   /* États sémantiques */
   --success: #10b981;
   --success-hover: #059669;
   --success-light: #ecfdf5;
-  
+
   --warning: #f59e0b;
   --warning-hover: #d97706;
   --warning-light: #fffbeb;
-  
+
   --error: #ef4444;
   --error-hover: #dc2626;
   --error-light: #fef2f2;
-  
+
   /* Géométrie - angles droits */
   --radius-sm: 0px;
   --radius: 0px;
   --radius-lg: 0px;
-  
+
   /* Espacement cohérent */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
+
   /* Ombres subtiles */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
@@ -63,7 +63,13 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Roboto',
+    sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -116,7 +122,9 @@ body {
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--blur-amount));
   -webkit-backdrop-filter: blur(var(--blur-amount));
-  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 1px 0 var(--glass-highlight);
   position: relative;
   overflow: hidden;
 }
@@ -142,7 +150,7 @@ body {
 }
 
 .title::before {
-  content: "♔";
+  content: '♔';
   font-size: 1.8rem;
   background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
   -webkit-background-clip: text;
@@ -228,7 +236,9 @@ body {
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--blur-amount));
   -webkit-backdrop-filter: blur(var(--blur-amount));
-  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 1px 0 var(--glass-highlight);
   position: relative;
   overflow: hidden;
 }
@@ -258,7 +268,9 @@ body {
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--blur-amount));
   -webkit-backdrop-filter: blur(var(--blur-amount));
-  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 1px 0 var(--glass-highlight);
   overflow: hidden;
   position: relative;
 }
@@ -327,7 +339,9 @@ body {
 .textarea:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2), var(--shadow-glass);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.2),
+    var(--shadow-glass);
   background: rgba(26, 35, 50, 0.6);
 }
 
@@ -381,7 +395,9 @@ body {
   background: rgba(51, 65, 85, 0.6);
   border-color: var(--accent-color);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-glass), 0 0 20px rgba(79, 70, 229, 0.2);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 20px rgba(79, 70, 229, 0.2);
 }
 
 .button:hover::after {
@@ -402,7 +418,9 @@ body {
 .buttonPrimary:hover {
   background: rgba(99, 102, 241, 0.9);
   border-color: var(--accent-hover);
-  box-shadow: var(--shadow-glass), 0 0 30px rgba(79, 70, 229, 0.4);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 30px rgba(79, 70, 229, 0.4);
 }
 
 .buttonSuccess {
@@ -415,7 +433,9 @@ body {
 .buttonSuccess:hover {
   background: rgba(5, 150, 105, 0.9);
   border-color: #059669;
-  box-shadow: var(--shadow-glass), 0 0 30px rgba(16, 185, 129, 0.4);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 30px rgba(16, 185, 129, 0.4);
 }
 
 .buttonWarning {
@@ -428,7 +448,9 @@ body {
 .buttonWarning:hover {
   background: rgba(217, 119, 6, 0.9);
   border-color: #d97706;
-  box-shadow: var(--shadow-glass), 0 0 30px rgba(245, 158, 11, 0.4);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 30px rgba(245, 158, 11, 0.4);
 }
 
 /* Icons pour les boutons */
@@ -437,15 +459,15 @@ body {
 }
 
 .buttonCopy::before {
-  content: "📋";
+  content: '📋';
 }
 
 .buttonReset::before {
-  content: "🔄";
+  content: '🔄';
 }
 
 .buttonExport::before {
-  content: "📥";
+  content: '📥';
 }
 
 /* Animations et effets */
@@ -461,7 +483,7 @@ body {
   }
 }
 
-.container>* {
+.container > * {
   animation: slideIn 0.6s ease-out;
 }
 
@@ -563,7 +585,7 @@ body {
 }
 
 .loader:after {
-  content: " ";
+  content: ' ';
   display: block;
   width: 16px;
   height: 16px;
@@ -609,10 +631,12 @@ body {
 }
 
 .skeletonLoader {
-  background: linear-gradient(90deg,
-      var(--secondary-bg) 25%,
-      var(--border-color) 50%,
-      var(--secondary-bg) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--secondary-bg) 25%,
+    var(--border-color) 50%,
+    var(--secondary-bg) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
@@ -697,12 +721,11 @@ body {
   height: 24px;
   background-color: var(--accent-color);
   border-radius: 100%;
-  animation: pulse 1.0s infinite ease-in-out;
+  animation: pulse 1s infinite ease-in-out;
 }
 
 /* Animation float pour les éléments flottants */
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0px) scale(1);
@@ -782,7 +805,7 @@ body {
   }
 
   100% {
-    transform: scale(1.0);
+    transform: scale(1);
     opacity: 0;
   }
 }
@@ -861,7 +884,7 @@ body {
 }
 
 .title::before {
-  content: "♟";
+  content: '♟';
   background: none;
   -webkit-text-fill-color: currentColor;
 }
@@ -982,7 +1005,9 @@ body {
   color: var(--text-dim);
   border-radius: 0;
   box-shadow: none;
-  transition: background .15s ease, color .15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   font-size: 0.8rem;
   font-weight: 500;
 }
@@ -1049,7 +1074,7 @@ body {
 
 .infoBox p {
   color: var(--text);
-  font-size: .86rem;
+  font-size: 0.86rem;
 }
 
 .infoBox ul {
@@ -1074,7 +1099,7 @@ body {
   transition: none;
 }
 
-.container>* {
+.container > * {
   animation: none !important;
 }
 

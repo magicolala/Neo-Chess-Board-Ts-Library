@@ -1,13 +1,23 @@
-import type { Theme } from "./types";
+import type { Theme } from './types';
 export class FlatSprites {
   private sheet: HTMLCanvasElement | OffscreenCanvas;
-  constructor(private size: number, private colors: Theme) {
+  constructor(
+    private size: number,
+    private colors: Theme,
+  ) {
     this.sheet = this.build(size);
   }
   getSheet() {
     return this.sheet;
   }
-  private rr(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  private rr(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+  ) {
     const rr = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
     ctx.moveTo(x + rr, y);
@@ -23,19 +33,26 @@ export class FlatSprites {
   }
   private build(px: number) {
     const c =
-      typeof OffscreenCanvas !== "undefined"
+      typeof OffscreenCanvas !== 'undefined'
         ? new OffscreenCanvas(px * 6, px * 2)
-        : Object.assign(document.createElement("canvas"), { width: px * 6, height: px * 2 });
-    const ctx = c.getContext("2d")!;
-    const order = ["k", "q", "r", "b", "n", "p"] as const;
+        : Object.assign(document.createElement('canvas'), { width: px * 6, height: px * 2 });
+    const ctx = c.getContext('2d')!;
+    const order = ['k', 'q', 'r', 'b', 'n', 'p'] as const;
     order.forEach((t, i) => {
-      this.draw(ctx, i * px, 0, px, t, "black");
-      this.draw(ctx, i * px, px, px, t, "white");
+      this.draw(ctx, i * px, 0, px, t, 'black');
+      this.draw(ctx, i * px, px, px, t, 'white');
     });
     return c;
   }
-  private draw(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, x: number, y: number, s: number, type: string, color: "white" | "black") {
-    const C = color === "white" ? this.colors.whitePiece : this.colors.blackPiece;
+  private draw(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    x: number,
+    y: number,
+    s: number,
+    type: string,
+    color: 'white' | 'black',
+  ) {
+    const C = color === 'white' ? this.colors.whitePiece : this.colors.blackPiece;
     const S = this.colors.pieceShadow;
     ctx.save();
     ctx.translate(x, y);
@@ -44,8 +61,8 @@ export class FlatSprites {
     ctx.ellipse(s * 0.5, s * 0.68, s * 0.28, s * 0.1, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = C;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     const base = () => {
       ctx.beginPath();
       ctx.moveTo(s * 0.2, s * 0.7);
@@ -55,7 +72,7 @@ export class FlatSprites {
       ctx.closePath();
       ctx.fill();
     };
-    if (type === "p") {
+    if (type === 'p') {
       ctx.beginPath();
       ctx.arc(s * 0.5, s * 0.38, s * 0.12, 0, Math.PI * 2);
       ctx.fill();
@@ -68,7 +85,7 @@ export class FlatSprites {
       ctx.fill();
       base();
     }
-    if (type === "r") {
+    if (type === 'r') {
       ctx.beginPath();
       this.rr(ctx, s * 0.32, s * 0.3, s * 0.36, s * 0.34, s * 0.04);
       ctx.fill();
@@ -83,7 +100,7 @@ export class FlatSprites {
       ctx.fill();
       base();
     }
-    if (type === "n") {
+    if (type === 'n') {
       ctx.beginPath();
       ctx.moveTo(s * 0.64, s * 0.6);
       ctx.quadraticCurveTo(s * 0.7, s * 0.35, s * 0.54, s * 0.28);
@@ -94,19 +111,19 @@ export class FlatSprites {
       ctx.closePath();
       ctx.fill();
       const C = ctx.fillStyle;
-      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
       ctx.beginPath();
       ctx.arc(s * 0.5, s * 0.36, s * 0.02, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = C as any;
       base();
     }
-    if (type === "b") {
+    if (type === 'b') {
       ctx.beginPath();
       ctx.ellipse(s * 0.5, s * 0.42, s * 0.12, s * 0.18, 0, 0, Math.PI * 2);
       ctx.fill();
       const C = ctx.globalCompositeOperation;
-      ctx.globalCompositeOperation = "destination-out";
+      ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.moveTo(s * 0.5, s * 0.28);
       ctx.lineTo(s * 0.5, s * 0.52);
@@ -115,7 +132,7 @@ export class FlatSprites {
       ctx.globalCompositeOperation = C;
       base();
     }
-    if (type === "q") {
+    if (type === 'q') {
       ctx.beginPath();
       ctx.moveTo(s * 0.3, s * 0.3);
       ctx.lineTo(s * 0.4, s * 0.18);
@@ -129,7 +146,7 @@ export class FlatSprites {
       ctx.fill();
       base();
     }
-    if (type === "k") {
+    if (type === 'k') {
       ctx.beginPath();
       this.rr(ctx, s * 0.47, s * 0.16, s * 0.06, s * 0.16, s * 0.02);
       ctx.fill();

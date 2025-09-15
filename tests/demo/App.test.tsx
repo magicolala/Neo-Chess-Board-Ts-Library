@@ -47,7 +47,7 @@ jest.mock('../../src/core/ChessJsRules', () => {
 // Mock the NeoChessBoard React component
 jest.mock('../../src/react/NeoChessBoard', () => ({
   NeoChessBoard: jest.fn(({ onMove, theme }) => (
-    <div 
+    <div
       data-testid="neo-chessboard"
       data-theme={theme}
       onClick={() => {
@@ -55,11 +55,11 @@ jest.mock('../../src/react/NeoChessBoard', () => ({
         onMove?.({
           from: 'e2',
           to: 'e4',
-          fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2'
+          fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
         });
       }}
     />
-  ))
+  )),
 }));
 
 // Mock clipboard API
@@ -68,45 +68,45 @@ const mockWriteText = jest.fn(() => Promise.resolve());
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Ensure we're in test environment
     process.env.NODE_ENV = 'test';
-    
+
     // Setup clipboard mock in beforeEach
     Object.defineProperty(navigator, 'clipboard', {
       value: {
-        writeText: mockWriteText
+        writeText: mockWriteText,
       },
       writable: true,
-      configurable: true
+      configurable: true,
     });
   });
 
   describe('Basic rendering', () => {
     it('should render without crashing', () => {
       render(<App />);
-      
+
       expect(screen.getByText(/NeoChessBoard/)).toBeInTheDocument();
       expect(screen.getByTestId('neo-chessboard')).toBeInTheDocument();
     });
 
     it('should display theme selector buttons', () => {
       render(<App />);
-      
+
       expect(screen.getByText('Midnight')).toBeInTheDocument();
       expect(screen.getByText('Classic')).toBeInTheDocument();
     });
 
     it('should display PGN section', () => {
       render(<App />);
-      
+
       expect(screen.getByText('Copier')).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /pgn notation/i })).toBeInTheDocument();
     });
 
     it('should display FEN section', () => {
       render(<App />);
-      
+
       expect(screen.getByText('🎯 Position FEN')).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /fen/i })).toBeInTheDocument();
     });
@@ -115,7 +115,7 @@ describe('App Component', () => {
   describe('Theme switching', () => {
     it('should start with midnight theme', () => {
       render(<App />);
-      
+
       expect(screen.getByText('midnight')).toBeInTheDocument();
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
@@ -123,9 +123,9 @@ describe('App Component', () => {
     it('should switch to classic theme when clicked', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       await user.click(screen.getByText('Classic'));
-      
+
       expect(screen.getByText('classic')).toBeInTheDocument();
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'classic');
     });
@@ -133,10 +133,10 @@ describe('App Component', () => {
     it('should switch back to midnight theme', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       await user.click(screen.getByText('Classic'));
       await user.click(screen.getByText('Midnight'));
-      
+
       expect(screen.getByText('midnight')).toBeInTheDocument();
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
@@ -146,11 +146,13 @@ describe('App Component', () => {
     it('should handle moves and update PGN', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       // Simulate a move by clicking the board
       await user.click(screen.getByTestId('neo-chessboard'));
-      
-      const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i }) as HTMLTextAreaElement;
+
+      const pgnTextarea = screen.getByRole('textbox', {
+        name: /pgn notation/i,
+      }) as HTMLTextAreaElement;
       await waitFor(() => {
         console.log('PGN Textarea Value:', pgnTextarea.value); // Debugging line
         expect(pgnTextarea).toHaveValue('1. e4');
@@ -160,19 +162,21 @@ describe('App Component', () => {
     it('should update FEN after move', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
-      
+
       await user.click(screen.getByTestId('neo-chessboard'));
-      
-      expect(fenTextarea).toHaveValue('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2');
+
+      expect(fenTextarea).toHaveValue(
+        'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
+      );
     });
   });
 
   describe('PGN functionality', () => {
     it('should display PGN text', () => {
       render(<App />);
-      
+
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
       // PGN text starts empty and is populated on first move
       expect(pgnTextarea).toHaveValue('');
@@ -181,21 +185,23 @@ describe('App Component', () => {
     it('should have functional copy button', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       // First simulate a move to populate PGN
       await user.click(screen.getByTestId('neo-chessboard'));
-      
+
       // Wait for state update
       await waitFor(() => {
-        const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i }) as HTMLTextAreaElement;
+        const pgnTextarea = screen.getByRole('textbox', {
+          name: /pgn notation/i,
+        }) as HTMLTextAreaElement;
         expect(pgnTextarea).toHaveValue('1. e4');
       });
-      
+
       // Verify copy button exists and is clickable
       const copyButton = screen.getByText('Copier');
       expect(copyButton).toBeInTheDocument();
       expect(copyButton).not.toHaveAttribute('disabled');
-      
+
       // Test that clicking doesn't throw an error
       expect(() => user.click(copyButton)).not.toThrow();
     });
@@ -203,12 +209,12 @@ describe('App Component', () => {
     it('should reset PGN when reset button clicked', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       await user.click(screen.getByText('Reset'));
-      
+
       // Attendre que l'opération asynchrone se termine
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
       expect(pgnTextarea).toHaveValue('*');
     });
@@ -216,12 +222,12 @@ describe('App Component', () => {
     it('should export PGN file when export button clicked', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       await user.click(screen.getByText('Exporter'));
-      
+
       // Attendre que l'opération asynchrone se termine
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       // We can't easily test the download, so we just check that the button is there
       // and clickable.
       const exportButton = screen.getByText('Exporter');
@@ -234,9 +240,9 @@ describe('App Component', () => {
     it('should allow FEN input changes', async () => {
       const user = userEvent.setup();
       render(<App />);
-      
+
       const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
-      
+
       // Test with a valid FEN
       const validFEN = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
       await user.clear(fenTextarea);
@@ -253,7 +259,7 @@ describe('App Component', () => {
 
     it('should start with empty FEN textarea', () => {
       render(<App />);
-      
+
       const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
       expect(fenTextarea).toHaveValue('');
     });
@@ -262,14 +268,14 @@ describe('App Component', () => {
   describe('Layout and styling', () => {
     it('should have correct grid layout', () => {
       const { container } = render(<App />);
-      
+
       const mainContainer = container.firstChild as HTMLElement;
       expect(mainContainer).toHaveClass('container');
     });
 
     it('should have correct button layout', () => {
       render(<App />);
-      
+
       // Le bouton est maintenant un LoadingButton, on cherche le conteneur des boutons
       const buttonContainer = screen.getByText('Copier').closest('.buttonGroup');
       expect(buttonContainer).toBeInTheDocument();
@@ -280,14 +286,14 @@ describe('App Component', () => {
     it('should handle PGN recorder with or without Chess.js', () => {
       // Test without Chess.js
       delete (window as any).Chess;
-      
+
       expect(() => {
         render(<App />);
       }).not.toThrow();
-      
+
       // Test with Chess.js
       (window as any).Chess = {};
-      
+
       expect(() => {
         render(<App />);
       }).not.toThrow();
@@ -297,12 +303,12 @@ describe('App Component', () => {
   describe('Error handling', () => {
     it('should handle clipboard API failures gracefully', async () => {
       const user = userEvent.setup();
-      
+
       // Mock clipboard to reject
       mockWriteText.mockRejectedValue(new Error('Clipboard error'));
-      
+
       render(<App />);
-      
+
       expect(() => user.click(screen.getByText('Copier'))).not.toThrow();
     });
   });

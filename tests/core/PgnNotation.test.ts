@@ -13,7 +13,7 @@ const mockChess = {
         { san: 'e4', from: 'e2', to: 'e4' },
         { san: 'e5', from: 'e7', to: 'e5' },
         { san: 'Nf3', from: 'g1', to: 'f3' },
-        { san: 'Nc6', from: 'b8', to: 'c6' }
+        { san: 'Nc6', from: 'b8', to: 'c6' },
       ];
     }
     return ['e4', 'e5', 'Nf3', 'Nc6'];
@@ -23,7 +23,7 @@ const mockChess = {
   isStalemate: () => false,
   isThreefoldRepetition: () => false,
   isInsufficientMaterial: () => false,
-  turn: () => 'w'
+  turn: () => 'w',
 };
 
 describe('PgnNotation', () => {
@@ -59,7 +59,7 @@ describe('PgnNotation', () => {
         Result: '1-0',
         WhiteElo: '2830',
         BlackElo: '2792',
-        ECO: 'C42'
+        ECO: 'C42',
       };
 
       pgn.setMetadata(metadata);
@@ -91,15 +91,15 @@ describe('PgnNotation', () => {
         WhiteElo: '1500',
         Event: 'Test Tournament',
         ECO: 'B00',
-        Site: 'Test Site'
+        Site: 'Test Site',
       });
 
       const pgnOutput = pgn.toPgn();
       const lines = pgnOutput.split('\n');
 
-      const eventIndex = lines.findIndex(line => line.includes('[Event'));
-      const siteIndex = lines.findIndex(line => line.includes('[Site'));
-      const whiteEloIndex = lines.findIndex(line => line.includes('[WhiteElo'));
+      const eventIndex = lines.findIndex((line) => line.includes('[Event'));
+      const siteIndex = lines.findIndex((line) => line.includes('[Site'));
+      const whiteEloIndex = lines.findIndex((line) => line.includes('[WhiteElo'));
 
       expect(eventIndex).toBeLessThan(whiteEloIndex);
       expect(siteIndex).toBeLessThan(whiteEloIndex);
@@ -164,7 +164,7 @@ describe('PgnNotation', () => {
     test('should handle different result formats', () => {
       const results = ['1-0', '0-1', '1/2-1/2', '*'];
 
-      results.forEach(result => {
+      results.forEach((result) => {
         pgn.setResult(result);
         expect(pgn.getResult()).toBe(result);
 
@@ -191,7 +191,7 @@ describe('PgnNotation', () => {
       const checkmateChess = {
         ...mockChess,
         isCheckmate: () => true,
-        turn: () => 'w' // White to move, so black wins
+        turn: () => 'w', // White to move, so black wins
       };
 
       pgn.importFromChessJs(checkmateChess);
@@ -201,7 +201,7 @@ describe('PgnNotation', () => {
     test('should detect stalemate result', () => {
       const stalemateChess = {
         ...mockChess,
-        isStalemate: () => true
+        isStalemate: () => true,
       };
 
       pgn.importFromChessJs(stalemateChess);
@@ -211,7 +211,7 @@ describe('PgnNotation', () => {
     test('should detect draw by repetition', () => {
       const repetitionChess = {
         ...mockChess,
-        isThreefoldRepetition: () => true
+        isThreefoldRepetition: () => true,
       };
 
       pgn.importFromChessJs(repetitionChess);
@@ -221,7 +221,7 @@ describe('PgnNotation', () => {
     test('should detect insufficient material', () => {
       const insufficientChess = {
         ...mockChess,
-        isInsufficientMaterial: () => true
+        isInsufficientMaterial: () => true,
       };
 
       pgn.importFromChessJs(insufficientChess);
@@ -238,7 +238,7 @@ describe('PgnNotation', () => {
         Round: '1',
         White: 'Player 1',
         Black: 'Player 2',
-        Result: '*'
+        Result: '*',
       });
 
       pgn.addMove(1, 'e4', 'e5');
@@ -264,12 +264,12 @@ describe('PgnNotation', () => {
       const lines = pgnOutput.split('\n');
 
       // Find move lines (not header lines)
-      const moveLines = lines.filter(line => 
-        !line.startsWith('[') && line.trim() !== '' && !line.includes('*')
+      const moveLines = lines.filter(
+        (line) => !line.startsWith('[') && line.trim() !== '' && !line.includes('*'),
       );
 
       // Each line should be under or at 80 characters
-      moveLines.forEach(line => {
+      moveLines.forEach((line) => {
         expect(line.length).toBeLessThanOrEqual(80);
       });
     });
@@ -296,7 +296,7 @@ describe('PgnNotation', () => {
       const metadata = {
         Event: 'Test From List',
         White: 'Alice',
-        Black: 'Bob'
+        Black: 'Bob',
       };
 
       const pgnOutput = PgnNotation.fromMoveList(moves, metadata);
@@ -352,7 +352,7 @@ describe('PgnNotation', () => {
     test('should escape special characters in metadata', () => {
       pgn.setMetadata({
         Event: 'Test "Quotes" Tournament',
-        Site: 'City with "Special" Characters'
+        Site: 'City with "Special" Characters',
       });
 
       const pgnOutput = pgn.toPgn();
@@ -386,7 +386,7 @@ describe('PgnNotation', () => {
     // Skip these tests in Node.js environment to avoid window mocking issues
     test('should handle download PGN method', () => {
       pgn.addMove(1, 'e4', 'e5');
-      
+
       // Just test that the method exists and doesn't throw in non-browser environment
       expect(() => pgn.downloadPgn('test.pgn')).not.toThrow();
       expect(typeof pgn.downloadPgn).toBe('function');
@@ -402,7 +402,7 @@ describe('PgnNotation', () => {
         Date: '2025.01.01',
         White: 'Beginner',
         Black: 'Victim',
-        Result: '1-0'
+        Result: '1-0',
       });
 
       pgn.addMove(1, 'e4', 'e5');
@@ -434,7 +434,7 @@ describe('PgnNotation', () => {
         TimeControl: '40/7200+30',
         ECO: 'C84',
         Opening: 'Ruy Lopez: Closed Defence',
-        Annotator: 'ChessBase'
+        Annotator: 'ChessBase',
       });
 
       // Add some moves

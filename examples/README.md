@@ -5,6 +5,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ## 📁 Available Examples
 
 ### 🌐 Vanilla JavaScript
+
 - **`vanilla-js-example.html`** - Complete standalone HTML page with interactive chess board
   - Theme switching
   - Move history tracking
@@ -13,6 +14,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
   - Game status monitoring
 
 ### ⚛️ React Examples
+
 - **`react-hooks-example.tsx`** - Advanced React implementation with custom hooks
   - `useChessGame` - Game state management
   - `useChessTheme` - Theme management with custom themes
@@ -20,6 +22,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
   - Full game statistics and analytics
 
 ### 🧩 Puzzle Applications
+
 - **`chess-puzzles.tsx`** - Complete chess puzzle application
   - Multiple difficulty levels
   - Progress tracking
@@ -30,31 +33,36 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ## 🚀 Running Examples
 
 ### Vanilla JavaScript Example
+
 1. Build the library first:
+
    ```bash
    npm run build
    ```
 
 2. Open `vanilla-js-example.html` in your browser or serve it with a local server:
+
    ```bash
    # Using Node.js http-server
    npx http-server examples
-   
+
    # Using Python
    python -m http.server 8000
-   
+
    # Using PHP
    php -S localhost:8000
    ```
 
 ### React Examples
+
 1. The React examples are TypeScript files that can be integrated into your React application.
 
 2. Copy the desired example file to your React project and adjust the import paths:
+
    ```tsx
    // Change this:
    import { NeoChessBoard } from '../src/react/NeoChessBoard';
-   
+
    // To this:
    import { NeoChessBoard } from 'neochessboard/react';
    ```
@@ -67,6 +75,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ## 🎯 Example Features Demonstrated
 
 ### Core Functionality
+
 - ✅ Basic board setup and rendering
 - ✅ Move making and validation
 - ✅ FEN position loading
@@ -75,6 +84,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 - ✅ Event handling (move, check, checkmate, etc.)
 
 ### Advanced Features
+
 - ✅ PGN import/export
 - ✅ Move history navigation
 - ✅ Custom themes creation
@@ -85,6 +95,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 - ✅ Position editor tools
 
 ### UI/UX Patterns
+
 - ✅ Responsive design
 - ✅ Mobile-friendly interfaces
 - ✅ Accessibility considerations
@@ -96,6 +107,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ## 🎨 Styling Examples
 
 ### Basic CSS Integration
+
 ```css
 /* Custom board container styling */
 .chess-board-wrapper {
@@ -106,13 +118,14 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 }
 
 /* Theme-specific styling */
-.chess-board-wrapper[data-theme="neon"] {
+.chess-board-wrapper[data-theme='neon'] {
   background: linear-gradient(45deg, #ff006e, #8338ec);
   box-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
 }
 ```
 
 ### Responsive Design
+
 ```css
 /* Mobile-first approach */
 .chess-container {
@@ -128,11 +141,11 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
     gap: 30px;
     max-width: 1200px;
   }
-  
+
   .chess-board {
     flex-shrink: 0;
   }
-  
+
   .game-controls {
     min-width: 300px;
   }
@@ -142,6 +155,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ## 🔧 Customization Examples
 
 ### Custom Event Handlers
+
 ```typescript
 board.on('move', (move) => {
   // Custom move handling
@@ -158,13 +172,14 @@ board.on('check', (color) => {
 ```
 
 ### Theme Customization
+
 ```typescript
 const customTheme = {
   name: 'corporate',
   board: {
     light: '#f8fafc',
     dark: '#1e293b',
-    border: '#334155'
+    border: '#334155',
   },
   pieces: {
     king: { white: '#3b82f6', black: '#1e40af' },
@@ -174,8 +189,8 @@ const customTheme = {
     lastMove: 'rgba(59, 130, 246, 0.4)',
     legalMove: 'rgba(34, 197, 94, 0.3)',
     check: 'rgba(239, 68, 68, 0.6)',
-    selected: 'rgba(168, 85, 247, 0.4)'
-  }
+    selected: 'rgba(168, 85, 247, 0.4)',
+  },
 };
 
 board.setTheme(customTheme);
@@ -184,6 +199,7 @@ board.setTheme(customTheme);
 ## 🎮 Integration Patterns
 
 ### With State Management (Redux/Zustand)
+
 ```typescript
 // Redux action creators
 const gameActions = {
@@ -196,7 +212,7 @@ const gameActions = {
 const ChessGame = () => {
   const { position, theme } = useSelector(state => state.chess);
   const dispatch = useDispatch();
-  
+
   return (
     <NeoChessBoard
       position={position}
@@ -208,6 +224,7 @@ const ChessGame = () => {
 ```
 
 ### With Form Libraries
+
 ```typescript
 // React Hook Form integration
 const { control, watch, setValue } = useForm({
@@ -238,10 +255,11 @@ return (
 ## 📱 Mobile Examples
 
 ### Touch Optimization
+
 ```typescript
 const MobileBoard = () => {
   const [touchStarted, setTouchStarted] = useState(false);
-  
+
   return (
     <NeoChessBoard
       style={{
@@ -262,10 +280,12 @@ const MobileBoard = () => {
 ```
 
 ### PWA Integration
+
 ```typescript
 // Service Worker registration for offline support
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/chess-sw.js')
+  navigator.serviceWorker
+    .register('/chess-sw.js')
     .then(() => console.log('Chess app available offline'));
 }
 
@@ -277,30 +297,31 @@ const gameCache = {
   load: (gameId) => {
     const data = localStorage.getItem(`chess-game-${gameId}`);
     return data ? JSON.parse(data) : null;
-  }
+  },
 };
 ```
 
 ## 🎯 Performance Examples
 
 ### Large Game Analysis
+
 ```typescript
 // Efficient handling of large move histories
 const GameAnalyzer = ({ moves }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   // Virtualize large move lists
   const visibleMoves = useMemo(() => {
     const start = Math.max(0, currentIndex - 50);
     const end = Math.min(moves.length, currentIndex + 50);
     return moves.slice(start, end);
   }, [moves, currentIndex]);
-  
+
   return (
     <div>
       <NeoChessBoard position={moves[currentIndex]?.fen} />
-      <VirtualizedMoveList 
-        moves={visibleMoves} 
+      <VirtualizedMoveList
+        moves={visibleMoves}
         onMoveSelect={setCurrentIndex}
       />
     </div>
@@ -309,11 +330,12 @@ const GameAnalyzer = ({ moves }) => {
 ```
 
 ### Memory Management
+
 ```typescript
 // Proper cleanup in React components
 useEffect(() => {
   const board = new NeoChessBoard(canvasRef.current);
-  
+
   return () => {
     board.destroy(); // Clean up event listeners and resources
   };
@@ -323,19 +345,20 @@ useEffect(() => {
 ## 🧪 Testing Examples
 
 ### Component Testing
+
 ```typescript
 import { render, fireEvent } from '@testing-library/react';
 import { NeoChessBoard } from 'neochessboard/react';
 
 test('handles move events correctly', () => {
   const handleMove = jest.fn();
-  
+
   render(<NeoChessBoard onMove={handleMove} />);
-  
+
   // Simulate move (this would require more complex board interaction)
   // fireEvent.mouseDown(getSquare('e2'));
   // fireEvent.mouseUp(getSquare('e4'));
-  
+
   // expect(handleMove).toHaveBeenCalledWith(expect.objectContaining({
   //   from: 'e2',
   //   to: 'e4'
@@ -361,6 +384,7 @@ Have a great example to share? We'd love to include it!
 4. Submit a pull request
 
 ### Example Guidelines
+
 - Include clear comments explaining key concepts
 - Follow the existing code style
 - Provide a brief description of what the example demonstrates

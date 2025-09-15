@@ -41,7 +41,7 @@ function ChessGame() {
 
   return (
     <div>
-      <NeoChessBoard 
+      <NeoChessBoard
         position={position}
         onMove={handleMove}
         theme="dark"
@@ -95,23 +95,23 @@ function ChessGameWithHistory() {
   return (
     <div style={{ display: 'flex', gap: '20px' }}>
       <div>
-        <NeoChessBoard 
+        <NeoChessBoard
           position={currentPosition}
           onMove={handleMove}
           theme="wood"
           showCoordinates={true}
         />
       </div>
-      
+
       <div style={{ minWidth: '200px' }}>
         <h3>Move History</h3>
         <button onClick={() => goToMove(-1)}>Start Position</button>
         <div style={{ maxHeight: '300px', overflow: 'auto' }}>
           {gameHistory.map((gameMove, index) => (
-            <div 
+            <div
               key={index}
               onClick={() => goToMove(index)}
-              style={{ 
+              style={{
                 padding: '4px 8px',
                 cursor: 'pointer',
                 backgroundColor: '#f5f5f5',
@@ -160,10 +160,10 @@ function ChessPuzzle() {
 
   const handleMove = (move: Move) => {
     const expectedMove = puzzle.solution[solutionIndex];
-    
+
     if (move.san === expectedMove) {
       setSolutionIndex(prev => prev + 1);
-      
+
       if (solutionIndex + 1 >= puzzle.solution.length) {
         setSolved(true);
         setHint('Puzzle solved! 🎉');
@@ -190,14 +190,14 @@ function ChessPuzzle() {
     <div>
       <h2>Chess Puzzle {currentPuzzle + 1}</h2>
       <p>{puzzle.description}</p>
-      
-      <NeoChessBoard 
+
+      <NeoChessBoard
         position={puzzle.fen}
         onMove={handleMove}
         theme="glass"
         orientation="white"
       />
-      
+
       <div style={{ marginTop: '10px' }}>
         <p>{hint}</p>
         <button onClick={resetPuzzle}>Reset</button>
@@ -226,11 +226,11 @@ function MultiboardAnalysis() {
   return (
     <div>
       <h2>Position Analysis</h2>
-      
+
       {/* Main board */}
       <div style={{ marginBottom: '20px' }}>
         <h3>Main Line</h3>
-        <NeoChessBoard 
+        <NeoChessBoard
           position={mainPosition}
           theme="light"
           showCoordinates={true}
@@ -240,13 +240,13 @@ function MultiboardAnalysis() {
           }}
         />
       </div>
-      
+
       {/* Variation boards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
         {variations.map((variation, index) => (
           <div key={index}>
             <h4>Variation {index + 1}</h4>
-            <NeoChessBoard 
+            <NeoChessBoard
               position={variation}
               theme="dark"
               draggable={false}
@@ -326,30 +326,30 @@ import { NeoChessBoard } from 'neochessboard';
 
 class PGNManager {
   private board: NeoChessBoard;
-  
+
   constructor(canvas: HTMLCanvasElement) {
     this.board = new NeoChessBoard(canvas);
   }
-  
+
   loadPGN(pgnString: string) {
     try {
       // Parse PGN and apply moves
       const moves = this.parsePGN(pgnString);
       this.board.reset();
-      
-      moves.forEach(move => {
+
+      moves.forEach((move) => {
         this.board.makeMove(move.from, move.to);
       });
-      
+
       console.log('PGN loaded successfully');
     } catch (error) {
       console.error('Error loading PGN:', error);
     }
   }
-  
+
   exportCurrentGame(): string {
     const pgn = this.board.exportPGN();
-    
+
     // Add additional metadata
     const headers = {
       Event: 'Casual Game',
@@ -358,34 +358,34 @@ class PGNManager {
       Round: '1',
       White: 'Player 1',
       Black: 'Player 2',
-      Result: '*'
+      Result: '*',
     };
-    
+
     return this.formatPGN(headers, pgn);
   }
-  
+
   private parsePGN(pgn: string) {
     // Implement PGN parsing logic
     // This is a simplified version
     const moves = [];
     const movePattern = /\b([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:=[NBRQ])?[+#]?)\b/g;
     let match;
-    
+
     while ((match = movePattern.exec(pgn)) !== null) {
       moves.push(this.sanToMove(match[1]));
     }
-    
+
     return moves;
   }
-  
+
   private formatPGN(headers: object, moves: string): string {
     let pgn = '';
-    
+
     // Add headers
     for (const [key, value] of Object.entries(headers)) {
       pgn += `[${key} "${value}"]\n`;
     }
-    
+
     pgn += '\n' + moves + '\n';
     return pgn;
   }
@@ -436,7 +436,7 @@ function ThemeSwitcher() {
     <div>
       <div style={{ marginBottom: '20px' }}>
         <label>Choose Theme: </label>
-        <select 
+        <select
           value={currentTheme}
           onChange={(e) => setCurrentTheme(e.target.value)}
         >
@@ -447,8 +447,8 @@ function ThemeSwitcher() {
           ))}
         </select>
       </div>
-      
-      <NeoChessBoard 
+
+      <NeoChessBoard
         theme={currentTheme}
         showCoordinates={true}
         onMove={(move) => console.log('Move:', move)}
@@ -532,10 +532,10 @@ function FullChessGame() {
       Date: new Date().toISOString().split('T')[0],
       White: 'Player 1',
       Black: 'Player 2',
-      Result: gameState.winner === 'draw' ? '1/2-1/2' : 
+      Result: gameState.winner === 'draw' ? '1/2-1/2' :
               gameState.winner === 'white' ? '1-0' : '0-1'
     };
-    
+
     // Generate PGN from moves
     const pgnMoves = gameState.moves.map(move => move.san).join(' ');
     console.log('PGN Export:', headers, pgnMoves);
@@ -544,7 +544,7 @@ function FullChessGame() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       <h1>Neo Chess Board - Full Game</h1>
-      
+
       {/* Game Controls */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <div>
@@ -558,7 +558,7 @@ function FullChessGame() {
             <option value="retro">Retro</option>
           </select>
         </div>
-        
+
         <div>
           <label>Orientation: </label>
           <select value={orientation} onChange={(e) => setOrientation(e.target.value as 'white' | 'black')}>
@@ -566,11 +566,11 @@ function FullChessGame() {
             <option value="black">Black</option>
           </select>
         </div>
-        
+
         <div>
           <label>
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={showCoordinates}
               onChange={(e) => setShowCoordinates(e.target.checked)}
             />
@@ -578,13 +578,13 @@ function FullChessGame() {
           </label>
         </div>
       </div>
-      
+
       {/* Main Game Area */}
       <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-        
+
         {/* Chess Board */}
         <div>
-          <NeoChessBoard 
+          <NeoChessBoard
             position={gameState.position}
             theme={selectedTheme}
             orientation={orientation}
@@ -596,14 +596,14 @@ function FullChessGame() {
             style={{ maxWidth: '500px' }}
           />
         </div>
-        
+
         {/* Game Info Panel */}
         <div style={{ minWidth: '300px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
           <h3>Game Information</h3>
-          
+
           <div style={{ marginBottom: '15px' }}>
-            <strong>Status:</strong> 
-            <span style={{ 
+            <strong>Status:</strong>
+            <span style={{
               marginLeft: '10px',
               padding: '4px 8px',
               borderRadius: '4px',
@@ -614,28 +614,28 @@ function FullChessGame() {
               {gameState.status.charAt(0).toUpperCase() + gameState.status.slice(1)}
             </span>
           </div>
-          
+
           <div style={{ marginBottom: '15px' }}>
-            <strong>Current Player:</strong> 
+            <strong>Current Player:</strong>
             <span style={{ marginLeft: '10px', textTransform: 'capitalize' }}>
               {gameState.currentPlayer}
             </span>
           </div>
-          
+
           <div style={{ marginBottom: '15px' }}>
             <strong>Moves:</strong> {gameState.moves.length}
           </div>
-          
+
           {gameState.winner && (
             <div style={{ marginBottom: '15px' }}>
-              <strong>Winner:</strong> 
+              <strong>Winner:</strong>
               <span style={{ marginLeft: '10px', fontWeight: 'bold' }}>
-                {gameState.winner === 'draw' ? 'Draw' : 
+                {gameState.winner === 'draw' ? 'Draw' :
                  gameState.winner.charAt(0).toUpperCase() + gameState.winner.slice(1)}
               </span>
             </div>
           )}
-          
+
           {/* Game Controls */}
           <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
             <button onClick={resetGame} style={{ padding: '8px 16px' }}>
@@ -644,22 +644,22 @@ function FullChessGame() {
             <button onClick={exportPGN} style={{ padding: '8px 16px' }}>
               Export PGN
             </button>
-            <button 
+            <button
               onClick={() => setOrientation(orientation === 'white' ? 'black' : 'white')}
               style={{ padding: '8px 16px' }}
             >
               Flip Board
             </button>
           </div>
-          
+
           {/* Move History */}
           <div style={{ marginTop: '20px' }}>
             <h4>Move History</h4>
-            <div style={{ 
-              maxHeight: '200px', 
-              overflow: 'auto', 
-              backgroundColor: 'white', 
-              padding: '10px', 
+            <div style={{
+              maxHeight: '200px',
+              overflow: 'auto',
+              backgroundColor: 'white',
+              padding: '10px',
               borderRadius: '4px',
               fontSize: '14px'
             }}>
@@ -719,11 +719,11 @@ function PositionEditor() {
   return (
     <div>
       <h2>Position Editor</h2>
-      
+
       <div style={{ marginBottom: '20px' }}>
-        <button 
+        <button
           onClick={() => setEditMode(!editMode)}
-          style={{ 
+          style={{
             padding: '8px 16px',
             backgroundColor: editMode ? '#ff6b6b' : '#4ecdc4',
             color: 'white',
@@ -734,7 +734,7 @@ function PositionEditor() {
           {editMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
         </button>
       </div>
-      
+
       {editMode && (
         <div style={{ marginBottom: '20px' }}>
           <h3>Select Piece to Place:</h3>
@@ -758,34 +758,34 @@ function PositionEditor() {
           </div>
         </div>
       )}
-      
+
       <div style={{ display: 'flex', gap: '20px' }}>
         <div>
-          <NeoChessBoard 
+          <NeoChessBoard
             position={currentFEN}
             draggable={!editMode}
             onSquareClick={editMode ? handleSquareClick : undefined}
           />
         </div>
-        
+
         <div style={{ minWidth: '300px' }}>
           <h3>FEN String</h3>
-          <textarea 
+          <textarea
             value={currentFEN}
             onChange={(e) => setCurrentFEN(e.target.value)}
-            style={{ 
-              width: '100%', 
+            style={{
+              width: '100%',
               height: '100px',
               fontFamily: 'monospace',
               fontSize: '12px'
             }}
           />
-          
+
           <div style={{ marginTop: '10px' }}>
             <button onClick={() => setCurrentFEN('start')}>
               Reset to Start
             </button>
-            <button 
+            <button
               onClick={() => {
                 navigator.clipboard.writeText(currentFEN);
                 alert('FEN copied to clipboard!');
@@ -816,7 +816,7 @@ class KingOfTheHillGame {
   constructor(canvas: HTMLCanvasElement) {
     this.board = new NeoChessBoard(canvas, {
       theme: 'neon',
-      highlightLegalMoves: true
+      highlightLegalMoves: true,
     });
 
     this.board.on('move', this.checkWinCondition.bind(this));
@@ -833,7 +833,7 @@ class KingOfTheHillGame {
 
   highlightCenter() {
     // Highlight the center squares
-    this.centerSquares.forEach(square => {
+    this.centerSquares.forEach((square) => {
       this.board.highlightSquare(square, 'rgba(255, 215, 0, 0.6)');
     });
   }
@@ -846,18 +846,18 @@ class KingOfTheHillGame {
 function generateChess960Position(): string {
   // Generate random starting position for Chess960
   const backrank = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
-  
+
   // Fisher-Yates shuffle with Chess960 constraints
   // (bishops on opposite colors, king between rooks)
-  
+
   // Simplified version - in real implementation, ensure valid Chess960 rules
   for (let i = backrank.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [backrank[i], backrank[j]] = [backrank[j], backrank[i]];
   }
-  
+
   const chess960FEN = backrank.join('').toUpperCase() + '/pppppppp/8/8/8/8/PPPPPPPP/' + backrank.join('') + ' w KQkq - 0 1';
-  
+
   return chess960FEN;
 }
 
@@ -874,8 +874,8 @@ function Chess960Game() {
       <button onClick={newRandomGame} style={{ marginBottom: '20px' }}>
         New Random Position
       </button>
-      
-      <NeoChessBoard 
+
+      <NeoChessBoard
         position={position}
         theme="retro"
         onMove={(move) => console.log('Chess960 move:', move)}
@@ -901,7 +901,7 @@ class EngineGame {
   constructor(canvas: HTMLCanvasElement) {
     this.board = new NeoChessBoard(canvas);
     this.engine = new ChessEngine(); // Your engine implementation
-    
+
     this.board.on('move', this.handlePlayerMove.bind(this));
   }
 
@@ -910,7 +910,7 @@ class EngineGame {
 
     // Get engine response
     const engineMove = await this.engine.getBestMove(move.fen, 1000); // 1 second think time
-    
+
     setTimeout(() => {
       this.board.makeMove(engineMove.from, engineMove.to);
     }, 500); // Delay for realistic feel
@@ -919,7 +919,7 @@ class EngineGame {
   setPlayerColor(color: 'white' | 'black') {
     this.playerColor = color;
     this.board.setOrientation(color);
-    
+
     if (color === 'black') {
       // Engine plays first move as white
       this.makeEngineMove();
@@ -949,7 +949,7 @@ class MultiplayerGame {
     this.board = new NeoChessBoard(canvas);
     this.gameId = gameId;
     this.socket = io('ws://your-server.com');
-    
+
     this.setupSocketEvents();
     this.setupBoardEvents();
   }
@@ -979,8 +979,8 @@ class MultiplayerGame {
           move: {
             from: move.from,
             to: move.to,
-            promotion: move.promotion
-          }
+            promotion: move.promotion,
+          },
         });
       }
     });
@@ -1006,14 +1006,14 @@ import { LightRules } from 'neochessboard';
 
 function analyzePosition(fen: string) {
   const rules = new LightRules(fen);
-  
+
   const analysis = {
     material: calculateMaterial(fen),
     kingSafety: assessKingSafety(rules),
     centerControl: evaluateCenterControl(fen),
     development: checkDevelopment(fen)
   };
-  
+
   return analysis;
 }
 
@@ -1022,10 +1022,10 @@ function calculateMaterial(fen: string): { white: number; black: number } {
     'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9,
     'P': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9
   };
-  
+
   const position = fen.split(' ')[0];
   let whiteMaterial = 0, blackMaterial = 0;
-  
+
   for (const char of position) {
     if (pieceValues[char]) {
       if (char === char.toUpperCase()) {
@@ -1035,14 +1035,14 @@ function calculateMaterial(fen: string): { white: number; black: number } {
       }
     }
   }
-  
+
   return { white: whiteMaterial, black: blackMaterial };
 }
 
 // Usage in React component
 function PositionAnalysis({ position }: { position: string }) {
   const [analysis, setAnalysis] = useState(null);
-  
+
   useEffect(() => {
     const result = analyzePosition(position);
     setAnalysis(result);
@@ -1074,7 +1074,7 @@ function MobileChessBoard() {
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
 
   return (
-    <div style={{ 
+    <div style={{
       padding: '10px',
       maxWidth: '100vw',
       display: 'flex',
@@ -1082,15 +1082,15 @@ function MobileChessBoard() {
       alignItems: 'center'
     }}>
       <h2 style={{ fontSize: '1.5em', margin: '10px 0' }}>Neo Chess</h2>
-      
+
       {/* Mobile controls */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
+      <div style={{
+        display: 'flex',
+        gap: '10px',
         marginBottom: '15px',
         fontSize: '14px'
       }}>
-        <button 
+        <button
           onClick={() => setOrientation(orientation === 'white' ? 'black' : 'white')}
           style={{
             padding: '10px 15px',
@@ -1101,17 +1101,17 @@ function MobileChessBoard() {
           Flip
         </button>
       </div>
-      
-      <div style={{ 
+
+      <div style={{
         width: '100%',
         maxWidth: '400px',
         aspectRatio: '1 / 1'
       }}>
-        <NeoChessBoard 
+        <NeoChessBoard
           orientation={orientation}
           theme="dark"
           showCoordinates={false}
-          style={{ 
+          style={{
             width: '100%',
             height: '100%',
             touchAction: 'none' // Prevent scroll during drag
@@ -1138,33 +1138,33 @@ function MobileChessBoard() {
 class GameAnalytics {
   private moves: Move[] = [];
   private startTime: number = Date.now();
-  
+
   recordMove(move: Move) {
     this.moves.push({
       ...move,
       timestamp: Date.now(),
-      timeElapsed: Date.now() - this.startTime
+      timeElapsed: Date.now() - this.startTime,
     });
   }
-  
+
   getStatistics() {
     return {
       totalMoves: this.moves.length,
       gameDuration: Date.now() - this.startTime,
       averageThinkTime: this.calculateAverageThinkTime(),
-      capturedPieces: this.moves.filter(m => m.captured).length,
-      checksGiven: this.moves.filter(m => m.check).length
+      capturedPieces: this.moves.filter((m) => m.captured).length,
+      checksGiven: this.moves.filter((m) => m.check).length,
     };
   }
-  
+
   private calculateAverageThinkTime(): number {
     if (this.moves.length < 2) return 0;
-    
+
     let totalTime = 0;
     for (let i = 1; i < this.moves.length; i++) {
-      totalTime += this.moves[i].timestamp - this.moves[i-1].timestamp;
+      totalTime += this.moves[i].timestamp - this.moves[i - 1].timestamp;
     }
-    
+
     return totalTime / (this.moves.length - 1);
   }
 }

@@ -1,15 +1,34 @@
-import { EventBus } from "./EventBus";
-import { parseFEN, FILES, RANKS, isWhitePiece, sq, sqToFR, clamp, lerp, easeOutCubic } from "./utils";
-import { THEMES } from "./themes";
-import { FlatSprites } from "./FlatSprites";
-import { LightRules } from "./LightRules";
-import { ChessJsRules } from "./ChessJsRules";
-import { DrawingManager } from "./DrawingManager";
-import type { Square, BoardOptions, Move, RulesAdapter, Arrow, SquareHighlight, HighlightType, Premove } from "./types";
+import { EventBus } from './EventBus';
+import {
+  parseFEN,
+  FILES,
+  RANKS,
+  isWhitePiece,
+  sq,
+  sqToFR,
+  clamp,
+  lerp,
+  easeOutCubic,
+} from './utils';
+import { THEMES } from './themes';
+import { FlatSprites } from './FlatSprites';
+import { LightRules } from './LightRules';
+import { ChessJsRules } from './ChessJsRules';
+import { DrawingManager } from './DrawingManager';
+import type {
+  Square,
+  BoardOptions,
+  Move,
+  RulesAdapter,
+  Arrow,
+  SquareHighlight,
+  HighlightType,
+  Premove,
+} from './types';
 
 interface BoardState {
   board: (string | null)[][];
-  turn: "w" | "b";
+  turn: 'w' | 'b';
   castling: string;
   ep: string | null;
   halfmove: number;
@@ -28,7 +47,7 @@ export class NeoChessBoard {
   private rules: RulesAdapter;
   private state: BoardState;
   private theme: any;
-  private orientation: "white" | "black";
+  private orientation: 'white' | 'black';
   private interactive: boolean;
   private showCoords: boolean;
   private highlightLegal: boolean;
@@ -48,14 +67,15 @@ export class NeoChessBoard {
 
   // Drawing manager for arrows, highlights, premoves
   public drawingManager!: DrawingManager;
-  
+
   // Nouvelles options
   private allowPremoves: boolean;
   private showArrows: boolean;
   private showHighlights: boolean;
   private rightClickHighlights: boolean;
   private soundEnabled: boolean;
-  
+  private showSquareNames: boolean;
+
   // Audio elements
   private moveSound: HTMLAudioElement | null = null;
 
@@ -69,26 +89,27 @@ export class NeoChessBoard {
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
   private _customHighlights: { squares: Square[] } | null = null;
   private _raf = 0;
-  
+
   // État pour le dessin des flèches
   private _drawingArrow: { from: Square } | null = null;
 
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
-    this.theme = THEMES[options.theme || "classic"];
-    this.orientation = options.orientation || "white";
+    this.theme = THEMES[options.theme || 'classic'];
+    this.orientation = options.orientation || 'white';
     this.interactive = options.interactive !== false;
     this.showCoords = options.showCoordinates || false;
     this.highlightLegal = options.highlightLegal !== false;
     this.animationMs = options.animationMs || 300;
-    
+
     // Nouvelles options
     this.allowPremoves = options.allowPremoves !== false;
     this.showArrows = options.showArrows !== false;
     this.showHighlights = options.showHighlights !== false;
     this.rightClickHighlights = options.rightClickHighlights !== false;
     this.soundEnabled = options.soundEnabled !== false;
-    
+    this.showSquareNames = options.showSquareNames || false;
+
     // Initialiser le son
     this._initializeSound();
 
@@ -120,11 +141,11 @@ export class NeoChessBoard {
 
   public destroy() {
     this._removeEvents();
-    this.root.innerHTML = "";
+    this.root.innerHTML = '';
   }
 
   public setTheme(themeName: string) {
-    this.theme = THEMES[themeName] || THEMES["classic"];
+    this.theme = THEMES[themeName] || THEMES['classic'];
     this._rasterize();
     this.renderAll();
   }
@@ -135,52 +156,59 @@ export class NeoChessBoard {
     this.rules.setFEN(fen);
     this.state = parseFEN(this.rules.getFEN());
     this._lastMove = null;
-    
+
     // Si le tour a changé (l'adversaire a joué), essayer d'exécuter le premove
     const newTurn = this.state.turn;
     if (oldTurn !== newTurn) {
       this._executePremoveIfValid();
     }
-    
+
     // Effacer l'ancien système de premove
     this._premove = null;
-    
+
     if (immediate) {
       this._clearAnim();
       this.renderAll();
     } else {
       this._animateTo(this.state, old);
     }
-    this.bus.emit("update", { fen: this.getPosition() });
+    this.bus.emit('update', { fen: this.getPosition() });
   }
 
   // ---- DOM & render ----
   private _buildDOM() {
-    this.root.classList.add("ncb-root");
-    this.root.style.position = "relative";
-    this.root.style.userSelect = "none";
-    this.cBoard = document.createElement("canvas");
-    this.cPieces = document.createElement("canvas");
-    this.cOverlay = document.createElement("canvas");
+    this.root.classList.add('ncb-root');
+    this.root.style.position = 'relative';
+    this.root.style.userSelect = 'none';
+    this.cBoard = document.createElement('canvas');
+    this.cPieces = document.createElement('canvas');
+    this.cOverlay = document.createElement('canvas');
     for (const c of [this.cBoard, this.cPieces, this.cOverlay]) {
-      Object.assign(c.style, { position: "absolute", left: "0", top: "0", width: "100%", height: "100%" } as any);
+      Object.assign(c.style, {
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        width: '100%',
+        height: '100%',
+      } as any);
       this.root.appendChild(c);
     }
-    this.ctxB = this.cBoard.getContext("2d")!;
-    this.ctxP = this.cPieces.getContext("2d")!;
-    this.ctxO = this.cOverlay.getContext("2d")!;
-    
+    this.ctxB = this.cBoard.getContext('2d')!;
+    this.ctxP = this.cPieces.getContext('2d')!;
+    this.ctxO = this.cOverlay.getContext('2d')!;
+
     // Initialiser le DrawingManager
     this.drawingManager = new DrawingManager(this.cOverlay);
     this.drawingManager.setOrientation(this.orientation);
-    
+    this.drawingManager.setShowSquareNames(this.showSquareNames);
+
     this._rasterize();
     const ro = new ResizeObserver(() => this.resize());
     ro.observe(this.root);
     (this as any)._ro = ro;
     // inject tiny styles
-    if (typeof document !== "undefined") {
-      const style = document.createElement("style");
+    if (typeof document !== 'undefined') {
+      const style = document.createElement('style');
       style.textContent = `.ncb-root{display:block;max-width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);} canvas{image-rendering:optimizeQuality;}`;
       document.head.appendChild(style);
     }
@@ -196,12 +224,12 @@ export class NeoChessBoard {
     this.sizePx = sz;
     this.square = (sz * dpr) / 8;
     this.dpr = dpr;
-    
+
     // Mettre à jour les dimensions du DrawingManager
     if (this.drawingManager) {
       this.drawingManager.updateDimensions();
     }
-    
+
     this.renderAll();
   }
   private _rasterize() {
@@ -215,8 +243,8 @@ export class NeoChessBoard {
 
   private _sqToXY(square: Square) {
     const { f, r } = sqToFR(square);
-    const ff = this.orientation === "white" ? f : 7 - f;
-    const rr = this.orientation === "white" ? 7 - r : r;
+    const ff = this.orientation === 'white' ? f : 7 - f;
+    const rr = this.orientation === 'white' ? 7 - r : r;
     return { x: ff * this.square, y: rr * this.square };
   }
   private _drawBoard() {
@@ -230,29 +258,11 @@ export class NeoChessBoard {
     ctx.fillRect(0, 0, W, H);
     for (let r = 0; r < 8; r++)
       for (let f = 0; f < 8; f++) {
-        const x = (this.orientation === "white" ? f : 7 - f) * s;
-        const y = (this.orientation === "white" ? 7 - r : r) * s;
+        const x = (this.orientation === 'white' ? f : 7 - f) * s;
+        const y = (this.orientation === 'white' ? 7 - r : r) * s;
         ctx.fillStyle = (r + f) % 2 === 0 ? light : dark;
         ctx.fillRect(x, y, s, s);
       }
-    if (this.showCoords) {
-      ctx.save();
-      ctx.font = `${Math.floor(s * 0.18)}px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto`;
-      ctx.textBaseline = "bottom";
-      ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      for (let f = 0; f < 8; f++) {
-        const file = this.orientation === "white" ? FILES[f] : FILES[7 - f];
-        ctx.fillText(file, f * s + s * 0.06, H - s * 0.06);
-      }
-      ctx.textBaseline = "top";
-      ctx.textAlign = "right";
-      for (let r = 0; r < 8; r++) {
-        const rank = this.orientation === "white" ? RANKS[7 - r] : RANKS[r];
-        ctx.fillText(rank, s * 0.94, r * s + s * 0.06);
-      }
-      ctx.restore();
-    }
   }
   private _drawPieceSprite(piece: string, x: number, y: number, scale = 1) {
     const map: any = { k: 0, q: 1, r: 2, b: 3, n: 4, p: 5 };
@@ -292,7 +302,7 @@ export class NeoChessBoard {
       H = this.cOverlay.height;
     ctx.clearRect(0, 0, W, H);
     const s = this.square;
-    
+
     // Rendu des éléments classiques (lastMove, selected, etc.)
     if (this._lastMove) {
       const { from, to } = this._lastMove;
@@ -323,12 +333,12 @@ export class NeoChessBoard {
         }
       }
     }
-    
+
     // Rendu classique des flèches anciennes (pour compatibilité)
     for (const a of this._arrows) {
       this._drawArrow(a.from, a.to, a.color || (this.theme as any).arrow);
     }
-    
+
     if (this._premove) {
       const A = this._sqToXY(this._premove.from),
         B = this._sqToXY(this._premove.to);
@@ -341,7 +351,7 @@ export class NeoChessBoard {
       ctx.fillStyle = (this.theme as any).moveTo;
       ctx.fillRect(B.x, B.y, s, s);
     }
-    
+
     // Déléguer le rendu des nouveaux dessins au DrawingManager
     if (this.drawingManager) {
       if (this.showArrows) {
@@ -352,6 +362,9 @@ export class NeoChessBoard {
       }
       if (this.allowPremoves) {
         this.drawingManager.renderPremove();
+      }
+      if (this.showSquareNames) {
+        this.drawingManager.renderSquareNames(this.orientation, this.square, this.dpr);
       }
     }
   }
@@ -372,8 +385,8 @@ export class NeoChessBoard {
     const thick = Math.max(6 * this.dpr, this.square * 0.08);
     const ctx = this.ctxO;
     ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.95;
@@ -397,23 +410,26 @@ export class NeoChessBoard {
       const pt = this._evt(e);
       if (!pt) return;
       if (!this.interactive) return;
-      
+
       // Gestion du clic droit pour les flèches (drag & drop)
       if (e.button === 2) {
         e.preventDefault();
-        if (this.drawingManager && this.drawingManager.handleRightMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey, e.altKey)) {
+        if (
+          this.drawingManager &&
+          this.drawingManager.handleRightMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey, e.altKey)
+        ) {
           this.renderAll();
           return;
         }
       }
-      
+
       if (e.button !== 0) return;
       const from = this._xyToSquare(pt.x, pt.y);
-      
+
       const piece = this._pieceAt(from);
       if (!piece) return;
-      const side = isWhitePiece(piece) ? "w" : "b";
-      
+      const side = isWhitePiece(piece) ? 'w' : 'b';
+
       // Si ce n'est pas le tour du joueur et que les premoves sont autorisés
       if (side !== (this.state.turn as any) && this.allowPremoves) {
         // Commencer un premove drag
@@ -424,7 +440,7 @@ export class NeoChessBoard {
         this.renderAll();
         return;
       }
-      
+
       // Logique normale pour les mouvements du tour actuel
       if (side !== (this.state.turn as any)) return;
       this._selected = from;
@@ -433,16 +449,16 @@ export class NeoChessBoard {
       this._hoverSq = from;
       this.renderAll();
     };
-    
+
     const onMove = (e: PointerEvent) => {
       const pt = this._evt(e);
       if (!pt) return;
-      
+
       // Déléguer à DrawingManager
       if (this.drawingManager && this.drawingManager.handleMouseMove(pt.x, pt.y)) {
         this.renderAll();
       }
-      
+
       if (this._dragging) {
         this._dragging.x = pt.x;
         this._dragging.y = pt.y;
@@ -451,25 +467,25 @@ export class NeoChessBoard {
         this._drawOverlay();
       }
     };
-    
+
     const onUp = (e: PointerEvent) => {
       const pt = this._evt(e);
-      
+
       // Gestion du relâchement du clic droit pour les flèches
       if (e.button === 2) {
         let handled = false;
-        
+
         if (this.drawingManager && pt) {
           handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
         }
-        
+
         // Si aucune flèche n'a été créée et que c'était un simple clic
         if (!handled && pt) {
           // Vérifier s'il y a un premove actif et l'annuler
           if (this.drawingManager && this.drawingManager.getPremove()) {
             this.drawingManager.clearPremove();
             this._premove = null; // Compatibilité
-            console.log("Premove annulé par clic droit");
+            console.log('Premove annulé par clic droit');
             handled = true;
           }
           // Sinon, gérer les highlights avec modificateurs
@@ -480,36 +496,36 @@ export class NeoChessBoard {
             }
           }
         }
-        
+
         this.renderAll();
         return;
       }
-      
+
       // Déléguer à DrawingManager pour les autres interactions
       if (this.drawingManager && this.drawingManager.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
         this.renderAll();
         return;
       }
-      
+
       if (!this._dragging) return;
       const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
       const from = this._dragging.from;
       const piece = this._dragging.piece;
-      const side = isWhitePiece(piece) ? "w" : "b";
-      
+      const side = isWhitePiece(piece) ? 'w' : 'b';
+
       this._dragging = null;
       this._hoverSq = null;
-      
+
       if (!drop) {
         this._selected = null;
         this._legalCached = null;
         this.renderAll();
         return;
       }
-      
+
       // Vérifier si c'est un premove (pas le tour du joueur)
       const isPremove = side !== (this.state.turn as any) && this.allowPremoves;
-      
+
       if (isPremove) {
         // C'est un premove - le stocker sans l'exécuter
         if (this.drawingManager) {
@@ -522,7 +538,7 @@ export class NeoChessBoard {
         this.renderAll();
         return;
       }
-      
+
       // Mouvement normal (c'est le tour du joueur)
       const legal = this.rules.move({ from, to: drop! });
       if (legal && (legal as any).ok) {
@@ -533,18 +549,18 @@ export class NeoChessBoard {
         this._selected = null;
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
-        
+
         // Effacer toutes les flèches après chaque coup joué
         if (this.drawingManager) {
           this.drawingManager.clearArrows();
         }
-        
+
         // Jouer le son du mouvement
         this._playMoveSound();
-        
+
         this._animateTo(next, old);
-        this.bus.emit("move", { from, to: drop!, fen });
-        
+        this.bus.emit('move', { from, to: drop!, fen });
+
         // Après avoir joué un coup, vérifier et exécuter le premove s'il y en a un
         // Le faire après l'animation pour éviter les conflits
         setTimeout(() => {
@@ -554,10 +570,10 @@ export class NeoChessBoard {
         this._selected = null;
         this._legalCached = null;
         this.renderAll();
-        this.bus.emit("illegal", { from, to: drop!, reason: (legal as any)?.reason || "illegal" });
+        this.bus.emit('illegal', { from, to: drop!, reason: (legal as any)?.reason || 'illegal' });
       }
     };
-    
+
     // Gestionnaire pour les touches clavier
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -572,31 +588,31 @@ export class NeoChessBoard {
         this.renderAll();
       }
     };
-    
+
     // Gestionnaire pour le menu contextuel (désactiver le clic droit)
     const onContextMenu = (e: Event) => {
       if (this.rightClickHighlights) {
         e.preventDefault();
       }
     };
-    
-    this.cOverlay.addEventListener("pointerdown", onDown as any);
-    this.cOverlay.addEventListener("contextmenu", onContextMenu);
+
+    this.cOverlay.addEventListener('pointerdown', onDown as any);
+    this.cOverlay.addEventListener('contextmenu', onContextMenu);
     (this as any)._onPointerDown = onDown;
     (this as any)._onContextMenu = onContextMenu;
-    globalThis.addEventListener("pointermove", onMove as any);
+    globalThis.addEventListener('pointermove', onMove as any);
     (this as any)._onPointerMove = onMove;
-    globalThis.addEventListener("pointerup", onUp as any);
+    globalThis.addEventListener('pointerup', onUp as any);
     (this as any)._onPointerUp = onUp;
-    globalThis.addEventListener("keydown", onKeyDown);
+    globalThis.addEventListener('keydown', onKeyDown);
     (this as any)._onKeyDown = onKeyDown;
   }
   private _removeEvents() {
-    this.cOverlay.removeEventListener("pointerdown", (this as any)._onPointerDown);
-    this.cOverlay.removeEventListener("contextmenu", (this as any)._onContextMenu);
-    globalThis.removeEventListener("pointermove", (this as any)._onPointerMove);
-    globalThis.removeEventListener("pointerup", (this as any)._onPointerUp);
-    globalThis.removeEventListener("keydown", (this as any)._onKeyDown);
+    this.cOverlay.removeEventListener('pointerdown', (this as any)._onPointerDown);
+    this.cOverlay.removeEventListener('contextmenu', (this as any)._onContextMenu);
+    globalThis.removeEventListener('pointermove', (this as any)._onPointerMove);
+    globalThis.removeEventListener('pointerup', (this as any)._onPointerUp);
+    globalThis.removeEventListener('keydown', (this as any)._onKeyDown);
     (this as any)._ro?.disconnect();
   }
   private _evt(e: PointerEvent) {
@@ -609,8 +625,8 @@ export class NeoChessBoard {
   private _xyToSquare(x: number, y: number) {
     const f = clamp(Math.floor(x / this.square), 0, 7);
     const r = clamp(Math.floor(y / this.square), 0, 7);
-    const ff = this.orientation === "white" ? f : 7 - f;
-    const rr = this.orientation === "white" ? 7 - r : r;
+    const ff = this.orientation === 'white' ? f : 7 - f;
+    const rr = this.orientation === 'white' ? 7 - r : r;
     return sq(ff, rr);
   }
   private _pieceAt(square: Square) {
@@ -668,7 +684,13 @@ export class NeoChessBoard {
     };
     this._raf = requestAnimationFrame(tick);
   }
-  private findPiece(board: (string | null)[][], piece: string, r0: number, f0: number, start: (string | null)[][]) {
+  private findPiece(
+    board: (string | null)[][],
+    piece: string,
+    r0: number,
+    f0: number,
+    start: (string | null)[][],
+  ) {
     for (let r = 0; r < 8; r++)
       for (let f = 0; f < 8; f++) {
         if (board[r][f] === piece && start[r][f] !== piece) return { r, f };
@@ -679,7 +701,7 @@ export class NeoChessBoard {
   // ---- Sound methods ----
   private _initializeSound() {
     if (!this.soundEnabled || typeof Audio === 'undefined') return;
-    
+
     try {
       // Créer l'élément audio pour le son de mouvement
       this.moveSound = new Audio('./assets/souffle.ogg');
@@ -693,11 +715,11 @@ export class NeoChessBoard {
 
   private _playMoveSound() {
     if (!this.soundEnabled || !this.moveSound) return;
-    
+
     try {
       // Remettre le son au début et le jouer
       this.moveSound.currentTime = 0;
-      this.moveSound.play().catch(error => {
+      this.moveSound.play().catch((error) => {
         // Ignorer les erreurs de lecture (par exemple si l'utilisateur n'a pas encore interagi avec la page)
         console.debug('Son non joué:', error.message);
       });
@@ -714,39 +736,43 @@ export class NeoChessBoard {
   }
 
   // ---- Private methods for premove execution ----
-  
+
   /**
    * Exécuter le premove s'il est valide après qu'un coup adverse ait été joué
    */
   private _executePremoveIfValid(): void {
     if (!this.allowPremoves || !this.drawingManager) return;
-    
+
     const premove = this.drawingManager.getPremove();
     if (!premove) return;
-    
+
     // Vérifier si le premove est légal dans la nouvelle position
-    const premoveResult = this.rules.move({ from: premove.from, to: premove.to, promotion: premove.promotion });
-    
+    const premoveResult = this.rules.move({
+      from: premove.from,
+      to: premove.to,
+      promotion: premove.promotion,
+    });
+
     if (premoveResult && (premoveResult as any).ok) {
       // Le premove est légal, l'exécuter après un court délai
       setTimeout(() => {
         const newFen = this.rules.getFEN();
         const newState = parseFEN(newFen);
         const oldState = this.state;
-        
+
         this.state = newState;
         this._lastMove = { from: premove.from, to: premove.to };
-        
+
         // Effacer le premove et toutes les flèches
         this.drawingManager?.clearPremove();
         this.drawingManager?.clearArrows();
         this._premove = null;
-        
+
         // Animer le mouvement du premove
         this._animateTo(newState, oldState);
-        
+
         // Émettre l'événement de mouvement
-        this.bus.emit("move", { from: premove.from, to: premove.to, fen: newFen });
+        this.bus.emit('move', { from: premove.from, to: premove.to, fen: newFen });
       }, 150); // Délai légèrement plus long pour que l'animation du coup adverse se termine
     } else {
       // Le premove n'est pas légal, l'effacer silencieusement
@@ -755,9 +781,9 @@ export class NeoChessBoard {
       this.renderAll();
     }
   }
-  
+
   // ---- New feature methods ----
-  
+
   /**
    * Ajouter une flèche sur l'échiquier
    */
@@ -879,21 +905,23 @@ export class NeoChessBoard {
     try {
       // D'abord charger le PGN normalement dans les règles
       const success = (this.rules as any).loadPgn ? (this.rules as any).loadPgn(pgnString) : false;
-      
+
       if (success) {
         // Puis extraire et afficher les annotations visuelles
-        const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
+        const pgnNotation = (this.rules as any).getPgnNotation
+          ? (this.rules as any).getPgnNotation()
+          : null;
         if (pgnNotation) {
           pgnNotation.loadPgnWithAnnotations(pgnString);
           this.displayAnnotationsFromPgn(pgnNotation);
         }
-        
+
         // Mettre à jour l'état du board
         this.state = parseFEN(this.rules.getFEN());
         this.renderAll();
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Erreur lors du chargement du PGN avec annotations:', error);
@@ -906,22 +934,25 @@ export class NeoChessBoard {
    */
   private displayAnnotationsFromPgn(pgnNotation: any): void {
     if (!this.drawingManager) return;
-    
+
     // Effacer les annotations précédentes
     this.drawingManager.clearArrows();
     this.drawingManager.clearHighlights();
-    
+
     // Obtenir le dernier coup joué
     const moves = pgnNotation.getMovesWithAnnotations();
     if (moves.length === 0) return;
-    
+
     const lastMove = moves[moves.length - 1];
     const moveCount = (lastMove.white ? 1 : 0) + (lastMove.black ? 1 : 0);
-    const totalMoves = moves.reduce((acc: number, move: any) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0), 0);
-    
+    const totalMoves = moves.reduce(
+      (acc: number, move: any) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
+      0,
+    );
+
     // Déterminer quelles annotations afficher (du dernier coup effectué)
     let annotationsToShow: any = null;
-    
+
     if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
       // Le dernier coup était noir
       annotationsToShow = lastMove.blackAnnotations;
@@ -929,7 +960,7 @@ export class NeoChessBoard {
       // Le dernier coup était blanc
       annotationsToShow = lastMove.whiteAnnotations;
     }
-    
+
     if (annotationsToShow) {
       // Afficher les flèches
       if (annotationsToShow.arrows) {
@@ -937,7 +968,7 @@ export class NeoChessBoard {
           this.drawingManager.addArrowFromObject(arrow);
         }
       }
-      
+
       // Afficher les cercles
       if (annotationsToShow.circles) {
         for (const circle of annotationsToShow.circles) {
@@ -950,36 +981,42 @@ export class NeoChessBoard {
   /**
    * Ajouter des annotations visuelles au coup actuel et les sauvegarder dans le PGN
    */
-  public addAnnotationsToCurrentMove(arrows: Arrow[] = [], circles: SquareHighlight[] = [], comment: string = ''): void {
+  public addAnnotationsToCurrentMove(
+    arrows: Arrow[] = [],
+    circles: SquareHighlight[] = [],
+    comment: string = '',
+  ): void {
     if (!this.drawingManager) return;
-    
+
     // Obtenir la notation PGN si disponible
-    const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
-    
+    const pgnNotation = (this.rules as any).getPgnNotation
+      ? (this.rules as any).getPgnNotation()
+      : null;
+
     if (pgnNotation) {
       // Déterminer le numéro de coup et la couleur
       const moveHistory = this.rules.history ? this.rules.history() : [];
       const moveCount = moveHistory.length;
       const moveNumber = Math.floor(moveCount / 2) + 1;
       const isWhite = moveCount % 2 === 0;
-      
+
       // Ajouter les annotations au PGN
       pgnNotation.addMoveAnnotations(moveNumber, isWhite, {
         arrows,
         circles,
-        textComment: comment
+        textComment: comment,
       });
     }
-    
+
     // Afficher immédiatement les annotations sur l'échiquier
     for (const arrow of arrows) {
       this.drawingManager.addArrowFromObject(arrow);
     }
-    
+
     for (const circle of circles) {
       this.drawingManager.addHighlightFromObject(circle);
     }
-    
+
     this.renderAll();
   }
 
@@ -987,12 +1024,14 @@ export class NeoChessBoard {
    * Exporter le PGN avec toutes les annotations visuelles
    */
   public exportPgnWithAnnotations(): string {
-    const pgnNotation = (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
-    
+    const pgnNotation = (this.rules as any).getPgnNotation
+      ? (this.rules as any).getPgnNotation()
+      : null;
+
     if (pgnNotation && typeof pgnNotation.toPgnWithAnnotations === 'function') {
       return pgnNotation.toPgnWithAnnotations();
     }
-    
+
     // Fallback vers le PGN standard
     return (this.rules as any).toPgn ? (this.rules as any).toPgn() : '';
   }

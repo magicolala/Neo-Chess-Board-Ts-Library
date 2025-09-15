@@ -33,7 +33,7 @@ global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
       globalAlpha: 1,
       globalCompositeOperation: 'source-over',
       font: '10px sans-serif',
-      canvas: {} as HTMLCanvasElement
+      canvas: {} as HTMLCanvasElement,
     } as any;
   }
   return null;

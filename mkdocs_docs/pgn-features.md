@@ -7,18 +7,21 @@ Le Neo Chess Board inclut maintenant un support complet du format PGN (Portable 
 ### ✨ Fonctionnalités
 
 #### 📊 **Métadonnées PGN Complètes**
+
 - **7 en-têtes obligatoires** : Event, Site, Date, Round, White, Black, Result
 - **En-têtes optionnels** : WhiteElo, BlackElo, ECO, Opening, TimeControl, etc.
 - **Format de date standard** : AAAA.MM.JJ (ex: 2025.08.29)
 - **Jeu de caractères ISO/CEI 8859-1**
 
 #### 🎯 **Notation Algébrique Abrégée**
+
 - **Format standard** : e4, Nf3, Bb5, O-O, Qxe7+, Rf8#
 - **Coups spéciaux** : Petit roque (O-O), Grand roque (O-O-O)
 - **Échecs et mats** : + pour échec, # pour mat
 - **Promotions** : e8=Q, a1=R, etc.
 
 #### 🎨 **Annotations Visuelles PGN**
+
 - **Support des extensions `%cal` et `%csl`** : Dessinez des flèches et des cercles directement dans vos commentaires PGN.
 - **Couleurs personnalisables** : Rouge (R), Vert (G), Jaune (Y), Bleu (B).
 - **Intégration transparente** : Les annotations sont parsées et générées automatiquement.
@@ -92,17 +95,18 @@ console.log(firstMoveAnnotations?.arrows); // [{ from: 'e2', to: 'e4', color: '#
 ### 🛠️ **Utilisation de l'API**
 
 #### Configuration des Métadonnées
+
 ```typescript
 chessRules.setPgnMetadata({
-    Event: "Championnat du Monde",
-    Site: "Paris FRA",
-    White: "Carlsen, Magnus",
-    Black: "Nepomniachtchi, Ian",
-    WhiteElo: "2855",
-    BlackElo: "2792",
-    TimeControl: "40/7200+30",
-    ECO: "C84",
-    Opening: "Ruy Lopez: Closed Defence"
+  Event: 'Championnat du Monde',
+  Site: 'Paris FRA',
+  White: 'Carlsen, Magnus',
+  Black: 'Nepomniachtchi, Ian',
+  WhiteElo: '2855',
+  BlackElo: '2792',
+  TimeControl: '40/7200+30',
+  ECO: 'C84',
+  Opening: 'Ruy Lopez: Closed Defence',
 });
 ```
 
@@ -120,7 +124,7 @@ chessRules.downloadPgn(filename);
 const pgnNotation = chessRules.getPgnNotation();
 
 // Ajouter un coup avec un commentaire et une annotation visuelle
-pgnNotation.addMove(1, "e4", "e5", "Coup d'ouverture.", '{%cal Ge2e4}');
+pgnNotation.addMove(1, 'e4', 'e5', "Coup d'ouverture.", '{%cal Ge2e4}');
 
 // Obtenir le PGN avec annotations
 const annotatedPgn = pgnNotation.toPgnWithAnnotations();
@@ -150,21 +154,23 @@ O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 *
 ### 🛠️ **Utilisation de l'API**
 
 #### Configuration des Métadonnées
+
 ```typescript
 chessRules.setPgnMetadata({
-    Event: "Championnat du Monde",
-    Site: "Paris FRA",
-    White: "Carlsen, Magnus",
-    Black: "Nepomniachtchi, Ian",
-    WhiteElo: "2855",
-    BlackElo: "2792",
-    TimeControl: "40/7200+30",
-    ECO: "C84",
-    Opening: "Ruy Lopez: Closed Defence"
+  Event: 'Championnat du Monde',
+  Site: 'Paris FRA',
+  White: 'Carlsen, Magnus',
+  Black: 'Nepomniachtchi, Ian',
+  WhiteElo: '2855',
+  BlackElo: '2792',
+  TimeControl: '40/7200+30',
+  ECO: 'C84',
+  Opening: 'Ruy Lopez: Closed Defence',
 });
 ```
 
 #### Méthodes Disponibles
+
 ```typescript
 // Export/Import
 const pgn = chessRules.toPgn();
@@ -173,12 +179,13 @@ chessRules.downloadPgn(filename);
 
 // Accès avancé
 const pgnNotation = chessRules.getPgnNotation();
-pgnNotation.addMove(1, "e4", "e5", "Excellent opening", "Solid response");
+pgnNotation.addMove(1, 'e4', 'e5', 'Excellent opening', 'Solid response');
 ```
 
 ### 🎮 **Démo Interactive**
 
 La démo `examples/chess-js-demo.html` inclut :
+
 - **Export PGN** : Visualiser le PGN de la partie actuelle
 - **Téléchargement** : Sauvegarder en fichier .pgn
 - **Import** : Charger des parties depuis PGN
@@ -190,22 +197,23 @@ La démo `examples/chess-js-demo.html` inclut :
 - ✅ **Conformité PGN** : Format officiel FIDE
 - ✅ **Ligne maximale** : 80 caractères
 - ✅ **Encodage** : ISO/CEI 8859-1
-- ✅ **Résultats** : 1-0, 0-1, 1/2-1/2, *
+- ✅ **Résultats** : 1-0, 0-1, 1/2-1/2, \*
 - ✅ **Compatibilité** : Tous les logiciels d'échecs standards
 
 ### 📚 **Exemples d'Usage**
 
 #### Partie Simple
+
 ```typescript
 const board = new NeoChessBoard('#board', {
-    rulesAdapter: new ChessJsRules()
+  rulesAdapter: new ChessJsRules(),
 });
 
 // Configurer les métadonnées
 board.rules.setPgnMetadata({
-    Event: "Partie Amicale",
-    White: "Alice",
-    Black: "Bob"
+  Event: 'Partie Amicale',
+  White: 'Alice',
+  Black: 'Bob',
 });
 
 // Après quelques coups...
@@ -214,6 +222,7 @@ console.log(pgn);
 ```
 
 #### Analyse de Partie
+
 ```typescript
 // Charger une partie célèbre
 const immortalGame = `[Event "Immortal Game"]
@@ -226,8 +235,8 @@ const immortalGame = `[Event "Immortal Game"]
 1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5...`;
 
 if (chessRules.loadPgn(immortalGame)) {
-    board.setPosition(chessRules.getFEN());
-    // Analyser la position finale
+  board.setPosition(chessRules.getFEN());
+  // Analyser la position finale
 }
 ```
 
@@ -241,7 +250,7 @@ npm install neo-chess-board-ts-library
 import { NeoChessBoard, ChessJsRules } from 'neo-chess-board-ts-library';
 
 const board = new NeoChessBoard('#board', {
-    rulesAdapter: new ChessJsRules()
+  rulesAdapter: new ChessJsRules(),
 });
 
 // Utilisez toutes les fonctionnalités PGN !

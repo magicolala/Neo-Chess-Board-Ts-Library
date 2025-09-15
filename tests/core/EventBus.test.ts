@@ -28,7 +28,7 @@ describe('EventBus', () => {
     it('should handle multiple listeners for the same event', () => {
       const handler1 = jest.fn();
       const handler2 = jest.fn();
-      
+
       eventBus.on('multiple', handler1);
       eventBus.on('multiple', handler2);
 
@@ -41,7 +41,7 @@ describe('EventBus', () => {
     it('should remove specific listeners', () => {
       const handler1 = jest.fn();
       const handler2 = jest.fn();
-      
+
       eventBus.on('multiple', handler1);
       eventBus.on('multiple', handler2);
       eventBus.off('multiple', handler1);
@@ -93,7 +93,7 @@ describe('EventBus', () => {
 
     it('should handle removing non-existent listeners gracefully', () => {
       const handler = jest.fn();
-      
+
       // Should not throw
       expect(() => {
         eventBus.off('test', handler);

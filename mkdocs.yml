@@ -6,7 +6,7 @@ edit_uri: blob/main/mkdocs_docs/
 
 theme:
   name: material
-  
+
   features:
     - navigation.tabs
     - navigation.sections

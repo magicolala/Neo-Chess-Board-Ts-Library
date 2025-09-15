@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial release preparation
 - Comprehensive test suite
 - Documentation and examples
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-12-31
 
 ### Added
+
 - Core chess board rendering with Canvas API
 - React component wrapper (`NeoChessBoard`)
 - Event-driven architecture with `EventBus`
@@ -34,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check and checkmate detection
 
 ### Technical Features
+
 - Canvas-based rendering for smooth animations
 - OffscreenCanvas support for better performance
 - Modular architecture with clear separation of concerns
@@ -44,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FEN string parsing and generation
 
 ### Development
+
 - Jest testing framework setup
 - TypeScript configuration
 - Vite build system
@@ -56,21 +60,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Notes Format
 
 ### Added
+
 - New features
 
 ### Changed
+
 - Changes in existing functionality
 
 ### Deprecated
+
 - Soon-to-be removed features
 
 ### Removed
+
 - Removed features
 
 ### Fixed
+
 - Bug fixes
 
 ### Security
+
 - Security improvements
 
 ---

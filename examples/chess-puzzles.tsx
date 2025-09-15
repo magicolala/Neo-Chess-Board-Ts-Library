@@ -23,7 +23,7 @@ const chessPuzzles: ChessPuzzle[] = [
     solution: ['Bxf7#'],
     theme: 'light',
     difficulty: 'beginner',
-    tags: ['mate', 'tactics', 'beginner']
+    tags: ['mate', 'tactics', 'beginner'],
   },
   {
     id: 'fork-knight',
@@ -33,7 +33,7 @@ const chessPuzzles: ChessPuzzle[] = [
     solution: ['Ng5', 'd6', 'Nf7'],
     theme: 'wood',
     difficulty: 'intermediate',
-    tags: ['fork', 'knight', 'tactics']
+    tags: ['fork', 'knight', 'tactics'],
   },
   {
     id: 'pin-attack',
@@ -43,7 +43,7 @@ const chessPuzzles: ChessPuzzle[] = [
     solution: ['Nd5', 'exd5', 'exd5'],
     theme: 'dark',
     difficulty: 'advanced',
-    tags: ['pin', 'positional', 'advanced']
+    tags: ['pin', 'positional', 'advanced'],
   },
   {
     id: 'back-rank-mate',
@@ -53,7 +53,7 @@ const chessPuzzles: ChessPuzzle[] = [
     solution: ['Re8#'],
     theme: 'glass',
     difficulty: 'intermediate',
-    tags: ['mate', 'back-rank', 'endgame']
+    tags: ['mate', 'back-rank', 'endgame'],
   },
   {
     id: 'discovered-attack',
@@ -63,16 +63,16 @@ const chessPuzzles: ChessPuzzle[] = [
     solution: ['d6', 'Nxd6', 'cxd6'],
     theme: 'neon',
     difficulty: 'advanced',
-    tags: ['discovery', 'tactics', 'advanced']
-  }
+    tags: ['discovery', 'tactics', 'advanced'],
+  },
 ];
 
 // Difficulty colors
 const difficultyColors = {
   beginner: '#10b981',
-  intermediate: '#f59e0b', 
+  intermediate: '#f59e0b',
   advanced: '#ef4444',
-  master: '#8b5cf6'
+  master: '#8b5cf6',
 };
 
 // Custom hook for puzzle state
@@ -93,26 +93,29 @@ function usePuzzleGame() {
     setHint('');
   }, []);
 
-  const checkMove = useCallback((move: Move) => {
-    const expectedMove = currentPuzzle.solution[solutionIndex];
-    const moveNotation = move.san || `${move.from}-${move.to}`;
-    
-    setAttempts(prev => prev + 1);
+  const checkMove = useCallback(
+    (move: Move) => {
+      const expectedMove = currentPuzzle.solution[solutionIndex];
+      const moveNotation = move.san || `${move.from}-${move.to}`;
 
-    if (moveNotation === expectedMove || move.from + move.to === expectedMove) {
-      setSolutionIndex(prev => prev + 1);
-      
-      if (solutionIndex + 1 >= currentPuzzle.solution.length) {
-        setSolved(true);
-        setSolvedPuzzles(prev => new Set([...prev, currentPuzzle.id]));
-        setHint(`🎉 Puzzle solved in ${attempts + 1} attempt${attempts > 0 ? 's' : ''}!`);
+      setAttempts((prev) => prev + 1);
+
+      if (moveNotation === expectedMove || move.from + move.to === expectedMove) {
+        setSolutionIndex((prev) => prev + 1);
+
+        if (solutionIndex + 1 >= currentPuzzle.solution.length) {
+          setSolved(true);
+          setSolvedPuzzles((prev) => new Set([...prev, currentPuzzle.id]));
+          setHint(`🎉 Puzzle solved in ${attempts + 1} attempt${attempts > 0 ? 's' : ''}!`);
+        } else {
+          setHint(`✅ Correct! Move ${solutionIndex + 2} of ${currentPuzzle.solution.length}`);
+        }
       } else {
-        setHint(`✅ Correct! Move ${solutionIndex + 2} of ${currentPuzzle.solution.length}`);
+        setHint(`❌ Not quite right. Try again! (Attempt ${attempts + 1})`);
       }
-    } else {
-      setHint(`❌ Not quite right. Try again! (Attempt ${attempts + 1})`);
-    }
-  }, [currentPuzzle, solutionIndex, attempts]);
+    },
+    [currentPuzzle, solutionIndex, attempts],
+  );
 
   const nextPuzzle = useCallback(() => {
     const nextIndex = (currentPuzzleIndex + 1) % chessPuzzles.length;
@@ -126,10 +129,13 @@ function usePuzzleGame() {
     resetPuzzle();
   }, [currentPuzzleIndex, resetPuzzle]);
 
-  const selectPuzzle = useCallback((index: number) => {
-    setCurrentPuzzleIndex(index);
-    resetPuzzle();
-  }, [resetPuzzle]);
+  const selectPuzzle = useCallback(
+    (index: number) => {
+      setCurrentPuzzleIndex(index);
+      resetPuzzle();
+    },
+    [resetPuzzle],
+  );
 
   return {
     currentPuzzle,
@@ -143,7 +149,7 @@ function usePuzzleGame() {
     resetPuzzle,
     nextPuzzle,
     previousPuzzle,
-    selectPuzzle
+    selectPuzzle,
   };
 }
 
@@ -154,58 +160,70 @@ export function ChessPuzzleApp() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
   // Filter puzzles by difficulty
-  const filteredPuzzles = selectedDifficulty === 'all' 
-    ? chessPuzzles 
-    : chessPuzzles.filter(p => p.difficulty === selectedDifficulty);
+  const filteredPuzzles =
+    selectedDifficulty === 'all'
+      ? chessPuzzles
+      : chessPuzzles.filter((p) => p.difficulty === selectedDifficulty);
 
-  const handleMove = useCallback((move: Move) => {
-    if (!puzzle.solved) {
-      puzzle.checkMove(move);
-    }
-  }, [puzzle.checkMove, puzzle.solved]);
+  const handleMove = useCallback(
+    (move: Move) => {
+      if (!puzzle.solved) {
+        puzzle.checkMove(move);
+      }
+    },
+    [puzzle.checkMove, puzzle.solved],
+  );
 
   // Calculate progress
   const progressPercentage = (puzzle.solvedPuzzles.size / chessPuzzles.length) * 100;
 
   return (
-    <div style={{ 
-      maxWidth: '1200px', 
-      margin: '0 auto', 
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      minHeight: '100vh'
-    }}>
-      
-      {/* Header */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
+    <div
+      style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
         padding: '20px',
-        marginBottom: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-      }}>
-        <h1 style={{ 
-          textAlign: 'center', 
-          margin: '0 0 10px 0',
-          background: 'linear-gradient(45deg, #667eea, #764ba2)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontSize: '2.5em'
-        }}>
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        minHeight: '100vh',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        <h1
+          style={{
+            textAlign: 'center',
+            margin: '0 0 10px 0',
+            background: 'linear-gradient(45deg, #667eea, #764ba2)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontSize: '2.5em',
+          }}
+        >
           ♟️ Chess Puzzle Master
         </h1>
-        
+
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{
-            display: 'inline-block',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            borderRadius: '8px',
-            padding: '8px 16px'
-          }}>
+          <div
+            style={{
+              display: 'inline-block',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '8px 16px',
+            }}
+          >
             <span style={{ fontWeight: '600', color: '#16a34a' }}>
-              Progress: {puzzle.solvedPuzzles.size}/{chessPuzzles.length} ({Math.round(progressPercentage)}%)
+              Progress: {puzzle.solvedPuzzles.size}/{chessPuzzles.length} (
+              {Math.round(progressPercentage)}%)
             </span>
           </div>
         </div>
@@ -213,13 +231,13 @@ export function ChessPuzzleApp() {
         {/* Difficulty filter */}
         <div style={{ textAlign: 'center' }}>
           <label style={{ marginRight: '10px', fontWeight: '600' }}>Filter by difficulty:</label>
-          <select 
+          <select
             value={selectedDifficulty}
             onChange={(e) => setSelectedDifficulty(e.target.value)}
             style={{
               padding: '6px 12px',
               borderRadius: '6px',
-              border: '1px solid #d1d5db'
+              border: '1px solid #d1d5db',
             }}
           >
             <option value="all">All Difficulties</option>
@@ -232,16 +250,23 @@ export function ChessPuzzleApp() {
       </div>
 
       {/* Main puzzle area */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '30px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        marginBottom: '20px'
-      }}>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 350px', gap: '30px', alignItems: 'start' }}>
-          
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '30px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          marginBottom: '20px',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 350px',
+            gap: '30px',
+            alignItems: 'start',
+          }}
+        >
           {/* Chess board */}
           <div>
             <NeoChessBoard
@@ -256,33 +281,34 @@ export function ChessPuzzleApp() {
 
           {/* Puzzle info panel */}
           <div>
-            
             {/* Puzzle header */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <h2 style={{ margin: 0, color: '#374151' }}>
-                  {puzzle.currentPuzzle.title}
-                </h2>
-                <span style={{
-                  background: difficultyColors[puzzle.currentPuzzle.difficulty],
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  textTransform: 'uppercase'
-                }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}
+              >
+                <h2 style={{ margin: 0, color: '#374151' }}>{puzzle.currentPuzzle.title}</h2>
+                <span
+                  style={{
+                    background: difficultyColors[puzzle.currentPuzzle.difficulty],
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   {puzzle.currentPuzzle.difficulty}
                 </span>
               </div>
-              
+
               <p style={{ margin: '0', color: '#6b7280', fontSize: '16px' }}>
                 {puzzle.currentPuzzle.description}
               </p>
-              
+
               <div style={{ marginTop: '10px' }}>
-                {puzzle.currentPuzzle.tags.map(tag => (
-                  <span 
+                {puzzle.currentPuzzle.tags.map((tag) => (
+                  <span
                     key={tag}
                     style={{
                       background: '#f3f4f6',
@@ -291,7 +317,7 @@ export function ChessPuzzleApp() {
                       borderRadius: '8px',
                       fontSize: '12px',
                       marginRight: '6px',
-                      display: 'inline-block'
+                      display: 'inline-block',
                     }}
                   >
                     #{tag}
@@ -301,27 +327,37 @@ export function ChessPuzzleApp() {
             </div>
 
             {/* Puzzle status */}
-            <div style={{
-              padding: '15px',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              background: puzzle.solved ? '#f0fdf4' : 
-                         puzzle.hint.includes('❌') ? '#fef2f2' :
-                         puzzle.hint.includes('✅') ? '#f0f9ff' : '#f9fafb',
-              border: `1px solid ${puzzle.solved ? '#bbf7d0' : 
-                                 puzzle.hint.includes('❌') ? '#fecaca' :
-                                 puzzle.hint.includes('✅') ? '#bfdbfe' : '#e5e7eb'}`
-            }}>
+            <div
+              style={{
+                padding: '15px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                background: puzzle.solved
+                  ? '#f0fdf4'
+                  : puzzle.hint.includes('❌')
+                    ? '#fef2f2'
+                    : puzzle.hint.includes('✅')
+                      ? '#f0f9ff'
+                      : '#f9fafb',
+                border: `1px solid ${
+                  puzzle.solved
+                    ? '#bbf7d0'
+                    : puzzle.hint.includes('❌')
+                      ? '#fecaca'
+                      : puzzle.hint.includes('✅')
+                        ? '#bfdbfe'
+                        : '#e5e7eb'
+                }`,
+              }}
+            >
               <div style={{ fontWeight: '600', marginBottom: '8px' }}>
                 Status: {puzzle.solved ? '🎉 Solved!' : 'In Progress'}
               </div>
-              
+
               {puzzle.hint && (
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                  {puzzle.hint}
-                </div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>{puzzle.hint}</div>
               )}
-              
+
               <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
                 Progress: {puzzle.solutionIndex}/{puzzle.currentPuzzle.solution.length} moves
                 {puzzle.attempts > 0 && ` • Attempts: ${puzzle.attempts}`}
@@ -339,12 +375,12 @@ export function ChessPuzzleApp() {
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
-                    fontSize: '14px'
+                    fontSize: '14px',
                   }}
                 >
                   {showSolution ? '🙈 Hide' : '💡 Show'} Solution
                 </button>
-                
+
                 <button
                   onClick={puzzle.resetPuzzle}
                   style={{
@@ -353,7 +389,7 @@ export function ChessPuzzleApp() {
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
-                    fontSize: '14px'
+                    fontSize: '14px',
                   }}
                 >
                   🔄 Reset
@@ -361,23 +397,26 @@ export function ChessPuzzleApp() {
               </div>
 
               {showSolution && (
-                <div style={{
-                  background: '#fef3c7',
-                  border: '1px solid #fcd34d',
-                  borderRadius: '6px',
-                  padding: '10px',
-                  fontSize: '14px'
-                }}>
-                  <strong>Solution:</strong><br />
+                <div
+                  style={{
+                    background: '#fef3c7',
+                    border: '1px solid #fcd34d',
+                    borderRadius: '6px',
+                    padding: '10px',
+                    fontSize: '14px',
+                  }}
+                >
+                  <strong>Solution:</strong>
+                  <br />
                   {puzzle.currentPuzzle.solution.map((move, index) => (
-                    <span 
+                    <span
                       key={index}
-                      style={{ 
+                      style={{
                         marginRight: '8px',
                         fontFamily: 'monospace',
                         background: index < puzzle.solutionIndex ? '#dcfce7' : 'transparent',
                         padding: '2px 4px',
-                        borderRadius: '3px'
+                        borderRadius: '3px',
                       }}
                     >
                       {index + 1}. {move}
@@ -398,12 +437,12 @@ export function ChessPuzzleApp() {
                     background: '#374151',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '6px'
+                    borderRadius: '6px',
                   }}
                 >
                   ← Previous
                 </button>
-                
+
                 <button
                   onClick={puzzle.nextPuzzle}
                   style={{
@@ -412,41 +451,44 @@ export function ChessPuzzleApp() {
                     background: '#374151',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '6px'
+                    borderRadius: '6px',
                   }}
                 >
                   Next →
                 </button>
               </div>
-              
+
               <div style={{ fontSize: '14px', textAlign: 'center', color: '#6b7280' }}>
                 Puzzle {puzzle.currentPuzzleIndex + 1} of {chessPuzzles.length}
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Puzzle grid */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-      }}>
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        }}
+      >
         <h3 style={{ margin: '0 0 20px 0', color: '#374151' }}>All Puzzles</h3>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '15px'
-        }}>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '15px',
+          }}
+        >
           {filteredPuzzles.map((puzzleItem, index) => {
-            const actualIndex = chessPuzzles.findIndex(p => p.id === puzzleItem.id);
+            const actualIndex = chessPuzzles.findIndex((p) => p.id === puzzleItem.id);
             const isSolved = puzzle.solvedPuzzles.has(puzzleItem.id);
             const isCurrent = actualIndex === puzzle.currentPuzzleIndex;
-            
+
             return (
               <div
                 key={puzzleItem.id}
@@ -458,7 +500,7 @@ export function ChessPuzzleApp() {
                   background: isCurrent ? '#eff6ff' : isSolved ? '#f0fdf4' : 'white',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  position: 'relative'
+                  position: 'relative',
                 }}
                 onMouseEnter={(e) => {
                   if (!isCurrent) {
@@ -474,51 +516,59 @@ export function ChessPuzzleApp() {
                 }}
               >
                 {isSolved && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    background: '#10b981',
-                    color: 'white',
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px'
-                  }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      color: 'white',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                    }}
+                  >
                     ✓
                   </div>
                 )}
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}
+                >
                   <h4 style={{ margin: 0, color: '#374151' }}>{puzzleItem.title}</h4>
-                  <span style={{
-                    background: difficultyColors[puzzleItem.difficulty],
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase'
-                  }}>
+                  <span
+                    style={{
+                      background: difficultyColors[puzzleItem.difficulty],
+                      color: 'white',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     {puzzleItem.difficulty}
                   </span>
                 </div>
-                
-                <p style={{ 
-                  margin: '0 0 10px 0', 
-                  fontSize: '14px', 
-                  color: '#6b7280',
-                  lineHeight: '1.4'
-                }}>
+
+                <p
+                  style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    lineHeight: '1.4',
+                  }}
+                >
                   {puzzleItem.description}
                 </p>
-                
+
                 <div style={{ fontSize: '12px' }}>
-                  {puzzleItem.tags.map(tag => (
-                    <span 
+                  {puzzleItem.tags.map((tag) => (
+                    <span
                       key={tag}
                       style={{
                         background: '#f3f4f6',
@@ -526,21 +576,24 @@ export function ChessPuzzleApp() {
                         padding: '2px 6px',
                         borderRadius: '6px',
                         marginRight: '4px',
-                        display: 'inline-block'
+                        display: 'inline-block',
                       }}
                     >
                       #{tag}
                     </span>
                   ))}
                 </div>
-                
-                <div style={{ 
-                  marginTop: '10px', 
-                  fontSize: '12px', 
-                  color: '#9ca3af',
-                  fontFamily: 'monospace'
-                }}>
-                  Solution: {puzzleItem.solution.length} move{puzzleItem.solution.length > 1 ? 's' : ''}
+
+                <div
+                  style={{
+                    marginTop: '10px',
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  Solution: {puzzleItem.solution.length} move
+                  {puzzleItem.solution.length > 1 ? 's' : ''}
                 </div>
               </div>
             );
@@ -550,45 +603,50 @@ export function ChessPuzzleApp() {
 
       {/* Statistics panel */}
       {puzzle.solvedPuzzles.size > 0 && (
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '20px',
-          marginTop: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-        }}>
+        <div
+          style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            marginTop: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          }}
+        >
           <h3 style={{ margin: '0 0 15px 0', color: '#374151' }}>Your Statistics</h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '20px'
-          }}>
-            
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: '20px',
+            }}
+          >
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>
                 {puzzle.solvedPuzzles.size}
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Puzzles Solved</div>
             </div>
-            
+
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>
                 {Math.round(progressPercentage)}%
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Completion</div>
             </div>
-            
+
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#f59e0b' }}>
-                {Array.from(puzzle.solvedPuzzles).filter(id => {
-                  const p = chessPuzzles.find(puzzle => puzzle.id === id);
-                  return p?.difficulty === 'advanced' || p?.difficulty === 'master';
-                }).length}
+                {
+                  Array.from(puzzle.solvedPuzzles).filter((id) => {
+                    const p = chessPuzzles.find((puzzle) => puzzle.id === id);
+                    return p?.difficulty === 'advanced' || p?.difficulty === 'master';
+                  }).length
+                }
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Hard Puzzles</div>
             </div>
-            
+
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#8b5cf6' }}>
                 {chessPuzzles.length - puzzle.solvedPuzzles.size}
@@ -610,7 +668,7 @@ export function PuzzleCreator() {
     fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     solution: [''],
     difficulty: 'beginner' as const,
-    tags: ['']
+    tags: [''],
   });
 
   const [testMode, setTestMode] = useState(false);
@@ -621,7 +679,12 @@ export function PuzzleCreator() {
     if (value && index === newSolution.length - 1) {
       newSolution.push(''); // Add empty slot for next move
     }
-    setCustomPuzzle(prev => ({ ...prev, solution: newSolution.filter(move => move || newSolution.indexOf(move) < newSolution.length - 1) }));
+    setCustomPuzzle((prev) => ({
+      ...prev,
+      solution: newSolution.filter(
+        (move) => move || newSolution.indexOf(move) < newSolution.length - 1,
+      ),
+    }));
   };
 
   const handleTagChange = (index: number, value: string) => {
@@ -630,19 +693,22 @@ export function PuzzleCreator() {
     if (value && index === newTags.length - 1) {
       newTags.push(''); // Add empty slot for next tag
     }
-    setCustomPuzzle(prev => ({ ...prev, tags: newTags.filter(tag => tag || newTags.indexOf(tag) < newTags.length - 1) }));
+    setCustomPuzzle((prev) => ({
+      ...prev,
+      tags: newTags.filter((tag) => tag || newTags.indexOf(tag) < newTags.length - 1),
+    }));
   };
 
   const exportPuzzle = () => {
     const puzzle = {
       ...customPuzzle,
       id: `custom-${Date.now()}`,
-      solution: customPuzzle.solution.filter(move => move.trim()),
-      tags: customPuzzle.tags.filter(tag => tag.trim())
+      solution: customPuzzle.solution.filter((move) => move.trim()),
+      tags: customPuzzle.tags.filter((tag) => tag.trim()),
     };
 
     const puzzleJson = JSON.stringify(puzzle, null, 2);
-    
+
     const blob = new Blob([puzzleJson], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -655,9 +721,8 @@ export function PuzzleCreator() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
       <h2>Chess Puzzle Creator</h2>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '30px' }}>
-        
         {/* Board preview */}
         <div>
           <h3>Puzzle Preview</h3>
@@ -672,25 +737,30 @@ export function PuzzleCreator() {
         {/* Puzzle form */}
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px' }}>
           <h3 style={{ margin: '0 0 15px 0' }}>Puzzle Details</h3>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Title:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                Title:
+              </label>
               <input
                 type="text"
                 value={customPuzzle.title}
-                onChange={(e) => setCustomPuzzle(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => setCustomPuzzle((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="Enter puzzle title..."
                 style={{ width: '100%', padding: '8px' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Description:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                Description:
+              </label>
               <textarea
                 value={customPuzzle.description}
-                onChange={(e) => setCustomPuzzle(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setCustomPuzzle((prev) => ({ ...prev, description: e.target.value }))
+                }
                 placeholder="Describe what the solver should do..."
                 rows={3}
                 style={{ width: '100%', padding: '8px' }}
@@ -698,20 +768,26 @@ export function PuzzleCreator() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>FEN Position:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                FEN Position:
+              </label>
               <textarea
                 value={customPuzzle.fen}
-                onChange={(e) => setCustomPuzzle(prev => ({ ...prev, fen: e.target.value }))}
+                onChange={(e) => setCustomPuzzle((prev) => ({ ...prev, fen: e.target.value }))}
                 rows={2}
                 style={{ width: '100%', padding: '8px', fontFamily: 'monospace', fontSize: '12px' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Difficulty:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                Difficulty:
+              </label>
               <select
                 value={customPuzzle.difficulty}
-                onChange={(e) => setCustomPuzzle(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                onChange={(e) =>
+                  setCustomPuzzle((prev) => ({ ...prev, difficulty: e.target.value as any }))
+                }
                 style={{ width: '100%', padding: '8px' }}
               >
                 <option value="beginner">Beginner</option>
@@ -722,7 +798,9 @@ export function PuzzleCreator() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Solution Moves:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                Solution Moves:
+              </label>
               {customPuzzle.solution.map((move, index) => (
                 <input
                   key={index}
@@ -730,13 +808,20 @@ export function PuzzleCreator() {
                   value={move}
                   onChange={(e) => handleSolutionChange(index, e.target.value)}
                   placeholder={`Move ${index + 1} (e.g., Nf3, Qh5+, O-O)`}
-                  style={{ width: '100%', padding: '6px', marginBottom: '5px', fontFamily: 'monospace' }}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    marginBottom: '5px',
+                    fontFamily: 'monospace',
+                  }}
                 />
               ))}
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Tags:</label>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                Tags:
+              </label>
               {customPuzzle.tags.map((tag, index) => (
                 <input
                   key={index}
@@ -758,22 +843,25 @@ export function PuzzleCreator() {
                   background: '#6366f1',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
                 }}
               >
                 {testMode ? 'Stop Test' : 'Test Puzzle'}
               </button>
-              
+
               <button
                 onClick={exportPuzzle}
-                disabled={!customPuzzle.title || !customPuzzle.solution.some(move => move.trim())}
+                disabled={!customPuzzle.title || !customPuzzle.solution.some((move) => move.trim())}
                 style={{
                   flex: 1,
                   padding: '10px',
-                  background: customPuzzle.title && customPuzzle.solution.some(move => move.trim()) ? '#10b981' : '#d1d5db',
+                  background:
+                    customPuzzle.title && customPuzzle.solution.some((move) => move.trim())
+                      ? '#10b981'
+                      : '#d1d5db',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
                 }}
               >
                 💾 Export

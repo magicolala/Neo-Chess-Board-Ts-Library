@@ -11,7 +11,7 @@ describe('FlatSprites', () => {
   describe('Initialization', () => {
     it('should create sprite sheet with correct dimensions', () => {
       const sheet = sprites.getSheet();
-      
+
       expect(sheet).toBeDefined();
       expect(sheet.width).toBe(128 * 6); // 6 piece types
       expect(sheet.height).toBe(128 * 2); // 2 colors
@@ -20,14 +20,14 @@ describe('FlatSprites', () => {
     it('should work with different sizes', () => {
       const smallSprites = new FlatSprites(64, THEMES.midnight);
       const sheet = smallSprites.getSheet();
-      
+
       expect(sheet.width).toBe(64 * 6);
       expect(sheet.height).toBe(64 * 2);
     });
 
     it('should work with different themes', () => {
       const midnightSprites = new FlatSprites(128, THEMES.midnight);
-      
+
       expect(() => {
         midnightSprites.getSheet();
       }).not.toThrow();
@@ -43,13 +43,13 @@ describe('FlatSprites', () => {
     it('should fallback to regular canvas when OffscreenCanvas not available', () => {
       const originalOffscreenCanvas = global.OffscreenCanvas;
       delete (global as any).OffscreenCanvas;
-      
+
       const fallbackSprites = new FlatSprites(64, THEMES.classic);
       const sheet = fallbackSprites.getSheet();
-      
+
       expect(sheet).toBeDefined();
       expect(sheet.width).toBe(64 * 6);
-      
+
       global.OffscreenCanvas = originalOffscreenCanvas;
     });
   });
@@ -59,20 +59,20 @@ describe('FlatSprites', () => {
       // Mock to capture calls
       const mockFill = jest.fn();
       const mockTranslate = jest.fn();
-      
+
       const originalGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
         ...((originalGetContext as any).call(document.createElement('canvas'), '2d') || {}),
         fill: mockFill,
-        translate: mockTranslate
+        translate: mockTranslate,
       })) as any;
-      
+
       new FlatSprites(128, THEMES.classic);
-      
+
       // Should have called drawing operations for each piece
       expect(mockFill).toHaveBeenCalled();
       expect(mockTranslate).toHaveBeenCalled();
-      
+
       HTMLCanvasElement.prototype.getContext = originalGetContext;
     });
   });
@@ -83,7 +83,7 @@ describe('FlatSprites', () => {
         ...THEMES.classic,
         whitePiece: '#FFFFFF',
         blackPiece: '#000000',
-        pieceShadow: 'rgba(255,0,0,0.5)'
+        pieceShadow: 'rgba(255,0,0,0.5)',
       };
 
       expect(() => {
@@ -96,17 +96,17 @@ describe('FlatSprites', () => {
     it('should return the same sheet instance', () => {
       const sheet1 = sprites.getSheet();
       const sheet2 = sprites.getSheet();
-      
+
       expect(sheet1).toBe(sheet2);
     });
 
     it('should return valid canvas or OffscreenCanvas', () => {
       const sheet = sprites.getSheet();
-      
+
       // Should be either HTMLCanvasElement or OffscreenCanvas
       expect(
-        sheet instanceof HTMLCanvasElement || 
-        (typeof OffscreenCanvas !== 'undefined' && sheet instanceof OffscreenCanvas)
+        sheet instanceof HTMLCanvasElement ||
+          (typeof OffscreenCanvas !== 'undefined' && sheet instanceof OffscreenCanvas),
       ).toBe(true);
     });
   });

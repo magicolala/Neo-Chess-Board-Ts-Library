@@ -33,9 +33,11 @@ export class ChessJsRules implements RulesAdapter {
       console.log('Attempting to load FEN:', fen);
       // Ensure FEN has all 6 parts, adding default if missing
       const fenParts = fen.split(' ');
-      if (fenParts.length === 4) { // Missing en passant, halfmove clock and fullmove number
+      if (fenParts.length === 4) {
+        // Missing en passant, halfmove clock and fullmove number
         fen += ' - 0 1'; // Default values
-      } else if (fenParts.length === 5) { // Missing fullmove number
+      } else if (fenParts.length === 5) {
+        // Missing fullmove number
         fen += ' 1'; // Default value
       }
       this.chess.load(fen);
@@ -48,12 +50,15 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Jouer un coup
    */
-  move(moveData: { from: string; to: string; promotion?: string }): { ok: boolean; reason?: string } {
+  move(moveData: { from: string; to: string; promotion?: string }): {
+    ok: boolean;
+    reason?: string;
+  } {
     try {
       const move = this.chess.move({
         from: moveData.from,
         to: moveData.to,
-        promotion: moveData.promotion as 'q' | 'r' | 'b' | 'n' | undefined
+        promotion: moveData.promotion as 'q' | 'r' | 'b' | 'n' | undefined,
       });
 
       if (move) {
@@ -71,13 +76,13 @@ export class ChessJsRules implements RulesAdapter {
    */
   movesFrom(square: string): Move[] {
     const moves = this.chess.moves({ square: square as any, verbose: true });
-    return (moves as any[]).map(move => ({
+    return (moves as any[]).map((move) => ({
       from: move.from,
       to: move.to,
       promotion: move.promotion === 'k' ? undefined : move.promotion,
       piece: move.piece,
       captured: move.captured,
-      flags: move.flags
+      flags: move.flags,
     }));
   }
 
@@ -86,13 +91,13 @@ export class ChessJsRules implements RulesAdapter {
    */
   getAllMoves(): Move[] {
     const moves = this.chess.moves({ verbose: true });
-    return (moves as any[]).map(move => ({
+    return (moves as any[]).map((move) => ({
       from: move.from,
       to: move.to,
       promotion: move.promotion === 'k' ? undefined : move.promotion,
       piece: move.piece,
       captured: move.captured,
-      flags: move.flags
+      flags: move.flags,
     }));
   }
 
@@ -106,7 +111,7 @@ export class ChessJsRules implements RulesAdapter {
       const move = testChess.move({
         from,
         to,
-        promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined
+        promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
       });
       return move !== null;
     } catch {
@@ -219,7 +224,7 @@ export class ChessJsRules implements RulesAdapter {
    */
   getCheckSquares(): string[] {
     if (!this.chess.inCheck()) return [];
-    
+
     const kingSquare = this.getKingSquare(this.chess.turn());
     return kingSquare ? [kingSquare] : [];
   }
@@ -249,7 +254,7 @@ export class ChessJsRules implements RulesAdapter {
   canCastle(side: 'k' | 'q', color?: 'w' | 'b'): boolean {
     const currentColor = color || this.chess.turn();
     const castlingRights = this.chess.getCastlingRights(currentColor);
-    
+
     if (side === 'k') {
       return castlingRights.k;
     } else {
@@ -317,7 +322,7 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Exporter la partie actuelle au format PGN
    */
-    toPgn(includeHeaders: boolean = true): string {
+  toPgn(includeHeaders: boolean = true): string {
     this.pgnNotation.importFromChessJs(this.chess);
     return this.pgnNotation.toPgn(includeHeaders);
   }

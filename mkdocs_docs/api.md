@@ -435,7 +435,7 @@ React wrapper component for the core chess board.
 
 ```typescript
 interface NeoChessBoardProps {
-  position?: string;           // FEN string
+  position?: string; // FEN string
   orientation?: 'white' | 'black';
   theme?: ThemeName | Theme;
   draggable?: boolean;
@@ -492,21 +492,21 @@ interface BoardOptions {
 interface Theme {
   name: string;
   board: {
-    light: string;    // Light square color
-    dark: string;     // Dark square color
-    border: string;   // Board border color
+    light: string; // Light square color
+    dark: string; // Dark square color
+    border: string; // Board border color
   };
   pieces: {
     [key in PieceType]: {
-      white: string;  // White piece color
-      black: string;  // Black piece color
+      white: string; // White piece color
+      black: string; // Black piece color
     };
   };
   highlights: {
-    lastMove: string;     // Last move highlight
-    legalMove: string;    // Legal move highlight
-    check: string;        // Check highlight
-    selected: string;     // Selected square
+    lastMove: string; // Last move highlight
+    legalMove: string; // Legal move highlight
+    check: string; // Check highlight
+    selected: string; // Selected square
   };
 }
 ```
@@ -566,23 +566,23 @@ interface PGNHeaders {
 
 ```typescript
 interface PgnMetadata {
-    Event?: string;
-    Site?: string;
-    Date?: string;
-    Round?: string;
-    White?: string;
-    Black?: string;
-    Result?: string;
-    WhiteElo?: string;
-    BlackElo?: string;
-    TimeControl?: string;
-    ECO?: string;
-    Opening?: string;
-    Variation?: string;
-    Annotator?: string;
-    FEN?: string;
-    SetUp?: string;
-    [key: string]: string | undefined;
+  Event?: string;
+  Site?: string;
+  Date?: string;
+  Round?: string;
+  White?: string;
+  Black?: string;
+  Result?: string;
+  WhiteElo?: string;
+  BlackElo?: string;
+  TimeControl?: string;
+  ECO?: string;
+  Opening?: string;
+  Variation?: string;
+  Annotator?: string;
+  FEN?: string;
+  SetUp?: string;
+  [key: string]: string | undefined;
 }
 ```
 
@@ -590,13 +590,13 @@ interface PgnMetadata {
 
 ```typescript
 interface PgnMove {
-    moveNumber: number;
-    white?: string;
-    black?: string;
-    whiteComment?: string;
-    blackComment?: string;
-    whiteAnnotations: PgnMoveAnnotations;
-    blackAnnotations: PgnMoveAnnotations;
+  moveNumber: number;
+  white?: string;
+  black?: string;
+  whiteComment?: string;
+  blackComment?: string;
+  whiteAnnotations: PgnMoveAnnotations;
+  blackAnnotations: PgnMoveAnnotations;
 }
 ```
 
@@ -604,9 +604,9 @@ interface PgnMove {
 
 ```typescript
 interface PgnMoveAnnotations {
-    arrows: Arrow[];
-    circles: SquareHighlight[];
-    textComment: string;
+  arrows: Arrow[];
+  circles: SquareHighlight[];
+  textComment: string;
 }
 ```
 
@@ -687,7 +687,7 @@ const customTheme: Theme = {
   board: {
     light: '#f0d9b5',
     dark: '#b58863',
-    border: '#8b4513'
+    border: '#8b4513',
   },
   pieces: {
     king: { white: '#ffffff', black: '#000000' },
@@ -697,8 +697,8 @@ const customTheme: Theme = {
     lastMove: 'rgba(255, 255, 0, 0.5)',
     legalMove: 'rgba(0, 255, 0, 0.3)',
     check: 'rgba(255, 0, 0, 0.7)',
-    selected: 'rgba(0, 0, 255, 0.3)'
-  }
+    selected: 'rgba(0, 0, 255, 0.3)',
+  },
 };
 
 board.setTheme(customTheme);

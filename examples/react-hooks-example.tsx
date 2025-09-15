@@ -6,15 +6,20 @@ import type { Move, Theme } from '../src/core/types';
 function useChessGame(initialPosition = 'start') {
   const [position, setPosition] = useState(initialPosition);
   const [moves, setMoves] = useState<Move[]>([]);
-  const [gameStatus, setGameStatus] = useState<'playing' | 'check' | 'checkmate' | 'stalemate'>('playing');
+  const [gameStatus, setGameStatus] = useState<'playing' | 'check' | 'checkmate' | 'stalemate'>(
+    'playing',
+  );
   const [currentPlayer, setCurrentPlayer] = useState<'white' | 'black'>('white');
 
-  const makeMove = useCallback((move: Move) => {
-    setMoves(prev => [...prev, move]);
-    setPosition(move.fen || position);
-    setCurrentPlayer(prev => prev === 'white' ? 'black' : 'white');
-    setGameStatus('playing'); // Reset to playing, events will update if needed
-  }, [position]);
+  const makeMove = useCallback(
+    (move: Move) => {
+      setMoves((prev) => [...prev, move]);
+      setPosition(move.fen || position);
+      setCurrentPlayer((prev) => (prev === 'white' ? 'black' : 'white'));
+      setGameStatus('playing'); // Reset to playing, events will update if needed
+    },
+    [position],
+  );
 
   const resetGame = useCallback(() => {
     setPosition('start');
@@ -27,7 +32,7 @@ function useChessGame(initialPosition = 'start') {
     if (moves.length > 0) {
       const newMoves = moves.slice(0, -1);
       setMoves(newMoves);
-      
+
       if (newMoves.length === 0) {
         setPosition('start');
         setCurrentPlayer('white');
@@ -36,20 +41,23 @@ function useChessGame(initialPosition = 'start') {
         setPosition(lastMove.fen || 'start');
         setCurrentPlayer(newMoves.length % 2 === 0 ? 'white' : 'black');
       }
-      
+
       setGameStatus('playing');
     }
   }, [moves]);
 
-  const goToMove = useCallback((moveIndex: number) => {
-    if (moveIndex < 0) {
-      setPosition('start');
-      setCurrentPlayer('white');
-    } else if (moveIndex < moves.length) {
-      setPosition(moves[moveIndex].fen || 'start');
-      setCurrentPlayer(moveIndex % 2 === 0 ? 'black' : 'white');
-    }
-  }, [moves]);
+  const goToMove = useCallback(
+    (moveIndex: number) => {
+      if (moveIndex < 0) {
+        setPosition('start');
+        setCurrentPlayer('white');
+      } else if (moveIndex < moves.length) {
+        setPosition(moves[moveIndex].fen || 'start');
+        setCurrentPlayer(moveIndex % 2 === 0 ? 'black' : 'white');
+      }
+    },
+    [moves],
+  );
 
   return {
     position,
@@ -60,7 +68,7 @@ function useChessGame(initialPosition = 'start') {
     resetGame,
     undoLastMove,
     goToMove,
-    setGameStatus
+    setGameStatus,
   };
 }
 
@@ -69,26 +77,37 @@ function useChessTheme() {
   const [currentTheme, setCurrentTheme] = useState('light');
   const [customThemes, setCustomThemes] = useState<Theme[]>([]);
 
-  const availableThemes = useMemo(() => [
-    'light', 'dark', 'wood', 'glass', 'neon', 'retro',
-    ...customThemes.map(theme => theme.name)
-  ], [customThemes]);
+  const availableThemes = useMemo(
+    () => [
+      'light',
+      'dark',
+      'wood',
+      'glass',
+      'neon',
+      'retro',
+      ...customThemes.map((theme) => theme.name),
+    ],
+    [customThemes],
+  );
 
   const addCustomTheme = useCallback((theme: Theme) => {
-    setCustomThemes(prev => [...prev.filter(t => t.name !== theme.name), theme]);
+    setCustomThemes((prev) => [...prev.filter((t) => t.name !== theme.name), theme]);
   }, []);
 
-  const getTheme = useCallback((themeName: string) => {
-    const customTheme = customThemes.find(t => t.name === themeName);
-    return customTheme || themeName;
-  }, [customThemes]);
+  const getTheme = useCallback(
+    (themeName: string) => {
+      const customTheme = customThemes.find((t) => t.name === themeName);
+      return customTheme || themeName;
+    },
+    [customThemes],
+  );
 
   return {
     currentTheme,
     setCurrentTheme,
     availableThemes,
     addCustomTheme,
-    getTheme
+    getTheme,
   };
 }
 
@@ -121,13 +140,13 @@ function useBoardPreferences() {
       orientation,
       showCoordinates,
       highlightLastMove,
-      animationSpeed
+      animationSpeed,
     };
     localStorage.setItem('neochess-preferences', JSON.stringify(preferences));
   }, [orientation, showCoordinates, highlightLastMove, animationSpeed]);
 
   const flipBoard = useCallback(() => {
-    setOrientation(prev => prev === 'white' ? 'black' : 'white');
+    setOrientation((prev) => (prev === 'white' ? 'black' : 'white'));
   }, []);
 
   return {
@@ -139,7 +158,7 @@ function useBoardPreferences() {
     setShowCoordinates,
     setHighlightLastMove,
     setAnimationSpeed,
-    flipBoard
+    flipBoard,
   };
 }
 
@@ -150,9 +169,12 @@ export function AdvancedChessGame() {
   const prefs = useBoardPreferences();
 
   // Event handlers
-  const handleMove = useCallback((move: Move) => {
-    game.makeMove(move);
-  }, [game.makeMove]);
+  const handleMove = useCallback(
+    (move: Move) => {
+      game.makeMove(move);
+    },
+    [game.makeMove],
+  );
 
   const handleCheck = useCallback(() => {
     game.setGameStatus('check');
@@ -173,21 +195,32 @@ export function AdvancedChessGame() {
       Date: new Date().toISOString().split('T')[0],
       White: 'Player 1',
       Black: 'Player 2',
-      Result: game.gameStatus === 'checkmate' ? 
-        (game.currentPlayer === 'white' ? '0-1' : '1-0') : 
-        game.gameStatus === 'stalemate' ? '1/2-1/2' : '*'
+      Result:
+        game.gameStatus === 'checkmate'
+          ? game.currentPlayer === 'white'
+            ? '0-1'
+            : '1-0'
+          : game.gameStatus === 'stalemate'
+            ? '1/2-1/2'
+            : '*',
     };
 
     // Simple PGN export (in real app, use proper PGN formatting)
-    const pgnMoves = game.moves.map((move, index) => {
-      const moveNumber = Math.floor(index / 2) + 1;
-      const prefix = index % 2 === 0 ? `${moveNumber}.` : '';
-      return prefix + (move.san || `${move.from}-${move.to}`);
-    }).join(' ');
+    const pgnMoves = game.moves
+      .map((move, index) => {
+        const moveNumber = Math.floor(index / 2) + 1;
+        const prefix = index % 2 === 0 ? `${moveNumber}.` : '';
+        return prefix + (move.san || `${move.from}-${move.to}`);
+      })
+      .join(' ');
 
-    const pgn = Object.entries(headers)
-      .map(([key, value]) => `[${key} "${value}"]`)
-      .join('\n') + '\n\n' + pgnMoves + '\n';
+    const pgn =
+      Object.entries(headers)
+        .map(([key, value]) => `[${key} "${value}"]`)
+        .join('\n') +
+      '\n\n' +
+      pgnMoves +
+      '\n';
 
     // Download PGN
     const blob = new Blob([pgn], { type: 'text/plain' });
@@ -206,7 +239,7 @@ export function AdvancedChessGame() {
       board: {
         light: '#e8f4fd',
         dark: '#1e3a8a',
-        border: '#1e40af'
+        border: '#1e40af',
       },
       pieces: {
         king: { white: '#ffffff', black: '#1f2937' },
@@ -214,14 +247,14 @@ export function AdvancedChessGame() {
         rook: { white: '#ffffff', black: '#1f2937' },
         bishop: { white: '#ffffff', black: '#1f2937' },
         knight: { white: '#ffffff', black: '#1f2937' },
-        pawn: { white: '#ffffff', black: '#1f2937' }
+        pawn: { white: '#ffffff', black: '#1f2937' },
       },
       highlights: {
         lastMove: 'rgba(59, 130, 246, 0.5)',
         legalMove: 'rgba(34, 197, 94, 0.4)',
         check: 'rgba(239, 68, 68, 0.8)',
-        selected: 'rgba(168, 85, 247, 0.4)'
-      }
+        selected: 'rgba(168, 85, 247, 0.4)',
+      },
     };
 
     theme.addCustomTheme(customTheme);
@@ -229,24 +262,27 @@ export function AdvancedChessGame() {
   };
 
   return (
-    <div style={{ 
-      maxWidth: '1200px', 
-      margin: '0 auto', 
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
+    <div
+      style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '20px',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }}
+    >
       <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>
         🏆 Advanced Chess Game with React Hooks
       </h1>
 
       {/* Main game area */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'auto 300px',
-        gap: '30px',
-        alignItems: 'start'
-      }}>
-        
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 300px',
+          gap: '30px',
+          alignItems: 'start',
+        }}
+      >
         {/* Chess board */}
         <div>
           <NeoChessBoard
@@ -263,27 +299,40 @@ export function AdvancedChessGame() {
         </div>
 
         {/* Control panel */}
-        <div style={{ 
-          background: '#f8fafc', 
-          padding: '20px', 
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0'
-        }}>
-          
+        <div
+          style={{
+            background: '#f8fafc',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+          }}
+        >
           {/* Game status */}
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ margin: '0 0 10px 0', color: '#374151' }}>Game Status</h3>
-            <div style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontWeight: '600',
-              background: game.gameStatus === 'check' ? '#fef2f2' :
-                         game.gameStatus === 'checkmate' ? '#fee2e2' :
-                         game.gameStatus === 'stalemate' ? '#eff6ff' : '#f0fdf4',
-              color: game.gameStatus === 'check' ? '#dc2626' :
-                     game.gameStatus === 'checkmate' ? '#dc2626' :
-                     game.gameStatus === 'stalemate' ? '#2563eb' : '#16a34a'
-            }}>
+            <div
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontWeight: '600',
+                background:
+                  game.gameStatus === 'check'
+                    ? '#fef2f2'
+                    : game.gameStatus === 'checkmate'
+                      ? '#fee2e2'
+                      : game.gameStatus === 'stalemate'
+                        ? '#eff6ff'
+                        : '#f0fdf4',
+                color:
+                  game.gameStatus === 'check'
+                    ? '#dc2626'
+                    : game.gameStatus === 'checkmate'
+                      ? '#dc2626'
+                      : game.gameStatus === 'stalemate'
+                        ? '#2563eb'
+                        : '#16a34a',
+              }}
+            >
               {game.gameStatus.charAt(0).toUpperCase() + game.gameStatus.slice(1)}
             </div>
             <div style={{ marginTop: '8px', fontSize: '14px', color: '#6b7280' }}>
@@ -294,18 +343,18 @@ export function AdvancedChessGame() {
           {/* Theme controls */}
           <div style={{ marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#374151' }}>Appearance</h4>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>
                   Theme:
                 </label>
-                <select 
+                <select
                   value={theme.currentTheme}
                   onChange={(e) => theme.setCurrentTheme(e.target.value)}
                   style={{ width: '100%', padding: '6px 10px' }}
                 >
-                  {theme.availableThemes.map(themeName => (
+                  {theme.availableThemes.map((themeName) => (
                     <option key={themeName} value={themeName}>
                       {themeName.charAt(0).toUpperCase() + themeName.slice(1)}
                     </option>
@@ -313,7 +362,7 @@ export function AdvancedChessGame() {
                 </select>
               </div>
 
-              <button 
+              <button
                 onClick={createCustomTheme}
                 style={{
                   padding: '6px 12px',
@@ -321,7 +370,7 @@ export function AdvancedChessGame() {
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  fontSize: '14px'
+                  fontSize: '14px',
                 }}
               >
                 ✨ Create Ocean Theme
@@ -332,9 +381,11 @@ export function AdvancedChessGame() {
           {/* Board preferences */}
           <div style={{ marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#374151' }}>Board Settings</h4>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+              >
                 <input
                   type="checkbox"
                   checked={prefs.showCoordinates}
@@ -343,7 +394,9 @@ export function AdvancedChessGame() {
                 Show coordinates
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+              >
                 <input
                   type="checkbox"
                   checked={prefs.highlightLastMove}
@@ -372,22 +425,22 @@ export function AdvancedChessGame() {
           {/* Game actions */}
           <div style={{ marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#374151' }}>Actions</h4>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button 
+              <button
                 onClick={prefs.flipBoard}
                 style={{
                   padding: '8px 12px',
                   background: '#06b6d4',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
                 }}
               >
                 🔄 Flip Board
               </button>
-              
-              <button 
+
+              <button
                 onClick={game.undoLastMove}
                 disabled={game.moves.length === 0}
                 style={{
@@ -396,26 +449,26 @@ export function AdvancedChessGame() {
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: game.moves.length === 0 ? 'not-allowed' : 'pointer'
+                  cursor: game.moves.length === 0 ? 'not-allowed' : 'pointer',
                 }}
               >
                 ↶ Undo Move
               </button>
 
-              <button 
+              <button
                 onClick={game.resetGame}
                 style={{
                   padding: '8px 12px',
                   background: '#ef4444',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
                 }}
               >
                 🆕 New Game
               </button>
 
-              <button 
+              <button
                 onClick={exportPGN}
                 disabled={game.moves.length === 0}
                 style={{
@@ -424,7 +477,7 @@ export function AdvancedChessGame() {
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: game.moves.length === 0 ? 'not-allowed' : 'pointer'
+                  cursor: game.moves.length === 0 ? 'not-allowed' : 'pointer',
                 }}
               >
                 📋 Export PGN
@@ -437,15 +490,17 @@ export function AdvancedChessGame() {
             <h4 style={{ margin: '0 0 10px 0', color: '#374151' }}>
               Move History ({game.moves.length})
             </h4>
-            
-            <div style={{
-              maxHeight: '200px',
-              overflow: 'auto',
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              padding: '10px'
-            }}>
+
+            <div
+              style={{
+                maxHeight: '200px',
+                overflow: 'auto',
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                padding: '10px',
+              }}
+            >
               {game.moves.length === 0 ? (
                 <em style={{ color: '#9ca3af' }}>No moves yet</em>
               ) : (
@@ -458,7 +513,7 @@ export function AdvancedChessGame() {
                         padding: '2px 6px',
                         borderRadius: '3px',
                         cursor: 'pointer',
-                        transition: 'background-color 0.15s'
+                        transition: 'background-color 0.15s',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#f3f4f6';
@@ -482,41 +537,45 @@ export function AdvancedChessGame() {
 
       {/* Game stats */}
       {game.moves.length > 0 && (
-        <div style={{ 
-          marginTop: '30px',
-          padding: '20px',
-          background: '#f1f5f9',
-          borderRadius: '12px',
-          border: '1px solid #cbd5e1'
-        }}>
+        <div
+          style={{
+            marginTop: '30px',
+            padding: '20px',
+            background: '#f1f5f9',
+            borderRadius: '12px',
+            border: '1px solid #cbd5e1',
+          }}
+        >
           <h3 style={{ margin: '0 0 15px 0', color: '#374151' }}>Game Statistics</h3>
-          
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '15px'
-          }}>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: '15px',
+            }}
+          >
             <div>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>
                 {game.moves.length}
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Total Moves</div>
             </div>
-            
+
             <div>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>
-                {game.moves.filter(m => m.captured).length}
+                {game.moves.filter((m) => m.captured).length}
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Captures</div>
             </div>
-            
+
             <div>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>
-                {game.moves.filter(m => m.check).length}
+                {game.moves.filter((m) => m.check).length}
               </div>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>Checks</div>
             </div>
-            
+
             <div>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>
                 {game.gameStatus === 'checkmate' ? '1' : '0'}
@@ -533,29 +592,29 @@ export function AdvancedChessGame() {
 // Component for loading famous games
 export function FamousGamesExample() {
   const game = useChessGame();
-  
+
   const famousGames = [
     {
-      name: "Kasparov vs Deep Blue (1997)",
-      moves: ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Nd7"],
-      description: "Historic man vs machine match"
+      name: 'Kasparov vs Deep Blue (1997)',
+      moves: ['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4', 'Nxe4', 'Nd7'],
+      description: 'Historic man vs machine match',
     },
     {
-      name: "Fischer vs Spassky (1972)",
-      moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6"],
-      description: "World Championship Game 6"
+      name: 'Fischer vs Spassky (1972)',
+      moves: ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6'],
+      description: 'World Championship Game 6',
     },
     {
-      name: "Morphy vs Duke Karl (1858)",
-      moves: ["e4", "e5", "Nf3", "d6", "d4", "Bg4", "dxe5", "Bxf3"],
-      description: "Opera House Game"
-    }
+      name: 'Morphy vs Duke Karl (1858)',
+      moves: ['e4', 'e5', 'Nf3', 'd6', 'd4', 'Bg4', 'dxe5', 'Bxf3'],
+      description: 'Opera House Game',
+    },
   ];
 
   const loadFamousGame = (gameIndex: number) => {
     const selectedGame = famousGames[gameIndex];
     console.log(`Loading: ${selectedGame.name}`);
-    
+
     // In a real implementation, you would apply these moves to the board
     // For now, we'll just reset and show the game info
     game.resetGame();
@@ -565,7 +624,7 @@ export function FamousGamesExample() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
       <h2>Famous Chess Games</h2>
-      
+
       <div style={{ marginBottom: '20px' }}>
         <NeoChessBoard
           position={game.position}
@@ -574,10 +633,10 @@ export function FamousGamesExample() {
           onMove={game.makeMove}
         />
       </div>
-      
+
       <div style={{ display: 'grid', gap: '10px' }}>
         {famousGames.map((famousGame, index) => (
-          <div 
+          <div
             key={index}
             style={{
               padding: '15px',
@@ -585,7 +644,7 @@ export function FamousGamesExample() {
               borderRadius: '8px',
               background: 'white',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
             }}
             onClick={() => loadFamousGame(index)}
             onMouseEnter={(e) => {
@@ -597,12 +656,8 @@ export function FamousGamesExample() {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <div style={{ fontWeight: '600', marginBottom: '5px' }}>
-              {famousGame.name}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              {famousGame.description}
-            </div>
+            <div style={{ fontWeight: '600', marginBottom: '5px' }}>{famousGame.name}</div>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>{famousGame.description}</div>
             <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '5px' }}>
               Opening: {famousGame.moves.slice(0, 4).join(' ')}...
             </div>

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from 'react';
 import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
-import type { BoardOptions, Move, Square } from "../core/types";
+import type { BoardOptions, Move, Square } from '../core/types';
 
-export interface NeoChessProps extends Omit<BoardOptions, "fen" | "rulesAdapter"> {
+export interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'> {
   fen?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -44,9 +44,9 @@ export const NeoChessBoard: React.FC<NeoChessProps> = ({
       // If they need to be changed, the board instance would need to be re-created.
     }
 
-    const off1 = boardRef.current.on("move", (e) => onMove?.(e));
-    const off2 = boardRef.current.on("illegal", (e) => onIllegal?.(e));
-    const off3 = boardRef.current.on("update", (e) => onUpdate?.(e));
+    const off1 = boardRef.current.on('move', (e) => onMove?.(e));
+    const off2 = boardRef.current.on('illegal', (e) => onIllegal?.(e));
+    const off3 = boardRef.current.on('update', (e) => onUpdate?.(e));
 
     return () => {
       off1?.();

@@ -8,27 +8,27 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
-        react: resolve(__dirname, 'src/react/index.ts')
+        react: resolve(__dirname, 'src/react/index.ts'),
       },
       name: 'NeoChessBoard',
-      formats: ['es', 'cjs']
+      formats: ['es', 'cjs'],
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'chess.js'],
       output: {
         globals: {
           react: 'React',
-          'react-dom': 'ReactDOM'
+          'react-dom': 'ReactDOM',
         },
-        exports: 'named'
-      }
+        exports: 'named',
+      },
     },
     sourcemap: true,
-    minify: 'terser'
+    minify: 'terser',
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
-    }
-  }
+      '@': resolve(__dirname, 'src'),
+    },
+  },
 });

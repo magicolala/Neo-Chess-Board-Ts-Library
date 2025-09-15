@@ -2,7 +2,6 @@ import { PgnAnnotationParser } from '../../src/core/PgnAnnotationParser';
 import { Arrow, SquareHighlight } from '../../src/core/types';
 
 describe('PgnAnnotationParser', () => {
-
   describe('hasVisualAnnotations', () => {
     it('should detect %cal annotations', () => {
       expect(PgnAnnotationParser.hasVisualAnnotations('Some text %cal Rc8f5,Ra8d8')).toBe(true);
@@ -33,7 +32,7 @@ describe('PgnAnnotationParser', () => {
         expect(result.arrows[0]).toEqual({
           from: 'c8',
           to: 'f5',
-          color: '#ff0000'
+          color: '#ff0000',
         });
       });
 
@@ -43,17 +42,17 @@ describe('PgnAnnotationParser', () => {
         expect(result.arrows[0]).toEqual({
           from: 'c8',
           to: 'f5',
-          color: '#ff0000'
+          color: '#ff0000',
         });
         expect(result.arrows[1]).toEqual({
           from: 'a8',
           to: 'd8',
-          color: '#00ff00'
+          color: '#00ff00',
         });
         expect(result.arrows[2]).toEqual({
           from: 'e1',
           to: 'c1',
-          color: '#ffff00'
+          color: '#ffff00',
         });
       });
 
@@ -74,7 +73,7 @@ describe('PgnAnnotationParser', () => {
         expect(result.highlights[0]).toEqual({
           square: 'd4',
           type: 'circle',
-          color: '#ff0000'
+          color: '#ff0000',
         });
       });
 
@@ -84,17 +83,17 @@ describe('PgnAnnotationParser', () => {
         expect(result.highlights[0]).toEqual({
           square: 'd4',
           type: 'circle',
-          color: '#ff0000'
+          color: '#ff0000',
         });
         expect(result.highlights[1]).toEqual({
           square: 'd5',
           type: 'circle',
-          color: '#00ff00'
+          color: '#00ff00',
         });
         expect(result.highlights[2]).toEqual({
           square: 'a4',
           type: 'circle',
-          color: '#ffff00'
+          color: '#ffff00',
         });
       });
     });
@@ -104,21 +103,23 @@ describe('PgnAnnotationParser', () => {
         const result = PgnAnnotationParser.parseComment('%cal Rc8f5,Ga8d8 %csl Rd4,Gd5');
         expect(result.arrows).toHaveLength(2);
         expect(result.highlights).toHaveLength(2);
-        
+
         expect(result.arrows[0]).toEqual({
           from: 'c8',
           to: 'f5',
-          color: '#ff0000'
+          color: '#ff0000',
         });
         expect(result.highlights[0]).toEqual({
           square: 'd4',
           type: 'circle',
-          color: '#ff0000'
+          color: '#ff0000',
         });
       });
 
       it('should preserve text comments', () => {
-        const result = PgnAnnotationParser.parseComment('Good move! %cal Rc8f5 This is strategic %csl Gd4');
+        const result = PgnAnnotationParser.parseComment(
+          'Good move! %cal Rc8f5 This is strategic %csl Gd4',
+        );
         expect(result.textComment).toBe('Good move! This is strategic');
         expect(result.arrows).toHaveLength(1);
         expect(result.highlights).toHaveLength(1);
@@ -178,7 +179,7 @@ describe('PgnAnnotationParser', () => {
     it('should create %cal string for arrows', () => {
       const arrows: Arrow[] = [
         { from: 'c8', to: 'f5', color: '#ff0000' },
-        { from: 'a8', to: 'd8', color: '#00ff00' }
+        { from: 'a8', to: 'd8', color: '#00ff00' },
       ];
       const result = PgnAnnotationParser.fromDrawingObjects(arrows, []);
       expect(result).toBe('%cal Rc8f5,Ga8d8');
@@ -187,7 +188,7 @@ describe('PgnAnnotationParser', () => {
     it('should create %csl string for circles', () => {
       const circles: SquareHighlight[] = [
         { square: 'd4', type: 'circle', color: '#ff0000' },
-        { square: 'd5', type: 'circle', color: '#00ff00' }
+        { square: 'd5', type: 'circle', color: '#00ff00' },
       ];
       const result = PgnAnnotationParser.fromDrawingObjects([], circles);
       expect(result).toBe('%csl Rd4,Gd5');
@@ -208,10 +209,10 @@ describe('PgnAnnotationParser', () => {
     it('should map colors correctly', () => {
       const arrows: Arrow[] = [
         { from: 'a1', to: 'a2', color: '#ff0000' }, // Red
-        { from: 'b1', to: 'b2', color: '#00ff00' }, // Green  
+        { from: 'b1', to: 'b2', color: '#00ff00' }, // Green
         { from: 'c1', to: 'c2', color: '#ffff00' }, // Yellow
         { from: 'd1', to: 'd2', color: '#0000ff' }, // Blue
-        { from: 'e1', to: 'e2', color: '#ff00ff' }  // Other color should default to Red
+        { from: 'e1', to: 'e2', color: '#ff00ff' }, // Other color should default to Red
       ];
       const result = PgnAnnotationParser.fromDrawingObjects(arrows, []);
       expect(result).toBe('%cal Ra1a2,Gb1b2,Yc1c2,Bd1d2,Re1e2');
@@ -248,29 +249,36 @@ describe('PgnAnnotationParser', () => {
       expect(PgnAnnotationParser.isValidSquare('a9')).toBe(false); // Invalid rank
       expect(PgnAnnotationParser.isValidSquare('z1')).toBe(false); // Invalid file
       expect(PgnAnnotationParser.isValidSquare('a0')).toBe(false); // Invalid rank
-      expect(PgnAnnotationParser.isValidSquare('')).toBe(false);   // Empty string
+      expect(PgnAnnotationParser.isValidSquare('')).toBe(false); // Empty string
       expect(PgnAnnotationParser.isValidSquare('ab')).toBe(false); // Wrong format
     });
   });
 
   describe('Integration with real PGN comments', () => {
     it('should parse complex real-world annotations', () => {
-      const comment = 'This is a strong move! %cal Rc8f5,Ga8d8,Ye8g8 %csl Rd4,Gd5,Yf7 The position is winning.';
+      const comment =
+        'This is a strong move! %cal Rc8f5,Ga8d8,Ye8g8 %csl Rd4,Gd5,Yf7 The position is winning.';
       const result = PgnAnnotationParser.parseComment(comment);
-      
+
       expect(result.arrows).toHaveLength(3);
       expect(result.highlights).toHaveLength(3);
       expect(result.textComment).toBe('This is a strong move! The position is winning.');
-      
+
       // Verify specific arrows
-      expect(result.arrows.some(a => a.from === 'c8' && a.to === 'f5' && a.color === '#ff0000')).toBe(true);
-      expect(result.arrows.some(a => a.from === 'a8' && a.to === 'd8' && a.color === '#00ff00')).toBe(true);
-      expect(result.arrows.some(a => a.from === 'e8' && a.to === 'g8' && a.color === '#ffff00')).toBe(true);
-      
+      expect(
+        result.arrows.some((a) => a.from === 'c8' && a.to === 'f5' && a.color === '#ff0000'),
+      ).toBe(true);
+      expect(
+        result.arrows.some((a) => a.from === 'a8' && a.to === 'd8' && a.color === '#00ff00'),
+      ).toBe(true);
+      expect(
+        result.arrows.some((a) => a.from === 'e8' && a.to === 'g8' && a.color === '#ffff00'),
+      ).toBe(true);
+
       // Verify specific circles
-      expect(result.highlights.some(c => c.square === 'd4' && c.color === '#ff0000')).toBe(true);
-      expect(result.highlights.some(c => c.square === 'd5' && c.color === '#00ff00')).toBe(true);
-      expect(result.highlights.some(c => c.square === 'f7' && c.color === '#ffff00')).toBe(true);
+      expect(result.highlights.some((c) => c.square === 'd4' && c.color === '#ff0000')).toBe(true);
+      expect(result.highlights.some((c) => c.square === 'd5' && c.color === '#00ff00')).toBe(true);
+      expect(result.highlights.some((c) => c.square === 'f7' && c.color === '#ffff00')).toBe(true);
     });
   });
 });

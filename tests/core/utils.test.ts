@@ -1,14 +1,14 @@
-import { 
-  FILES, 
-  RANKS, 
-  START_FEN, 
-  isWhitePiece, 
-  sq, 
-  sqToFR, 
-  parseFEN, 
-  clamp, 
-  lerp, 
-  easeOutCubic 
+import {
+  FILES,
+  RANKS,
+  START_FEN,
+  isWhitePiece,
+  sq,
+  sqToFR,
+  parseFEN,
+  clamp,
+  lerp,
+  easeOutCubic,
 } from '../../src/core/utils';
 
 describe('Chess Utils', () => {
@@ -22,7 +22,7 @@ describe('Chess Utils', () => {
     });
 
     it('should have valid starting position FEN', () => {
-      expect(START_FEN).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      expect(START_FEN).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     });
   });
 
@@ -65,13 +65,13 @@ describe('Chess Utils', () => {
   describe('parseFEN', () => {
     it('should parse starting position correctly', () => {
       const state = parseFEN(START_FEN);
-      
+
       expect(state.turn).toBe('w');
       expect(state.castling).toBe('KQkq');
       expect(state.ep).toBe(null);
       expect(state.halfmove).toBe(0);
       expect(state.fullmove).toBe(1);
-      
+
       // Check some key pieces
       expect(state.board[0][0]).toBe('R'); // a1 white rook
       expect(state.board[0][4]).toBe('K'); // e1 white king
@@ -82,18 +82,18 @@ describe('Chess Utils', () => {
     });
 
     it('should parse custom position correctly', () => {
-      const customFEN = "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4";
+      const customFEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4';
       const state = parseFEN(customFEN);
-      
+
       expect(state.turn).toBe('b');
       expect(state.halfmove).toBe(4);
       expect(state.fullmove).toBe(4);
     });
 
     it('should handle empty squares in FEN correctly', () => {
-      const fenWithGaps = "8/8/8/8/8/8/8/8 w - - 0 1";
+      const fenWithGaps = '8/8/8/8/8/8/8/8 w - - 0 1';
       const state = parseFEN(fenWithGaps);
-      
+
       // All squares should be null/empty
       for (let r = 0; r < 8; r++) {
         for (let f = 0; f < 8; f++) {
