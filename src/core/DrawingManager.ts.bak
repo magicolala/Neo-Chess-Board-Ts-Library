@@ -613,6 +613,63 @@ export class DrawingManager {
     }
   }
 
+  public clearAllDrawings(): void {
+    this.state = {
+      arrows: [],
+      highlights: [],
+      premove: undefined,
+    };
+  }
+
+  // Utilitaires pour les interactions
+  public getSquareFromMousePosition(mouseX: number, mouseY: number): Square | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = (mouseX - rect.left) * (this.canvas.width / rect.width);
+    const y = (mouseY - rect.top) * (this.canvas.height / rect.height);
+
+    if (x < 0 || y < 0 || x >= this.canvas.width || y >= this.canvas.height) {
+      return null;
+    }
+
+    return this.coordsToSquare(x, y);
+  }
+
+  // Cycle des couleurs de highlight au clic droit
+  public cycleHighlight(square: Square): void {
+    const existingIndex = this.state.highlights.findIndex((h) => h.square === square);
+
+    if (existingIndex >= 0) {
+      const currentType = this.state.highlights[existingIndex].type;
+      const types: HighlightType[] = ['green', 'red', 'blue', 'yellow', 'orange', 'purple'];
+      const currentTypeIndex = types.indexOf(currentType);
+      const nextTypeIndex = (currentTypeIndex + 1) % types.length;
+
+      if (nextTypeIndex === 0) {
+        // Si on revient au vert après un cycle complet, supprimer le highlight
+        this.removeHighlight(square);
+      } else {
+        this.state.highlights[existingIndex].type = types[nextTypeIndex];
+      }
+    } else {
+      // Ajouter un nouveau highlight vert
+      this.addHighlight(square, 'green');
+    }
+    if (state.highlights !== undefined) {
+      this.state.highlights = [...state.highlights];
+    }
+    if (state.premove !== undefined) {
+      this.state.premove = state.premove ? { ...state.premove } : undefined;
+    }
+  }
+
+  public clearAllDrawings(): void {
+    this.state = {
+      arrows: [],
+      highlights: [],
+      premove: undefined,
+    };
+  }
+
   // Utilitaires pour les interactions
   public getSquareFromMousePosition(mouseX: number, mouseY: number): Square | null {
     const rect = this.canvas.getBoundingClientRect();
@@ -716,6 +773,13 @@ export class DrawingManager {
   }
 
   // Méthodes d'interaction pour NeoChessBoard
+  private currentAction: {
+    type: 'none' | 'drawing_arrow';
+    startSquare?: Square;
+    shiftKey?: boolean;
+    ctrlKey?: boolean;
+    altKey?: boolean;
+  } = { type: 'none' };
 
   public handleMouseDown(x: number, y: number, shiftKey: boolean, ctrlKey: boolean): boolean {
     // Ne pas gérer le clic gauche ici, les flèches se font maintenant au clic droit

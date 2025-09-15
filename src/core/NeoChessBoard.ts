@@ -698,13 +698,42 @@ export class NeoChessBoard {
     return null;
   }
 
+  // ---- Drawing methods ----
+  private _draw() {
+    if (!this.drawingManager) return;
+
+    // Get the canvas context
+    const ctx = this.ctxP || this.cPieces.getContext('2d');
+    if (!ctx) return;
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, this.cPieces.width, this.cPieces.height);
+
+    // Draw the board and pieces using the drawing manager
+    this.drawingManager.draw(ctx);
+
+    // Draw any additional elements like arrows and highlights
+    if ('renderArrows' in this.drawingManager) {
+      (this.drawingManager as any).renderArrows();
+    }
+    if ('renderHighlights' in this.drawingManager) {
+      (this.drawingManager as any).renderHighlights();
+    }
+  }
+
   // ---- Sound methods ----
   private _initializeSound() {
     if (!this.soundEnabled || typeof Audio === 'undefined') return;
 
     try {
       // Créer l'élément audio pour le son de mouvement
-      this.moveSound = new Audio('./assets/souffle.ogg');
+      try {
+        // Try to load from the demo assets first (for development)
+        this.moveSound = new Audio(new URL('../../demo/assets/souffle.ogg', import.meta.url).href);
+      } catch (e) {
+        // Fallback to a relative path (for production build)
+        this.moveSound = new Audio('/assets/souffle.ogg');
+      }
       this.moveSound.volume = 0.3; // Volume modéré
       this.moveSound.preload = 'auto';
     } catch (error) {
@@ -785,11 +814,21 @@ export class NeoChessBoard {
   // ---- New feature methods ----
 
   /**
-   * Ajouter une flèche sur l'échiquier
+   * Add an arrow on the board
+   * @param arrow The arrow to add (can be an object with from/to or an Arrow object)
    */
-  public addArrow(arrow: Arrow) {
-    if (this.drawingManager) {
-      this.drawingManager.addArrowFromObject(arrow);
+  public addArrow(arrow: { from: Square; to: Square; color?: string } | Arrow) {
+    if (!this.drawingManager) return;
+
+    // Handle both simple arrow objects and full Arrow type
+    if ('from' in arrow && 'to' in arrow) {
+      if ('knightMove' in arrow) {
+        // It's a full Arrow object
+        this.drawingManager.addArrowFromObject(arrow);
+      } else {
+        // It's a simple arrow object
+        this.drawingManager.addArrow(arrow);
+      }
       this.renderAll();
     }
   }
@@ -815,11 +854,20 @@ export class NeoChessBoard {
   }
 
   /**
-   * Ajouter un highlight sur une case
+   * Add a highlight to a square
+   * @param square The square to highlight (e.g., 'e4')
+   * @param type The type of highlight (e.g., 'selected', 'lastMove', 'check')
    */
-  public addHighlight(highlight: SquareHighlight) {
-    if (this.drawingManager) {
-      this.drawingManager.addHighlightFromObject(highlight);
+  public addHighlight(square: Square | SquareHighlight, type?: string) {
+    if (!this.drawingManager) return;
+
+    if (typeof square === 'string' && type) {
+      // Handle addHighlight(square, type) signature
+      this.drawingManager.addHighlight(square, type);
+      this.renderAll();
+    } else if (typeof square === 'object' && 'square' in square) {
+      // Handle addHighlight(SquareHighlight) signature
+      this.drawingManager.addHighlightFromObject(square);
       this.renderAll();
     }
   }

@@ -12,8 +12,12 @@ export interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'
 }
 
 export interface NeoChessRef {
-  // Add any methods you want to expose via ref here
+  // Core methods
   getBoard: () => Chessboard | null;
+
+  // Board manipulation methods
+  addArrow: (arrow: { from: Square; to: Square; color?: string }) => void;
+  addHighlight: (square: Square, type: string) => void;
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
@@ -63,6 +67,12 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       ref,
       () => ({
         getBoard: () => boardRef.current,
+        addArrow: (arrow: { from: Square; to: Square; color?: string }) => {
+          return boardRef.current?.addArrow?.(arrow);
+        },
+        addHighlight: (square: Square, type: string) => {
+          return boardRef.current?.addHighlight?.(square, type);
+        },
       }),
       [],
     );

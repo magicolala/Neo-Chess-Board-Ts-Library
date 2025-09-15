@@ -36,7 +36,13 @@ export const App: React.FC = () => {
     orientation: 'white',
     highlightLegal: true,
   });
-  const boardRef = useRef<any>(null);
+  const boardRef = useRef<{
+    addHighlight: (highlight: { square: string; type: string }) => void;
+    addArrow: (arrow: { from: string; to: string; color?: string }) => void;
+    clearArrows: () => void;
+    clearHighlights: () => void;
+    getBoard: () => any; // Add getBoard method to the type
+  }>(null);
 
   // États de loading pour démonstration
   const [isCopying, setIsCopying] = useState(false);
@@ -183,13 +189,28 @@ export const App: React.FC = () => {
     };
 
     const square = randomSquare();
-    const types: any[] = ['move', 'capture', 'check', 'selected'];
+    const types: Array<'move' | 'capture' | 'check' | 'selected'> = [
+      'move',
+      'capture',
+      'check',
+      'selected',
+    ];
     const type = types[Math.floor(Math.random() * types.length)];
 
-    boardRef.current.addHighlight({
-      square,
-      type,
-    });
+    // Get the board instance from the ref
+    const board = boardRef.current.getBoard();
+    if (board && typeof board.addHighlight === 'function') {
+      board.addHighlight({
+        square,
+        type,
+      });
+    } else {
+      // Fallback to direct method if getBoard() is not available
+      boardRef.current.addHighlight({
+        square,
+        type,
+      });
+    }
   }, []);
 
   // Effacer toutes les surbrillances et flèches
