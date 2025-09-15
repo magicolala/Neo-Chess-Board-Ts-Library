@@ -65,7 +65,7 @@
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build:lib",
     "docs:dev": "cd docs-site && npm run dev",
-    "docs:build": "cd docs-site && npm run build"
+    "docs:build": "cd docs-site && vitepress build --base /Neo-Chess-Board-Ts-Library/docs/"
   },
   "peerDependencies": {
     "react": ">=18",
