@@ -1,5 +1,6 @@
 import { PgnNotation } from '../../src/core/PgnNotation';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
+import type { Square } from '../../src/core/types';
 
 describe('PgnNotation with Annotations', () => {
   let rules: ChessJsRules;
@@ -82,11 +83,11 @@ describe('PgnNotation with Annotations', () => {
   describe('Adding annotations to moves', () => {
     it('should add annotations to a specific move', () => {
       // Make some moves first
-      rules.move({ from: 'e2', to: 'e4' });
-      rules.move({ from: 'e7', to: 'e5' });
+      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
+      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
       
-      const arrows = [{ from: 'e1', to: 'e4', color: '#ff0000' }];
-      const circles = [{ square: 'e4', type: 'circle' as const, color: '#00ff00' }];
+      const arrows = [{ from: 'e1' as Square, to: 'e4' as Square, color: '#ff0000' }];
+      const circles = [{ square: 'e4' as Square, type: 'circle' as const, color: '#00ff00' }];
       
       pgnNotation.addMoveAnnotations(1, true, {
         arrows,
@@ -105,10 +106,10 @@ describe('PgnNotation with Annotations', () => {
 
     it('should add annotations to black moves', () => {
       // Make some moves first
-      rules.move({ from: 'e2', to: 'e4' });
-      rules.move({ from: 'e7', to: 'e5' });
+      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
+      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
       
-      const circles = [{ square: 'e5', type: 'circle' as const, color: '#ffff00' }];
+      const circles = [{ square: 'e5' as Square, type: 'circle' as const, color: '#ffff00' }];
       
       pgnNotation.addMoveAnnotations(1, false, {
         arrows: [],
@@ -125,7 +126,7 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should handle adding annotations to non-existent moves gracefully', () => {
-      const arrows = [{ from: 'e1', to: 'e4', color: '#ff0000' }];
+      const arrows = [{ from: 'e1' as Square, to: 'e4' as Square, color: '#ff0000' }];
       
       // Should not throw
       expect(() => {
@@ -145,14 +146,14 @@ describe('PgnNotation with Annotations', () => {
   describe('Exporting PGN with annotations', () => {
     it('should export PGN with arrow annotations', () => {
       // Make some moves
-      rules.move({ from: 'e2', to: 'e4' });
-      rules.move({ from: 'e7', to: 'e5' });
+      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
+      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
       
       // Add annotations
       pgnNotation.addMoveAnnotations(1, true, {
         arrows: [
-          { from: 'e1', to: 'e4', color: '#ff0000' },
-          { from: 'd1', to: 'h5', color: '#00ff00' }
+          { from: 'e1' as Square, to: 'e4' as Square, color: '#ff0000' },
+          { from: 'd1' as Square, to: 'h5' as Square, color: '#00ff00' }
         ],
         circles: [],
         textComment: 'Strong opening'
@@ -167,14 +168,14 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should export PGN with circle annotations', () => {
-      rules.move({ from: 'd2', to: 'd4' });
-      rules.move({ from: 'd7', to: 'd5' });
+      rules.move({ from: 'd2' as Square, to: 'd4' as Square });
+      rules.move({ from: 'd7' as Square, to: 'd5' as Square });
       
       pgnNotation.addMoveAnnotations(1, true, {
         arrows: [],
         circles: [
-          { square: 'd4', type: 'circle' as const, color: '#ff0000' },
-          { square: 'e4', type: 'circle' as const, color: '#ffff00' }
+          { square: 'd4' as Square, type: 'circle' as const, color: '#ff0000' },
+          { square: 'e4' as Square, type: 'circle' as const, color: '#ffff00' }
         ],
         textComment: 'Central control'
       });
@@ -186,18 +187,18 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should export PGN with combined annotations', () => {
-      rules.move({ from: 'e2', to: 'e4' });
-      rules.move({ from: 'c7', to: 'c5' });
+      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
+      rules.move({ from: 'c7' as Square, to: 'c5' as Square });
       
       pgnNotation.addMoveAnnotations(1, true, {
-        arrows: [{ from: 'e1', to: 'e4', color: '#0000ff' }],
-        circles: [{ square: 'e4', type: 'circle' as const, color: '#00ff00' }],
+        arrows: [{ from: 'e1' as Square, to: 'e4' as Square, color: '#0000ff' }],
+        circles: [{ square: 'e4' as Square, type: 'circle' as const, color: '#00ff00' }],
         textComment: 'King pawn opening'
       });
       
       pgnNotation.addMoveAnnotations(1, false, {
-        arrows: [{ from: 'c7', to: 'c5', color: '#ff0000' }],
-        circles: [{ square: 'c5', type: 'circle' as const, color: '#ff0000' }],
+        arrows: [{ from: 'c7' as Square, to: 'c5' as Square, color: '#ff0000' }],
+        circles: [{ square: 'c5' as Square, type: 'circle' as const, color: '#ff0000' }],
         textComment: 'Sicilian Defense'
       });
       
@@ -212,9 +213,9 @@ describe('PgnNotation with Annotations', () => {
     });
 
     it('should preserve standard PGN format when no annotations are present', () => {
-      rules.move({ from: 'e2', to: 'e4' });
-      rules.move({ from: 'e7', to: 'e5' });
-      rules.move({ from: 'g1', to: 'f3' });
+      rules.move({ from: 'e2' as Square, to: 'e4' as Square });
+      rules.move({ from: 'e7' as Square, to: 'e5' as Square });
+      rules.move({ from: 'g1' as Square, to: 'f3' as Square });
       
       const standardPgn = pgnNotation.toPgn();
       const annotatedPgn = pgnNotation.toPgnWithAnnotations();
