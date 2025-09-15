@@ -7,7 +7,7 @@ import type { Square, Arrow, SquareHighlight } from './types';
 
 export interface ParsedAnnotations {
   arrows: Arrow[];
-  circles: Array<SquareHighlight & { color: string }>;
+  highlights: Array<SquareHighlight & { color: string }>;
   textComment: string;
 }
 
@@ -29,16 +29,16 @@ export class PgnAnnotationParser {
   /**
    * Check if a comment contains visual annotations
    */
-  public hasVisualAnnotations(comment: string): boolean {
+  static hasVisualAnnotations(comment: string): boolean {
     return VISUAL_ANNOTATION_REGEX.test(comment);
   }
 
   /**
    * Parse visual annotations from a PGN comment
    */
-  public parseAnnotations(comment: string): ParsedAnnotations {
+  static parseComment(comment: string): ParsedAnnotations {
     const arrows: Arrow[] = [];
-    const circles: Array<SquareHighlight & { color: string }> = [];
+    const highlights: Array<SquareHighlight & { color: string }> = [];
     let textComment = comment;
 
     // Parse arrows (%cal)
@@ -76,7 +76,7 @@ export class PgnAnnotationParser {
           const square = trimmed.slice(1, 3) as Square;
           
           if (PgnAnnotationParser.isValidSquare(square)) {
-            circles.push({
+            highlights.push({
               square,
               type: 'circle' as any, // Cast to avoid type issues
               color: PgnAnnotationParser.colorToHex(colorCode)
@@ -93,15 +93,25 @@ export class PgnAnnotationParser {
 
     return {
       arrows,
-      circles,
+      highlights,
       textComment: textComment || ''
     };
   }
 
   /**
+   * Returns drawing objects from parsed annotations
+   */
+  static toDrawingObjects(parsed: ParsedAnnotations): { arrows: Arrow[], highlights: SquareHighlight[] } {
+      return {
+          arrows: parsed.arrows,
+          highlights: parsed.highlights
+      };
+  }
+
+  /**
    * Remove visual annotations from a comment, keeping only text
    */
-  public stripVisualAnnotations(comment: string): string {
+  static stripAnnotations(comment: string): string {
     return comment
       .replace(VISUAL_ANNOTATION_REGEX, ' ')
       .replace(/\s+/g, ' ')
@@ -111,7 +121,7 @@ export class PgnAnnotationParser {
   /**
    * Create annotation string from arrows and circles
    */
-  public createAnnotationString(arrows: Arrow[], circles: SquareHighlight[]): string {
+  static fromDrawingObjects(arrows: Arrow[], highlights: SquareHighlight[]): string {
     const parts: string[] = [];
 
     if (arrows.length > 0) {
@@ -121,35 +131,14 @@ export class PgnAnnotationParser {
       parts.push(`%cal ${arrowSpecs}`);
     }
 
-    if (circles.length > 0) {
-      const circleSpecs = circles.map(circle => 
+    if (highlights.length > 0) {
+      const circleSpecs = highlights.map(circle => 
         `${PgnAnnotationParser.hexToColor((circle as any).color)}${circle.square}`
       ).join(',');
       parts.push(`%csl ${circleSpecs}`);
     }
 
     return parts.join(' ');
-  }
-
-  /**
-   * Convert color code to hex color
-   */
-  public colorToHex(colorCode: string): string {
-    return PgnAnnotationParser.colorToHex(colorCode);
-  }
-
-  /**
-   * Convert hex color to color code
-   */
-  public hexToColor(hex: string): string {
-    return PgnAnnotationParser.hexToColor(hex);
-  }
-
-  /**
-   * Check if a string is a valid chess square notation
-   */
-  public isValidSquare(square: string): square is Square {
-    return PgnAnnotationParser.isValidSquare(square);
   }
 
   /**

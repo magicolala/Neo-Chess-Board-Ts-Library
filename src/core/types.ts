@@ -90,4 +90,5 @@ export interface BoardOptions {
   rightClickHighlights?: boolean;
   maxArrows?: number;
   maxHighlights?: number;
+  soundEnabled?: boolean;
 }
