@@ -1,12 +1,16 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  base: '/Neo-Chess-Board-Ts-Library/docs/',
+  base: '/Neo-Chess-Board-Ts-Library/',
   title: "Neo Chess Board Docs",
   description: "Documentation for Neo Chess Board Library",
   themeConfig: {
     nav: [
-      { text: 'Home', link: '/Neo-Chess-Board-Ts-Library/docs/' },
+            { text: 'Home', link: '/Neo-Chess-Board-Ts-Library/' },
+      { text: 'API', link: '/Neo-Chess-Board-Ts-Library/api.md' },
+      { text: 'Examples', link: '/Neo-Chess-Board-Ts-Library/examples.md' },
+      { text: 'Themes', link: '/Neo-Chess-Board-Ts-Library/themes.md' },
+      { text: 'PGN Features', link: '/Neo-Chess-Board-Ts-Library/pgn-features.md' },,
       { text: 'API', link: '/Neo-Chess-Board-Ts-Library/api.md' },
       { text: 'Examples', link: '/Neo-Chess-Board-Ts-Library/examples.md' },
       { text: 'Themes', link: '/Neo-Chess-Board-Ts-Library/themes.md' },
@@ -14,11 +18,9 @@ export default defineConfig({
       { text: 'GitHub', link: 'https://github.com/magicolala/Neo-Chess-Board-Ts-Library' }
     ],
     sidebar: [
-      {
-        text: 'Introduction',
-        items: [
-          { text: 'Getting Started', link: '/Neo-Chess-Board-Ts-Library/docs/' },
-          { text: 'Features', link: '/Neo-Chess-Board-Ts-Library/docs/features.md' }
+      items: [
+          { text: 'Getting Started', link: '/Neo-Chess-Board-Ts-Library/' },
+          { text: 'Features', link: '/Neo-Chess-Board-Ts-Library/features.md' }
         ]
       },
       {
