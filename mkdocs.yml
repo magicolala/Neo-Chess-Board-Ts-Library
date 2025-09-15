@@ -6,7 +6,7 @@ edit_uri: blob/main/mkdocs_docs/
 
 theme:
   name: material
-  custom_dir: overrides # Optional: for custom overrides if needed
+  
   features:
     - navigation.tabs
     - navigation.sections
