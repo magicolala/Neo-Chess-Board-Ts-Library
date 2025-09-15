@@ -56,7 +56,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "build:lib": "tsc -p tsconfig.json",
-    "build:demo": "vite build --outDir dist/demo --base /Neo-Chess-Board-Ts-Library/demo/",
+    "build:demo": "cd demo && vite build",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
