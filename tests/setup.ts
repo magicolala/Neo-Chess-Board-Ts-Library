@@ -13,6 +13,7 @@ global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
       moveTo: jest.fn(),
       lineTo: jest.fn(),
       quadraticCurveTo: jest.fn(),
+      rect: jest.fn(),
       arc: jest.fn(),
       ellipse: jest.fn(),
       closePath: jest.fn(),

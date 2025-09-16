@@ -1,14 +1,14 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 
-// Mock DOM environment
 let originalCreateElement: typeof document.createElement;
 
 const createMockElement = (tag: string) => {
-  const element = originalCreateElement.call(document, tag);
+  const baseCreate = originalCreateElement ?? Document.prototype.createElement;
+  const element = baseCreate.call(document, tag) as HTMLElement;
 
-  // Mock getBoundingClientRect for canvas elements
   if (tag === 'canvas') {
-    element.getBoundingClientRect = jest.fn(() => ({
+    const canvas = element as HTMLCanvasElement;
+    canvas.getBoundingClientRect = jest.fn(() => ({
       width: 400,
       height: 400,
       left: 0,
@@ -19,9 +19,42 @@ const createMockElement = (tag: string) => {
       y: 0,
       toJSON: () => {},
     }));
+
+    canvas.getContext = jest.fn(() => ({
+      fillRect: jest.fn(),
+      clearRect: jest.fn(),
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      quadraticCurveTo: jest.fn(),
+      rect: jest.fn(),
+      arc: jest.fn(),
+      ellipse: jest.fn(),
+      closePath: jest.fn(),
+      fill: jest.fn(),
+      stroke: jest.fn(),
+      drawImage: jest.fn(),
+      save: jest.fn(),
+      restore: jest.fn(),
+      translate: jest.fn(),
+      scale: jest.fn(),
+      fillStyle: '#000000',
+      strokeStyle: '#000000',
+      lineWidth: 1,
+      lineCap: 'butt',
+      lineJoin: 'miter',
+      textBaseline: 'alphabetic',
+      textAlign: 'start',
+      globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
+      font: '10px sans-serif',
+      canvas,
+    })) as any;
+
+    return canvas as any;
   }
 
-  return element;
+  return element as any;
 };
 
 describe('NeoChessBoard Core', () => {
@@ -32,10 +65,11 @@ describe('NeoChessBoard Core', () => {
     // Store original createElement
     originalCreateElement = document.createElement;
 
-    container = createMockElement('div') as HTMLDivElement;
-
-    // Mock document.createElement
+    // Mock document.createElement first
     document.createElement = jest.fn((tag) => createMockElement(tag));
+
+    // Now create container using the mocked method
+    container = document.createElement('div') as HTMLDivElement;
 
     // Mock document.head for style injection
     if (!document.head) {
@@ -50,11 +84,14 @@ describe('NeoChessBoard Core', () => {
       size: 400,
       interactive: true,
     });
-
-    document.createElement = originalCreateElement;
   });
 
   afterEach(() => {
+    // Restore original createElement
+    if (originalCreateElement) {
+      document.createElement = originalCreateElement;
+    }
+
     if (board && typeof board.destroy === 'function') {
       board.destroy();
     }

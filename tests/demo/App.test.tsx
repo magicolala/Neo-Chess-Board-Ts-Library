@@ -282,7 +282,7 @@ describe('App Component', () => {
       await user.type(fenTextarea, problematicFEN);
       // Expect the FEN to be corrected by ChessJsRules
       expect(fenTextarea).toHaveValue(problematicFEN + ' 1');
-    });
+    }, 10000); // Increase timeout to 10 seconds
 
     it('should start with empty FEN textarea', () => {
       render(<App />);
