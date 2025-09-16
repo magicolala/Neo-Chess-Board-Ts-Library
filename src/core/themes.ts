@@ -14,6 +14,7 @@ export const THEMES: Record<string, Theme> = {
     premove: 'rgba(147,51,234,0.35)',
     dot: 'rgba(2,6,23,0.35)',
     arrow: 'rgba(34,197,94,0.9)',
+    squareNameColor: '#0F172A',
   },
   midnight: {
     light: '#2A2F3A',
@@ -28,6 +29,7 @@ export const THEMES: Record<string, Theme> = {
     premove: 'rgba(147,51,234,0.30)',
     dot: 'rgba(255,255,255,0.35)',
     arrow: 'rgba(59,130,246,0.9)',
+    squareNameColor: '#E6E8EC',
   },
 };
 

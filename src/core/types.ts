@@ -72,6 +72,7 @@ export interface Theme {
   premove: string;
   dot: string;
   arrow: string;
+  squareNameColor: string;
 }
 
 export interface BoardOptions {
