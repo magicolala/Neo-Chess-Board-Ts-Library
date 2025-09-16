@@ -1,45 +1,79 @@
 import type { Square, Arrow, SquareHighlight, HighlightType, DrawingState, Premove } from './types';
 import { FILES, RANKS } from './utils';
 
-const DEFAULT_ARROW_COLOR = 'rgba(34, 197, 94, 0.6)';
-const DEFAULT_ARROW_WIDTH = 2;
-const DEFAULT_ARROW_OPACITY = 0.8;
-
+type ModifierKey = 'shiftKey' | 'ctrlKey' | 'altKey';
+type ModifierState = Partial<Record<ModifierKey, boolean>>;
+type ManagedHighlightType = Exclude<HighlightType, 'circle'>;
 type ArrowInput = Pick<Arrow, 'from' | 'to'> & Partial<Omit<Arrow, 'from' | 'to'>>;
+type NormalizedArrow = Arrow & Required<Pick<Arrow, 'width' | 'opacity' | 'knightMove'>>;
+type DrawingStateInternal = Omit<DrawingState, 'arrows'> & { arrows: NormalizedArrow[] };
+type DrawingAction =
+  | { type: 'none' }
+  | ({ type: 'drawing_arrow'; startSquare: Square } & ModifierState);
+
+const DEFAULT_ARROW_STYLE = {
+  color: 'rgba(34, 197, 94, 0.6)',
+  width: 2,
+  opacity: 0.8,
+} as const;
+
+const ARROW_COLOR_BY_MODIFIER: Record<ModifierKey | 'default', string> = {
+  default: '#ffeb3b',
+  shiftKey: '#22c55e',
+  ctrlKey: '#ef4444',
+  altKey: '#f59e0b',
+} as const;
+
+const MODIFIER_PRIORITY: readonly ModifierKey[] = ['shiftKey', 'ctrlKey', 'altKey'];
+
+const HIGHLIGHT_COLORS: Record<ManagedHighlightType, string> = {
+  green: 'rgba(34, 197, 94, 0.6)',
+  red: 'rgba(239, 68, 68, 0.6)',
+  blue: 'rgba(59, 130, 246, 0.6)',
+  yellow: 'rgba(245, 158, 11, 0.6)',
+  orange: 'rgba(249, 115, 22, 0.6)',
+  purple: 'rgba(168, 85, 247, 0.6)',
+} as const;
+
+const HIGHLIGHT_SEQUENCE: readonly ManagedHighlightType[] = [
+  'green',
+  'red',
+  'blue',
+  'yellow',
+  'orange',
+  'purple',
+] as const;
+
+const HIGHLIGHT_TYPE_BY_MODIFIER: Record<ModifierKey, ManagedHighlightType> = {
+  shiftKey: 'green',
+  ctrlKey: 'red',
+  altKey: 'yellow',
+} as const;
+
+const DEFAULT_HIGHLIGHT_OPACITY = 0.3;
+const SPECIAL_HIGHLIGHT_OPACITY: Record<string, number> = {
+  selected: 0.5,
+  lastMove: 0.6,
+};
+
+const DEFAULT_CIRCLE_COLOR = 'rgba(255, 255, 0, 0.5)';
 
 export class DrawingManager {
-  private state: DrawingState = {
+  private state: DrawingStateInternal = {
     arrows: [],
     highlights: [],
     premove: undefined,
   };
 
-  private canvas: HTMLCanvasElement;
-  private squareSize: number = 60;
-  private boardSize: number = 480;
+  private readonly canvas: HTMLCanvasElement;
+  private squareSize = 60;
   private orientation: 'white' | 'black' = 'white';
-  private showSquareNames: boolean = false;
+  private showSquareNames = false;
 
   /**
    * Tracks the current user interaction state
    */
-  private currentAction: {
-    type: 'none' | 'drawing_arrow';
-    startSquare?: Square;
-    shiftKey?: boolean;
-    ctrlKey?: boolean;
-    altKey?: boolean;
-  } = { type: 'none' };
-
-  // Default colors for highlights
-  private readonly HIGHLIGHT_COLORS = {
-    green: 'rgba(34, 197, 94, 0.6)',
-    red: 'rgba(239, 68, 68, 0.6)',
-    blue: 'rgba(59, 130, 246, 0.6)',
-    yellow: 'rgba(245, 158, 11, 0.6)',
-    orange: 'rgba(249, 115, 22, 0.6)',
-    purple: 'rgba(168, 85, 247, 0.6)',
-  };
+  private currentAction: DrawingAction = { type: 'none' };
 
   private readonly highlightCycle: HighlightType[] = [
     'green',
@@ -53,13 +87,12 @@ export class DrawingManager {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.updateDimensions();
-    this.currentAction = { type: 'none' };
   }
 
   public updateDimensions(): void {
     // Use the real canvas size in pixels, not the DOM size
-    this.boardSize = Math.min(this.canvas.width, this.canvas.height);
-    this.squareSize = this.boardSize / 8;
+    const boardSize = Math.min(this.canvas.width, this.canvas.height);
+    this.squareSize = boardSize / 8;
   }
 
   public setOrientation(orientation: 'white' | 'black'): void {
@@ -74,8 +107,9 @@ export class DrawingManager {
   public addArrow(
     fromOrArrow: Square | ArrowInput,
     to?: Square,
-    color: string = DEFAULT_ARROW_COLOR,
-    width: number = DEFAULT_ARROW_WIDTH,
+    color: string = DEFAULT_ARROW_STYLE.color,
+    width: number = DEFAULT_ARROW_STYLE.width,
+    opacity: number = DEFAULT_ARROW_STYLE.opacity,
   ): void {
     const arrow =
       typeof fromOrArrow === 'object'
@@ -85,11 +119,10 @@ export class DrawingManager {
             to: to!,
             color,
             width,
+            opacity,
           });
 
-    const existingIndex = this.state.arrows.findIndex(
-      (candidate) => candidate.from === arrow.from && candidate.to === arrow.to,
-    );
+    const existingIndex = this.findArrowIndex(arrow.from, arrow.to);
 
     if (existingIndex >= 0) {
       this.state.arrows[existingIndex] = {
@@ -102,10 +135,10 @@ export class DrawingManager {
     this.state.arrows.push(arrow);
   }
 
-  private normalizeArrow(arrow: ArrowInput): Arrow {
-    const color = arrow.color ?? DEFAULT_ARROW_COLOR;
-    const width = arrow.width ?? DEFAULT_ARROW_WIDTH;
-    const opacity = arrow.opacity ?? DEFAULT_ARROW_OPACITY;
+  private normalizeArrow(arrow: ArrowInput): NormalizedArrow {
+    const color = arrow.color ?? DEFAULT_ARROW_STYLE.color;
+    const width = arrow.width ?? DEFAULT_ARROW_STYLE.width;
+    const opacity = arrow.opacity ?? DEFAULT_ARROW_STYLE.opacity;
     const knightMove = arrow.knightMove ?? this.isKnightMove(arrow.from, arrow.to);
 
     return {
@@ -118,10 +151,17 @@ export class DrawingManager {
     };
   }
 
-  public removeArrow(from: Square, to: Square): void {
-    this.state.arrows = this.state.arrows.filter(
-      (arrow) => !(arrow.from === from && arrow.to === to),
+  private findArrowIndex(from: Square, to: Square): number {
+    return this.state.arrows.findIndex(
+      (candidate) => candidate.from === from && candidate.to === to,
     );
+  }
+
+  public removeArrow(from: Square, to: Square): void {
+    const index = this.findArrowIndex(from, to);
+    if (index >= 0) {
+      this.state.arrows.splice(index, 1);
+    }
   }
 
   public clearArrows(): void {
@@ -129,7 +169,7 @@ export class DrawingManager {
   }
 
   public getArrows(): Arrow[] {
-    return [...this.state.arrows];
+    return this.state.arrows.map((arrow) => ({ ...arrow }));
   }
 
   // Highlight management
@@ -140,7 +180,7 @@ export class DrawingManager {
   ): void {
     const calculatedOpacity = opacity ?? this.getDefaultHighlightOpacity(type);
 
-    const existingIndex = this.state.highlights.findIndex((h) => h.square === square);
+    const existingIndex = this.findHighlightIndex(square);
 
     if (existingIndex >= 0) {
       // Update existing highlight
@@ -149,28 +189,30 @@ export class DrawingManager {
         type: type as HighlightType,
         opacity: calculatedOpacity,
       };
-    } else {
-      // Add new highlight
-      this.state.highlights.push({
-        square,
-        type: type as HighlightType,
-        opacity: calculatedOpacity,
-      });
+      return;
     }
+
+    // Add new highlight
+    this.state.highlights.push({
+      square,
+      type: type as HighlightType,
+      opacity: calculatedOpacity,
+    });
   }
 
   private getDefaultHighlightOpacity(type: HighlightType | string): number {
-    if (type === 'selected') {
-      return 0.5;
-    }
-    if (type === 'lastMove') {
-      return 0.6;
-    }
-    return 0.3;
+    return SPECIAL_HIGHLIGHT_OPACITY[type] ?? DEFAULT_HIGHLIGHT_OPACITY;
+  }
+
+  private findHighlightIndex(square: Square): number {
+    return this.state.highlights.findIndex((highlight) => highlight.square === square);
   }
 
   public removeHighlight(square: Square): void {
-    this.state.highlights = this.state.highlights.filter((h) => h.square !== square);
+    const index = this.findHighlightIndex(square);
+    if (index >= 0) {
+      this.state.highlights.splice(index, 1);
+    }
   }
 
   public clearHighlights(): void {
@@ -221,7 +263,7 @@ export class DrawingManager {
   }
 
   public getHighlights(): SquareHighlight[] {
-    return [...this.state.highlights];
+    return this.state.highlights.map((highlight) => ({ ...highlight }));
   }
 
   // Premove management
@@ -352,7 +394,7 @@ export class DrawingManager {
     ctx.restore();
   }
 
-  private drawArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
+  private drawArrow(ctx: CanvasRenderingContext2D, arrow: NormalizedArrow): void {
     if (arrow.knightMove) {
       this.drawKnightArrow(ctx, arrow);
     } else {
@@ -360,21 +402,20 @@ export class DrawingManager {
     }
   }
 
-  private applyArrowStyle(ctx: CanvasRenderingContext2D, arrow: Arrow): { lineWidth: number } {
-    const opacity = arrow.opacity ?? DEFAULT_ARROW_OPACITY;
-    const lineWidth = arrow.width ?? 4;
+  private applyArrowStyle(ctx: CanvasRenderingContext2D, arrow: NormalizedArrow): number {
+    const lineWidth = arrow.width;
 
-    ctx.globalAlpha = opacity;
+    ctx.globalAlpha = arrow.opacity;
     ctx.strokeStyle = arrow.color;
     ctx.fillStyle = arrow.color;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    return { lineWidth };
+    return lineWidth;
   }
 
-  private drawStraightArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
+  private drawStraightArrow(ctx: CanvasRenderingContext2D, arrow: NormalizedArrow): void {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
 
@@ -397,7 +438,7 @@ export class DrawingManager {
     const endY = centerToY - Math.sin(angle) * offset;
 
     // Style configuration
-    const { lineWidth } = this.applyArrowStyle(ctx, arrow);
+    const lineWidth = this.applyArrowStyle(ctx, arrow);
 
     // Draw the line
     ctx.beginPath();
@@ -423,7 +464,7 @@ export class DrawingManager {
     ctx.fill();
   }
 
-  private drawKnightArrow(ctx: CanvasRenderingContext2D, arrow: Arrow): void {
+  private drawKnightArrow(ctx: CanvasRenderingContext2D, arrow: NormalizedArrow): void {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
 
@@ -454,7 +495,7 @@ export class DrawingManager {
     }
 
     // Style configuration
-    const { lineWidth } = this.applyArrowStyle(ctx, arrow);
+    const lineWidth = this.applyArrowStyle(ctx, arrow);
 
     // Adjustment to avoid overlapping with pieces
     const offset = this.squareSize * 0.2;
@@ -549,10 +590,58 @@ export class DrawingManager {
 
   private resolveHighlightColor(highlight: SquareHighlight): string {
     if (highlight.type === 'circle') {
-      return highlight.color ?? 'rgba(255, 255, 0, 0.5)';
+      return highlight.color ?? DEFAULT_CIRCLE_COLOR;
     }
 
-    return this.HIGHLIGHT_COLORS[highlight.type as keyof typeof this.HIGHLIGHT_COLORS];
+    const managedType = highlight.type as ManagedHighlightType;
+    return HIGHLIGHT_COLORS[managedType] ?? highlight.color ?? DEFAULT_CIRCLE_COLOR;
+  }
+
+  private isInHighlightSequence(type: HighlightType): type is ManagedHighlightType {
+    return HIGHLIGHT_SEQUENCE.includes(type as ManagedHighlightType);
+  }
+
+  private getNextHighlightType(type: HighlightType): ManagedHighlightType | null {
+    if (!this.isInHighlightSequence(type)) {
+      return null;
+    }
+
+    const currentIndex = HIGHLIGHT_SEQUENCE.indexOf(type);
+    const nextIndex = (currentIndex + 1) % HIGHLIGHT_SEQUENCE.length;
+
+    if (nextIndex === 0) {
+      return null;
+    }
+
+    return HIGHLIGHT_SEQUENCE[nextIndex];
+  }
+
+  private getActiveModifier(modifiers: ModifierState): ModifierKey | null {
+    for (const key of MODIFIER_PRIORITY) {
+      if (modifiers[key]) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  private resolveArrowColor(modifiers: ModifierState): string {
+    const modifier = this.getActiveModifier(modifiers);
+    if (!modifier) {
+      return ARROW_COLOR_BY_MODIFIER.default;
+    }
+
+    return ARROW_COLOR_BY_MODIFIER[modifier];
+  }
+
+  private resolveHighlightTypeFromModifiers(modifiers: ModifierState): HighlightType {
+    const modifier = this.getActiveModifier(modifiers);
+    if (!modifier) {
+      return HIGHLIGHT_SEQUENCE[0];
+    }
+
+    return HIGHLIGHT_TYPE_BY_MODIFIER[modifier];
   }
 
   private withContext(callback: (ctx: CanvasRenderingContext2D) => void): void {
@@ -612,18 +701,18 @@ export class DrawingManager {
   // Methods to get the complete state
   public getDrawingState(): DrawingState {
     return {
-      arrows: [...this.state.arrows],
-      highlights: [...this.state.highlights],
+      arrows: this.getArrows(),
+      highlights: this.getHighlights(),
       premove: this.state.premove ? { ...this.state.premove } : undefined,
     };
   }
 
   public setDrawingState(state: Partial<DrawingState>): void {
     if (state.arrows !== undefined) {
-      this.state.arrows = [...state.arrows];
+      this.state.arrows = state.arrows.map((arrow) => this.normalizeArrow(arrow));
     }
     if (state.highlights !== undefined) {
-      this.state.highlights = [...state.highlights];
+      this.state.highlights = state.highlights.map((highlight) => ({ ...highlight }));
     }
     if (state.premove !== undefined) {
       this.state.premove = state.premove ? { ...state.premove } : undefined;
@@ -645,23 +734,23 @@ export class DrawingManager {
 
   // Cycle highlight colors on right-click
   public cycleHighlight(square: Square): void {
-    const existingIndex = this.state.highlights.findIndex((h) => h.square === square);
+    const existingIndex = this.findHighlightIndex(square);
 
     if (existingIndex >= 0) {
-      const currentType = this.state.highlights[existingIndex].type;
-      const currentTypeIndex = this.highlightCycle.indexOf(currentType);
-      const nextTypeIndex = (currentTypeIndex + 1) % this.highlightCycle.length;
+      const currentHighlight = this.state.highlights[existingIndex];
+      const nextType = this.getNextHighlightType(currentHighlight.type);
 
-      if (nextTypeIndex === 0) {
-        // If we return to green after a complete cycle, remove the highlight
+      if (!nextType) {
         this.removeHighlight(square);
-      } else {
-        this.state.highlights[existingIndex].type = this.highlightCycle[nextTypeIndex];
+        return;
       }
-    } else {
-      // Add a new green highlight
-      this.addHighlight(square, 'green');
+
+      this.state.highlights[existingIndex].type = nextType;
+      return;
     }
+
+    // Add a new highlight starting from the first color in the cycle
+    this.addHighlight(square, HIGHLIGHT_SEQUENCE[0]);
   }
 
   // Complete rendering of all elements
@@ -683,14 +772,19 @@ export class DrawingManager {
 
     for (const arrow of this.state.arrows) {
       if (this.isPointNearArrow(x, y, arrow, tolerance)) {
-        return arrow;
+        return { ...arrow };
       }
     }
 
     return null;
   }
 
-  private isPointNearArrow(x: number, y: number, arrow: Arrow, tolerance: number): boolean {
+  private isPointNearArrow(
+    x: number,
+    y: number,
+    arrow: NormalizedArrow,
+    tolerance: number,
+  ): boolean {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
 
@@ -719,7 +813,7 @@ export class DrawingManager {
 
   // Export/Import for persistence
   public exportState(): string {
-    return JSON.stringify(this.state);
+    return JSON.stringify(this.getDrawingState());
   }
 
   public importState(stateJson: string): void {
@@ -764,41 +858,35 @@ export class DrawingManager {
   }
 
   public handleRightMouseUp(x: number, y: number): boolean {
-    if (this.currentAction.type !== 'drawing_arrow' || !this.currentAction.startSquare) {
+    if (this.currentAction.type !== 'drawing_arrow') {
       this.cancelCurrentAction();
       return false;
     }
+
+    const currentDrawingAction = this.currentAction;
 
     const endSquare = this.coordsToSquare(x, y);
-    if (endSquare === this.currentAction.startSquare) {
+    if (endSquare === currentDrawingAction.startSquare) {
       this.cancelCurrentAction();
       return false;
     }
 
-    // Determine color based on modifiers
-    let color = '#ffeb3b'; // yellow by default
-    if (this.currentAction.shiftKey) {
-      color = '#22c55e'; // green
-    } else if (this.currentAction.ctrlKey) {
-      color = '#ef4444'; // red
-    } else if (this.currentAction.altKey) {
-      color = '#f59e0b'; // orange/yellow
-    }
+    const color = this.resolveArrowColor(currentDrawingAction);
 
     // Check if an identical arrow already exists (same from, to, and color)
     const existingArrow = this.state.arrows.find(
       (arrow) =>
-        arrow.from === this.currentAction.startSquare &&
+        arrow.from === currentDrawingAction.startSquare &&
         arrow.to === endSquare &&
         arrow.color === color,
     );
 
     if (existingArrow) {
       // Remove the identical arrow
-      this.removeArrow(this.currentAction.startSquare, endSquare);
+      this.removeArrow(currentDrawingAction.startSquare, endSquare);
     } else {
       // Add or replace the arrow with the new color
-      this.addArrow(this.currentAction.startSquare, endSquare, color);
+      this.addArrow(currentDrawingAction.startSquare, endSquare, color);
     }
 
     this.cancelCurrentAction();
@@ -818,14 +906,15 @@ export class DrawingManager {
     }
 
     // With modifiers, apply the corresponding color directly
-    const highlightType: HighlightType = shiftKey ? 'green' : ctrlKey ? 'red' : 'yellow';
+    const modifiers: ModifierState = { shiftKey, ctrlKey, altKey };
+    const highlightType = this.resolveHighlightTypeFromModifiers(modifiers);
 
     // If a highlight already exists with the same color, remove it
-    const existing = this.state.highlights.find(
-      (h) => h.square === square && h.type === highlightType,
+    const existingIndex = this.state.highlights.findIndex(
+      (highlight) => highlight.square === square && highlight.type === highlightType,
     );
 
-    if (existing) {
+    if (existingIndex >= 0) {
       this.removeHighlight(square);
       return;
     }
@@ -843,7 +932,7 @@ export class DrawingManager {
 
   // Methods with signatures adapted for NeoChessBoard
   public addArrowFromObject(arrow: Arrow): void {
-    this.addArrow(arrow.from, arrow.to, arrow.color, arrow.width);
+    this.addArrow(arrow.from, arrow.to, arrow.color, arrow.width, arrow.opacity);
   }
 
   public addHighlightFromObject(highlight: SquareHighlight): void {
@@ -892,6 +981,7 @@ export class DrawingManager {
     }
     ctx.restore();
   }
+
   // Additional helper methods for integration with NeoChessBoard
 
   /**
