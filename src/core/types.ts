@@ -66,6 +66,8 @@ export interface Theme {
   whitePiece: string;
   blackPiece: string;
   pieceShadow: string;
+  pieceStroke?: string;
+  pieceHighlight?: string;
   moveFrom: string;
   moveTo: string;
   lastMove: string;

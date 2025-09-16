@@ -3,6 +3,20 @@ import '@testing-library/jest-dom';
 // Configure React testing environment
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+class MockPath2D {
+  constructor(_path?: string | MockPath2D) {}
+  moveTo() {}
+  lineTo() {}
+  quadraticCurveTo() {}
+  arc() {}
+  ellipse() {}
+  closePath() {}
+  addPath(_path: MockPath2D) {}
+  rect() {}
+}
+// Provide minimal Path2D for Node test environment
+(global as any).Path2D = MockPath2D as unknown as Path2D;
+
 // Mock canvas API pour les tests
 global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
   if (contextId === '2d') {
@@ -20,6 +34,7 @@ global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
       fill: jest.fn(),
       stroke: jest.fn(),
       drawImage: jest.fn(),
+      createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
       save: jest.fn(),
       restore: jest.fn(),
       translate: jest.fn(),

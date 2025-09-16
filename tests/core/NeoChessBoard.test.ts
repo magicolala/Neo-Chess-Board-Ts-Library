@@ -34,6 +34,7 @@ const createMockElement = (tag: string) => {
       fill: jest.fn(),
       stroke: jest.fn(),
       drawImage: jest.fn(),
+      createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
       save: jest.fn(),
       restore: jest.fn(),
       translate: jest.fn(),
