@@ -122,10 +122,15 @@ export class FlatSprites {
     // top highlight
     ctx.save();
     canvasCtx.globalCompositeOperation = 'lighter';
-    const sheen = canvasCtx.createRadialGradient(s * 0.5, s * 0.28, 0, s * 0.5, s * 0.28, s * 0.32);
-    sheen.addColorStop(0, highlight);
-    sheen.addColorStop(1, 'rgba(255,255,255,0)');
-    canvasCtx.fillStyle = sheen;
+    if (typeof canvasCtx.createRadialGradient === 'function') {
+      const sheen = canvasCtx.createRadialGradient(s * 0.5, s * 0.28, 0, s * 0.5, s * 0.28, s * 0.32);
+      sheen.addColorStop(0, highlight);
+      sheen.addColorStop(1, 'rgba(255,255,255,0)');
+      canvasCtx.fillStyle = sheen;
+    } else {
+      // Fallback for environments that don't support createRadialGradient on OffscreenCanvas
+      canvasCtx.fillStyle = highlight;
+    }
     const hl = new Path2D();
     hl.ellipse(s * 0.5, s * 0.28, s * 0.26, s * 0.1, 0.15, 0, Math.PI * 2);
     canvasCtx.fill(hl);
