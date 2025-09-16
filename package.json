@@ -56,7 +56,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "build:lib": "tsc -p tsconfig.json",
-    "build:demo": "cd demo && vite build",
+    "build:demo": "cd demo && vite build --mode production",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

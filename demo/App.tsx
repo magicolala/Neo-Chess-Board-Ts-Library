@@ -282,6 +282,13 @@ export const App: React.FC = () => {
             >
               Classic
             </LoadingButton>
+            <a
+              href="./theme-creator.html"
+              className={`${styles.themeButton} ${styles.themeCreatorLink}`}
+              title="Créer un thème personnalisé"
+            >
+              🎨 Theme Creator
+            </a>
           </div>
         </header>
 

@@ -6,5 +6,11 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../dist/demo', // Output to dist/demo relative to the project root
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        themeCreator: './theme-creator.html',
+      },
+    },
   },
 });

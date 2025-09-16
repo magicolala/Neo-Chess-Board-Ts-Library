@@ -326,6 +326,19 @@ body {
   box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
 }
 
+.themeCreatorLink {
+  text-decoration: none;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.themeCreatorLink:hover {
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+
 .boardWrapper {
   display: flex;
   justify-content: center;
@@ -1207,4 +1220,228 @@ body {
   .container {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== THEME CREATOR STYLES ===== */
+
+.themeCreator {
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+.creatorHeader {
+  text-align: center;
+  padding: 32px 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.creatorTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px 0;
+}
+
+.creatorSubtitle {
+  font-size: 1.1rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.creatorLayout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 32px;
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1200px) {
+  .creatorLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px;
+  }
+}
+
+.creatorControls {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.creatorPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.controlSection {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 16px 0;
+}
+
+.managementControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.themeSelect {
+  padding: 10px;
+  background: #12151a;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.themeNameInput {
+  padding: 10px;
+  background: #12151a;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.themeNameInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.colorInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.colorLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.colorLabel span {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.colorDescription {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.colorControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorPicker {
+  width: 50px;
+  height: 40px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.colorText {
+  flex: 1;
+  padding: 8px 12px;
+  background: #12151a;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.colorText:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.colorSwatch {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.codeSection {
+  background: #12151a;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+
+.codeBlock {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.buttonSecondary {
+  background: #2a2f38;
+  border: 1px solid var(--card-border);
+  color: var(--text-dim);
+}
+
+.buttonSecondary:hover {
+  background: #3a3f48;
+  color: var(--text);
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.previewInfo {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.previewActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.boardWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
 }
