@@ -123,6 +123,7 @@ Neo Chess Board comes with beautiful built-in themes:
 - [Examples](examples.md)
 - [PGN Features](pgn-features.md)
 - [Themes](themes.md)
+- [Code Style Guide](code-style.md)
 
 ### Core Components
 
