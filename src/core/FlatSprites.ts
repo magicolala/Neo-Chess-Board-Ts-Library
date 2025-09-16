@@ -1,20 +1,15 @@
 import type { Theme } from './types';
-
 export class FlatSprites {
   private sheet: HTMLCanvasElement | OffscreenCanvas;
-
   constructor(
     private size: number,
     private colors: Theme,
   ) {
     this.sheet = this.build(size);
   }
-
   getSheet() {
     return this.sheet;
   }
-
-  // Utilitaire pour dessiner des rectangles arrondis (conservé de votre code original)
   private rr(
     ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     x: number,
@@ -36,16 +31,12 @@ export class FlatSprites {
     ctx.quadraticCurveTo(x, y, x + rr, y);
     ctx.closePath();
   }
-
-  private build(px: number): HTMLCanvasElement | OffscreenCanvas {
+  private build(px: number) {
     const c =
       typeof OffscreenCanvas !== 'undefined'
         ? new OffscreenCanvas(px * 6, px * 2)
         : Object.assign(document.createElement('canvas'), { width: px * 6, height: px * 2 });
-
     const ctx = c.getContext('2d')!;
-    if (!ctx) throw new Error('Could not get 2D context');
-
     const order = ['k', 'q', 'r', 'b', 'n', 'p'] as const;
     order.forEach((t, i) => {
       this.draw(ctx, i * px, 0, px, t, 'black');
@@ -53,7 +44,6 @@ export class FlatSprites {
     });
     return c;
   }
-
   private draw(
     ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     x: number,
@@ -62,140 +52,112 @@ export class FlatSprites {
     type: string,
     color: 'white' | 'black',
   ) {
-    const pieceColor = color === 'white' ? this.colors.whitePiece : this.colors.blackPiece;
-    const shadowColor = this.colors.pieceShadow;
-
+    const C = color === 'white' ? this.colors.whitePiece : this.colors.blackPiece;
+    const S = this.colors.pieceShadow;
     ctx.save();
     ctx.translate(x, y);
-
-    // Ombre
-    ctx.fillStyle = shadowColor;
+    ctx.fillStyle = S;
     ctx.beginPath();
-    ctx.ellipse(s * 0.5, s * 0.82, s * 0.35, s * 0.1, 0, 0, 2 * Math.PI);
+    ctx.ellipse(s * 0.5, s * 0.68, s * 0.28, s * 0.1, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.fillStyle = pieceColor;
-
-    // Appel de la fonction de dessin spécifique à la pièce
-    switch (type) {
-      case 'p':
-        this.drawPawn(ctx, s);
-        break;
-      case 'r':
-        this.drawRook(ctx, s);
-        break;
-      case 'n':
-        this.drawKnight(ctx, s);
-        break;
-      case 'b':
-        this.drawBishop(ctx, s);
-        break;
-      case 'q':
-        this.drawQueen(ctx, s);
-        break;
-      case 'k':
-        this.drawKing(ctx, s);
-        break;
+    ctx.fillStyle = C;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    const base = () => {
+      ctx.beginPath();
+      ctx.moveTo(s * 0.2, s * 0.7);
+      ctx.quadraticCurveTo(s * 0.5, s * 0.6, s * 0.8, s * 0.7);
+      ctx.lineTo(s * 0.8, s * 0.8);
+      ctx.quadraticCurveTo(s * 0.5, s * 0.85, s * 0.2, s * 0.8);
+      ctx.closePath();
+      ctx.fill();
+    };
+    if (type === 'p') {
+      ctx.beginPath();
+      ctx.arc(s * 0.5, s * 0.38, s * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(s * 0.38, s * 0.52);
+      ctx.quadraticCurveTo(s * 0.5, s * 0.42, s * 0.62, s * 0.52);
+      ctx.quadraticCurveTo(s * 0.64, s * 0.6, s * 0.5, s * 0.62);
+      ctx.quadraticCurveTo(s * 0.36, s * 0.6, s * 0.38, s * 0.52);
+      ctx.closePath();
+      ctx.fill();
+      base();
     }
-
+    if (type === 'r') {
+      ctx.beginPath();
+      this.rr(ctx, s * 0.32, s * 0.3, s * 0.36, s * 0.34, s * 0.04);
+      ctx.fill();
+      ctx.beginPath();
+      this.rr(ctx, s * 0.3, s * 0.22, s * 0.12, s * 0.1, s * 0.02);
+      ctx.fill();
+      ctx.beginPath();
+      this.rr(ctx, s * 0.44, s * 0.2, s * 0.12, s * 0.12, s * 0.02);
+      ctx.fill();
+      ctx.beginPath();
+      this.rr(ctx, s * 0.58, s * 0.22, s * 0.12, s * 0.1, s * 0.02);
+      ctx.fill();
+      base();
+    }
+    if (type === 'n') {
+      ctx.beginPath();
+      ctx.moveTo(s * 0.64, s * 0.6);
+      ctx.quadraticCurveTo(s * 0.7, s * 0.35, s * 0.54, s * 0.28);
+      ctx.quadraticCurveTo(s * 0.46, s * 0.24, s * 0.44, s * 0.3);
+      ctx.quadraticCurveTo(s * 0.42, s * 0.42, s * 0.34, s * 0.44);
+      ctx.quadraticCurveTo(s * 0.3, s * 0.46, s * 0.28, s * 0.5);
+      ctx.quadraticCurveTo(s * 0.26, s * 0.6, s * 0.38, s * 0.62);
+      ctx.closePath();
+      ctx.fill();
+      const C = ctx.fillStyle;
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.beginPath();
+      ctx.arc(s * 0.5, s * 0.36, s * 0.02, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = C as any;
+      base();
+    }
+    if (type === 'b') {
+      ctx.beginPath();
+      ctx.ellipse(s * 0.5, s * 0.42, s * 0.12, s * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const C = ctx.globalCompositeOperation;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.moveTo(s * 0.5, s * 0.28);
+      ctx.lineTo(s * 0.5, s * 0.52);
+      ctx.lineWidth = s * 0.04;
+      ctx.stroke();
+      ctx.globalCompositeOperation = C;
+      base();
+    }
+    if (type === 'q') {
+      ctx.beginPath();
+      ctx.moveTo(s * 0.3, s * 0.3);
+      ctx.lineTo(s * 0.4, s * 0.18);
+      ctx.lineTo(s * 0.5, s * 0.3);
+      ctx.lineTo(s * 0.6, s * 0.18);
+      ctx.lineTo(s * 0.7, s * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(s * 0.5, s * 0.5, s * 0.16, s * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      base();
+    }
+    if (type === 'k') {
+      ctx.beginPath();
+      this.rr(ctx, s * 0.47, s * 0.16, s * 0.06, s * 0.16, s * 0.02);
+      ctx.fill();
+      ctx.beginPath();
+      this.rr(ctx, s * 0.4, s * 0.22, s * 0.2, s * 0.06, s * 0.02);
+      ctx.fill();
+      ctx.beginPath();
+      this.rr(ctx, s * 0.36, s * 0.34, s * 0.28, s * 0.26, s * 0.08);
+      ctx.fill();
+      base();
+    }
     ctx.restore();
-  }
-
-  // --- NOUVELLES MÉTHODES DE DESSIN ---
-
-  private drawBase(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    ctx.moveTo(s * 0.2, s * 0.8);
-    ctx.quadraticCurveTo(s * 0.5, s * 0.95, s * 0.8, s * 0.8);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  private drawPawn(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    ctx.arc(s * 0.5, s * 0.35, s * 0.15, 0, 2 * Math.PI);
-    ctx.moveTo(s * 0.3, s * 0.8);
-    ctx.quadraticCurveTo(s * 0.3, s * 0.5, s * 0.5, s * 0.45);
-    ctx.quadraticCurveTo(s * 0.7, s * 0.5, s * 0.7, s * 0.8);
-    ctx.closePath();
-    ctx.fill();
-    this.drawBase(ctx, s);
-  }
-
-  private drawRook(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    ctx.rect(s * 0.25, s * 0.2, s * 0.5, s * 0.6);
-    // Créneaux
-    ctx.rect(s * 0.25, s * 0.15, s * 0.1, s * 0.1);
-    ctx.rect(s * 0.45, s * 0.15, s * 0.1, s * 0.1);
-    ctx.rect(s * 0.65, s * 0.15, s * 0.1, s * 0.1);
-    ctx.fill();
-    this.drawBase(ctx, s);
-  }
-
-  private drawKnight(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    ctx.moveTo(s * 0.25, s * 0.8);
-    ctx.lineTo(s * 0.3, s * 0.6);
-    ctx.quadraticCurveTo(s * 0.2, s * 0.4, s * 0.4, s * 0.2);
-    ctx.quadraticCurveTo(s * 0.6, s * 0.3, s * 0.65, s * 0.5);
-    ctx.lineTo(s * 0.75, s * 0.8);
-    ctx.closePath();
-    ctx.fill();
-    this.drawBase(ctx, s);
-  }
-
-  private drawBishop(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    ctx.arc(s * 0.5, s * 0.45, s * 0.2, 0, 2 * Math.PI);
-    ctx.moveTo(s * 0.3, s * 0.8);
-    ctx.quadraticCurveTo(s * 0.4, s * 0.5, s * 0.5, s * 0.2);
-    ctx.quadraticCurveTo(s * 0.6, s * 0.5, s * 0.7, s * 0.8);
-    ctx.closePath();
-    ctx.fill();
-
-    // Entaille
-    const prevOp = ctx.globalCompositeOperation;
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.moveTo(s * 0.55, s * 0.2);
-    ctx.quadraticCurveTo(s * 0.5, s * 0.3, s * 0.45, s * 0.2);
-    ctx.lineWidth = s * 0.08;
-    ctx.stroke();
-    ctx.globalCompositeOperation = prevOp;
-
-    this.drawBase(ctx, s);
-  }
-
-  private drawQueen(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    // Couronne
-    ctx.moveTo(s * 0.25, s * 0.3);
-    ctx.lineTo(s * 0.35, s * 0.15);
-    ctx.lineTo(s * 0.5, s * 0.25);
-    ctx.lineTo(s * 0.65, s * 0.15);
-    ctx.lineTo(s * 0.75, s * 0.3);
-    // Corps
-    ctx.quadraticCurveTo(s * 0.9, s * 0.6, s * 0.7, s * 0.8);
-    ctx.lineTo(s * 0.3, s * 0.8);
-    ctx.quadraticCurveTo(s * 0.1, s * 0.6, s * 0.25, s * 0.3);
-    ctx.closePath();
-    ctx.fill();
-    this.drawBase(ctx, s);
-  }
-
-  private drawKing(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, s: number) {
-    ctx.beginPath();
-    // Croix
-    ctx.rect(s * 0.45, s * 0.05, s * 0.1, s * 0.25);
-    ctx.rect(s * 0.375, s * 0.12, s * 0.25, s * 0.1);
-    // Corps
-    ctx.moveTo(s * 0.3, s * 0.8);
-    ctx.quadraticCurveTo(s * 0.2, s * 0.5, s * 0.4, s * 0.3);
-    ctx.lineTo(s * 0.6, s * 0.3);
-    ctx.quadraticCurveTo(s * 0.8, s * 0.5, s * 0.7, s * 0.8);
-    ctx.closePath();
-    ctx.fill();
-    this.drawBase(ctx, s);
   }
 }
