@@ -19,7 +19,7 @@
   "homepage": "https://github.com/magicolala/Neo-Chess-Board-Ts-Library",
   "repository": {
     "type": "git",
-    "url": "https://github.com/magicolala/Neo-Chess-Board-Ts-Library.git"
+    "url": "git+https://github.com/magicolala/Neo-Chess-Board-Ts-Library.git"
   },
   "bugs": {
     "url": "https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues"
