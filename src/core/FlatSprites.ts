@@ -67,16 +67,14 @@ export class FlatSprites {
     const highlight = this.colors.pieceHighlight ?? 'rgba(255,255,255,0.55)';
 
     // subtle vertical gradient for volume
+    const canvasCtx = ctx as CanvasRenderingContext2D;
     const grd = (c: string) => {
-      const g = (ctx as CanvasRenderingContext2D).createLinearGradient(
-        0,
-        y + s * 0.1,
-        0,
-        y + s * 0.85,
-      );
-      g.addColorStop(0, this.mix(c, '#ffffff', 0.12));
-      g.addColorStop(0.5, c);
-      g.addColorStop(1, this.mix(c, '#000000', 0.1));
+      const g = canvasCtx.createLinearGradient(0, s * 0.08, 0, s * 0.92);
+      const lightMix = color === 'white' ? 0.22 : 0.14;
+      const darkMix = color === 'white' ? 0.2 : 0.28;
+      g.addColorStop(0, this.mix(c, '#ffffff', lightMix));
+      g.addColorStop(0.45, c);
+      g.addColorStop(1, this.mix(c, '#000000', darkMix));
       return g;
     };
 
@@ -113,21 +111,37 @@ export class FlatSprites {
     }
 
     // fill + outline
-    (ctx as CanvasRenderingContext2D).fillStyle = grd(base);
-    (ctx as CanvasRenderingContext2D).strokeStyle = stroke;
-    (ctx as CanvasRenderingContext2D).lineWidth = Math.max(1, s * 0.03);
-    (ctx as CanvasRenderingContext2D).lineJoin = 'round';
-    (ctx as CanvasRenderingContext2D).lineCap = 'round';
-    (ctx as CanvasRenderingContext2D).fill(path);
-    (ctx as CanvasRenderingContext2D).stroke(path);
+    canvasCtx.fillStyle = grd(base);
+    canvasCtx.strokeStyle = stroke;
+    canvasCtx.lineWidth = Math.max(1, s * 0.03);
+    canvasCtx.lineJoin = 'round';
+    canvasCtx.lineCap = 'round';
+    canvasCtx.fill(path);
+    canvasCtx.stroke(path);
 
     // top highlight
     ctx.save();
-    (ctx as CanvasRenderingContext2D).globalCompositeOperation = 'lighter';
-    (ctx as CanvasRenderingContext2D).fillStyle = highlight;
+    canvasCtx.globalCompositeOperation = 'lighter';
+    const sheen = canvasCtx.createRadialGradient(s * 0.5, s * 0.28, 0, s * 0.5, s * 0.28, s * 0.32);
+    sheen.addColorStop(0, highlight);
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    canvasCtx.fillStyle = sheen;
     const hl = new Path2D();
-    hl.ellipse(s * 0.5, s * 0.28, s * 0.22, s * 0.08, 0.1, 0, Math.PI * 2);
-    (ctx as CanvasRenderingContext2D).fill(hl);
+    hl.ellipse(s * 0.5, s * 0.28, s * 0.26, s * 0.1, 0.15, 0, Math.PI * 2);
+    canvasCtx.fill(hl);
+    ctx.restore();
+
+    // lower body shadow for extra depth
+    ctx.save();
+    canvasCtx.globalCompositeOperation = 'multiply';
+    canvasCtx.globalAlpha = 0.35;
+    canvasCtx.fillStyle = this.mix(base, '#000000', 0.25);
+    const baseShade = new Path2D();
+    baseShade.moveTo(s * 0.25, s * 0.62);
+    baseShade.quadraticCurveTo(s * 0.5, s * 0.78, s * 0.75, s * 0.62);
+    baseShade.quadraticCurveTo(s * 0.5, s * 0.88, s * 0.25, s * 0.62);
+    baseShade.closePath();
+    canvasCtx.fill(baseShade);
     ctx.restore();
 
     ctx.restore();
