@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { NeoChessBoard } from '../src/react/NeoChessBoard';
+import { NeoChessBoard, NeoChessRef } from '../src/react';
 import { ChessJsRules } from '../src/core/ChessJsRules';
 import styles from './App.module.css';
 import {
@@ -36,13 +36,7 @@ export const App: React.FC = () => {
     orientation: 'white',
     highlightLegal: true,
   });
-  const boardRef = useRef<{
-    addHighlight: (highlight: { square: string; type: string }) => void;
-    addArrow: (arrow: { from: string; to: string; color?: string }) => void;
-    clearArrows: () => void;
-    clearHighlights: () => void;
-    getBoard: () => any; // Add getBoard method to the type
-  }>(null);
+  const boardRef = useRef<NeoChessRef>(null);
 
   // États de loading pour démonstration
   const [isCopying, setIsCopying] = useState(false);
@@ -200,16 +194,10 @@ export const App: React.FC = () => {
     // Get the board instance from the ref
     const board = boardRef.current.getBoard();
     if (board && typeof board.addHighlight === 'function') {
-      board.addHighlight({
-        square,
-        type,
-      });
+      board.addHighlight(square, type);
     } else {
       // Fallback to direct method if getBoard() is not available
-      boardRef.current.addHighlight({
-        square,
-        type,
-      });
+      boardRef.current.addHighlight(square, type);
     }
   }, []);
 

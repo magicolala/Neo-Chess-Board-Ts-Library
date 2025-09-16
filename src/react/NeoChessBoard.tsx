@@ -18,6 +18,8 @@ export interface NeoChessRef {
   // Board manipulation methods
   addArrow: (arrow: { from: Square; to: Square; color?: string }) => void;
   addHighlight: (square: Square, type: string) => void;
+  clearArrows: () => void;
+  clearHighlights: () => void;
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
@@ -72,6 +74,12 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         },
         addHighlight: (square: Square, type: string) => {
           return boardRef.current?.addHighlight?.(square, type);
+        },
+        clearArrows: () => {
+          return boardRef.current?.clearArrows?.();
+        },
+        clearHighlights: () => {
+          return boardRef.current?.clearHighlights?.();
         },
       }),
       [],

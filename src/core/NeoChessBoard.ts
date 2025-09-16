@@ -722,20 +722,30 @@ export class NeoChessBoard {
   }
 
   // ---- Sound methods ----
+  // Remplacer la méthode _initializeSound() dans NeoChessBoard.ts
+
   private _initializeSound() {
     if (!this.soundEnabled || typeof Audio === 'undefined') return;
 
     try {
       // Créer l'élément audio pour le son de mouvement
-      try {
-        // Try to load from the demo assets first (for development)
-        this.moveSound = new Audio(new URL('../../demo/assets/souffle.ogg', import.meta.url).href);
-      } catch (e) {
-        // Fallback to a relative path (for production build)
-        this.moveSound = new Audio('/assets/souffle.ogg');
-      }
+      // Solution compatible sans import.meta.url
+      const possiblePaths = [
+        './assets/souffle.ogg',
+        './demo/assets/souffle.ogg',
+        '/assets/souffle.ogg',
+        'assets/souffle.ogg',
+      ];
+
+      // Essayer le premier chemin disponible
+      this.moveSound = new Audio(possiblePaths[0]);
       this.moveSound.volume = 0.3; // Volume modéré
       this.moveSound.preload = 'auto';
+
+      // Gérer les erreurs de chargement de manière silencieuse
+      this.moveSound.addEventListener('error', () => {
+        console.debug('Son non disponible');
+      });
     } catch (error) {
       console.warn('Impossible de charger le son de mouvement:', error);
       this.moveSound = null;
