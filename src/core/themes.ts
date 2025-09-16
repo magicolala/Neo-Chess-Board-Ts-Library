@@ -37,4 +37,32 @@ export const THEMES: Record<string, Theme> = {
   },
 };
 
+const DEFAULT_THEME_KEY = 'classic' as const;
+
+const getDefaultTheme = () => THEMES[DEFAULT_THEME_KEY];
+
+const normalizeTheme = (theme: Theme): Theme => {
+  const base = getDefaultTheme();
+  return {
+    ...base,
+    ...theme,
+    pieceStroke: theme.pieceStroke ?? base.pieceStroke,
+    pieceHighlight: theme.pieceHighlight ?? base.pieceHighlight,
+  };
+};
+
 export type ThemeName = keyof typeof THEMES;
+export type CustomThemeName = ThemeName | (string & {});
+
+export const registerTheme = (name: string, theme: Theme): Theme => {
+  const normalized = normalizeTheme(theme);
+  THEMES[name] = normalized;
+  return normalized;
+};
+
+export const resolveTheme = (theme: ThemeName | Theme): Theme => {
+  if (typeof theme === 'string') {
+    return THEMES[theme] ?? getDefaultTheme();
+  }
+  return normalizeTheme(theme);
+};

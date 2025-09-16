@@ -490,24 +490,21 @@ interface BoardOptions {
 
 ```typescript
 interface Theme {
-  name: string;
-  board: {
-    light: string; // Light square color
-    dark: string; // Dark square color
-    border: string; // Board border color
-  };
-  pieces: {
-    [key in PieceType]: {
-      white: string; // White piece color
-      black: string; // Black piece color
-    };
-  };
-  highlights: {
-    lastMove: string; // Last move highlight
-    legalMove: string; // Legal move highlight
-    check: string; // Check highlight
-    selected: string; // Selected square
-  };
+  light: string;
+  dark: string;
+  boardBorder: string;
+  whitePiece: string;
+  blackPiece: string;
+  pieceShadow: string;
+  pieceStroke?: string;
+  pieceHighlight?: string;
+  moveFrom: string;
+  moveTo: string;
+  lastMove: string;
+  premove: string;
+  dot: string;
+  arrow: string;
+  squareNameColor: string;
 }
 ```
 
@@ -668,41 +665,43 @@ Get the opposite color.
 
 ### Available Themes
 
-- **`light`** - Classic light wood theme
-- **`dark`** - Modern dark theme
-- **`wood`** - Traditional wooden board
-- **`glass`** - Transparent glass effect
-- **`neon`** - Futuristic neon theme
-- **`retro`** - Vintage computer theme
+- **`classic`** – Neutral palette ideal for most UIs
+- **`midnight`** – Dark theme with vivid highlights
 
 ### Using Themes
 
 ```typescript path=null start=null
-// Built-in theme
-board.setTheme('dark');
+import { registerTheme, THEMES } from 'neochessboard';
 
-// Custom theme
-const customTheme: Theme = {
-  name: 'custom',
-  board: {
-    light: '#f0d9b5',
-    dark: '#b58863',
-    border: '#8b4513',
-  },
-  pieces: {
-    king: { white: '#ffffff', black: '#000000' },
-    // ... other pieces
-  },
-  highlights: {
-    lastMove: 'rgba(255, 255, 0, 0.5)',
-    legalMove: 'rgba(0, 255, 0, 0.3)',
-    check: 'rgba(255, 0, 0, 0.7)',
-    selected: 'rgba(0, 0, 255, 0.3)',
-  },
-};
+// Use a built-in preset by name
+board.setTheme('classic');
 
-board.setTheme(customTheme);
+// Register a reusable custom preset
+registerTheme('sunset', {
+  ...THEMES.midnight,
+  moveFrom: 'rgba(255, 200, 87, 0.55)',
+  moveTo: 'rgba(244, 114, 182, 0.45)',
+});
+
+board.setTheme('sunset');
+
+// Apply an inline theme object directly
+board.applyTheme({
+  ...THEMES.classic,
+  arrow: 'rgba(34, 197, 94, 0.9)',
+});
 ```
+
+#### `registerTheme(name: string, theme: Theme): Theme`
+
+Add a custom preset to the global `THEMES` map. The function normalizes the theme and returns the stored copy.
+
+- `name: string` – Unique identifier for the theme.
+- `theme: Theme` – Theme definition to store.
+
+#### `resolveTheme(theme: ThemeName | Theme): Theme`
+
+Convert a theme name or object into the normalized structure used internally. Useful when you want to inspect or serialize a theme without registering it permanently.
 
 ## Error Handling
 

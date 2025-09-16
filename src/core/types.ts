@@ -1,3 +1,5 @@
+import type { ThemeName } from './themes';
+
 export type Square =
   `${'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'}${'1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}`;
 export type Color = 'w' | 'b';
@@ -81,7 +83,7 @@ export interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
   interactive?: boolean;
-  theme?: 'classic' | 'midnight';
+  theme?: ThemeName | Theme;
   showCoordinates?: boolean;
   animationMs?: number;
   highlightLegal?: boolean;

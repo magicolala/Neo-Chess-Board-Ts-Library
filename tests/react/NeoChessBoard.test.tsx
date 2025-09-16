@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 import type { NeoChessRef } from '../../src/react/NeoChessBoard';
+import type { Theme } from '../../src/core/types';
 
 // Mock the core NeoChessBoard class
 let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
@@ -11,6 +12,7 @@ const mockBoard = {
   destroy: jest.fn(),
   getPosition: jest.fn(() => currentFen), // Mock getPosition to return currentFen
   setTheme: jest.fn(),
+  applyTheme: jest.fn(),
   setSoundEnabled: jest.fn(),
   setOrientation: jest.fn(),
   setShowArrows: jest.fn(),
@@ -238,6 +240,34 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.setAllowPremoves).toHaveBeenCalledWith(true);
       expect(mockBoard.setHighlightLegal).toHaveBeenCalledWith(true);
       expect(mockBoard.setShowSquareNames).toHaveBeenCalledWith(true);
+    });
+
+    it('should call applyTheme when theme prop is a custom object', () => {
+      const customTheme: Theme = {
+        light: '#FFFFFF',
+        dark: '#0F172A',
+        boardBorder: '#1E293B',
+        whitePiece: '#F8FAFC',
+        blackPiece: '#0B1120',
+        pieceShadow: 'rgba(0,0,0,0.2)',
+        moveFrom: 'rgba(251, 191, 36, 0.5)',
+        moveTo: 'rgba(74, 222, 128, 0.45)',
+        lastMove: 'rgba(96, 165, 250, 0.45)',
+        premove: 'rgba(217, 70, 239, 0.35)',
+        dot: 'rgba(15, 23, 42, 0.35)',
+        arrow: 'rgba(34, 197, 94, 0.9)',
+        squareNameColor: '#F8FAFC',
+      };
+
+      const { rerender } = render(<NeoChessBoard theme="classic" />);
+
+      mockBoard.applyTheme.mockClear();
+      mockBoard.setTheme.mockClear();
+
+      rerender(<NeoChessBoard theme={customTheme} />);
+
+      expect(mockBoard.applyTheme).toHaveBeenCalledWith(customTheme);
+      expect(mockBoard.setTheme).not.toHaveBeenCalledWith(customTheme);
     });
   });
 
