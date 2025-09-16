@@ -93,6 +93,7 @@ export interface BoardOptions {
   maxHighlights?: number;
   soundEnabled?: boolean;
   showSquareNames?: boolean;
+  soundUrl?: string;
 }
 
 export interface PgnMoveAnnotations {

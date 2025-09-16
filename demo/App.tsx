@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { NeoChessBoard, NeoChessRef } from '../src/react';
 import { ChessJsRules } from '../src/core/ChessJsRules';
-import styles from './App.module.css';
+import moveSound from './assets/souffle.ogg';
 import {
   LoadingButton,
   DotLoader,
@@ -302,6 +302,7 @@ export const App: React.FC = () => {
             showHighlights={boardOptions.showHighlights}
             allowPremoves={boardOptions.allowPremoves}
             soundEnabled={boardOptions.soundEnabled}
+            soundUrl={moveSound}
             orientation={boardOptions.orientation}
             highlightLegal={boardOptions.highlightLegal}
           />

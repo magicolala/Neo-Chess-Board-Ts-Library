@@ -75,6 +75,7 @@ export class NeoChessBoard {
   private rightClickHighlights: boolean;
   private soundEnabled: boolean;
   private showSquareNames: boolean;
+  private soundUrl: string | undefined;
 
   // Audio elements
   private moveSound: HTMLAudioElement | null = null;
@@ -109,6 +110,7 @@ export class NeoChessBoard {
     this.rightClickHighlights = options.rightClickHighlights !== false;
     this.soundEnabled = options.soundEnabled !== false;
     this.showSquareNames = options.showSquareNames || false;
+    this.soundUrl = options.soundUrl;
 
     // Initialiser le son
     this._initializeSound();
@@ -734,20 +736,10 @@ export class NeoChessBoard {
   // Remplacer la méthode _initializeSound() dans NeoChessBoard.ts
 
   private _initializeSound() {
-    if (!this.soundEnabled || typeof Audio === 'undefined') return;
+    if (!this.soundEnabled || typeof Audio === 'undefined' || !this.soundUrl) return;
 
     try {
-      // Créer l'élément audio pour le son de mouvement
-      // Solution compatible sans import.meta.url
-      const possiblePaths = [
-        './assets/souffle.ogg',
-        './demo/assets/souffle.ogg',
-        '/assets/souffle.ogg',
-        'assets/souffle.ogg',
-      ];
-
-      // Essayer le premier chemin disponible
-      this.moveSound = new Audio(possiblePaths[0]);
+      this.moveSound = new Audio(this.soundUrl);
       this.moveSound.volume = 0.3; // Volume modéré
       this.moveSound.preload = 'auto';
 
