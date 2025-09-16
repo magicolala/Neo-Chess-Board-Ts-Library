@@ -351,7 +351,8 @@ export class DrawingManager {
     for (let file = 0; file < 8; file++) {
       const char = String.fromCharCode(97 + file); // a-h
       const x =
-        file * squareSize + (orientation === 'white' ? filePadding : squareSize - filePadding);
+        (orientation === 'white' ? file : 7 - file) * squareSize +
+        (orientation === 'white' ? filePadding : squareSize - filePadding);
       const y =
         orientation === 'white'
           ? this.canvas.height / dpr - filePadding
@@ -361,7 +362,7 @@ export class DrawingManager {
       const isLightSquare = (file + (orientation === 'white' ? 7 : 0)) % 2 === 1;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
 
-      ctx.textAlign = orientation === 'white' ? 'left' : 'right';
+      ctx.textAlign = 'left'; // Always left for file labels
       ctx.fillText(char, x, y);
     }
 
@@ -370,14 +371,14 @@ export class DrawingManager {
       const num = orientation === 'white' ? 8 - rank : rank + 1;
       const x = orientation === 'white' ? rankPadding : this.canvas.width / dpr - rankPadding;
       const y =
-        rank * squareSize +
+        (orientation === 'white' ? rank : 7 - rank) * squareSize +
         (orientation === 'white' ? squareSize - rankPadding : rankPadding + fontSize / 2);
 
       // Use the correct color based on orientation and square
       const isLightSquare = (rank + (orientation === 'white' ? 1 : 0)) % 2 === 0;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
 
-      ctx.textAlign = orientation === 'white' ? 'left' : 'right';
+      ctx.textAlign = 'left'; // Always left for rank labels
       ctx.fillText(num.toString(), x, y);
     }
 
