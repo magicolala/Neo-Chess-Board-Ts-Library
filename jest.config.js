@@ -14,7 +14,8 @@ export default {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\.(ogg|mp3|wav|mpe?g|png|gif|eot|otf|webp|svg|ttf|woff2?|ico)$': '<rootDir>/tests/__mocks__/fileMock.js',
+    '\.(ogg|mp3|wav|mpe?g|png|gif|eot|otf|webp|svg|ttf|woff2?|ico)$':
+      '<rootDir>/tests/__mocks__/fileMock.js',
   },
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
 };
