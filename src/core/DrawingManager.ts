@@ -961,17 +961,14 @@ export class DrawingManager {
           // Bottom rank for white, top rank for black
           const file = this.orientation === 'white' ? FILES[f] : FILES[7 - f];
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
-          ctx.textBaseline = this.orientation === 'white' ? 'bottom' : 'top';
+          ctx.textBaseline = 'bottom';
           ctx.fillText(
             file,
             x +
               (this.orientation === 'white'
                 ? this.squareSize * 0.06
                 : this.squareSize - this.squareSize * 0.06),
-            y +
-              (this.orientation === 'white'
-                ? this.squareSize - this.squareSize * 0.06
-                : this.squareSize * 0.06),
+            y + this.squareSize - this.squareSize * 0.06,
           );
         }
 
