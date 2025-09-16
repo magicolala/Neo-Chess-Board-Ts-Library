@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { NeoChessBoard, NeoChessRef } from '../src/react';
 import { ChessJsRules } from '../src/core/ChessJsRules';
+import styles from './App.module.css';
 import moveSound from './assets/souffle.ogg';
 import {
   LoadingButton,
