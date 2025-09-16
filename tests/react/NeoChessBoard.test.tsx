@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
+import type { NeoChessRef } from '../../src/react/NeoChessBoard';
 
 // Mock the core NeoChessBoard class
 let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
@@ -10,10 +11,21 @@ const mockBoard = {
   destroy: jest.fn(),
   getPosition: jest.fn(() => currentFen), // Mock getPosition to return currentFen
   setTheme: jest.fn(),
+  setSoundEnabled: jest.fn(),
+  setOrientation: jest.fn(),
+  setShowArrows: jest.fn(),
+  setShowHighlights: jest.fn(),
+  setAllowPremoves: jest.fn(),
+  setHighlightLegal: jest.fn(),
+  setShowSquareNames: jest.fn(),
   setFEN: jest.fn((fen: string) => {
     // Mock setFEN to update currentFen
     currentFen = fen;
   }),
+  addArrow: jest.fn(),
+  addHighlight: jest.fn(),
+  clearArrows: jest.fn(),
+  clearHighlights: jest.fn(),
 };
 
 jest.mock('../../src/core/NeoChessBoard', () => ({
@@ -183,6 +195,52 @@ describe('NeoChessBoard React Component', () => {
     });
   });
 
+  describe('Dynamic options updates', () => {
+    it('should forward option changes to the board instance', () => {
+      const { rerender } = render(
+        <NeoChessBoard
+          soundEnabled={false}
+          orientation="white"
+          showArrows={false}
+          showHighlights={false}
+          allowPremoves={false}
+          highlightLegal={false}
+          showSquareNames={false}
+        />,
+      );
+
+      [
+        mockBoard.setSoundEnabled,
+        mockBoard.setOrientation,
+        mockBoard.setShowArrows,
+        mockBoard.setShowHighlights,
+        mockBoard.setAllowPremoves,
+        mockBoard.setHighlightLegal,
+        mockBoard.setShowSquareNames,
+      ].forEach((fn) => fn.mockClear());
+
+      rerender(
+        <NeoChessBoard
+          soundEnabled
+          orientation="black"
+          showArrows
+          showHighlights
+          allowPremoves
+          highlightLegal
+          showSquareNames
+        />,
+      );
+
+      expect(mockBoard.setSoundEnabled).toHaveBeenCalledWith(true);
+      expect(mockBoard.setOrientation).toHaveBeenCalledWith('black');
+      expect(mockBoard.setShowArrows).toHaveBeenCalledWith(true);
+      expect(mockBoard.setShowHighlights).toHaveBeenCalledWith(true);
+      expect(mockBoard.setAllowPremoves).toHaveBeenCalledWith(true);
+      expect(mockBoard.setHighlightLegal).toHaveBeenCalledWith(true);
+      expect(mockBoard.setShowSquareNames).toHaveBeenCalledWith(true);
+    });
+  });
+
   describe('Component lifecycle', () => {
     it('should handle multiple re-renders safely', () => {
       const { rerender } = render(<NeoChessBoard theme="classic" />);
@@ -201,6 +259,31 @@ describe('NeoChessBoard React Component', () => {
 
       // Should only be called once (on initial mount)
       expect(MockedBoard).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Imperative handle', () => {
+    it('should expose board helpers through the ref', async () => {
+      const ref = React.createRef<NeoChessRef>();
+
+      render(<NeoChessBoard ref={ref} />);
+
+      await waitFor(() => {
+        expect(ref.current?.getBoard()).toBe(mockBoard);
+      });
+
+      const arrow = { from: 'a1' as const, to: 'a8' as const, color: '#ff0000' };
+      ref.current?.addArrow(arrow);
+      expect(mockBoard.addArrow).toHaveBeenCalledWith(arrow);
+
+      ref.current?.addHighlight('e4', 'green');
+      expect(mockBoard.addHighlight).toHaveBeenCalledWith('e4', 'green');
+
+      ref.current?.clearArrows();
+      expect(mockBoard.clearArrows).toHaveBeenCalled();
+
+      ref.current?.clearHighlights();
+      expect(mockBoard.clearHighlights).toHaveBeenCalled();
     });
   });
 
