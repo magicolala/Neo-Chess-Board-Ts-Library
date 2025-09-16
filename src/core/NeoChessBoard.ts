@@ -42,58 +42,178 @@ interface BoardEvents {
 }
 
 export class NeoChessBoard {
+  /**
+   * Event bus for emitting and listening to board events.
+   */
   public bus = new EventBus<BoardEvents>();
+  /**
+   * The root HTML element where the board is rendered.
+   */
   private root: HTMLElement;
+  /**
+   * Adapter for chess rules, handling move validation and FEN manipulation.
+   */
   private rules: RulesAdapter;
+  /**
+   * Current state of the chess board, parsed from FEN.
+   */
   private state: BoardState;
+  /**
+   * The current visual theme applied to the board.
+   */
   private theme: any;
+  /**
+   * The orientation of the board ('white' or 'black' at the bottom).
+   */
   private orientation: 'white' | 'black';
+  /**
+   * Whether the board is interactive (draggable pieces, clickable squares).
+   */
   private interactive: boolean;
+  /**
+   * Whether to display algebraic coordinates on the board.
+   */
   private showCoords: boolean;
+  /**
+   * Whether to highlight legal moves when a piece is selected.
+   */
   private highlightLegal: boolean;
+  /**
+   * Duration of piece animation in milliseconds.
+   */
   private animationMs: number;
+  /**
+   * Manages piece sprites for drawing.
+   */
   private sprites!: FlatSprites;
+  /**
+   * The size of the board in pixels (width and height).
+   */
   private sizePx = 480;
+  /**
+   * The size of a single square in pixels.
+   */
   private square = 60;
+  /**
+   * Device pixel ratio for high-DPI displays.
+   */
   private dpr = 1;
 
   // Canvas elements
+  /**
+   * Canvas for drawing the board squares.
+   */
   private cBoard!: HTMLCanvasElement;
+  /**
+   * Canvas for drawing the chess pieces.
+   */
   private cPieces!: HTMLCanvasElement;
+  /**
+   * Canvas for drawing overlays like highlights, arrows, and coordinates.
+   */
   private cOverlay!: HTMLCanvasElement;
+  /**
+   * 2D rendering context for the board canvas.
+   */
   private ctxB!: CanvasRenderingContext2D;
+  /**
+   * 2D rendering context for the pieces canvas.
+   */
   private ctxP!: CanvasRenderingContext2D;
+  /**
+   * 2D rendering context for the overlay canvas.
+   */
   private ctxO!: CanvasRenderingContext2D;
 
-  // Drawing manager for arrows, highlights, premoves
+  /**
+   * Manages drawing of arrows, highlights, and premoves on the overlay canvas.
+   */
   public drawingManager!: DrawingManager;
 
-  // Nouvelles options
+  // Feature flags
+  /**
+   * Whether premoves are allowed.
+   */
   private allowPremoves: boolean;
+  /**
+   * Whether arrows are displayed.
+   */
   private showArrows: boolean;
+  /**
+   * Whether highlights are displayed.
+   */
   private showHighlights: boolean;
+  /**
+   * Whether right-click highlights are enabled.
+   */
   private rightClickHighlights: boolean;
+  /**
+   * Whether sound effects are enabled.
+   */
   private soundEnabled: boolean;
+  /**
+   * Whether square names (coordinates) are shown.
+   */
   private showSquareNames: boolean;
+  /**
+   * URL for the move sound audio file.
+   */
   private soundUrl: string | undefined;
 
   // Audio elements
+  /**
+   * Audio element for playing move sounds.
+   */
   private moveSound: HTMLAudioElement | null = null;
 
-  // State tracking
+  // Internal state tracking for interactions and animations
+  /**
+   * The last move played, used for highlighting.
+   */
   private _lastMove: { from: Square; to: Square } | null = null;
+  /**
+   * The currently stored premove.
+   */
   private _premove: { from: Square; to: Square } | null = null;
+  /**
+   * The currently selected square.
+   */
   private _selected: Square | null = null;
+  /**
+   * Cached legal moves for the selected piece.
+   */
   private _legalCached: Move[] | null = null;
+  /**
+   * Information about the piece currently being dragged.
+   */
   private _dragging: { from: Square; piece: string; x: number; y: number } | null = null;
+  /**
+   * The square currently hovered over during a drag.
+   */
   private _hoverSq: Square | null = null;
+  /**
+   * List of arrows drawn on the board (legacy, managed by DrawingManager now).
+   */
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
+  /**
+   * Custom highlights applied to squares.
+   */
   private _customHighlights: { squares: Square[] } | null = null;
+  /**
+   * Request animation frame ID for animations.
+   */
   private _raf = 0;
 
-  // État pour le dessin des flèches
+  /**
+   * Internal state for tracking an arrow being drawn by the user.
+   */
   private _drawingArrow: { from: Square } | null = null;
 
+  /**
+   * Creates an instance of NeoChessBoard.
+   * @param root The HTMLElement to which the board will be appended.
+   * @param options Optional configuration options for the board.
+   */
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
     this.theme = THEMES[options.theme || 'classic'];
@@ -103,7 +223,7 @@ export class NeoChessBoard {
     this.highlightLegal = options.highlightLegal !== false;
     this.animationMs = options.animationMs || 300;
 
-    // Nouvelles options
+    // New features options
     this.allowPremoves = options.allowPremoves !== false;
     this.showArrows = options.showArrows !== false;
     this.showHighlights = options.showHighlights !== false;
@@ -112,10 +232,10 @@ export class NeoChessBoard {
     this.showSquareNames = options.showSquareNames || false;
     this.soundUrl = options.soundUrl;
 
-    // Initialiser le son
+    // Initialize sound
     this._initializeSound();
 
-    // Initialize rules adapter - Utilise ChessJsRules par défaut pour une validation robuste
+    // Initialize rules adapter - Use ChessJsRules by default for robust validation
     this.rules = options.rulesAdapter || new ChessJsRules();
     if (options.fen) {
       this.rules.setFEN(options.fen);
@@ -129,29 +249,56 @@ export class NeoChessBoard {
   }
 
   // Public API methods
+  /**
+   * Gets the current position of the board in FEN format.
+   * @returns The current FEN string.
+   */
   public getPosition(): string {
     return this.rules.getFEN();
   }
 
+  /**
+   * Sets the position of the board using a FEN string.
+   * @param fen The FEN string to set the board to.
+   * @param immediate If true, the board will update immediately without animation.
+   */
   public setPosition(fen: string, immediate = false) {
     this.setFEN(fen, immediate);
   }
 
+  /**
+   * Registers an event handler for a specific board event.
+   * @param event The name of the event to listen for.
+   * @param handler The callback function to execute when the event is emitted.
+   * @returns A function to unsubscribe the event handler.
+   */
   public on<K extends keyof BoardEvents>(event: K, handler: (payload: BoardEvents[K]) => void) {
     return this.bus.on(event, handler);
   }
 
+  /**
+   * Destroys the board instance, removing all event listeners and clearing the DOM.
+   */
   public destroy() {
     this._removeEvents();
     this.root.innerHTML = '';
   }
 
+  /**
+   * Sets the visual theme of the board.
+   * @param themeName The name of the theme to apply (e.g., 'classic', 'dark').
+   */
   public setTheme(themeName: string) {
     this.theme = THEMES[themeName] || THEMES['classic'];
     this._rasterize();
     this.renderAll();
   }
 
+  /**
+   * Sets the board position using a FEN string.
+   * @param fen The FEN string representing the board state.
+   * @param immediate If true, the board updates instantly without animation.
+   */
   public setFEN(fen: string, immediate = false) {
     const old = this.state;
     const oldTurn = this.state.turn;
@@ -159,13 +306,13 @@ export class NeoChessBoard {
     this.state = parseFEN(this.rules.getFEN());
     this._lastMove = null;
 
-    // Si le tour a changé (l'adversaire a joué), essayer d'exécuter le premove
+    // If the turn has changed (opponent played), try to execute the premove
     const newTurn = this.state.turn;
     if (oldTurn !== newTurn) {
       this._executePremoveIfValid();
     }
 
-    // Effacer l'ancien système de premove
+    // Clear the old premove system
     this._premove = null;
 
     if (immediate) {
@@ -199,7 +346,7 @@ export class NeoChessBoard {
     this.ctxP = this.cPieces.getContext('2d')!;
     this.ctxO = this.cOverlay.getContext('2d')!;
 
-    // Initialiser le DrawingManager
+    // Initialize the DrawingManager
     this.drawingManager = new DrawingManager(this.cOverlay);
     this.drawingManager.setOrientation(this.orientation);
     this.drawingManager.setShowSquareNames(this.showSquareNames);
@@ -215,40 +362,71 @@ export class NeoChessBoard {
       document.head.appendChild(style);
     }
   }
+  /**
+   * Resizes the board canvases based on the root element's dimensions and device pixel ratio.
+   * This method is typically called when the board's container changes size.
+   */
   resize() {
     const rect = this.root.getBoundingClientRect();
+    // Determine the size of the board, defaulting to 480px if no size is available.
     const sz = Math.min(rect.width, rect.height) || 480;
+    // Get the device pixel ratio for sharp rendering on high-DPI screens.
     const dpr = globalThis.devicePixelRatio || 1;
+
+    // Set canvas dimensions, scaling by DPR for retina displays.
     for (const c of [this.cBoard, this.cPieces, this.cOverlay]) {
       c.width = Math.round(sz * dpr);
       c.height = Math.round(sz * dpr);
     }
+    // Update internal size properties.
     this.sizePx = sz;
-    this.square = (sz * dpr) / 8;
+    this.square = (sz * dpr) / 8; // Calculate individual square size.
     this.dpr = dpr;
 
-    // Mettre à jour les dimensions du DrawingManager
+    // Inform the DrawingManager about updated dimensions.
     if (this.drawingManager) {
       this.drawingManager.updateDimensions();
     }
 
+    // Re-render the entire board to apply new dimensions.
     this.renderAll();
   }
+
+  /**
+   * Initializes or re-initializes the sprite sheet for pieces based on the current theme.
+   * This is called when the theme changes or on initial setup.
+   */
   private _rasterize() {
     this.sprites = new FlatSprites(128, this.theme as any);
   }
+
+  /**
+   * Renders all layers of the chess board (board, pieces, overlay).
+   * This method should be called whenever the board state or visual settings change.
+   */
   renderAll() {
     this._drawBoard();
     this._drawPieces();
     this._drawOverlay();
   }
 
+  /**
+   * Converts a square (e.g., 'e4') to its pixel coordinates on the canvas.
+   * Adjusts for board orientation.
+   * @param square The algebraic notation of the square.
+   * @returns An object with x and y pixel coordinates.
+   */
   private _sqToXY(square: Square) {
     const { f, r } = sqToFR(square);
     const ff = this.orientation === 'white' ? f : 7 - f;
     const rr = this.orientation === 'white' ? 7 - r : r;
     return { x: ff * this.square, y: rr * this.square };
   }
+
+  /**
+   * Draws the chess board squares onto the board canvas.
+   * Uses the current theme's light and dark square colors.
+   */
   private _drawBoard() {
     const ctx = this.ctxB,
       s = this.square,
@@ -266,18 +444,31 @@ export class NeoChessBoard {
         ctx.fillRect(x, y, s, s);
       }
   }
+
+  /**
+   * Draws a single piece sprite onto the pieces canvas.
+   * @param piece The FEN notation of the piece (e.g., 'p', 'K').
+   * @param x The x-coordinate for the top-left corner of the piece.
+   * @param y The y-coordinate for the top-left corner of the piece.
+   * @param scale Optional scale factor for the piece (default is 1).
+   */
   private _drawPieceSprite(piece: string, x: number, y: number, scale = 1) {
+    // Map piece characters to their index in the sprite sheet.
     const map: any = { k: 0, q: 1, r: 2, b: 3, n: 4, p: 5 };
     const isW = isWhitePiece(piece);
     const idx = map[piece.toLowerCase()];
-    const s128 = 128;
-    const sx = idx * s128;
-    const sy = isW ? s128 : 0;
-    const d = this.square * scale;
-    const dx = x + (this.square - d) / 2;
-    const dy = y + (this.square - d) / 2;
+    const s128 = 128; // Original sprite size
+    const sx = idx * s128; // Source x-coordinate on sprite sheet.
+    const sy = isW ? s128 : 0; // Source y-coordinate on sprite sheet (white pieces are on the second row).
+    const d = this.square * scale; // Destination size of the piece on the canvas.
+    const dx = x + (this.square - d) / 2; // Center the piece horizontally.
+    const dy = y + (this.square - d) / 2; // Center the piece vertically.
     (this.ctxP as any).drawImage(this.sprites.getSheet(), sx, sy, s128, s128, dx, dy, d, d);
   }
+
+  /**
+   * Draws all pieces onto the pieces canvas, handling dragging pieces separately.
+   */
   private _drawPieces() {
     const ctx = this.ctxP,
       W = this.cPieces.width,
@@ -289,15 +480,22 @@ export class NeoChessBoard {
         const p = this.state.board[r][f];
         if (!p) continue;
         const square = sq(f, r);
+        // Don't draw the piece if it's currently being dragged.
         if (draggingSq === square) continue;
         const { x, y } = this._sqToXY(square);
         this._drawPieceSprite(p, x, y, 1);
       }
+    // Draw the dragging piece last, slightly larger, to appear on top.
     if (this._dragging) {
       const { piece, x, y } = this._dragging;
       this._drawPieceSprite(piece, x - this.square / 2, y - this.square / 2, 1.05);
     }
   }
+
+  /**
+   * Draws the overlay elements such as last move highlights, selected square, legal moves, premoves, and arrows.
+   * Delegates to DrawingManager for modern drawing features.
+   */
   private _drawOverlay() {
     const ctx = this.ctxO,
       W = this.cOverlay.width,
@@ -305,7 +503,7 @@ export class NeoChessBoard {
     ctx.clearRect(0, 0, W, H);
     const s = this.square;
 
-    // Rendu des éléments classiques (lastMove, selected, etc.)
+    // Render classic elements (lastMove, selected, etc.)
     if (this._lastMove) {
       const { from, to } = this._lastMove;
       const A = this._sqToXY(from),
@@ -336,7 +534,7 @@ export class NeoChessBoard {
       }
     }
 
-    // Rendu classique des flèches anciennes (pour compatibilité)
+    // Render classic arrows (for compatibility)
     for (const a of this._arrows) {
       this._drawArrow(a.from, a.to, a.color || (this.theme as any).arrow);
     }
@@ -354,7 +552,7 @@ export class NeoChessBoard {
       ctx.fillRect(B.x, B.y, s, s);
     }
 
-    // Déléguer le rendu des nouveaux dessins au DrawingManager
+    // Delegate rendering of new drawings to DrawingManager
     if (this.drawingManager) {
       if (this.showArrows) {
         this.drawingManager.renderArrows();
@@ -370,12 +568,29 @@ export class NeoChessBoard {
       }
     }
   }
+
+  /**
+   * Draws an arrow between the center of two squares.
+   * @param from The starting square of the arrow.
+   * @param to The ending square of the arrow.
+   * @param color The color of the arrow.
+   */
   private _drawArrow(from: Square, to: Square, color: string) {
     const s = this.square;
     const A = this._sqToXY(from),
       B = this._sqToXY(to);
     this._drawArrowBetween(A.x + s / 2, A.y + s / 2, B.x + s / 2, B.y + s / 2, color);
   }
+
+  /**
+   * Draws an arrow between two pixel coordinates on the overlay canvas.
+   * This is a helper for `_drawArrow`.
+   * @param fromX Starting x-coordinate.
+   * @param fromY Starting y-coordinate.
+   * @param toX Ending x-coordinate.
+   * @param toY Ending y-coordinate.
+   * @param color The color of the arrow.
+   */
   private _drawArrowBetween(fromX: number, fromY: number, toX: number, toY: number, color: string) {
     const dx = toX - fromX,
       dy = toY - fromY;
@@ -383,8 +598,8 @@ export class NeoChessBoard {
     if (len < 1) return;
     const ux = dx / len,
       uy = dy / len;
-    const head = Math.min(16 * this.dpr, len * 0.25);
-    const thick = Math.max(6 * this.dpr, this.square * 0.08);
+    const head = Math.min(16 * this.dpr, len * 0.25); // Arrowhead size, capped at 16px or 25% of arrow length.
+    const thick = Math.max(6 * this.dpr, this.square * 0.08); // Arrow thickness, capped at 6px or 8% of square size.
     const ctx = this.ctxO;
     ctx.save();
     ctx.lineCap = 'round';
@@ -413,7 +628,7 @@ export class NeoChessBoard {
       if (!pt) return;
       if (!this.interactive) return;
 
-      // Gestion du clic droit pour les flèches (drag & drop)
+      // Handle right-click for arrows (drag & drop)
       if (e.button === 2) {
         e.preventDefault();
         if (
@@ -432,18 +647,18 @@ export class NeoChessBoard {
       if (!piece) return;
       const side = isWhitePiece(piece) ? 'w' : 'b';
 
-      // Si ce n'est pas le tour du joueur et que les premoves sont autorisés
+      // If it's not the player's turn and premoves are allowed
       if (side !== (this.state.turn as any) && this.allowPremoves) {
-        // Commencer un premove drag
+        // Start a premove drag
         this._selected = from;
-        this._legalCached = []; // Pas de validation légale pour les premoves
+        this._legalCached = []; // No legal validation for premoves
         this._dragging = { from, piece, x: pt.x, y: pt.y };
         this._hoverSq = from;
         this.renderAll();
         return;
       }
 
-      // Logique normale pour les mouvements du tour actuel
+      // Normal logic for current turn moves
       if (side !== (this.state.turn as any)) return;
       this._selected = from;
       this._legalCached = this.rules.movesFrom(from);
@@ -461,7 +676,7 @@ export class NeoChessBoard {
         return;
       }
 
-      // Déléguer à DrawingManager
+      // Delegate to DrawingManager
       if (this.drawingManager && this.drawingManager.handleMouseMove(pt.x, pt.y)) {
         this.renderAll();
       }
@@ -482,7 +697,7 @@ export class NeoChessBoard {
     const onUp = (e: PointerEvent) => {
       const pt = this._evt(e);
 
-      // Gestion du relâchement du clic droit pour les flèches
+      // Handle right-click release for arrows
       if (e.button === 2) {
         let handled = false;
 
@@ -490,16 +705,16 @@ export class NeoChessBoard {
           handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
         }
 
-        // Si aucune flèche n'a été créée et que c'était un simple clic
+        // If no arrow was created and it was just a simple click
         if (!handled && pt) {
-          // Vérifier s'il y a un premove actif et l'annuler
+          // Check if there's an active premove and cancel it
           if (this.drawingManager && this.drawingManager.getPremove()) {
             this.drawingManager.clearPremove();
-            this._premove = null; // Compatibilité
-            console.log('Premove annulé par clic droit');
+            this._premove = null; // Compatibility
+            console.log('Premove cancelled by right-click');
             handled = true;
           }
-          // Sinon, gérer les highlights avec modificateurs
+          // Otherwise, handle highlights with modifiers
           else if (this.rightClickHighlights) {
             const square = this._xyToSquare(pt.x, pt.y);
             if (this.drawingManager) {
@@ -512,7 +727,7 @@ export class NeoChessBoard {
         return;
       }
 
-      // Déléguer à DrawingManager pour les autres interactions
+      // Delegate to DrawingManager for other interactions
       if (this.drawingManager && this.drawingManager.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
         this.renderAll();
         return;
@@ -534,14 +749,14 @@ export class NeoChessBoard {
         return;
       }
 
-      // Vérifier si c'est un premove (pas le tour du joueur)
+      // Check if it's a premove (not the player's turn)
       const isPremove = side !== (this.state.turn as any) && this.allowPremoves;
 
       if (isPremove) {
-        // C'est un premove - le stocker sans l'exécuter
+        // It's a premove - store it without executing
         if (this.drawingManager) {
           this.drawingManager.setPremove(from, drop!);
-          // Effacer l'ancien premove dans _premove (compatibilité)
+          // Clear the old premove in _premove (compatibility)
           this._premove = { from, to: drop! };
         }
         this._selected = null;
@@ -550,7 +765,7 @@ export class NeoChessBoard {
         return;
       }
 
-      // Mouvement normal (c'est le tour du joueur)
+      // Normal move (it's the player's turn)
       const legal = this.rules.move({ from, to: drop! });
       if (legal && (legal as any).ok) {
         const fen = this.rules.getFEN();
@@ -561,22 +776,22 @@ export class NeoChessBoard {
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
 
-        // Effacer toutes les flèches après chaque coup joué
+        // Clear all arrows after each move played
         if (this.drawingManager) {
           this.drawingManager.clearArrows();
         }
 
-        // Jouer le son du mouvement
+        // Play the move sound
         this._playMoveSound();
 
         this._animateTo(next, old);
         this.bus.emit('move', { from, to: drop!, fen });
 
-        // Après avoir joué un coup, vérifier et exécuter le premove s'il y en a un
-        // Le faire après l'animation pour éviter les conflits
+        // After playing a move, check and execute the premove if there is one
+        // Do it after the animation to avoid conflicts
         setTimeout(() => {
           this._executePremoveIfValid();
-        }, this.animationMs + 50); // Attendre que l'animation soit terminée
+        }, this.animationMs + 50); // Wait for the animation to complete
       } else {
         this._selected = null;
         this._legalCached = null;
@@ -585,10 +800,10 @@ export class NeoChessBoard {
       }
     };
 
-    // Gestionnaire pour les touches clavier
+    // Keyboard event handler
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // Effacer toutes les sélections et dessins temporaires
+        // Clear all selections and temporary drawings
         this._selected = null;
         this._legalCached = null;
         this._dragging = null;
@@ -600,7 +815,7 @@ export class NeoChessBoard {
       }
     };
 
-    // Gestionnaire pour le menu contextuel (désactiver le clic droit)
+    // Context menu handler (disable right-click)
     const onContextMenu = (e: Event) => {
       if (this.rightClickHighlights) {
         e.preventDefault();
@@ -646,55 +861,87 @@ export class NeoChessBoard {
   }
 
   // ---- animation ----
+  /**
+   * Clears any ongoing animation frame request.
+   */
   private _clearAnim() {
     cancelAnimationFrame(this._raf);
     this._raf = 0;
   }
+
+  /**
+   * Animates piece movements from a starting board state to a target board state.
+   * @param target The target BoardState after the move.
+   * @param start The starting BoardState before the move.
+   */
   private _animateTo(target: any, start: any) {
     this._clearAnim();
     const startTime = performance.now();
     const dur = this.animationMs;
     const moving = new Map<string, string>();
+
+    // Identify pieces that have moved.
     for (let r = 0; r < 8; r++)
       for (let f = 0; f < 8; f++) {
-        const a = start.board[r][f];
-        const b = target.board[r][f];
+        const a = start.board[r][f]; // Piece at (r,f) in start state.
+        const b = target.board[r][f]; // Piece at (r,f) in target state.
+        // If there was a piece in the start state and it's either gone or changed in the target state,
+        // it means this piece has moved. Find its destination.
         if (a && (!b || a !== b)) {
           const to = this.findPiece(target.board, a, r, f, start.board);
           if (to) moving.set(sq(f, r), sq(to.f, to.r));
         }
       }
+
     const tick = () => {
+      // Calculate animation progress (t) and eased progress (e).
       const t = clamp((performance.now() - startTime) / dur, 0, 1);
       const e = easeOutCubic(t);
       const ctx = this.ctxP;
       ctx.clearRect(0, 0, this.cPieces.width, this.cPieces.height);
+
       for (let r = 0; r < 8; r++)
         for (let f = 0; f < 8; f++) {
           const targetPiece = target.board[r][f];
           if (!targetPiece) continue;
           const toSq = sq(f, r);
+          // Find if this piece is one of the moving pieces.
           const fromKey = [...moving.entries()].find(([from, to]) => to === toSq)?.[0];
+
           if (fromKey) {
+            // If it's a moving piece, interpolate its position.
             const { x: fx, y: fy } = this._sqToXY(fromKey as Square);
             const { x: tx, y: ty } = this._sqToXY(toSq as Square);
             const x = lerp(fx, tx, e),
               y = lerp(fy, ty, e);
             this._drawPieceSprite(targetPiece, x, y, 1);
           } else {
+            // If it's a stationary piece, draw it at its final position.
             const { x, y } = this._sqToXY(toSq as Square);
             this._drawPieceSprite(targetPiece, x, y, 1);
           }
         }
       this._drawOverlay();
+      // Continue animation if not finished.
       if (t < 1) this._raf = requestAnimationFrame(tick);
       else {
         this._raf = 0;
-        this.renderAll();
+        this.renderAll(); // Final render to ensure perfect state.
       }
     };
     this._raf = requestAnimationFrame(tick);
   }
+
+  /**
+   * Finds the new position of a piece after a move.
+   * This is a helper function for `_animateTo` to track piece movements.
+   * @param board The target board state.
+   * @param piece The piece to find.
+   * @param r0 Original row of the piece.
+   * @param f0 Original file of the piece.
+   * @param start The starting board state.
+   * @returns The new row and file of the piece, or null if not found.
+   */
   private findPiece(
     board: (string | null)[][],
     piece: string,
@@ -704,12 +951,19 @@ export class NeoChessBoard {
   ) {
     for (let r = 0; r < 8; r++)
       for (let f = 0; f < 8; f++) {
+        // Check if the piece exists in the target board at (r,f) and was not there in the start board at (r,f)
+        // This helps identify where a piece *moved to* rather than just where it *is*.
         if (board[r][f] === piece && start[r][f] !== piece) return { r, f };
       }
     return null;
   }
 
   // ---- Drawing methods ----
+  /**
+   * This method appears to be a remnant or is currently unused.
+   * It attempts to draw the board and pieces using the DrawingManager.
+   * @deprecated This method might be removed or refactored in future versions.
+   */
   private _draw() {
     if (!this.drawingManager) return;
 
@@ -733,41 +987,53 @@ export class NeoChessBoard {
   }
 
   // ---- Sound methods ----
-  // Remplacer la méthode _initializeSound() dans NeoChessBoard.ts
 
+  /**
+   * Initializes the audio element for move sounds if sound is enabled and a sound URL is provided.
+   * Handles potential loading errors silently.
+   */
   private _initializeSound() {
     if (!this.soundEnabled || typeof Audio === 'undefined' || !this.soundUrl) return;
 
     try {
       this.moveSound = new Audio(this.soundUrl);
-      this.moveSound.volume = 0.3; // Volume modéré
+      this.moveSound.volume = 0.3; // Moderate volume
       this.moveSound.preload = 'auto';
 
-      // Gérer les erreurs de chargement de manière silencieuse
+      // Handle loading errors silently
       this.moveSound.addEventListener('error', () => {
-        console.debug('Son non disponible');
+        console.debug('Sound not available');
       });
     } catch (error) {
-      console.warn('Impossible de charger le son de mouvement:', error);
+      console.warn('Unable to load move sound:', error);
       this.moveSound = null;
     }
   }
 
+  /**
+   * Plays the move sound if sound is enabled and the audio element is initialized.
+   * Catches and ignores playback errors (e.g., due to user interaction policies).
+   */
   private _playMoveSound() {
     if (!this.soundEnabled || !this.moveSound) return;
 
     try {
-      // Remettre le son au début et le jouer
+      // Reset sound to beginning and play
       this.moveSound.currentTime = 0;
       this.moveSound.play().catch((error) => {
-        // Ignorer les erreurs de lecture (par exemple si l'utilisateur n'a pas encore interagi avec la page)
-        console.debug('Son non joué:', error.message);
+        // Ignore playback errors (e.g., user hasn't interacted with page yet)
+        console.debug('Sound not played:', error.message);
       });
     } catch (error) {
-      console.debug('Erreur lors de la lecture du son:', error);
+      console.debug('Error playing sound:', error);
     }
   }
 
+  /**
+   * Enables or disables sound effects for moves.
+   * If enabling and sound is not yet initialized, it will attempt to initialize it.
+   * @param enabled True to enable sounds, false to disable.
+   */
   public setSoundEnabled(enabled: boolean) {
     this.soundEnabled = enabled;
     if (enabled && !this.moveSound) {
@@ -775,6 +1041,10 @@ export class NeoChessBoard {
     }
   }
 
+  /**
+   * Sets the board orientation.
+   * @param orientation The desired orientation ('white' or 'black').
+   */
   public setOrientation(orientation: 'white' | 'black') {
     this.orientation = orientation;
     if (this.drawingManager) {
@@ -783,16 +1053,29 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
+  /**
+   * Shows or hides arrows drawn on the board.
+   * @param show True to show arrows, false to hide them.
+   */
   public setShowArrows(show: boolean) {
     this.showArrows = show;
     this.renderAll();
   }
 
+  /**
+   * Shows or hides highlights on the board.
+   * @param show True to show highlights, false to hide them.
+   */
   public setShowHighlights(show: boolean) {
     this.showHighlights = show;
     this.renderAll();
   }
 
+  /**
+   * Enables or disables premoves.
+   * If premoves are disabled, any existing premove will be cleared.
+   * @param allow True to allow premoves, false to disallow.
+   */
   public setAllowPremoves(allow: boolean) {
     this.allowPremoves = allow;
     if (!allow) {
@@ -801,11 +1084,19 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
+  /**
+   * Enables or disables highlighting of legal moves for the selected piece.
+   * @param highlight True to highlight legal moves, false to disable.
+   */
   public setHighlightLegal(highlight: boolean) {
     this.highlightLegal = highlight;
     this.renderAll();
   }
 
+  /**
+   * Shows or hides square names (coordinates) on the board.
+   * @param show True to show square names, false to hide them.
+   */
   public setShowSquareNames(show: boolean) {
     this.showSquareNames = show;
     if (this.drawingManager) {
@@ -817,7 +1108,10 @@ export class NeoChessBoard {
   // ---- Private methods for premove execution ----
 
   /**
-   * Exécuter le premove s'il est valide après qu'un coup adverse ait été joué
+   * Attempts to execute a stored premove if it is valid in the current board position.
+   * This method is typically called after an opponent's move has been processed.
+   * If the premove is legal, it is executed after a short delay to allow for animation.
+   * If illegal, the premove is silently cleared.
    */
   private _executePremoveIfValid(): void {
     if (!this.allowPremoves || !this.drawingManager) return;
@@ -825,7 +1119,7 @@ export class NeoChessBoard {
     const premove = this.drawingManager.getPremove();
     if (!premove) return;
 
-    // Vérifier si le premove est légal dans la nouvelle position
+    // Check if the premove is legal in the new position
     const premoveResult = this.rules.move({
       from: premove.from,
       to: premove.to,
@@ -833,7 +1127,7 @@ export class NeoChessBoard {
     });
 
     if (premoveResult && (premoveResult as any).ok) {
-      // Le premove est légal, l'exécuter après un court délai
+      // The premove is legal, execute it after a short delay
       setTimeout(() => {
         const newFen = this.rules.getFEN();
         const newState = parseFEN(newFen);
@@ -842,21 +1136,21 @@ export class NeoChessBoard {
         this.state = newState;
         this._lastMove = { from: premove.from, to: premove.to };
 
-        // Effacer le premove et toutes les flèches
+        // Clear the premove and all arrows
         this.drawingManager?.clearPremove();
         this.drawingManager?.clearArrows();
-        this._premove = null;
+        this._premove = null; // Compatibility with old premove system
 
-        // Animer le mouvement du premove
+        // Animate the premove
         this._animateTo(newState, oldState);
 
-        // Émettre l'événement de mouvement
+        // Emit the move event
         this.bus.emit('move', { from: premove.from, to: premove.to, fen: newFen });
-      }, 150); // Délai légèrement plus long pour que l'animation du coup adverse se termine
+      }, 150); // Slightly longer delay to let the opponent's move animation complete
     } else {
-      // Le premove n'est pas légal, l'effacer silencieusement
+      // The premove is not legal, clear it silently
       this.drawingManager.clearPremove();
-      this._premove = null;
+      this._premove = null; // Compatibility with old premove system
       this.renderAll();
     }
   }
@@ -884,7 +1178,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Supprimer une flèche de l'échiquier
+   * Remove an arrow from the board
    */
   public removeArrow(from: Square, to: Square) {
     if (this.drawingManager) {
@@ -894,7 +1188,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Vider toutes les flèches
+   * Clear all arrows
    */
   public clearArrows() {
     if (this.drawingManager) {
@@ -923,7 +1217,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Supprimer un highlight d'une case
+   * Remove a highlight from a square
    */
   public removeHighlight(square: Square) {
     if (this.drawingManager) {
@@ -933,7 +1227,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Vider tous les highlights
+   * Clear all highlights
    */
   public clearHighlights() {
     if (this.drawingManager) {
@@ -943,7 +1237,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Définir un premove
+   * Set a premove
    */
   public setPremove(premove: Premove) {
     if (this.drawingManager && this.allowPremoves) {
@@ -953,7 +1247,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Effacer le premove actuel
+   * Clear the current premove
    */
   public clearPremove() {
     if (this.drawingManager) {
@@ -963,14 +1257,14 @@ export class NeoChessBoard {
   }
 
   /**
-   * Obtenir le premove actuel
+   * Get the current premove
    */
   public getPremove(): Premove | null {
     return this.drawingManager ? this.drawingManager.getPremove() || null : null;
   }
 
   /**
-   * Vider tous les dessins (flèches, highlights, premoves)
+   * Clear all drawings (arrows, highlights, premoves)
    */
   public clearAllDrawings() {
     if (this.drawingManager) {
@@ -980,14 +1274,14 @@ export class NeoChessBoard {
   }
 
   /**
-   * Exporter l'état des dessins
+   * Export the drawings state
    */
   public exportDrawings() {
     return this.drawingManager ? this.drawingManager.exportState() : null;
   }
 
   /**
-   * Importer l'état des dessins
+   * Import the drawings state
    */
   public importDrawings(state: any) {
     if (this.drawingManager) {
@@ -997,15 +1291,15 @@ export class NeoChessBoard {
   }
 
   /**
-   * Charger un PGN avec annotations visuelles
+   * Load a PGN with visual annotations
    */
   public loadPgnWithAnnotations(pgnString: string): boolean {
     try {
-      // D'abord charger le PGN normalement dans les règles
+      // First load the PGN normally in the rules
       const success = (this.rules as any).loadPgn ? (this.rules as any).loadPgn(pgnString) : false;
 
       if (success) {
-        // Puis extraire et afficher les annotations visuelles
+        // Then extract and display the visual annotations
         const pgnNotation = (this.rules as any).getPgnNotation
           ? (this.rules as any).getPgnNotation()
           : null;
@@ -1014,7 +1308,7 @@ export class NeoChessBoard {
           this.displayAnnotationsFromPgn(pgnNotation);
         }
 
-        // Mettre à jour l'état du board
+        // Update the board state
         this.state = parseFEN(this.rules.getFEN());
         this.renderAll();
         return true;
@@ -1022,22 +1316,22 @@ export class NeoChessBoard {
 
       return false;
     } catch (error) {
-      console.error('Erreur lors du chargement du PGN avec annotations:', error);
+      console.error('Error loading PGN with annotations:', error);
       return false;
     }
   }
 
   /**
-   * Afficher les annotations du dernier coup joué
+   * Display annotations from the last move played
    */
   private displayAnnotationsFromPgn(pgnNotation: any): void {
     if (!this.drawingManager) return;
 
-    // Effacer les annotations précédentes
+    // Clear previous annotations
     this.drawingManager.clearArrows();
     this.drawingManager.clearHighlights();
 
-    // Obtenir le dernier coup joué
+    // Get the last move played
     const moves = pgnNotation.getMovesWithAnnotations();
     if (moves.length === 0) return;
 
@@ -1048,26 +1342,26 @@ export class NeoChessBoard {
       0,
     );
 
-    // Déterminer quelles annotations afficher (du dernier coup effectué)
+    // Determine which annotations to display (from the last move played)
     let annotationsToShow: any = null;
 
     if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
-      // Le dernier coup était noir
+      // The last move was black
       annotationsToShow = lastMove.blackAnnotations;
     } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
-      // Le dernier coup était blanc
+      // The last move was white
       annotationsToShow = lastMove.whiteAnnotations;
     }
 
     if (annotationsToShow) {
-      // Afficher les flèches
+      // Display arrows
       if (annotationsToShow.arrows) {
         for (const arrow of annotationsToShow.arrows) {
           this.drawingManager.addArrowFromObject(arrow);
         }
       }
 
-      // Afficher les cercles
+      // Display circles
       if (annotationsToShow.circles) {
         for (const circle of annotationsToShow.circles) {
           this.drawingManager.addHighlightFromObject(circle);
@@ -1077,7 +1371,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Ajouter des annotations visuelles au coup actuel et les sauvegarder dans le PGN
+   * Add visual annotations to the current move and save them in the PGN
    */
   public addAnnotationsToCurrentMove(
     arrows: Arrow[] = [],
@@ -1086,19 +1380,19 @@ export class NeoChessBoard {
   ): void {
     if (!this.drawingManager) return;
 
-    // Obtenir la notation PGN si disponible
+    // Get the PGN notation if available
     const pgnNotation = (this.rules as any).getPgnNotation
       ? (this.rules as any).getPgnNotation()
       : null;
 
     if (pgnNotation) {
-      // Déterminer le numéro de coup et la couleur
+      // Determine the move number and color
       const moveHistory = this.rules.history ? this.rules.history() : [];
       const moveCount = moveHistory.length;
       const moveNumber = Math.floor(moveCount / 2) + 1;
       const isWhite = moveCount % 2 === 0;
 
-      // Ajouter les annotations au PGN
+      // Add annotations to the PGN
       pgnNotation.addMoveAnnotations(moveNumber, isWhite, {
         arrows,
         circles,
@@ -1106,7 +1400,7 @@ export class NeoChessBoard {
       });
     }
 
-    // Afficher immédiatement les annotations sur l'échiquier
+    // Display annotations immediately on the board
     for (const arrow of arrows) {
       this.drawingManager.addArrowFromObject(arrow);
     }
@@ -1119,7 +1413,7 @@ export class NeoChessBoard {
   }
 
   /**
-   * Exporter le PGN avec toutes les annotations visuelles
+   * Export the PGN with all visual annotations
    */
   public exportPgnWithAnnotations(): string {
     const pgnNotation = (this.rules as any).getPgnNotation
@@ -1130,7 +1424,7 @@ export class NeoChessBoard {
       return pgnNotation.toPgnWithAnnotations();
     }
 
-    // Fallback vers le PGN standard
+    // Fallback to standard PGN
     return (this.rules as any).toPgn ? (this.rules as any).toPgn() : '';
   }
 }

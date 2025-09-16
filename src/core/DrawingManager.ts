@@ -25,7 +25,7 @@ export class DrawingManager {
     altKey?: boolean;
   } = { type: 'none' };
 
-  // Couleurs par défaut pour les highlights
+  // Default colors for highlights
   private readonly HIGHLIGHT_COLORS = {
     green: 'rgba(34, 197, 94, 0.6)',
     red: 'rgba(239, 68, 68, 0.6)',
@@ -42,7 +42,7 @@ export class DrawingManager {
   }
 
   public updateDimensions(): void {
-    // Utiliser la vraie taille du canvas en pixels, pas la taille DOM
+    // Use the real canvas size in pixels, not the DOM size
     this.boardSize = Math.min(this.canvas.width, this.canvas.height);
     this.squareSize = this.boardSize / 8;
   }
@@ -55,7 +55,7 @@ export class DrawingManager {
     this.showSquareNames = show;
   }
 
-  // Gestion des flèches
+  // Arrow management
   public addArrow(
     fromOrArrow:
       | Square
@@ -136,7 +136,7 @@ export class DrawingManager {
     return [...this.state.arrows];
   }
 
-  // Gestion des highlights
+  // Highlight management
   public addHighlight(
     square: Square,
     type: HighlightType | string = 'green',
@@ -220,7 +220,7 @@ export class DrawingManager {
     return [...this.state.highlights];
   }
 
-  // Gestion des premoves
+  // Premove management
   public setPremove(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): void {
     this.state.premove = { from, to, promotion };
   }
@@ -233,7 +233,7 @@ export class DrawingManager {
     return this.state.premove;
   }
 
-  // Utilities pour les coordonnées
+  // Coordinate utilities
   public squareToCoords(square: Square): [number, number] {
     const file = square.charCodeAt(0) - 97; // 'a' = 0, 'b' = 1, etc.
     const rank = parseInt(square[1]) - 1; // '1' = 0, '2' = 1, etc.
@@ -266,7 +266,7 @@ export class DrawingManager {
     return `${fileChar}${rankChar}` as Square;
   }
 
-  // Détection des mouvements de cavalier
+  // Knight move detection
   private isKnightMove(from: Square, to: Square): boolean {
     const fromFile = from.charCodeAt(0) - 97; // 'a' = 0, 'b' = 1, etc.
     const fromRank = parseInt(from[1]) - 1; // '1' = 0, '2' = 1, etc.
@@ -276,11 +276,11 @@ export class DrawingManager {
     const dx = Math.abs(toFile - fromFile);
     const dy = Math.abs(toRank - fromRank);
 
-    // Un mouvement de cavalier est caractérisé par un mouvement de (1,2) ou (2,1)
+    // A knight's move is characterized by a (1,2) or (2,1) movement
     return (dx === 1 && dy === 2) || (dx === 2 && dy === 1);
   }
 
-  // Rendu des flèches
+  // Square names rendering
   public renderSquareNames(orientation: 'white' | 'black', square: number, dpr: number = 1): void {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) return;
@@ -289,19 +289,19 @@ export class DrawingManager {
     ctx.scale(dpr, dpr);
 
     const squareSize = this.squareSize / dpr;
-    const fontSize = Math.max(10, squareSize * 0.18); // Taille de police légèrement réduite
+    const fontSize = Math.max(10, squareSize * 0.18); // Slightly reduced font size
     const filePadding = squareSize * 0.1;
     const rankPadding = squareSize * 0.15;
 
-    // Style de police plus discret
+    // More subtle font style
     ctx.font = `500 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textBaseline = 'middle';
 
-    // Couleurs plus discrètes avec opacité
+    // More subtle colors with opacity
     const lightSquareColor = 'rgba(240, 217, 181, 0.7)';
     const darkSquareColor = 'rgba(181, 136, 99, 0.7)';
 
-    // Dessiner les lettres de colonne (a-h)
+    // Draw column letters (a-h)
     for (let file = 0; file < 8; file++) {
       const char = String.fromCharCode(97 + file); // a-h
       const x =
@@ -311,7 +311,7 @@ export class DrawingManager {
           ? this.canvas.height / dpr - filePadding
           : filePadding + fontSize / 2;
 
-      // Utiliser la bonne couleur en fonction de l'orientation et de la case
+      // Use the correct color based on orientation and square
       const isLightSquare = (file + (orientation === 'white' ? 7 : 0)) % 2 === 1;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
 
@@ -319,7 +319,7 @@ export class DrawingManager {
       ctx.fillText(char, x, y);
     }
 
-    // Dessiner les numéros de rangée (1-8)
+    // Draw rank numbers (1-8)
     for (let rank = 0; rank < 8; rank++) {
       const num = orientation === 'white' ? 8 - rank : rank + 1;
       const x = orientation === 'white' ? rankPadding : this.canvas.width / dpr - rankPadding;
@@ -327,7 +327,7 @@ export class DrawingManager {
         rank * squareSize +
         (orientation === 'white' ? squareSize - rankPadding : rankPadding + fontSize / 2);
 
-      // Utiliser la bonne couleur en fonction de l'orientation et de la case
+      // Use the correct color based on orientation and square
       const isLightSquare = (rank + (orientation === 'white' ? 1 : 0)) % 2 === 0;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
 
@@ -360,26 +360,26 @@ export class DrawingManager {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
 
-    // Centrer les coordonnées sur les cases
+    // Center coordinates on squares
     const centerFromX = fromX + this.squareSize / 2;
     const centerFromY = fromY + this.squareSize / 2;
     const centerToX = toX + this.squareSize / 2;
     const centerToY = toY + this.squareSize / 2;
 
-    // Calculer l'angle et la distance
+    // Calculate angle and distance
     const dx = centerToX - centerFromX;
     const dy = centerToY - centerFromY;
     const angle = Math.atan2(dy, dx);
     const length = Math.sqrt(dx * dx + dy * dy);
 
-    // Ajuster les points de début et fin pour ne pas chevaucher les pièces
+    // Adjust start and end points to avoid overlapping pieces
     const offset = this.squareSize * 0.25;
     const startX = centerFromX + Math.cos(angle) * offset;
     const startY = centerFromY + Math.sin(angle) * offset;
     const endX = centerToX - Math.cos(angle) * offset;
     const endY = centerToY - Math.sin(angle) * offset;
 
-    // Configuration du style
+    // Style configuration
     ctx.globalAlpha = arrow.opacity || 0.8;
     ctx.strokeStyle = arrow.color;
     ctx.fillStyle = arrow.color;
@@ -387,15 +387,15 @@ export class DrawingManager {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Dessiner la ligne
+    // Draw the line
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(endX, endY);
     ctx.stroke();
 
-    // Dessiner la pointe de la flèche
+    // Draw the arrowhead
     const arrowHeadSize = (arrow.width || 4) * 3;
-    const arrowAngle = Math.PI / 6; // 30 degrés
+    const arrowAngle = Math.PI / 6; // 30 degrees
 
     ctx.beginPath();
     ctx.moveTo(endX, endY);
@@ -415,33 +415,33 @@ export class DrawingManager {
     const [fromX, fromY] = this.squareToCoords(arrow.from);
     const [toX, toY] = this.squareToCoords(arrow.to);
 
-    // Centrer les coordonnées sur les cases
+    // Center coordinates on squares
     const centerFromX = fromX + this.squareSize / 2;
     const centerFromY = fromY + this.squareSize / 2;
     const centerToX = toX + this.squareSize / 2;
     const centerToY = toY + this.squareSize / 2;
 
-    // Calculer le mouvement du cavalier
+    // Calculate knight move
     const dx = centerToX - centerFromX;
     const dy = centerToY - centerFromY;
 
-    // Déterminer l'orientation du L (horizontal puis vertical ou vertical puis horizontal)
+    // Determine L-shape orientation (horizontal then vertical or vertical then horizontal)
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
     let cornerX: number, cornerY: number;
 
-    // Si le mouvement horizontal est plus grand, on va d'abord horizontalement
+    // If horizontal movement is greater, go horizontally first
     if (absDx > absDy) {
       cornerX = centerToX;
       cornerY = centerFromY;
     } else {
-      // Sinon, on va d'abord verticalement
+      // Otherwise, go vertically first
       cornerX = centerFromX;
       cornerY = centerToY;
     }
 
-    // Configuration du style
+    // Style configuration
     ctx.globalAlpha = arrow.opacity || 0.8;
     ctx.strokeStyle = arrow.color;
     ctx.fillStyle = arrow.color;
@@ -449,44 +449,44 @@ export class DrawingManager {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Ajustement pour éviter le chevauchement avec les pièces
+    // Adjustment to avoid overlapping with pieces
     const offset = this.squareSize * 0.2;
 
-    // Calculer les points de départ et d'arrivée ajustés
+    // Calculate adjusted start and end points
     let startX = centerFromX;
     let startY = centerFromY;
     let endX = centerToX;
     let endY = centerToY;
 
-    // Ajuster le point de départ
+    // Adjust start point
     if (absDx > absDy) {
-      // Premier segment horizontal
+      // First horizontal segment
       startX += dx > 0 ? offset : -offset;
       endX += dx > 0 ? -offset : offset;
     } else {
-      // Premier segment vertical
+      // First vertical segment
       startY += dy > 0 ? offset : -offset;
       endY += dy > 0 ? -offset : offset;
     }
 
-    // Dessiner le L avec deux segments
+    // Draw the L with two segments
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(cornerX, cornerY);
     ctx.lineTo(endX, endY);
     ctx.stroke();
 
-    // Dessiner la pointe de la flèche à la fin
+    // Draw the arrowhead at the end
     const arrowHeadSize = (arrow.width || 4) * 3;
-    const arrowAngle = Math.PI / 6; // 30 degrés
+    const arrowAngle = Math.PI / 6; // 30 degrees
 
-    // Calculer l'angle du dernier segment
+    // Calculate the angle of the last segment
     let finalAngle: number;
     if (absDx > absDy) {
-      // Le dernier segment est vertical
+      // The last segment is vertical
       finalAngle = dy > 0 ? Math.PI / 2 : -Math.PI / 2;
     } else {
-      // Le dernier segment est horizontal
+      // The last segment is horizontal
       finalAngle = dx > 0 ? 0 : Math.PI;
     }
 
@@ -504,7 +504,7 @@ export class DrawingManager {
     ctx.fill();
   }
 
-  // Rendu des highlights
+  // Highlight rendering
   public drawHighlights(ctx: CanvasRenderingContext2D): void {
     ctx.save();
 
@@ -531,7 +531,7 @@ export class DrawingManager {
     ctx.globalAlpha = highlight.opacity || 0.6;
     ctx.fillStyle = color;
 
-    // Dessiner un cercle au centre de la case
+    // Draw a circle in the center of the square
     const centerX = x + this.squareSize / 2;
     const centerY = y + this.squareSize / 2;
     const radius = this.squareSize * 0.15;
@@ -540,14 +540,14 @@ export class DrawingManager {
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.fill();
 
-    // Ajouter un contour
+    // Add an outline
     ctx.globalAlpha = (highlight.opacity || 0.6) * 1.5;
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.stroke();
   }
 
-  // Rendu du premove
+  // Premove rendering
   public drawPremove(ctx: CanvasRenderingContext2D): void {
     if (!this.state.premove) return;
 
@@ -556,11 +556,11 @@ export class DrawingManager {
     const [fromX, fromY] = this.squareToCoords(this.state.premove.from);
     const [toX, toY] = this.squareToCoords(this.state.premove.to);
 
-    // Style du premove (flèche en pointillés)
+    // Premove style (dashed arrow)
     ctx.globalAlpha = 0.7;
     ctx.strokeStyle = '#ff9800';
     ctx.lineWidth = 3;
-    // Utiliser setLineDash seulement si disponible (test environnements)
+    // Use setLineDash only if available (environment testing)
     if (ctx.setLineDash) {
       ctx.setLineDash([8, 4]);
     }
@@ -571,28 +571,28 @@ export class DrawingManager {
     const centerToX = toX + this.squareSize / 2;
     const centerToY = toY + this.squareSize / 2;
 
-    // Dessiner la ligne en pointillés
+    // Draw the dashed line
     ctx.beginPath();
     ctx.moveTo(centerFromX, centerFromY);
     ctx.lineTo(centerToX, centerToY);
     ctx.stroke();
 
-    // Dessiner les cases de départ et d'arrivée
+    // Draw the start and end squares
     if (ctx.setLineDash) {
       ctx.setLineDash([]);
     }
     ctx.fillStyle = 'rgba(255, 152, 0, 0.3)';
 
-    // Case de départ
+    // Start square
     ctx.fillRect(fromX, fromY, this.squareSize, this.squareSize);
 
-    // Case d'arrivée
+    // End square
     ctx.fillRect(toX, toY, this.squareSize, this.squareSize);
 
     ctx.restore();
   }
 
-  // Méthodes pour obtenir l'état complet
+  // Methods to get the complete state
   public getDrawingState(): DrawingState {
     return {
       arrows: [...this.state.arrows],
@@ -613,7 +613,7 @@ export class DrawingManager {
     }
   }
 
-  // Utilitaires pour les interactions
+  // Utilities for interactions
   public getSquareFromMousePosition(mouseX: number, mouseY: number): Square | null {
     const rect = this.canvas.getBoundingClientRect();
     const x = (mouseX - rect.left) * (this.canvas.width / rect.width);
@@ -626,7 +626,7 @@ export class DrawingManager {
     return this.coordsToSquare(x, y);
   }
 
-  // Cycle des couleurs de highlight au clic droit
+  // Cycle highlight colors on right-click
   public cycleHighlight(square: Square): void {
     const existingIndex = this.state.highlights.findIndex((h) => h.square === square);
 
@@ -637,20 +637,20 @@ export class DrawingManager {
       const nextTypeIndex = (currentTypeIndex + 1) % types.length;
 
       if (nextTypeIndex === 0) {
-        // Si on revient au vert après un cycle complet, supprimer le highlight
+        // If we return to green after a complete cycle, remove the highlight
         this.removeHighlight(square);
       } else {
         this.state.highlights[existingIndex].type = types[nextTypeIndex];
       }
     } else {
-      // Ajouter un nouveau highlight vert
+      // Add a new green highlight
       this.addHighlight(square, 'green');
     }
   }
 
-  // Rendu complet de tous les éléments
+  // Complete rendering of all elements
   public draw(ctx: CanvasRenderingContext2D): void {
-    // L'ordre est important pour la superposition correcte
+    // The order is important for correct layering
     this.drawHighlights(ctx);
     this.drawPremove(ctx);
     this.drawArrows(ctx);
@@ -659,7 +659,7 @@ export class DrawingManager {
     }
   }
 
-  // Vérifier si un point est près d'une flèche (pour suppression)
+  // Check if a point is near an arrow (for deletion)
   public getArrowAt(mouseX: number, mouseY: number, tolerance: number = 10): Arrow | null {
     const rect = this.canvas.getBoundingClientRect();
     const x = mouseX - rect.left;
@@ -683,7 +683,7 @@ export class DrawingManager {
     const centerToX = toX + this.squareSize / 2;
     const centerToY = toY + this.squareSize / 2;
 
-    // Calculer la distance du point à la ligne
+    // Calculate the distance from the point to the line
     const lineLength = Math.sqrt(
       Math.pow(centerToX - centerFromX, 2) + Math.pow(centerToY - centerFromY, 2),
     );
@@ -701,7 +701,7 @@ export class DrawingManager {
     return distance <= tolerance;
   }
 
-  // Export/Import pour la persistance
+  // Export/Import for persistence
   public exportState(): string {
     return JSON.stringify(this.state);
   }
@@ -715,10 +715,10 @@ export class DrawingManager {
     }
   }
 
-  // Méthodes d'interaction pour NeoChessBoard
+  // Interaction methods for NeoChessBoard
 
   public handleMouseDown(x: number, y: number, shiftKey: boolean, ctrlKey: boolean): boolean {
-    // Ne pas gérer le clic gauche ici, les flèches se font maintenant au clic droit
+    // Do not handle left-click here, arrows are now made with right-click
     return false;
   }
 
@@ -731,18 +731,18 @@ export class DrawingManager {
   ): boolean {
     const square = this.coordsToSquare(x, y);
 
-    // Commencer à dessiner une flèche au clic droit avec les modificateurs
+    // Start drawing an arrow on right-click with modifiers
     this.currentAction = { type: 'drawing_arrow', startSquare: square, shiftKey, ctrlKey, altKey };
     return true;
   }
 
   public handleMouseMove(x: number, y: number): boolean {
-    // Pour l'instant, ne rien faire pendant le mouvement
+    // For now, do nothing during movement
     return false;
   }
 
   public handleMouseUp(x: number, y: number): boolean {
-    // Cette méthode n'est plus utilisée pour les flèches (clic droit)
+    // This method is no longer used for arrows (right-click)
     this.currentAction = { type: 'none' };
     return false;
   }
@@ -751,17 +751,17 @@ export class DrawingManager {
     if (this.currentAction.type === 'drawing_arrow' && this.currentAction.startSquare) {
       const endSquare = this.coordsToSquare(x, y);
       if (endSquare !== this.currentAction.startSquare) {
-        // Déterminer la couleur selon les modificateurs
-        let color = '#ffeb3b'; // jaune par défaut
+        // Determine color based on modifiers
+        let color = '#ffeb3b'; // yellow by default
         if (this.currentAction.shiftKey) {
-          color = '#22c55e'; // vert
+          color = '#22c55e'; // green
         } else if (this.currentAction.ctrlKey) {
-          color = '#ef4444'; // rouge
+          color = '#ef4444'; // red
         } else if (this.currentAction.altKey) {
-          color = '#f59e0b'; // orange/jaune
+          color = '#f59e0b'; // orange/yellow
         }
 
-        // Vérifier s'il existe déjà une flèche identique (même from, to, et couleur)
+        // Check if an identical arrow already exists (same from, to, and color)
         const existingArrow = this.state.arrows.find(
           (arrow) =>
             arrow.from === this.currentAction.startSquare &&
@@ -770,10 +770,10 @@ export class DrawingManager {
         );
 
         if (existingArrow) {
-          // Supprimer la flèche identique
+          // Remove the identical arrow
           this.removeArrow(this.currentAction.startSquare, endSquare);
         } else {
-          // Ajouter ou remplacer la flèche avec la nouvelle couleur
+          // Add or replace the arrow with the new color
           this.addArrow(this.currentAction.startSquare, endSquare, color);
         }
 
@@ -793,7 +793,7 @@ export class DrawingManager {
     altKey: boolean = false,
   ): void {
     if (shiftKey || ctrlKey || altKey) {
-      // Avec modificateurs, appliquer directement la couleur correspondante
+      // With modifiers, apply the corresponding color directly
       let highlightType: HighlightType = 'green';
       if (shiftKey) {
         highlightType = 'green';
@@ -803,7 +803,7 @@ export class DrawingManager {
         highlightType = 'yellow';
       }
 
-      // Si un highlight existe déjà avec la même couleur, le supprimer
+      // If a highlight already exists with the same color, remove it
       const existing = this.state.highlights.find(
         (h) => h.square === square && h.type === highlightType,
       );
@@ -813,7 +813,7 @@ export class DrawingManager {
         this.addHighlight(square, highlightType);
       }
     } else {
-      // Sans modificateurs, conserver le comportement de cycle existant
+      // Without modifiers, keep the existing cycling behavior
       this.cycleHighlight(square);
     }
   }
@@ -832,7 +832,7 @@ export class DrawingManager {
     }
   }
 
-  // Méthodes avec signatures adaptées pour NeoChessBoard
+  // Methods with signatures adapted for NeoChessBoard
   public addArrowFromObject(arrow: Arrow): void {
     this.addArrow(arrow.from, arrow.to, arrow.color, arrow.width);
   }
