@@ -35,11 +35,7 @@ const ColorInput: React.FC<ColorInputProps> = ({ label, value, onChange, descrip
           className={styles.colorText}
           placeholder="#000000 or rgba(0,0,0,0.5)"
         />
-        <div
-          className={styles.colorSwatch}
-          style={{ backgroundColor: value }}
-          title={value}
-        />
+        <div className={styles.colorSwatch} style={{ backgroundColor: value }} title={value} />
       </div>
     </div>
   );
@@ -50,38 +46,96 @@ export const ThemeCreator: React.FC = () => {
   const [themeName, setThemeName] = useState('');
   const [savedThemes, setSavedThemes] = useState<Record<string, Theme>>({ ...THEMES });
 
-  const themeProperties = useMemo(() => [
-    { key: 'light' as keyof Theme, label: 'Light Squares', desc: 'Background color for light squares' },
-    { key: 'dark' as keyof Theme, label: 'Dark Squares', desc: 'Background color for dark squares' },
-    { key: 'boardBorder' as keyof Theme, label: 'Board Border', desc: 'Outer border around the board' },
-    { key: 'whitePiece' as keyof Theme, label: 'White Pieces', desc: 'Fill color for white pieces' },
-    { key: 'blackPiece' as keyof Theme, label: 'Black Pieces', desc: 'Fill color for black pieces' },
-    { key: 'pieceShadow' as keyof Theme, label: 'Piece Shadow', desc: 'Drop shadow under pieces' },
-    { key: 'pieceStroke' as keyof Theme, label: 'Piece Stroke', desc: 'Outline color for pieces (optional)' },
-    { key: 'pieceHighlight' as keyof Theme, label: 'Piece Highlight', desc: 'Highlight overlay on pieces (optional)' },
-    { key: 'moveFrom' as keyof Theme, label: 'Move From', desc: 'Highlight for move origin square' },
-    { key: 'moveTo' as keyof Theme, label: 'Move To', desc: 'Highlight for destination/legal moves' },
-    { key: 'lastMove' as keyof Theme, label: 'Last Move', desc: 'Overlay for most recent move' },
-    { key: 'premove' as keyof Theme, label: 'Premoves', desc: 'Highlight for premove indicators' },
-    { key: 'dot' as keyof Theme, label: 'Legal Move Dots', desc: 'Small circles for legal moves' },
-    { key: 'arrow' as keyof Theme, label: 'Arrows', desc: 'Default color for arrows' },
-    { key: 'squareNameColor' as keyof Theme, label: 'Square Names', desc: 'Color for coordinate labels' },
-  ], []);
+  const themeProperties = useMemo(
+    () => [
+      {
+        key: 'light' as keyof Theme,
+        label: 'Light Squares',
+        desc: 'Background color for light squares',
+      },
+      {
+        key: 'dark' as keyof Theme,
+        label: 'Dark Squares',
+        desc: 'Background color for dark squares',
+      },
+      {
+        key: 'boardBorder' as keyof Theme,
+        label: 'Board Border',
+        desc: 'Outer border around the board',
+      },
+      {
+        key: 'whitePiece' as keyof Theme,
+        label: 'White Pieces',
+        desc: 'Fill color for white pieces',
+      },
+      {
+        key: 'blackPiece' as keyof Theme,
+        label: 'Black Pieces',
+        desc: 'Fill color for black pieces',
+      },
+      {
+        key: 'pieceShadow' as keyof Theme,
+        label: 'Piece Shadow',
+        desc: 'Drop shadow under pieces',
+      },
+      {
+        key: 'pieceStroke' as keyof Theme,
+        label: 'Piece Stroke',
+        desc: 'Outline color for pieces (optional)',
+      },
+      {
+        key: 'pieceHighlight' as keyof Theme,
+        label: 'Piece Highlight',
+        desc: 'Highlight overlay on pieces (optional)',
+      },
+      {
+        key: 'moveFrom' as keyof Theme,
+        label: 'Move From',
+        desc: 'Highlight for move origin square',
+      },
+      {
+        key: 'moveTo' as keyof Theme,
+        label: 'Move To',
+        desc: 'Highlight for destination/legal moves',
+      },
+      { key: 'lastMove' as keyof Theme, label: 'Last Move', desc: 'Overlay for most recent move' },
+      {
+        key: 'premove' as keyof Theme,
+        label: 'Premoves',
+        desc: 'Highlight for premove indicators',
+      },
+      {
+        key: 'dot' as keyof Theme,
+        label: 'Legal Move Dots',
+        desc: 'Small circles for legal moves',
+      },
+      { key: 'arrow' as keyof Theme, label: 'Arrows', desc: 'Default color for arrows' },
+      {
+        key: 'squareNameColor' as keyof Theme,
+        label: 'Square Names',
+        desc: 'Color for coordinate labels',
+      },
+    ],
+    [],
+  );
 
   const updateThemeProperty = useCallback((key: keyof Theme, value: string) => {
-    setCurrentTheme(prev => ({
+    setCurrentTheme((prev) => ({
       ...prev,
       [key]: value,
     }));
   }, []);
 
-  const loadTheme = useCallback((themeName: string) => {
-    const theme = savedThemes[themeName];
-    if (theme) {
-      setCurrentTheme({ ...theme });
-      setThemeName(themeName);
-    }
-  }, [savedThemes]);
+  const loadTheme = useCallback(
+    (themeName: string) => {
+      const theme = savedThemes[themeName];
+      if (theme) {
+        setCurrentTheme({ ...theme });
+        setThemeName(themeName);
+      }
+    },
+    [savedThemes],
+  );
 
   const saveTheme = useCallback(() => {
     if (!themeName.trim()) {
@@ -90,7 +144,7 @@ export const ThemeCreator: React.FC = () => {
     }
 
     const normalized = registerTheme(themeName, currentTheme);
-    setSavedThemes(prev => ({
+    setSavedThemes((prev) => ({
       ...prev,
       [themeName]: normalized,
     }));
@@ -159,8 +213,10 @@ registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});
                 className={styles.themeSelect}
               >
                 <option value="">Select a theme...</option>
-                {Object.keys(savedThemes).map(name => (
-                  <option key={name} value={name}>{name}</option>
+                {Object.keys(savedThemes).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
               <input
@@ -201,12 +257,16 @@ registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});
             <h3 className={styles.sectionTitle}>Export Code</h3>
             <div className={styles.codeSection}>
               <pre className={styles.codeBlock}>
-{`const ${themeName || 'myTheme'} = ${JSON.stringify(currentTheme, null, 2)};
+                {`const ${themeName || 'myTheme'} = ${JSON.stringify(currentTheme, null, 2)};
 
 registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});`}
               </pre>
               <button
-                onClick={() => copyToClipboard(`const ${themeName || 'myTheme'} = ${JSON.stringify(currentTheme, null, 2)};\n\nregisterTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});`)}
+                onClick={() =>
+                  copyToClipboard(
+                    `const ${themeName || 'myTheme'} = ${JSON.stringify(currentTheme, null, 2)};\n\nregisterTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});`,
+                  )
+                }
                 className={`${styles.button} ${styles.buttonSecondary}`}
               >
                 Copy Code
@@ -231,7 +291,7 @@ registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});`}
                 width: 'min(80vmin, 600px)',
                 aspectRatio: '1/1',
                 border: '2px solid #ccc',
-                borderRadius: '8px'
+                borderRadius: '8px',
               }}
             />
           </div>
