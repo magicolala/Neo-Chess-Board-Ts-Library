@@ -949,8 +949,6 @@ export class DrawingManager {
   private _drawSquareNames(ctx: CanvasRenderingContext2D): void {
     ctx.save();
     ctx.font = `${Math.floor(this.squareSize * 0.18)}px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto`;
-    ctx.textBaseline = 'bottom';
-    ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
 
     for (let r = 0; r < 8; r++) {
@@ -958,23 +956,41 @@ export class DrawingManager {
         const square = this.coordsToSquare(f * this.squareSize, r * this.squareSize);
         const [x, y] = this.squareToCoords(square);
 
-        // Draw file names (a, b, c...) on the bottom rank
+        // Draw file names (a, b, c...)
         if (r === (this.orientation === 'white' ? 7 : 0)) {
+          // Bottom rank for white, top rank for black
           const file = this.orientation === 'white' ? FILES[f] : FILES[7 - f];
+          ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
+          ctx.textBaseline = this.orientation === 'white' ? 'bottom' : 'top';
           ctx.fillText(
             file,
-            x + this.squareSize * 0.06,
-            y + this.squareSize - this.squareSize * 0.06,
+            x +
+              (this.orientation === 'white'
+                ? this.squareSize * 0.06
+                : this.squareSize - this.squareSize * 0.06),
+            y +
+              (this.orientation === 'white'
+                ? this.squareSize - this.squareSize * 0.06
+                : this.squareSize * 0.06),
           );
         }
 
-        // Draw rank names (1, 2, 3...) on the left file
+        // Draw rank names (1, 2, 3...)
         if (f === (this.orientation === 'white' ? 0 : 7)) {
+          // Left file for white, right file for black
           const rank = this.orientation === 'white' ? RANKS[7 - r] : RANKS[r];
+          ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
+          ctx.textBaseline = this.orientation === 'white' ? 'top' : 'bottom';
           ctx.fillText(
             rank,
-            x + this.squareSize * 0.06,
-            y + this.squareSize * 0.06 + Math.floor(this.squareSize * 0.18),
+            x +
+              (this.orientation === 'white'
+                ? this.squareSize * 0.06
+                : this.squareSize - this.squareSize * 0.06),
+            y +
+              (this.orientation === 'white'
+                ? this.squareSize * 0.06
+                : this.squareSize - this.squareSize * 0.06),
           );
         }
       }
