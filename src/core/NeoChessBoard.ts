@@ -10,7 +10,8 @@ import {
   lerp,
   easeOutCubic,
 } from './utils';
-import { THEMES } from './themes';
+import { resolveTheme } from './themes';
+import type { ThemeName } from './themes';
 import { FlatSprites } from './FlatSprites';
 import { LightRules } from './LightRules';
 import { ChessJsRules } from './ChessJsRules';
@@ -24,6 +25,7 @@ import type {
   SquareHighlight,
   HighlightType,
   Premove,
+  Theme,
 } from './types';
 
 interface BoardState {
@@ -61,7 +63,7 @@ export class NeoChessBoard {
   /**
    * The current visual theme applied to the board.
    */
-  private theme: any;
+  private theme: Theme;
   /**
    * The orientation of the board ('white' or 'black' at the bottom).
    */
@@ -216,7 +218,8 @@ export class NeoChessBoard {
    */
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
-    this.theme = THEMES[options.theme || 'classic'];
+    const initialTheme = options.theme ?? ('classic' as ThemeName);
+    this.theme = resolveTheme(initialTheme);
     this.orientation = options.orientation || 'white';
     this.interactive = options.interactive !== false;
     this.showCoords = options.showCoordinates || false;
@@ -286,10 +289,18 @@ export class NeoChessBoard {
 
   /**
    * Sets the visual theme of the board.
-   * @param themeName The name of the theme to apply (e.g., 'classic', 'dark').
+   * @param theme Theme name or object to apply.
    */
-  public setTheme(themeName: string) {
-    this.theme = THEMES[themeName] || THEMES['classic'];
+  public setTheme(theme: ThemeName | Theme) {
+    this.applyTheme(theme);
+  }
+
+  /**
+   * Applies a theme object directly, normalizing it and re-rendering the board.
+   * @param theme Theme name or object to apply.
+   */
+  public applyTheme(theme: ThemeName | Theme) {
+    this.theme = resolveTheme(theme);
     this._rasterize();
     this.renderAll();
   }
@@ -397,7 +408,7 @@ export class NeoChessBoard {
    * This is called when the theme changes or on initial setup.
    */
   private _rasterize() {
-    this.sprites = new FlatSprites(128, this.theme as any);
+    this.sprites = new FlatSprites(128, this.theme);
   }
 
   /**
@@ -432,7 +443,7 @@ export class NeoChessBoard {
       s = this.square,
       W = this.cBoard.width,
       H = this.cBoard.height;
-    const { light, dark, boardBorder } = this.theme as any;
+    const { light, dark, boardBorder } = this.theme;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = boardBorder;
     ctx.fillRect(0, 0, W, H);
@@ -508,12 +519,12 @@ export class NeoChessBoard {
       const { from, to } = this._lastMove;
       const A = this._sqToXY(from),
         B = this._sqToXY(to);
-      ctx.fillStyle = (this.theme as any).lastMove;
+      ctx.fillStyle = this.theme.lastMove;
       ctx.fillRect(A.x, A.y, s, s);
       ctx.fillRect(B.x, B.y, s, s);
     }
     if (this._customHighlights?.squares) {
-      ctx.fillStyle = (this.theme as any).moveTo;
+      ctx.fillStyle = this.theme.moveTo;
       for (const sqr of this._customHighlights.squares) {
         const B = this._sqToXY(sqr);
         ctx.fillRect(B.x, B.y, s, s);
@@ -521,10 +532,10 @@ export class NeoChessBoard {
     }
     if (this._selected) {
       const A = this._sqToXY(this._selected);
-      ctx.fillStyle = (this.theme as any).moveFrom;
+      ctx.fillStyle = this.theme.moveFrom;
       ctx.fillRect(A.x, A.y, s, s);
       if (this.highlightLegal && this._legalCached) {
-        ctx.fillStyle = (this.theme as any).dot;
+        ctx.fillStyle = this.theme.dot;
         for (const m of this._legalCached) {
           const B = this._sqToXY(m.to);
           ctx.beginPath();
@@ -536,19 +547,19 @@ export class NeoChessBoard {
 
     // Render classic arrows (for compatibility)
     for (const a of this._arrows) {
-      this._drawArrow(a.from, a.to, a.color || (this.theme as any).arrow);
+      this._drawArrow(a.from, a.to, a.color || this.theme.arrow);
     }
 
     if (this._premove) {
       const A = this._sqToXY(this._premove.from),
         B = this._sqToXY(this._premove.to);
-      ctx.fillStyle = (this.theme as any).premove;
+      ctx.fillStyle = this.theme.premove;
       ctx.fillRect(A.x, A.y, s, s);
       ctx.fillRect(B.x, B.y, s, s);
     }
     if (this._hoverSq && this._dragging) {
       const B = this._sqToXY(this._hoverSq);
-      ctx.fillStyle = (this.theme as any).moveTo;
+      ctx.fillStyle = this.theme.moveTo;
       ctx.fillRect(B.x, B.y, s, s);
     }
 

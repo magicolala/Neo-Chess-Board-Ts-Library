@@ -39,7 +39,11 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
           boardRef.current.setFEN(fen);
         }
         if (opts.theme !== undefined) {
-          boardRef.current.setTheme(opts.theme as string);
+          if (typeof opts.theme === 'string') {
+            boardRef.current.setTheme(opts.theme);
+          } else {
+            boardRef.current.applyTheme(opts.theme);
+          }
         }
         if (opts.soundEnabled !== undefined) {
           boardRef.current.setSoundEnabled(opts.soundEnabled);

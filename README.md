@@ -117,6 +117,8 @@ Neo Chess Board comes with beautiful built-in themes:
 <NeoChessBoard theme="classic" />
 ```
 
+To define your own presets, call `registerTheme('sunset', customTheme)` once during initialization. Custom theme objects can also be passed directly to the constructor, `setTheme`, or the React component.
+
 ## 📖 Documentation
 
 ### Core Components
@@ -126,7 +128,7 @@ Neo Chess Board comes with beautiful built-in themes:
 ```typescript
 interface NeoChessProps {
   fen?: string; // Chess position in FEN notation
-  theme?: 'classic' | 'midnight'; // Visual theme
+  theme?: ThemeName | Theme; // Built-in theme name or custom object
   orientation?: 'white' | 'black'; // Board orientation
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
@@ -252,19 +254,25 @@ function ChessGame() {
 ### Custom Themes
 
 ```typescript
-import { NeoChessBoard, THEMES } from 'neochessboard';
+import { NeoChessBoard, THEMES, registerTheme } from 'neochessboard';
 
-// Extend existing theme
+// Extend an existing preset
 const customTheme = {
   ...THEMES.midnight,
   moveFrom: 'rgba(255, 215, 0, 0.6)', // Golden highlight
   moveTo: 'rgba(0, 255, 127, 0.4)', // Spring green
 };
 
-// Apply custom theme
+// Optionally register the theme under a name for reuse
+registerTheme('sunset', customTheme);
+
 const board = new NeoChessBoard(element, {
+  // Direct object support
   theme: customTheme,
 });
+
+// Or later by name after registration
+board.setTheme('sunset');
 ```
 
 ### Integration with Chess.js
@@ -339,7 +347,7 @@ interface NeoChessProps {
   rulesAdapter?: RulesAdapter; // Custom rules engine
 
   // Visual Appearance
-  theme?: 'classic' | 'midnight'; // Built-in themes
+  theme?: ThemeName | Theme; // Built-in theme name or custom object
   orientation?: 'white' | 'black'; // Board flip
   showCoordinates?: boolean; // A-H, 1-8 labels
 
