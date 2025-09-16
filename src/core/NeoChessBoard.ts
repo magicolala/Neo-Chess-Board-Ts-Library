@@ -452,7 +452,12 @@ export class NeoChessBoard {
 
     const onMove = (e: PointerEvent) => {
       const pt = this._evt(e);
-      if (!pt) return;
+      if (!pt) {
+        if (this.interactive) {
+          this.cOverlay.style.cursor = 'default';
+        }
+        return;
+      }
 
       // Déléguer à DrawingManager
       if (this.drawingManager && this.drawingManager.handleMouseMove(pt.x, pt.y)) {
@@ -465,6 +470,10 @@ export class NeoChessBoard {
         this._hoverSq = this._xyToSquare(pt.x, pt.y);
         this._drawPieces();
         this._drawOverlay();
+      } else if (this.interactive) {
+        const sq = this._xyToSquare(pt.x, pt.y);
+        const piece = this._pieceAt(sq);
+        this.cOverlay.style.cursor = piece ? 'pointer' : 'default';
       }
     };
 
