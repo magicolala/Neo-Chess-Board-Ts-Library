@@ -774,6 +774,45 @@ export class NeoChessBoard {
     }
   }
 
+  public setOrientation(orientation: 'white' | 'black') {
+    this.orientation = orientation;
+    if (this.drawingManager) {
+      this.drawingManager.setOrientation(orientation);
+    }
+    this.renderAll();
+  }
+
+  public setShowArrows(show: boolean) {
+    this.showArrows = show;
+    this.renderAll();
+  }
+
+  public setShowHighlights(show: boolean) {
+    this.showHighlights = show;
+    this.renderAll();
+  }
+
+  public setAllowPremoves(allow: boolean) {
+    this.allowPremoves = allow;
+    if (!allow) {
+      this.clearPremove();
+    }
+    this.renderAll();
+  }
+
+  public setHighlightLegal(highlight: boolean) {
+    this.highlightLegal = highlight;
+    this.renderAll();
+  }
+
+  public setShowSquareNames(show: boolean) {
+    this.showSquareNames = show;
+    if (this.drawingManager) {
+      this.drawingManager.setShowSquareNames(show);
+    }
+    this.renderAll();
+  }
+
   // ---- Private methods for premove execution ----
 
   /**

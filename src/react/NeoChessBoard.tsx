@@ -44,8 +44,24 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         if (opts.soundEnabled !== undefined) {
           boardRef.current.setSoundEnabled(opts.soundEnabled);
         }
-        // Other options like interactive, showCoordinates, etc., are not designed to be changed after initialization.
-        // If they need to be changed, the board instance would need to be re-created.
+        if (opts.orientation !== undefined) {
+          boardRef.current.setOrientation(opts.orientation);
+        }
+        if (opts.showArrows !== undefined) {
+          boardRef.current.setShowArrows(opts.showArrows);
+        }
+        if (opts.showHighlights !== undefined) {
+          boardRef.current.setShowHighlights(opts.showHighlights);
+        }
+        if (opts.allowPremoves !== undefined) {
+          boardRef.current.setAllowPremoves(opts.allowPremoves);
+        }
+        if (opts.highlightLegal !== undefined) {
+          boardRef.current.setHighlightLegal(opts.highlightLegal);
+        }
+        if (opts.showSquareNames !== undefined) {
+          boardRef.current.setShowSquareNames(opts.showSquareNames);
+        }
       }
 
       const off1 = boardRef.current.on('move', (e) => onMove?.(e));
