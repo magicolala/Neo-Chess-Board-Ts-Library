@@ -49,7 +49,6 @@ export class FlatSprites {
     const ctx = c.getContext('2d')!;
     if (!ctx) throw new Error('Could not get 2D context');
 
-    // retina scaling
     ctx.scale(this.dpr, this.dpr);
 
     const order = ['k', 'q', 'r', 'b', 'n', 'p'] as const;
@@ -66,28 +65,27 @@ export class FlatSprites {
     const shadowColor = this.colors.pieceShadow ?? 'rgba(0,0,0,0.2)';
     const highlight = this.colors.pieceHighlight ?? 'rgba(255,255,255,0.55)';
 
-    // subtle vertical gradient for volume
-    const canvasCtx = ctx as CanvasRenderingContext2D;
     const grd = (c: string) => {
-      const g = canvasCtx.createLinearGradient(0, s * 0.08, 0, s * 0.92);
-      const lightMix = color === 'white' ? 0.22 : 0.14;
-      const darkMix = color === 'white' ? 0.2 : 0.28;
-      g.addColorStop(0, this.mix(c, '#ffffff', lightMix));
-      g.addColorStop(0.45, c);
-      g.addColorStop(1, this.mix(c, '#000000', darkMix));
+      const g = (ctx as CanvasRenderingContext2D).createLinearGradient(
+        0,
+        y + s * 0.1,
+        0,
+        y + s * 0.85,
+      );
+      g.addColorStop(0, this.mix(c, '#ffffff', 0.12));
+      g.addColorStop(0.5, c);
+      g.addColorStop(1, this.mix(c, '#000000', 0.1));
       return g;
     };
 
     ctx.save();
     ctx.translate(x, y);
 
-    // soft ground shadow
     ctx.fillStyle = shadowColor;
     ctx.beginPath();
     ctx.ellipse(s * 0.5, s * 0.86, s * 0.36, s * 0.11, 0, 0, 2 * Math.PI);
     ctx.fill();
 
-    // piece shape
     const path = new Path2D();
     switch (type) {
       case 'p':
@@ -110,151 +108,135 @@ export class FlatSprites {
         break;
     }
 
-    // fill + outline
-    canvasCtx.fillStyle = grd(base);
-    canvasCtx.strokeStyle = stroke;
-    canvasCtx.lineWidth = Math.max(1, s * 0.03);
-    canvasCtx.lineJoin = 'round';
-    canvasCtx.lineCap = 'round';
-    canvasCtx.fill(path);
-    canvasCtx.stroke(path);
+    (ctx as CanvasRenderingContext2D).fillStyle = grd(base);
+    (ctx as CanvasRenderingContext2D).strokeStyle = stroke;
+    (ctx as CanvasRenderingContext2D).lineWidth = Math.max(1, s * 0.03);
+    (ctx as CanvasRenderingContext2D).lineJoin = 'round';
+    (ctx as CanvasRenderingContext2D).lineCap = 'round';
+    (ctx as CanvasRenderingContext2D).fill(path);
+    (ctx as CanvasRenderingContext2D).stroke(path);
 
-    // top highlight
     ctx.save();
-    canvasCtx.globalCompositeOperation = 'lighter';
-    if (typeof canvasCtx.createRadialGradient === 'function') {
-      const sheen = canvasCtx.createRadialGradient(s * 0.5, s * 0.28, 0, s * 0.5, s * 0.28, s * 0.32);
-      sheen.addColorStop(0, highlight);
-      sheen.addColorStop(1, 'rgba(255,255,255,0)');
-      canvasCtx.fillStyle = sheen;
-    } else {
-      // Fallback for environments that don't support createRadialGradient on OffscreenCanvas
-      canvasCtx.fillStyle = highlight;
-    }
+    (ctx as CanvasRenderingContext2D).globalCompositeOperation = 'lighter';
+    (ctx as CanvasRenderingContext2D).fillStyle = highlight;
     const hl = new Path2D();
-    hl.ellipse(s * 0.5, s * 0.28, s * 0.26, s * 0.1, 0.15, 0, Math.PI * 2);
-    canvasCtx.fill(hl);
-    ctx.restore();
-
-    // lower body shadow for extra depth
-    ctx.save();
-    canvasCtx.globalCompositeOperation = 'multiply';
-    canvasCtx.globalAlpha = 0.35;
-    canvasCtx.fillStyle = this.mix(base, '#000000', 0.25);
-    const baseShade = new Path2D();
-    baseShade.moveTo(s * 0.25, s * 0.62);
-    baseShade.quadraticCurveTo(s * 0.5, s * 0.78, s * 0.75, s * 0.62);
-    baseShade.quadraticCurveTo(s * 0.5, s * 0.88, s * 0.25, s * 0.62);
-    baseShade.closePath();
-    canvasCtx.fill(baseShade);
+    hl.ellipse(s * 0.5, s * 0.28, s * 0.22, s * 0.08, 0.1, 0, Math.PI * 2);
+    (ctx as CanvasRenderingContext2D).fill(hl);
     ctx.restore();
 
     ctx.restore();
   }
 
-  // ====== PATHS (proportions modernisées) ======
+  // ====== PATHS (Style "Élégance Moderne") ======
 
   private pathBase(p: Path2D, s: number) {
-    // base double socle
     const b = new Path2D();
-    b.moveTo(s * 0.18, s * 0.78);
-    b.quadraticCurveTo(s * 0.5, s * 0.93, s * 0.82, s * 0.78);
-    b.lineTo(s * 0.82, s * 0.83);
-    b.quadraticCurveTo(s * 0.5, s * 0.96, s * 0.18, s * 0.83);
+    b.moveTo(s * 0.15, s * 0.8);
+    b.quadraticCurveTo(s * 0.5, s * 0.98, s * 0.85, s * 0.8);
     b.closePath();
     p.addPath(b);
   }
 
   private pathPawn(p: Path2D, s: number) {
-    // tête
-    p.moveTo(s * 0.5, s * 0.2);
-    p.arc(s * 0.5, s * 0.32, s * 0.11, 0, 2 * Math.PI);
-    // col + buste
-    p.moveTo(s * 0.32, s * 0.78);
-    p.quadraticCurveTo(s * 0.33, s * 0.52, s * 0.5, s * 0.48);
-    p.quadraticCurveTo(s * 0.67, s * 0.52, s * 0.68, s * 0.78);
+    // Tête sphérique bien définie et col marqué
+    p.arc(s * 0.5, s * 0.3, s * 0.18, 0, 2 * Math.PI);
+    p.moveTo(s * 0.3, s * 0.8);
+    p.quadraticCurveTo(s * 0.3, s * 0.6, s * 0.4, s * 0.45); // Épaule
+    p.lineTo(s * 0.6, s * 0.45); // Col
+    p.quadraticCurveTo(s * 0.7, s * 0.6, s * 0.7, s * 0.8); // Épaule opposée
     p.closePath();
     this.pathBase(p, s);
   }
 
   private pathRook(p: Path2D, s: number) {
-    // tour avec fût légèrement galbé
-    p.moveTo(s * 0.3, s * 0.72);
-    p.lineTo(s * 0.3, s * 0.36);
-    // créneaux
-    p.lineTo(s * 0.38, s * 0.28);
-    p.lineTo(s * 0.45, s * 0.28);
-    p.lineTo(s * 0.45, s * 0.22);
-    p.lineTo(s * 0.55, s * 0.22);
-    p.lineTo(s * 0.55, s * 0.28);
-    p.lineTo(s * 0.62, s * 0.28);
-    p.lineTo(s * 0.7, s * 0.36);
-    p.lineTo(s * 0.7, s * 0.72);
-    p.quadraticCurveTo(s * 0.5, s * 0.76, s * 0.3, s * 0.72);
+    // Base large, sommet évasé pour une allure de forteresse
+    p.moveTo(s * 0.25, s * 0.8);
+    p.lineTo(s * 0.3, s * 0.35);
+    // Créneaux plus marqués
+    p.lineTo(s * 0.2, s * 0.35);
+    p.lineTo(s * 0.2, s * 0.15);
+    p.lineTo(s * 0.4, s * 0.15);
+    p.lineTo(s * 0.4, s * 0.25);
+    p.lineTo(s * 0.6, s * 0.25);
+    p.lineTo(s * 0.6, s * 0.15);
+    p.lineTo(s * 0.8, s * 0.15);
+    p.lineTo(s * 0.8, s * 0.35);
+    p.lineTo(s * 0.7, s * 0.35);
+    p.lineTo(s * 0.75, s * 0.8);
     p.closePath();
     this.pathBase(p, s);
   }
 
   private pathKnight(p: Path2D, s: number) {
-    // cheval stylisé, museau net
-    p.moveTo(s * 0.28, s * 0.78);
-    p.quadraticCurveTo(s * 0.32, s * 0.52, s * 0.45, s * 0.42);
-    p.quadraticCurveTo(s * 0.6, s * 0.34, s * 0.62, s * 0.26);
-    p.quadraticCurveTo(s * 0.55, s * 0.26, s * 0.5, s * 0.29);
-    p.quadraticCurveTo(s * 0.46, s * 0.24, s * 0.52, s * 0.2);
-    p.quadraticCurveTo(s * 0.72, s * 0.22, s * 0.7, s * 0.42);
-    p.quadraticCurveTo(s * 0.68, s * 0.56, s * 0.75, s * 0.78);
-    p.quadraticCurveTo(s * 0.52, s * 0.82, s * 0.28, s * 0.78);
+    // Silhouette équine plus détaillée et dynamique
+    p.moveTo(s * 0.2, s * 0.8);
+    p.lineTo(s * 0.3, s * 0.55);
+    p.quadraticCurveTo(s * 0.25, s * 0.3, s * 0.4, s * 0.2); // Museau
+    p.quadraticCurveTo(s * 0.6, s * 0.15, s * 0.65, s * 0.3); // Crinière
+    p.lineTo(s * 0.75, s * 0.25); // Oreille
+    p.lineTo(s * 0.7, s * 0.4);
+    p.quadraticCurveTo(s * 0.8, s * 0.6, s * 0.75, s * 0.8); // Poitrail
     p.closePath();
     this.pathBase(p, s);
-    // œil (petite découpe)
-    // traité par le stroke/outline, pas de trou pour rester simple
   }
 
   private pathBishop(p: Path2D, s: number) {
-    // silhouette en goutte + entaille
-    p.moveTo(s * 0.5, s * 0.22);
-    p.quadraticCurveTo(s * 0.66, s * 0.36, s * 0.64, s * 0.56);
-    p.quadraticCurveTo(s * 0.62, s * 0.7, s * 0.72, s * 0.78);
-    p.lineTo(s * 0.28, s * 0.78);
-    p.quadraticCurveTo(s * 0.38, s * 0.7, s * 0.36, s * 0.56);
-    p.quadraticCurveTo(s * 0.34, s * 0.36, s * 0.5, s * 0.22);
+    // Corps élancé et fente de la mitre bien visible
+    p.moveTo(s * 0.5, s * 0.15); // Pointe
+    p.quadraticCurveTo(s * 0.8, s * 0.4, s * 0.7, s * 0.8); // Côté droit
+    p.lineTo(s * 0.3, s * 0.8); // Base
+    p.quadraticCurveTo(s * 0.2, s * 0.4, s * 0.5, s * 0.15); // Côté gauche
     p.closePath();
+    // Fente (miter cut)
+    const cut = new Path2D();
+    cut.moveTo(s * 0.5, s * 0.15);
+    cut.quadraticCurveTo(s * 0.4, s * 0.35, s * 0.5, s * 0.5);
+    cut.quadraticCurveTo(s * 0.6, s * 0.35, s * 0.5, s * 0.15);
+    p.addPath(cut);
     this.pathBase(p, s);
-    // entaille visuelle dessinée par highlight (voir draw)
   }
 
   private pathQueen(p: Path2D, s: number) {
-    // couronne plus élégante
-    p.moveTo(s * 0.26, s * 0.32);
-    p.lineTo(s * 0.36, s * 0.18);
-    p.lineTo(s * 0.48, s * 0.26);
-    p.lineTo(s * 0.6, s * 0.18);
-    p.lineTo(s * 0.7, s * 0.32);
-    p.quadraticCurveTo(s * 0.86, s * 0.62, s * 0.7, s * 0.78);
-    p.lineTo(s * 0.3, s * 0.78);
-    p.quadraticCurveTo(s * 0.14, s * 0.62, s * 0.26, s * 0.32);
+    // Silhouette cintrée et couronne à pointes acérées
+    p.moveTo(s * 0.2, s * 0.8);
+    p.quadraticCurveTo(s * 0.45, s * 0.4, s * 0.35, s * 0.35);
+    // Couronne
+    p.lineTo(s * 0.25, s * 0.2);
+    p.lineTo(s * 0.4, s * 0.28);
+    p.lineTo(s * 0.5, s * 0.1);
+    p.lineTo(s * 0.6, s * 0.28);
+    p.lineTo(s * 0.75, s * 0.2);
+    p.lineTo(s * 0.65, s * 0.35);
+    p.quadraticCurveTo(s * 0.55, s * 0.4, s * 0.8, s * 0.8);
     p.closePath();
     this.pathBase(p, s);
   }
 
   private pathKing(p: Path2D, s: number) {
-    // croix intégrée + tronc noble
-    // corps
-    p.moveTo(s * 0.3, s * 0.78);
-    p.quadraticCurveTo(s * 0.22, s * 0.5, s * 0.42, s * 0.32);
-    p.lineTo(s * 0.58, s * 0.32);
-    p.quadraticCurveTo(s * 0.78, s * 0.5, s * 0.7, s * 0.78);
+    // Stature la plus haute, avec une croix pattée distincte
+    p.moveTo(s * 0.25, s * 0.8);
+    p.quadraticCurveTo(s * 0.45, s * 0.5, s * 0.4, s * 0.3); // Corps cintré
+    p.lineTo(s * 0.6, s * 0.3);
+    p.quadraticCurveTo(s * 0.55, s * 0.5, s * 0.75, s * 0.8);
     p.closePath();
-    // croix
+    // Croix pattée (évasée)
     const cross = new Path2D();
-    cross.rect(s * 0.47, s * 0.12, s * 0.06, s * 0.18);
-    cross.rect(s * 0.4, s * 0.18, s * 0.2, s * 0.06);
+    cross.moveTo(s * 0.45, s * 0.25);
+    cross.lineTo(s * 0.4, s * 0.1); // Pointe haut-gauche
+    cross.lineTo(s * 0.6, s * 0.1); // Pointe haut-droite
+    cross.lineTo(s * 0.55, s * 0.25);
+    cross.lineTo(s * 0.7, s * 0.2); // Pointe droite-haut
+    cross.lineTo(s * 0.7, s * 0.15); // Pointe droite-bas
+    cross.lineTo(s * 0.55, s * 0.2);
+    cross.lineTo(s * 0.45, s * 0.2);
+    cross.lineTo(s * 0.3, s * 0.15); // Pointe gauche-bas
+    cross.lineTo(s * 0.3, s * 0.2); // Pointe gauche-haut
+    cross.closePath();
     p.addPath(cross);
     this.pathBase(p, s);
   }
 
-  // ====== utils ======
+  // ====== UTILS ======
   private mix(a: string, b: string, t: number) {
     const pa = this.hexToRgb(a),
       pb = this.hexToRgb(b);
