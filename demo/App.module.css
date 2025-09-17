@@ -1447,6 +1447,7 @@ body {
 .boardWrapper {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 24px;
   background: var(--card);
   border: 1px solid var(--card-border);
