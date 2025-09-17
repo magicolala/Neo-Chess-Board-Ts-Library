@@ -416,6 +416,18 @@ describe('DrawingManager', () => {
       expect(mockContext.restore).toHaveBeenCalled();
     });
 
+    it('should render highlights with undefined opacity', () => {
+      drawingManager.addHighlight('e4', 'green');
+      // Manually set opacity to undefined to test the fallback
+      const highlights = drawingManager.getHighlights();
+      highlights[0].opacity = undefined as any;
+
+      drawingManager.renderHighlights();
+
+      expect(mockContext.save).toHaveBeenCalled();
+      expect(mockContext.restore).toHaveBeenCalled();
+    });
+
     it('should render premove', () => {
       drawingManager.setPremove('e2', 'e4');
       drawingManager.renderPremove();
@@ -430,6 +442,11 @@ describe('DrawingManager', () => {
 
       expect(mockContext.save).toHaveBeenCalled();
       expect(mockContext.restore).toHaveBeenCalled();
+    });
+
+    it('should handle renderSquareNames with null context', () => {
+      mockCanvas.getContext.mockReturnValueOnce(null);
+      expect(() => drawingManager.renderSquareNames('white', 0, 1)).not.toThrow();
     });
 
     it('should place coordinate labels along the bottom and left for white orientation', () => {
@@ -472,6 +489,22 @@ describe('DrawingManager', () => {
       drawingManager.draw(mockContext);
 
       // The draw method calls the individual drawing methods
+      expect(mockContext.save).toHaveBeenCalled();
+      expect(mockContext.restore).toHaveBeenCalled();
+    });
+
+    it('should render knight arrows with horizontal movement', () => {
+      drawingManager.addArrow('g1', 'f3'); // Knight move
+      drawingManager.renderArrows();
+
+      expect(mockContext.save).toHaveBeenCalled();
+      expect(mockContext.restore).toHaveBeenCalled();
+    });
+
+    it('should render knight arrows with vertical movement', () => {
+      drawingManager.addArrow('g1', 'h3'); // Knight move
+      drawingManager.renderArrows();
+
       expect(mockContext.save).toHaveBeenCalled();
       expect(mockContext.restore).toHaveBeenCalled();
     });
