@@ -359,7 +359,7 @@ export class DrawingManager {
 
     // Draw rank numbers (1-8)
     for (let rank = 0; rank < 8; rank++) {
-      const num = orientation === 'white' ? 8 - rank : rank + 1;
+      const num = 8 - rank;
       const x = orientation === 'white' ? rankPadding : this.canvas.width / dpr - rankPadding;
       const y =
         (orientation === 'white' ? rank : 7 - rank) * squareSize +
@@ -967,7 +967,7 @@ export class DrawingManager {
         // Draw rank names (1, 2, 3...)
         if (f === (this.orientation === 'white' ? 0 : 7)) {
           // Left file for white, right file for black
-          const rank = this.orientation === 'white' ? RANKS[7 - r] : RANKS[r];
+          const rank = RANKS[7 - r];
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
           ctx.textBaseline = this.orientation === 'white' ? 'top' : 'bottom';
           ctx.fillText(
