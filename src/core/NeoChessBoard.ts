@@ -440,6 +440,7 @@ export class NeoChessBoard {
         top: '0',
         width: '100%',
         height: '100%',
+        aspectRatio: '606 / 606',
       } as any);
       this.root.appendChild(c);
     }
@@ -459,7 +460,7 @@ export class NeoChessBoard {
     // inject tiny styles
     if (typeof document !== 'undefined') {
       const style = document.createElement('style');
-      style.textContent = `.ncb-root{display:block;max-width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);} canvas{image-rendering:optimizeQuality;}`;
+      style.textContent = `.ncb-root{display:block;max-width:100%;aspect-ratio:auto 606/606;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);} canvas{image-rendering:optimizeQuality;aspect-ratio:auto 606/606;}`;
       document.head.appendChild(style);
     }
   }
