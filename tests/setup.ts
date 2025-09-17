@@ -34,6 +34,8 @@ global.HTMLCanvasElement.prototype.getContext = jest.fn((contextId: string) => {
       fill: jest.fn(),
       stroke: jest.fn(),
       drawImage: jest.fn(),
+      fillText: jest.fn(),
+      measureText: jest.fn(() => ({ width: 0 })),
       createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
       save: jest.fn(),
       restore: jest.fn(),
