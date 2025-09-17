@@ -1228,7 +1228,7 @@ export class NeoChessBoard {
    * Enables or disables sound effects for moves.
    * If enabling and sound is not yet initialized, it will attempt to initialize it.
    * @param enabled True to enable sounds, false to disable.
-  */
+   */
   public setSoundEnabled(enabled: boolean) {
     this.soundEnabled = enabled;
     if (enabled && !this.moveSound) {
