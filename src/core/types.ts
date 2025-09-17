@@ -122,6 +122,7 @@ export interface BoardOptions {
   maxHighlights?: number;
   soundEnabled?: boolean;
   showSquareNames?: boolean;
+  autoFlip?: boolean;
   soundUrl?: string;
 }
 

@@ -21,6 +21,7 @@ interface BoardOptions {
   soundEnabled: boolean;
   orientation: 'white' | 'black';
   highlightLegal: boolean;
+  autoFlip: boolean;
 }
 
 export const App: React.FC = () => {
@@ -36,8 +37,29 @@ export const App: React.FC = () => {
     soundEnabled: true,
     orientation: 'white',
     highlightLegal: true,
+    autoFlip: false,
   });
   const boardRef = useRef<NeoChessRef>(null);
+
+  const getOrientationFromFen = useCallback((fenString: string) => {
+    return fenString.split(' ')[1] === 'w' ? 'white' : 'black';
+  }, []);
+
+  const syncOrientationWithFen = useCallback(
+    (nextFen: string) => {
+      setBoardOptions((prev) => {
+        if (!prev.autoFlip) {
+          return prev;
+        }
+        const orientation = getOrientationFromFen(nextFen);
+        if (prev.orientation === orientation) {
+          return prev;
+        }
+        return { ...prev, orientation };
+      });
+    },
+    [getOrientationFromFen],
+  );
 
   // États de loading pour démonstration
   const [isCopying, setIsCopying] = useState(false);
@@ -56,7 +78,9 @@ export const App: React.FC = () => {
     if (fen && isManualFenChange) {
       try {
         chessRules.setFEN(fen);
-        setFen(chessRules.getFEN()); // Update FEN state with corrected FEN
+        const updatedFen = chessRules.getFEN();
+        setFen(updatedFen); // Update FEN state with corrected FEN
+        syncOrientationWithFen(updatedFen);
         setPgnText(chessRules.toPgn(false));
         setIsManualFenChange(false);
       } catch (error) {
@@ -64,7 +88,7 @@ export const App: React.FC = () => {
         setIsManualFenChange(false);
       }
     }
-  }, [fen, chessRules, isManualFenChange]);
+  }, [fen, chessRules, isManualFenChange, syncOrientationWithFen]);
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
@@ -89,7 +113,9 @@ export const App: React.FC = () => {
     }
     chessRules.reset();
     setPgnText(chessRules.toPgn(false));
-    setFen(chessRules.getFEN());
+    const resetFen = chessRules.getFEN();
+    setFen(resetFen);
+    syncOrientationWithFen(resetFen);
     setIsResetting(false);
   };
 
@@ -125,7 +151,15 @@ export const App: React.FC = () => {
     setIsThemeChanging(false);
   };
 
-  const toggleOption = useCallback((option: keyof BoardOptions) => {
+  type ToggleableOption =
+    | 'showArrows'
+    | 'showHighlights'
+    | 'allowPremoves'
+    | 'showSquareNames'
+    | 'soundEnabled'
+    | 'highlightLegal';
+
+  const toggleOption = useCallback((option: ToggleableOption) => {
     setBoardOptions((prev) => ({
       ...prev,
       [option]: !prev[option],
@@ -138,6 +172,22 @@ export const App: React.FC = () => {
       orientation: prev.orientation === 'white' ? 'black' : 'white',
     }));
   }, []);
+
+  const toggleAutoFlip = useCallback(() => {
+    const sourceFen = fen ?? chessRules.getFEN();
+    setBoardOptions((prev) => {
+      const nextAutoFlip = !prev.autoFlip;
+      if (!nextAutoFlip) {
+        return { ...prev, autoFlip: false };
+      }
+
+      return {
+        ...prev,
+        autoFlip: true,
+        orientation: getOrientationFromFen(sourceFen),
+      };
+    });
+  }, [fen, chessRules, getOrientationFromFen]);
 
   // Ajouter une flèche personnalisée
   const addRandomArrow = useCallback(() => {
@@ -303,6 +353,7 @@ export const App: React.FC = () => {
               // Obtenir la notation PGN standard depuis chess.js
               setPgnText(chessRules.toPgn(false));
               setFen(fen);
+              syncOrientationWithFen(fen);
             }}
             style={{ width: 'min(90vmin,720px)', aspectRatio: '1/1' }}
             showSquareNames={boardOptions.showSquareNames}
@@ -313,6 +364,7 @@ export const App: React.FC = () => {
             soundUrl={moveSound}
             orientation={boardOptions.orientation}
             highlightLegal={boardOptions.highlightLegal}
+            autoFlip={boardOptions.autoFlip}
           />
         </div>
       </div>
@@ -366,7 +418,23 @@ export const App: React.FC = () => {
                 {boardOptions.highlightLegal ? '✅' : '❌'} Surbrillance légale
               </button>
 
-              <button className={styles.optionButton} onClick={toggleOrientation}>
+              <button
+                className={`${styles.optionButton} ${boardOptions.autoFlip ? styles.optionActive : ''}`}
+                onClick={toggleAutoFlip}
+              >
+                {boardOptions.autoFlip ? '✅' : '❌'} Auto flip
+              </button>
+
+              <button
+                className={styles.optionButton}
+                onClick={toggleOrientation}
+                disabled={boardOptions.autoFlip}
+                title={
+                  boardOptions.autoFlip
+                    ? 'Désactivez l’auto-flip pour changer manuellement l’orientation'
+                    : undefined
+                }
+              >
                 🔄 Orientation: {boardOptions.orientation === 'white' ? 'Blanc' : 'Noir'}
               </button>
 

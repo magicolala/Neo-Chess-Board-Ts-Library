@@ -35,6 +35,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - 🧩 Bring your own piece set (SVG, PNG, or Canvas sources)
 - ✨ Fluid animations and transitions
 - 🎯 Legal move highlighting
+- 🔄 Optional auto-flip to follow the side to move
 - 📱 Responsive design
 
 🔧 **Developer Friendly**
@@ -52,6 +53,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - 🔄 FEN support
 - 🎮 Custom rules engine
 - 🏹 Visual PGN Annotations (arrows & circles)
+- 📐 Square names stay aligned to the bottom and left edges in every orientation
 
 ## 🚀 Quick Start
 
@@ -191,6 +193,7 @@ interface NeoChessProps {
   theme?: ThemeName | Theme; // Built-in theme name or custom object
   pieceSet?: PieceSet; // Provide custom piece sprites
   orientation?: 'white' | 'black'; // Board orientation
+  autoFlip?: boolean; // Follow the side to move automatically
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
   animationMs?: number; // Animation duration
@@ -410,7 +413,8 @@ interface NeoChessProps {
   // Visual Appearance
   theme?: ThemeName | Theme; // Built-in theme name or custom object
   orientation?: 'white' | 'black'; // Board flip
-  showCoordinates?: boolean; // A-H, 1-8 labels
+  autoFlip?: boolean; // Automatically follow the side to move
+  showCoordinates?: boolean; // A-H, 1-8 labels (always bottom/left)
 
   // Interaction
   interactive?: boolean; // Enable piece dragging
@@ -452,7 +456,9 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board comes with comprehensive test coverage:
+Neo Chess Board ships with **320 Jest tests across 17 suites**, covering the core engine, React bindings, and the live demo. Check
+out [`tests/README.md`](tests/README.md) for the detailed structure and [`tests/RESULTS.md`](tests/RESULTS.md) for the latest run
+summary.
 
 ```bash
 npm test              # Run all tests
@@ -460,14 +466,14 @@ npm run test:watch    # Watch mode
 npm run test:coverage # Coverage report
 ```
 
-**Test Coverage**: 95%+ across all modules
+**Coverage**: 95%+ across all modules
 
-- ✅ Chess rules validation
-- ✅ React component lifecycle
-- ✅ Event system
-- ✅ PGN import/export
-- ✅ Theme system
-- ✅ Canvas rendering
+- ✅ Chess rules validation (LightRules & ChessJsRules)
+- ✅ React component lifecycle & event hooks
+- ✅ Auto-flip orientation and coordinate layout
+- ✅ PGN import/export with advanced annotations
+- ✅ Theme and sprite pipelines
+- ✅ Canvas rendering overlays (arrows, highlights, premoves)
 
 ## 🚀 Performance
 

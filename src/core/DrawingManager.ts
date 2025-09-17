@@ -326,51 +326,42 @@ export class DrawingManager {
     ctx.scale(dpr, dpr);
 
     const squareSize = this.squareSize / dpr;
-    const fontSize = Math.max(10, squareSize * 0.18); // Slightly reduced font size
-    const filePadding = squareSize * 0.1;
-    const rankPadding = squareSize * 0.15;
+    const boardHeight = this.canvas.height / dpr;
+    const fontSize = Math.max(10, squareSize * 0.18);
+    const filePadding = squareSize * 0.12;
+    const rankPadding = squareSize * 0.12;
 
-    // More subtle font style
     ctx.font = `500 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
-    ctx.textBaseline = 'middle';
 
-    // More subtle colors with opacity
     const lightSquareColor = 'rgba(240, 217, 181, 0.7)';
     const darkSquareColor = 'rgba(181, 136, 99, 0.7)';
 
-    // Draw column letters (a-h)
-    for (let file = 0; file < 8; file++) {
-      const char = String.fromCharCode(97 + file); // a-h
-      const x =
-        (orientation === 'white' ? file : 7 - file) * squareSize +
-        (orientation === 'white' ? filePadding : squareSize - filePadding);
-      const y =
-        orientation === 'white'
-          ? this.canvas.height / dpr - filePadding
-          : filePadding + fontSize / 2;
+    const bottomRankIndex = orientation === 'white' ? 0 : 7;
+    const leftFileIndex = orientation === 'white' ? 0 : 7;
 
-      // Use the correct color based on orientation and square
-      const isLightSquare = (file + (orientation === 'white' ? 7 : 0)) % 2 === 1;
+    // Draw file letters along the bottom edge
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    for (let column = 0; column < 8; column++) {
+      const boardFileIndex = orientation === 'white' ? column : 7 - column;
+      const char = String.fromCharCode(97 + boardFileIndex);
+      const x = column * squareSize + filePadding;
+      const y = boardHeight - filePadding;
+      const isLightSquare = (boardFileIndex + bottomRankIndex) % 2 === 0;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-
-      ctx.textAlign = 'left'; // Always left for file labels
       ctx.fillText(char, x, y);
     }
 
-    // Draw rank numbers (1-8)
-    for (let rank = 0; rank < 8; rank++) {
-      const num = 8 - rank;
-      const x = orientation === 'white' ? rankPadding : this.canvas.width / dpr - rankPadding;
-      const y =
-        (orientation === 'white' ? rank : 7 - rank) * squareSize +
-        (orientation === 'white' ? squareSize - rankPadding : rankPadding + fontSize / 2);
-
-      // Use the correct color based on orientation and square
-      const isLightSquare = (rank + (orientation === 'white' ? 1 : 0)) % 2 === 0;
+    // Draw rank numbers along the left edge
+    ctx.textBaseline = 'middle';
+    for (let row = 0; row < 8; row++) {
+      const boardRankIndex = orientation === 'white' ? row : 7 - row;
+      const label = (boardRankIndex + 1).toString();
+      const x = rankPadding;
+      const y = boardHeight - (row + 0.5) * squareSize;
+      const isLightSquare = (leftFileIndex + boardRankIndex) % 2 === 0;
       ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-
-      ctx.textAlign = 'left'; // Always left for rank labels
-      ctx.fillText(num.toString(), x, y);
+      ctx.fillText(label, x, y);
     }
 
     ctx.restore();

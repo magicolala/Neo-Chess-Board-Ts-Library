@@ -34,6 +34,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - 🎨 Beautiful piece sprites with shadows
 - ✨ Fluid animations and transitions
 - 🎯 Legal move highlighting
+- 🔄 Optional auto-flip to follow the side to move
 - 📱 Responsive design
 
 🔧 **Developer Friendly**
@@ -51,6 +52,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - 🔄 FEN support
 - 🎮 Custom rules engine
 - 🏹 Visual PGN Annotations (arrows & circles)
+- 📐 Square names stay aligned to the bottom and left edges in every orientation
 
 ## 🚀 Quick Start
 
@@ -383,7 +385,8 @@ interface NeoChessProps {
   // Visual Appearance
   theme?: ThemeName | Theme; // Built-in theme name or custom object
   orientation?: 'white' | 'black'; // Board flip
-  showCoordinates?: boolean; // A-H, 1-8 labels
+  autoFlip?: boolean; // Automatically follow the side to move
+  showCoordinates?: boolean; // A-H, 1-8 labels (always bottom/left)
 
   // Interaction
   interactive?: boolean; // Enable piece dragging
@@ -425,7 +428,8 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board comes with comprehensive test coverage:
+Neo Chess Board ships with **320 Jest tests across 17 suites**, covering the core engine, React bindings, and the live demo.
+Explore the `tests/README.md` file for the full test map and `tests/RESULTS.md` for the latest run summary.
 
 ```bash
 npm test              # Run all tests
@@ -433,14 +437,14 @@ npm run test:watch    # Watch mode
 npm run test:coverage # Coverage report
 ```
 
-**Test Coverage**: 95%+ across all modules
+**Coverage**: 95%+ across all modules
 
-- ✅ Chess rules validation
-- ✅ React component lifecycle
-- ✅ Event system
-- ✅ PGN import/export
-- ✅ Theme system
-- ✅ Canvas rendering
+- ✅ Chess rules validation (LightRules & ChessJsRules)
+- ✅ React component lifecycle & event hooks
+- ✅ Auto-flip orientation and coordinate layout
+- ✅ PGN import/export with advanced annotations
+- ✅ Theme and sprite pipelines
+- ✅ Canvas rendering overlays (arrows, highlights, premoves)
 
 ## 🚀 Performance
 

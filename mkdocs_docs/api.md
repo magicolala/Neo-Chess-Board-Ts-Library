@@ -62,6 +62,14 @@ Flip the board orientation.
 
 - `color: 'white' | 'black'` - Which color should be at the bottom
 
+##### `setAutoFlip(enabled: boolean): void`
+
+Enable or disable automatic board flipping based on the side to move.
+
+**Parameters:**
+
+- `enabled: boolean` - `true` to follow the active player, `false` to keep the current orientation
+
 ##### `reset(): void`
 
 Reset the board to the initial chess position.
@@ -476,15 +484,30 @@ function App() {
 
 ```typescript
 interface BoardOptions {
-  theme: ThemeName | Theme;
-  orientation: 'white' | 'black';
-  draggable: boolean;
-  showCoordinates: boolean;
-  animationDuration: number;
-  highlightLastMove: boolean;
-  highlightLegalMoves: boolean;
+  size?: number;
+  orientation?: 'white' | 'black';
+  interactive?: boolean;
+  theme?: ThemeName | Theme;
+  pieceSet?: PieceSet;
+  showCoordinates?: boolean;
+  animationMs?: number;
+  highlightLegal?: boolean;
+  fen?: string;
+  rulesAdapter?: RulesAdapter;
+  allowPremoves?: boolean;
+  showArrows?: boolean;
+  showHighlights?: boolean;
+  rightClickHighlights?: boolean;
+  maxArrows?: number;
+  maxHighlights?: number;
+  soundEnabled?: boolean;
+  showSquareNames?: boolean;
+  autoFlip?: boolean;
+  soundUrl?: string;
 }
 ```
+
+> **Note:** When `showSquareNames` is enabled, the file letters and rank numbers remain on the bottom and left edges even when the board flips orientation, mirroring the behaviour of chess.com.
 
 ### Theme
 

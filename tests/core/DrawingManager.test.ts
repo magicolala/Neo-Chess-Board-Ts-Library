@@ -432,6 +432,42 @@ describe('DrawingManager', () => {
       expect(mockContext.restore).toHaveBeenCalled();
     });
 
+    it('should place coordinate labels along the bottom and left for white orientation', () => {
+      drawingManager.setShowSquareNames(true);
+      mockContext.fillText.mockClear();
+
+      drawingManager.renderSquareNames('white', 0, 1);
+
+      expect(mockContext.fillText).toHaveBeenCalledTimes(16);
+      const [fileChar, fileX, fileY] = mockContext.fillText.mock.calls[0];
+      expect(fileChar).toBe('a');
+      expect(fileX).toBeCloseTo(6, 5);
+      expect(fileY).toBeCloseTo(394, 5);
+
+      const [rankChar, rankX, rankY] = mockContext.fillText.mock.calls[8];
+      expect(rankChar).toBe('1');
+      expect(rankX).toBeCloseTo(6, 5);
+      expect(rankY).toBeCloseTo(375, 5);
+    });
+
+    it('should keep coordinate labels on the bottom and left when black is at the bottom', () => {
+      drawingManager.setShowSquareNames(true);
+      mockContext.fillText.mockClear();
+
+      drawingManager.renderSquareNames('black', 0, 1);
+
+      expect(mockContext.fillText).toHaveBeenCalledTimes(16);
+      const [fileChar, fileX, fileY] = mockContext.fillText.mock.calls[0];
+      expect(fileChar).toBe('h');
+      expect(fileX).toBeCloseTo(6, 5);
+      expect(fileY).toBeCloseTo(394, 5);
+
+      const [rankChar, rankX, rankY] = mockContext.fillText.mock.calls[8];
+      expect(rankChar).toBe('8');
+      expect(rankX).toBeCloseTo(6, 5);
+      expect(rankY).toBeCloseTo(375, 5);
+    });
+
     it('should complete draw cycle', () => {
       drawingManager.draw(mockContext);
 
