@@ -185,6 +185,45 @@ describe('NeoChessBoard Core', () => {
     });
   });
 
+  describe('Custom piece sets', () => {
+    it('should draw custom sprites when a piece set is provided', async () => {
+      const ctx = (board as any).ctxP;
+      const drawImageMock = ctx.drawImage as jest.Mock;
+      drawImageMock.mockClear();
+
+      const customCanvas = document.createElement('canvas');
+
+      await board.setPieceSet({
+        pieces: {
+          P: { image: customCanvas },
+        },
+      });
+
+      const usedCustomSprite = drawImageMock.mock.calls.some((call) => call[0] === customCanvas);
+      expect(usedCustomSprite).toBe(true);
+    });
+
+    it('should revert to default sprites when the piece set is cleared', async () => {
+      const ctx = (board as any).ctxP;
+      const drawImageMock = ctx.drawImage as jest.Mock;
+      const customCanvas = document.createElement('canvas');
+
+      await board.setPieceSet({
+        pieces: {
+          P: { image: customCanvas },
+        },
+      });
+
+      drawImageMock.mockClear();
+
+      await board.setPieceSet(undefined);
+
+      const spriteSheet = (board as any).sprites.getSheet();
+      const usedDefaultSprite = drawImageMock.mock.calls.some((call) => call[0] === spriteSheet);
+      expect(usedDefaultSprite).toBe(true);
+    });
+  });
+
   describe('Cleanup', () => {
     it('should have destroy method for cleanup', () => {
       expect(typeof board.destroy).toBe('function');

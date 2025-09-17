@@ -79,11 +79,35 @@ export interface Theme {
   squareNameColor: string;
 }
 
+export type PieceSpriteImage =
+  | HTMLImageElement
+  | HTMLCanvasElement
+  | HTMLVideoElement
+  | ImageBitmap
+  | OffscreenCanvas;
+
+export type PieceSpriteSource = string | PieceSpriteImage;
+
+export interface PieceSprite {
+  image: PieceSpriteSource;
+  scale?: number;
+  offsetX?: number;
+  offsetY?: number;
+}
+
+export type PieceSprites = Partial<Record<Piece, PieceSpriteSource | PieceSprite>>;
+
+export interface PieceSet {
+  pieces: PieceSprites;
+  defaultScale?: number;
+}
+
 export interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
   interactive?: boolean;
   theme?: ThemeName | Theme;
+  pieceSet?: PieceSet;
   showCoordinates?: boolean;
   animationMs?: number;
   highlightLegal?: boolean;

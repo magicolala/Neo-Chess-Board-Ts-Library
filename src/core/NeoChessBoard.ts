@@ -26,6 +26,11 @@ import type {
   HighlightType,
   Premove,
   Theme,
+  Piece,
+  PieceSet,
+  PieceSprite,
+  PieceSpriteSource,
+  PieceSpriteImage,
 } from './types';
 
 interface BoardState {
@@ -41,6 +46,13 @@ interface BoardEvents {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
+}
+
+interface ResolvedPieceSprite {
+  image: PieceSpriteImage;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 export class NeoChessBoard {
@@ -162,6 +174,21 @@ export class NeoChessBoard {
    */
   private soundUrl: string | undefined;
 
+  /**
+   * Custom piece sprites provided by the user.
+   */
+  private customPieceSprites: Partial<Record<Piece, ResolvedPieceSprite>> = {};
+
+  /**
+   * Token used to invalidate pending custom piece loading operations.
+   */
+  private _pieceSetToken = 0;
+
+  /**
+   * Stores the latest piece set reference applied to the board.
+   */
+  private _pieceSetRaw?: PieceSet;
+
   // Audio elements
   /**
    * Audio element for playing move sounds.
@@ -249,6 +276,10 @@ export class NeoChessBoard {
     this._buildDOM();
     this._attachEvents();
     this.resize();
+
+    if (options.pieceSet) {
+      void this.setPieceSet(options.pieceSet);
+    }
   }
 
   // Public API methods
@@ -302,6 +333,58 @@ export class NeoChessBoard {
   public applyTheme(theme: ThemeName | Theme) {
     this.theme = resolveTheme(theme);
     this._rasterize();
+    this.renderAll();
+  }
+
+  /**
+   * Applies a custom piece set, allowing users to provide their own sprites.
+   * Passing `undefined` or an empty configuration reverts to the default flat sprites.
+   * @param pieceSet Custom piece configuration to apply.
+   */
+  public async setPieceSet(pieceSet?: PieceSet | null) {
+    if (!pieceSet || !pieceSet.pieces || Object.keys(pieceSet.pieces).length === 0) {
+      if (!this._pieceSetRaw && Object.keys(this.customPieceSprites).length === 0) {
+        return;
+      }
+      this._pieceSetRaw = undefined;
+      this.customPieceSprites = {};
+      this._pieceSetToken++;
+      this.renderAll();
+      return;
+    }
+
+    if (pieceSet === this._pieceSetRaw) {
+      return;
+    }
+
+    this._pieceSetRaw = pieceSet;
+    const token = ++this._pieceSetToken;
+    const defaultScale = pieceSet.defaultScale ?? 1;
+    const resolved: Partial<Record<Piece, ResolvedPieceSprite>> = {};
+
+    const entries = Object.entries(pieceSet.pieces) as Array<
+      [Piece, PieceSpriteSource | PieceSprite]
+    >;
+
+    await Promise.all(
+      entries.map(async ([pieceKey, sprite]) => {
+        if (!sprite) return;
+        try {
+          const resolvedSprite = await this._resolvePieceSprite(sprite, defaultScale);
+          if (resolvedSprite) {
+            resolved[pieceKey as Piece] = resolvedSprite;
+          }
+        } catch (error) {
+          console.warn(`[NeoChessBoard] Failed to load sprite for piece "${pieceKey}".`, error);
+        }
+      }),
+    );
+
+    if (token !== this._pieceSetToken) {
+      return;
+    }
+
+    this.customPieceSprites = resolved;
     this.renderAll();
   }
 
@@ -456,6 +539,65 @@ export class NeoChessBoard {
       }
   }
 
+  private async _resolvePieceSprite(
+    sprite: PieceSpriteSource | PieceSprite,
+    defaultScale: number,
+  ): Promise<ResolvedPieceSprite | null> {
+    const config: PieceSprite =
+      typeof sprite === 'object' && sprite !== null && 'image' in (sprite as PieceSprite)
+        ? (sprite as PieceSprite)
+        : ({ image: sprite } as PieceSprite);
+
+    let source: PieceSpriteImage | null = null;
+    if (typeof config.image === 'string') {
+      source = await this._loadImage(config.image);
+    } else if (config.image) {
+      source = config.image;
+    }
+
+    if (!source) {
+      return null;
+    }
+
+    return {
+      image: source,
+      scale: config.scale ?? defaultScale ?? 1,
+      offsetX: config.offsetX ?? 0,
+      offsetY: config.offsetY ?? 0,
+    };
+  }
+
+  private _loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const doc = this.root?.ownerDocument ?? (typeof document !== 'undefined' ? document : null);
+      const img =
+        typeof Image !== 'undefined'
+          ? new Image()
+          : doc
+            ? (doc.createElement('img') as HTMLImageElement)
+            : null;
+
+      if (!img) {
+        reject(new Error('Image loading is not supported in the current environment.'));
+        return;
+      }
+
+      if (!src.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
+
+      try {
+        img.decoding = 'async';
+      } catch (e) {
+        // Ignore browsers that do not support decoding
+      }
+
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err instanceof Error ? err : new Error(String(err)));
+      img.src = src;
+    });
+  }
+
   /**
    * Draws a single piece sprite onto the pieces canvas.
    * @param piece The FEN notation of the piece (e.g., 'p', 'K').
@@ -464,6 +606,16 @@ export class NeoChessBoard {
    * @param scale Optional scale factor for the piece (default is 1).
    */
   private _drawPieceSprite(piece: string, x: number, y: number, scale = 1) {
+    const custom = this.customPieceSprites[piece as Piece];
+    if (custom) {
+      const spriteScale = scale * (custom.scale ?? 1);
+      const size = this.square * spriteScale;
+      const dx = x + (this.square - size) / 2 + custom.offsetX * this.square;
+      const dy = y + (this.square - size) / 2 + custom.offsetY * this.square;
+      this.ctxP.drawImage(custom.image, dx, dy, size, size);
+      return;
+    }
+
     // Map piece characters to their index in the sprite sheet.
     const map: any = { k: 0, q: 1, r: 2, b: 3, n: 4, p: 5 };
     const isW = isWhitePiece(piece);

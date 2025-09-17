@@ -45,6 +45,9 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
             boardRef.current.applyTheme(opts.theme);
           }
         }
+        if ('pieceSet' in opts) {
+          void boardRef.current.setPieceSet(opts.pieceSet);
+        }
         if (opts.soundEnabled !== undefined) {
           boardRef.current.setSoundEnabled(opts.soundEnabled);
         }
