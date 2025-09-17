@@ -30,6 +30,7 @@ import type {
   PieceSet,
   PieceSprite,
   PieceSpriteSource,
+  PieceSpriteImage,
 } from './types';
 
 interface BoardState {
@@ -48,7 +49,7 @@ interface BoardEvents {
 }
 
 interface ResolvedPieceSprite {
-  image: CanvasImageSource;
+  image: PieceSpriteImage;
   scale: number;
   offsetX: number;
   offsetY: number;
@@ -361,10 +362,9 @@ export class NeoChessBoard {
     const defaultScale = pieceSet.defaultScale ?? 1;
     const resolved: Partial<Record<Piece, ResolvedPieceSprite>> = {};
 
-    const entries = Object.entries(pieceSet.pieces) as Array<[
-      Piece,
-      PieceSpriteSource | PieceSprite,
-    ]>;
+    const entries = Object.entries(pieceSet.pieces) as Array<
+      [Piece, PieceSpriteSource | PieceSprite]
+    >;
 
     await Promise.all(
       entries.map(async ([pieceKey, sprite]) => {
@@ -375,10 +375,7 @@ export class NeoChessBoard {
             resolved[pieceKey as Piece] = resolvedSprite;
           }
         } catch (error) {
-          console.warn(
-            `[NeoChessBoard] Failed to load sprite for piece "${pieceKey}".`,
-            error,
-          );
+          console.warn(`[NeoChessBoard] Failed to load sprite for piece "${pieceKey}".`, error);
         }
       }),
     );
@@ -551,7 +548,7 @@ export class NeoChessBoard {
         ? (sprite as PieceSprite)
         : ({ image: sprite } as PieceSprite);
 
-    let source: CanvasImageSource | null = null;
+    let source: PieceSpriteImage | null = null;
     if (typeof config.image === 'string') {
       source = await this._loadImage(config.image);
     } else if (config.image) {

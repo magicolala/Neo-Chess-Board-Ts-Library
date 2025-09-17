@@ -79,7 +79,14 @@ export interface Theme {
   squareNameColor: string;
 }
 
-export type PieceSpriteSource = string | CanvasImageSource;
+export type PieceSpriteImage =
+  | HTMLImageElement
+  | HTMLCanvasElement
+  | HTMLVideoElement
+  | ImageBitmap
+  | OffscreenCanvas;
+
+export type PieceSpriteSource = string | PieceSpriteImage;
 
 export interface PieceSprite {
   image: PieceSpriteSource;
