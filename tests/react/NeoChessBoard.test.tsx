@@ -14,6 +14,7 @@ const mockBoard = {
   setTheme: jest.fn(),
   applyTheme: jest.fn(),
   setSoundEnabled: jest.fn(),
+  setAutoFlip: jest.fn(),
   setOrientation: jest.fn(),
   setShowArrows: jest.fn(),
   setShowHighlights: jest.fn(),
@@ -86,6 +87,7 @@ describe('NeoChessBoard React Component', () => {
         showCoordinates: true,
         animationMs: 200,
         highlightLegal: false,
+        autoFlip: true,
       };
 
       render(<NeoChessBoard {...options} />);
@@ -208,11 +210,13 @@ describe('NeoChessBoard React Component', () => {
           allowPremoves={false}
           highlightLegal={false}
           showSquareNames={false}
+          autoFlip={false}
         />,
       );
 
       [
         mockBoard.setSoundEnabled,
+        mockBoard.setAutoFlip,
         mockBoard.setOrientation,
         mockBoard.setShowArrows,
         mockBoard.setShowHighlights,
@@ -230,10 +234,12 @@ describe('NeoChessBoard React Component', () => {
           allowPremoves
           highlightLegal
           showSquareNames
+          autoFlip
         />,
       );
 
       expect(mockBoard.setSoundEnabled).toHaveBeenCalledWith(true);
+      expect(mockBoard.setAutoFlip).toHaveBeenCalledWith(true);
       expect(mockBoard.setOrientation).toHaveBeenCalledWith('black');
       expect(mockBoard.setShowArrows).toHaveBeenCalledWith(true);
       expect(mockBoard.setShowHighlights).toHaveBeenCalledWith(true);

@@ -178,6 +178,29 @@ describe('NeoChessBoard Core', () => {
       }).not.toThrow();
     });
 
+    it('should follow side to move when autoFlip is enabled', () => {
+      const autoBoard = new NeoChessBoard(container, { autoFlip: true });
+      expect((autoBoard as any).orientation).toBe('white');
+
+      const blackTurnFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
+      autoBoard.setFEN(blackTurnFen, true);
+
+      expect((autoBoard as any).orientation).toBe('black');
+      autoBoard.destroy();
+    });
+
+    it('should update orientation immediately when enabling autoFlip later', () => {
+      const manualBoard = new NeoChessBoard(container, { orientation: 'white' });
+      const blackTurnFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
+
+      manualBoard.setFEN(blackTurnFen, true);
+      expect((manualBoard as any).orientation).toBe('white');
+
+      manualBoard.setAutoFlip(true);
+      expect((manualBoard as any).orientation).toBe('black');
+      manualBoard.destroy();
+    });
+
     it('should accept interactive configuration', () => {
       expect(() => {
         new NeoChessBoard(container, { interactive: false });

@@ -52,6 +52,9 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         if (opts.soundEnabled !== undefined) {
           boardRef.current.setSoundEnabled(opts.soundEnabled);
         }
+        if (opts.autoFlip !== undefined) {
+          boardRef.current.setAutoFlip(opts.autoFlip);
+        }
         if (opts.orientation !== undefined) {
           boardRef.current.setOrientation(opts.orientation);
         }

@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release preparation
 - Comprehensive test suite
 - Documentation and examples
+- Auto-flip option to keep the active side at the bottom of the board
+- Square coordinates now remain anchored to the bottom and left edges regardless of orientation
 
 ## [0.1.0] - 2024-12-31
 

@@ -170,6 +170,10 @@ export class NeoChessBoard {
    */
   private showSquareNames: boolean;
   /**
+   * Whether the board orientation should automatically follow the side to move.
+   */
+  private autoFlip: boolean;
+  /**
    * URL for the move sound audio file.
    */
   private soundUrl: string | undefined;
@@ -260,6 +264,7 @@ export class NeoChessBoard {
     this.rightClickHighlights = options.rightClickHighlights !== false;
     this.soundEnabled = options.soundEnabled !== false;
     this.showSquareNames = options.showSquareNames || false;
+    this.autoFlip = options.autoFlip ?? false;
     this.soundUrl = options.soundUrl;
 
     // Initialize sound
@@ -271,6 +276,7 @@ export class NeoChessBoard {
       this.rules.setFEN(options.fen);
     }
     this.state = parseFEN(this.rules.getFEN());
+    this._syncOrientationFromTurn(true);
 
     // Build DOM and setup
     this._buildDOM();
@@ -398,6 +404,7 @@ export class NeoChessBoard {
     const oldTurn = this.state.turn;
     this.rules.setFEN(fen);
     this.state = parseFEN(this.rules.getFEN());
+    this._syncOrientationFromTurn(false);
     this._lastMove = null;
 
     // If the turn has changed (opponent played), try to execute the premove
@@ -935,6 +942,7 @@ export class NeoChessBoard {
         const old = this.state;
         const next = parseFEN(fen);
         this.state = next;
+        this._syncOrientationFromTurn(false);
         this._selected = null;
         this._legalCached = null;
         this._lastMove = { from, to: drop! };
@@ -1193,14 +1201,49 @@ export class NeoChessBoard {
   }
 
   /**
+   * Synchronizes the board orientation with the side to move when auto-flip is enabled.
+   * @param initial When true, only the internal orientation state is updated without rendering.
+   */
+  private _syncOrientationFromTurn(initial = false): void {
+    if (!this.autoFlip) {
+      return;
+    }
+
+    const desired: 'white' | 'black' = this.state.turn === 'w' ? 'white' : 'black';
+
+    if (initial || !this.drawingManager) {
+      this.orientation = desired;
+      if (this.drawingManager && !initial) {
+        this.drawingManager.setOrientation(desired);
+      }
+      return;
+    }
+
+    if (this.orientation !== desired) {
+      this.setOrientation(desired);
+    }
+  }
+
+  /**
    * Enables or disables sound effects for moves.
    * If enabling and sound is not yet initialized, it will attempt to initialize it.
    * @param enabled True to enable sounds, false to disable.
-   */
+  */
   public setSoundEnabled(enabled: boolean) {
     this.soundEnabled = enabled;
     if (enabled && !this.moveSound) {
       this._initializeSound();
+    }
+  }
+
+  /**
+   * Enables or disables automatic board flipping based on the side to move.
+   * @param autoFlip True to enable auto-flip, false to disable it.
+   */
+  public setAutoFlip(autoFlip: boolean) {
+    this.autoFlip = autoFlip;
+    if (autoFlip) {
+      this._syncOrientationFromTurn(!this.drawingManager);
     }
   }
 
@@ -1297,6 +1340,7 @@ export class NeoChessBoard {
         const oldState = this.state;
 
         this.state = newState;
+        this._syncOrientationFromTurn(false);
         this._lastMove = { from: premove.from, to: premove.to };
 
         // Clear the premove and all arrows
@@ -1473,6 +1517,7 @@ export class NeoChessBoard {
 
         // Update the board state
         this.state = parseFEN(this.rules.getFEN());
+        this._syncOrientationFromTurn(false);
         this.renderAll();
         return true;
       }
