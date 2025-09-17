@@ -1,11 +1,12 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
-import type { BoardOptions, Move, Square } from '../core/types';
+import type { BoardOptions, Square } from '../core/types';
 
 export interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'> {
   fen?: string;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   onMove?: (e: { from: Square; to: Square; fen: string }) => void;
   onIllegal?: (e: { from: Square; to: Square; reason: string }) => void;
   onUpdate?: (e: { fen: string }) => void;

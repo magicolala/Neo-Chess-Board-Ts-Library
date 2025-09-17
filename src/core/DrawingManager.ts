@@ -75,15 +75,6 @@ export class DrawingManager {
    */
   private currentAction: DrawingAction = { type: 'none' };
 
-  private readonly highlightCycle: HighlightType[] = [
-    'green',
-    'red',
-    'blue',
-    'yellow',
-    'orange',
-    'purple',
-  ];
-
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.updateDimensions();

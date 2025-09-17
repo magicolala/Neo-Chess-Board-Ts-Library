@@ -1,5 +1,5 @@
 import type { RulesAdapter, Move, Square, Color } from './types';
-import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN, sqToFR, sq } from './utils';
+import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN, sq } from './utils';
 function boardToFEN(state: any) {
   const rows: string[] = [];
   for (let r = 7; r >= 0; r--) {
