@@ -5,7 +5,6 @@ export * from './core/LightRules';
 export * from './core/ChessJsRules';
 export * from './core/PgnNotation';
 export * from './core/FlatSprites';
-export * from '.';
 export * from './core/PGN';
 export * from './core/utils';
 export * from './react/NeoChessBoard';
