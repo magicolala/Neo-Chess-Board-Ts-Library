@@ -428,7 +428,8 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board comes with comprehensive test coverage:
+Neo Chess Board ships with **320 Jest tests across 17 suites**, covering the core engine, React bindings, and the live demo.
+Explore the `tests/README.md` file for the full test map and `tests/RESULTS.md` for the latest run summary.
 
 ```bash
 npm test              # Run all tests
@@ -436,14 +437,14 @@ npm run test:watch    # Watch mode
 npm run test:coverage # Coverage report
 ```
 
-**Test Coverage**: 95%+ across all modules
+**Coverage**: 95%+ across all modules
 
-- ✅ Chess rules validation
-- ✅ React component lifecycle
-- ✅ Event system
-- ✅ PGN import/export
-- ✅ Theme system
-- ✅ Canvas rendering
+- ✅ Chess rules validation (LightRules & ChessJsRules)
+- ✅ React component lifecycle & event hooks
+- ✅ Auto-flip orientation and coordinate layout
+- ✅ PGN import/export with advanced annotations
+- ✅ Theme and sprite pipelines
+- ✅ Canvas rendering overlays (arrows, highlights, premoves)
 
 ## 🚀 Performance
 

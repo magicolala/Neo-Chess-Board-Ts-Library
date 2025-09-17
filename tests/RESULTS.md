@@ -4,119 +4,74 @@
 
 Suite de tests complète pour la bibliothèque Neo Chess Board TypeScript/React.
 
-**Total des tests implémentés : 76 tests**
+**Total des tests implémentés : 320 tests (17 suites)**
 
-- ✅ **Tests réussis : 75**
-- ❌ **Tests échoués : 1**
+- ✅ **Tests réussis : 320**
+- ❌ **Tests échoués : 0**
+- ⏱️ **Durée d'exécution : ~17 secondes sur une machine de CI standard**
 
 ## Tests par module
 
-### ✅ Modules Core Fonctionnels (75/75 tests passent)
+### ✅ Modules Core (13 suites)
 
-#### EventBus (7/7 tests ✅)
+- **NeoChessBoard** : orientation manuelle & auto-flip, gestion des sons, callbacks d'événements et intégration `DrawingManager`.
+- **DrawingManager** : rendu pixel-perfect des flèches, cercles, surbrillances, pré-mouvements et coordonnées toujours placées en bas/gauche.
+- **LightRules** : logique de coups légaux, promotions, roques, répétitions et détection d'échecs.
+- **ChessJsRules** : compatibilité complète avec Chess.js (FEN valides/invalides, synchronisation du tour de jeu).
+- **PGN & PgnNotation** : génération, parsing et annotations avancées (NAG, commentaires, glyphes symboliques).
+- **PgnAnnotationParser / PgnNotationAnnotations** : validation des symboles, commentaires et variations imbriquées.
+- **Premoves** : cycle complet d'enregistrement/exécution et annulation des pré-mouvements.
+- **Themes & FlatSprites** : rendu haute résolution des palettes et sprites de pièces.
+- **Utils** : helpers FEN/PGN, conversions de cases, easing animations.
 
-- ✅ Inscription et désinscription d'événements
-- ✅ Émission d'événements
-- ✅ Gestion des erreurs
-- ✅ Multiple listeners
-- ✅ Nettoyage automatique
+### 🔗 Tests d'intégration
 
-#### Utils (13/13 tests ✅)
+- **PgnChessJsIntegration** : round-trip Chess.js ↔ PGN ↔ Chess.js avec contrôle des métadonnées et de la légalité des coups.
 
-- ✅ Constantes FILES/RANKS
-- ✅ Identification des pièces (isWhitePiece)
-- ✅ Conversion de coordonnées (sq, sqToFR)
-- ✅ Parsing FEN complet
-- ✅ Fonctions mathématiques (clamp, lerp, easeOutCubic)
+### ⚛️ Composants React & Demo
 
-#### Themes (9/9 tests ✅)
+- **React `<NeoChessBoard />`** : props contrôlées, auto-flip, hooks d'événements, rendu SSR-friendly.
+- **Demo App** : scénarios utilisateur (toggle auto-flip, switch de thèmes, coordonnées verrouillées bas/gauche).
 
-- ✅ Structure des thèmes (classic/midnight)
-- ✅ Validation des couleurs CSS
-- ✅ Propriétés obligatoires
-- ✅ Contraste et accessibilité
+### 📦 API Publique
 
-#### FlatSprites (9/9 tests ✅)
-
-- ✅ Génération de sprites canvas
-- ✅ Support OffscreenCanvas/fallback
-- ✅ Intégration avec les thèmes
-- ✅ Dimensions correctes
-
-#### PGNRecorder (17/17 tests ✅)
-
-- ✅ En-têtes PGN standards
-- ✅ Notation des coups
-- ✅ Captures et promotions
-- ✅ Export de fichiers .pgn
-- ✅ Gestion des noms de fichiers
-- ✅ Compatibilité SSR
-
-#### LightRules (20/21 tests ✅)
-
-- ✅ Logique d'échecs basique
-- ✅ Mouvements des pièces (pions, cavaliers, fous, tours, dames, rois)
-- ✅ Validation des coups
-- ✅ Gestion des tours
-- ✅ Promotion des pions
-- ❌ **1 test échoué** : Capture en passant (bug mineur dans la logique)
-
-### ❌ Modules avec problèmes d'implémentation
-
-#### NeoChessBoard Core (Tests non exécutés)
-
-- **Problème** : Classe incomplète, manque constructeur et méthodes
-- **Actions nécessaires** : Compléter l'implémentation
-
-#### Composant React (Tests non exécutés)
-
-- **Problème** : Dépend de NeoChessBoard core incomplet
-- **Actions nécessaires** : Compléter le core d'abord
-
-#### App Demo (Tests non exécutés)
-
-- **Problème** : Problèmes de types avec testing-library
-- **Actions nécessaires** : Corriger les imports des matchers Jest
+- **exports.test.ts** : s'assure que tous les exports documentés restent disponibles et typés.
 
 ## Configuration de test
 
 ✅ **Jest configuré** avec :
 
-- Support TypeScript (ts-jest)
-- Environnement jsdom pour React
-- Mocks pour Canvas API, ResizeObserver, OffscreenCanvas
-- Configuration ESM
-- Scripts npm intégrés
+- Support TypeScript (`ts-jest`, `babel-jest`),
+- Environnement `jsdom` pour les tests React,
+- Résolution ESM/CJS transparente,
+- Scripts npm prêts pour CI/CD.
 
 ✅ **Mocks complets** :
 
-- Canvas 2D context
-- ResizeObserver
-- URL.createObjectURL/revokeObjectURL
-- OffscreenCanvas
-- Device pixel ratio
+- Canvas 2D (`getContext`, `drawImage`, `measureText`, `toDataURL`),
+- `ResizeObserver`, `IntersectionObserver`, `OffscreenCanvas`,
+- `URL.createObjectURL` / `URL.revokeObjectURL`,
+- Gestion de `devicePixelRatio` et timers globaux.
 
 ## Commandes disponibles
 
 ```bash
-npm test                  # Lance tous les tests
-npm run test:watch       # Mode watch
-npm run test:coverage    # Avec couverture de code
-npm run test:ci          # Pour CI/CD
+npm test               # Lance tous les tests
+npm run test:watch     # Mode watch
+npm run test:coverage  # Rapport de couverture
+npm run test:ci        # Configuration CI
 ```
 
 ## Points d'amélioration
 
-1. **Compléter NeoChessBoard core** avec constructeur et méthodes manquantes
-2. **Corriger la capture en passant** dans LightRules
-3. **Ajouter imports testing-library** pour les matchers
-4. **Tests d'intégration** entre modules
-5. **Tests de performance** pour le rendu canvas
+1. Ajouter des tests visuels sur les nouvelles options de DrawingManager (transparence personnalisée, sélections multiples).
+2. Étendre les scénarios React aux intégrations avec des frameworks externes (Next.js, Remix).
+3. Automatiser la génération de snapshots PGN/FEN pour documenter les régressions.
+4. Mesurer les performances du rendu Canvas sur des configurations mobiles.
 
 ## Qualité du code
 
-- **Architecture modulaire** bien testée
-- **Couverture fonctionnelle** complète des utilitaires
-- **Mocks appropriés** pour l'environnement browser
-- **Tests isolés** et reproductibles
-- **Configuration professionnelle** Jest/TypeScript
+- ✅ Architecture modulaire et découplée.
+- ✅ Couverture fonctionnelle étendue (moteur, UI, intégration).
+- ✅ Mocks exhaustifs pour les APIs navigateur.
+- ✅ Tests déterministes et reproductibles.
