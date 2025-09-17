@@ -119,6 +119,36 @@ Neo Chess Board comes with beautiful built-in themes:
 
 Use `registerTheme('sunset', customTheme)` to add reusable presets. Custom theme objects can also be passed directly to constructors, `setTheme`, or the React component.
 
+### 🌐 Theme Creator Web App
+
+Designing colors manually can be slow. Visit the interactive [Theme Creator](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html) to preview palettes live and export the resulting code. The builder includes:
+
+- 🎛️ Real-time controls for every theme property (board colors, highlights, arrows, etc.)
+- 💾 Quick access to existing presets so you can start from `classic` or `midnight`
+- 📤 Export helpers that copy JSON or TypeScript snippets using `registerTheme`
+
+#### Try it out
+
+1. Open the [hosted Theme Creator](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html). For local work run `npm run dev` inside `demo/` and navigate to `http://localhost:5174/theme-creator.html`.
+2. Choose a base theme, tweak the color pickers, and watch the preview board update instantly.
+3. Name the palette, save it, and download the generated JSON or TypeScript code.
+
+You can then register the exported object in your project:
+
+```ts
+import { registerTheme } from 'neochessboard';
+
+const aurora = {
+  light: '#F5F3FF',
+  dark: '#1E1B4B',
+  // ...rest of the properties from the generator
+};
+
+registerTheme('aurora', aurora);
+```
+
+The Theme Creator keeps saved palettes in `localStorage`, so you can revisit and refine them anytime.
+
 ## 📖 Documentation
 
 - [API Reference](api.md)
