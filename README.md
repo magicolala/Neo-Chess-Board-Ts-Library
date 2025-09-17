@@ -32,6 +32,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 
 - 🖱️ Smooth drag & drop interactions
 - 🎨 Beautiful piece sprites with shadows
+- 🧩 Bring your own piece set (SVG, PNG, or Canvas sources)
 - ✨ Fluid animations and transitions
 - 🎯 Legal move highlighting
 - 📱 Responsive design
@@ -119,6 +120,34 @@ Neo Chess Board comes with beautiful built-in themes:
 
 To define your own presets, call `registerTheme('sunset', customTheme)` once during initialization. Custom theme objects can also be passed directly to the constructor, `setTheme`, or the React component.
 
+## 🧩 Custom Piece Sets
+
+Prefer wooden Staunton pieces, minimalist line art, or even emoji? Pass a `pieceSet` option to the board (or React component) and supply the sprites you want to use. Each entry can be an imported image/URL, an `HTMLCanvasElement`, or any other [`CanvasImageSource`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage#parameters) instance.
+
+```tsx
+import type { PieceSet } from 'neochessboard';
+import whiteKing from './pieces/wK.svg';
+import blackKing from './pieces/bK.svg';
+import whitePawn from './pieces/wP.png';
+import blackPawn from './pieces/bP.png';
+
+const customPieces = {
+  defaultScale: 0.9,
+  pieces: {
+    K: { image: whiteKing },
+    k: { image: blackKing },
+    P: { image: whitePawn, offsetY: 0.02 },
+    p: { image: blackPawn },
+  },
+} satisfies PieceSet;
+
+<NeoChessBoard theme="midnight" pieceSet={customPieces} />;
+```
+
+- Keys follow FEN notation (`K`, `Q`, `R`, `B`, `N`, `P` for white and lowercase for black). Any pieces you omit will fall back to the default flat sprites.
+- `defaultScale` and per-piece `scale` let you shrink or enlarge the artwork relative to the square size, while `offsetX`/`offsetY` (fractions of the square) help fine tune alignment.
+- At runtime you can call `board.setPieceSet(newSet)` (or `setPieceSet(undefined)`) to swap collections instantly.
+
 ### 🌐 Theme Creator Web App
 
 Looking for a faster way to design palettes? The project ships with an interactive [Theme Creator](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html) that lets you experiment visually before exporting code. It provides:
@@ -160,6 +189,7 @@ The saved presets can also be stored in `localStorage` for later editing, making
 interface NeoChessProps {
   fen?: string; // Chess position in FEN notation
   theme?: ThemeName | Theme; // Built-in theme name or custom object
+  pieceSet?: PieceSet; // Provide custom piece sprites
   orientation?: 'white' | 'black'; // Board orientation
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
