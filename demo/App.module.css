@@ -1257,6 +1257,26 @@ body {
   padding: 32px;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: calc(100vh - 64px);
+  align-items: flex-start;
+}
+
+.creatorControls {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.creatorPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 32px;
+  align-self: flex-start;
 }
 
 @media (max-width: 1200px) {
@@ -1264,19 +1284,21 @@ body {
     grid-template-columns: 1fr;
     gap: 24px;
     padding: 24px;
+    min-height: auto;
+    align-items: stretch;
   }
-}
 
-.creatorControls {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+  .creatorControls {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
 
-.creatorPreview {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  .creatorPreview {
+    position: static;
+    top: auto;
+    align-self: stretch;
+  }
 }
 
 .controlSection {
