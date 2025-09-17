@@ -34,6 +34,8 @@ const createMockElement = (tag: string) => {
       fill: jest.fn(),
       stroke: jest.fn(),
       drawImage: jest.fn(),
+      fillText: jest.fn(),
+      measureText: jest.fn(() => ({ width: 0 })),
       createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
       save: jest.fn(),
       restore: jest.fn(),
@@ -256,6 +258,267 @@ describe('NeoChessBoard Core', () => {
       expect(() => {
         board.destroy();
       }).not.toThrow();
+    });
+  });
+
+  describe('Feature toggles and drawing manager integration', () => {
+    it('should initialize sound when enabling sound after construction', () => {
+      const localContainer = document.createElement('div') as HTMLDivElement;
+      const silentBoard = new NeoChessBoard(localContainer, {
+        soundEnabled: false,
+        soundUrl: 'mock-sound.mp3',
+      });
+
+      const initSpy = jest
+        .spyOn(silentBoard as any, '_initializeSound')
+        .mockImplementation(() => {});
+
+      silentBoard.setSoundEnabled(true);
+
+      expect((silentBoard as any).soundEnabled).toBe(true);
+      expect(initSpy).toHaveBeenCalledTimes(1);
+
+      initSpy.mockRestore();
+      silentBoard.destroy();
+    });
+
+    it('should toggle arrow visibility and trigger rerender', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      renderSpy.mockClear();
+
+      board.setShowArrows(false);
+
+      expect((board as any).showArrows).toBe(false);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.setShowArrows(true);
+
+      expect((board as any).showArrows).toBe(true);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockRestore();
+    });
+
+    it('should toggle highlight visibility', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      renderSpy.mockClear();
+
+      board.setShowHighlights(false);
+
+      expect((board as any).showHighlights).toBe(false);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockRestore();
+    });
+
+    it('should toggle legal highlight flag', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      renderSpy.mockClear();
+
+      board.setHighlightLegal(false);
+
+      expect((board as any).highlightLegal).toBe(false);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockRestore();
+    });
+
+    it('should update drawing manager when showing square names', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const showSquareNamesSpy = jest.spyOn(board.drawingManager, 'setShowSquareNames');
+
+      renderSpy.mockClear();
+
+      board.setShowSquareNames(true);
+
+      expect((board as any).showSquareNames).toBe(true);
+      expect(showSquareNamesSpy).toHaveBeenCalledWith(true);
+      expect(renderSpy).toHaveBeenCalled();
+
+      showSquareNamesSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should clear premoves when disabling them', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+
+      renderSpy.mockClear();
+
+      board.setAllowPremoves(false);
+
+      expect((board as any).allowPremoves).toBe(false);
+      expect(clearSpy).toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      clearSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should not set premove when premoves are disabled', () => {
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
+
+      board.setAllowPremoves(false);
+      setSpy.mockClear();
+
+      board.setPremove({ from: 'e2', to: 'e4' });
+
+      expect(setSpy).not.toHaveBeenCalled();
+
+      setSpy.mockRestore();
+    });
+
+    it('should forward premove operations to drawing manager when enabled', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
+      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+
+      renderSpy.mockClear();
+
+      board.setAllowPremoves(true);
+      board.setPremove({ from: 'e2', to: 'e4' });
+
+      expect(setSpy).toHaveBeenCalledWith({ from: 'e2', to: 'e4' });
+      expect(renderSpy).toHaveBeenCalled();
+
+      board.drawingManager.setPremove('e7', 'e5');
+      expect(board.getPremove()).toMatchObject({ from: 'e7', to: 'e5' });
+
+      renderSpy.mockClear();
+      board.clearPremove();
+
+      expect(clearSpy).toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      clearSpy.mockRestore();
+      setSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+  });
+
+  describe('Drawing helpers', () => {
+    it('should add arrows using both signature styles', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const simpleArrowSpy = jest.spyOn(board.drawingManager, 'addArrow');
+      const fullArrowSpy = jest.spyOn(board.drawingManager, 'addArrowFromObject');
+
+      renderSpy.mockClear();
+
+      board.addArrow({ from: 'a2', to: 'a4' });
+
+      expect(simpleArrowSpy).toHaveBeenCalledWith({ from: 'a2', to: 'a4' });
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.addArrow({
+        from: 'b1',
+        to: 'c3',
+        color: '#123456',
+        knightMove: true,
+      } as any);
+
+      expect(fullArrowSpy).toHaveBeenCalledWith({
+        from: 'b1',
+        to: 'c3',
+        color: '#123456',
+        knightMove: true,
+      });
+      expect(renderSpy).toHaveBeenCalled();
+
+      fullArrowSpy.mockRestore();
+      simpleArrowSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should remove and clear arrows', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const removeSpy = jest.spyOn(board.drawingManager, 'removeArrow');
+      const clearSpy = jest.spyOn(board.drawingManager, 'clearArrows');
+
+      renderSpy.mockClear();
+
+      board.removeArrow('a2', 'a4');
+      expect(removeSpy).toHaveBeenCalledWith('a2', 'a4');
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.clearArrows();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      clearSpy.mockRestore();
+      removeSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should add highlights using both signature styles', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const simpleHighlightSpy = jest.spyOn(board.drawingManager, 'addHighlight');
+      const fullHighlightSpy = jest.spyOn(board.drawingManager, 'addHighlightFromObject');
+
+      renderSpy.mockClear();
+
+      board.addHighlight('e4', 'green');
+      expect(simpleHighlightSpy).toHaveBeenCalledWith('e4', 'green');
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.addHighlight({ square: 'e5', type: 'blue', opacity: 0.4 });
+      expect(fullHighlightSpy).toHaveBeenCalledWith({ square: 'e5', type: 'blue', opacity: 0.4 });
+      expect(renderSpy).toHaveBeenCalled();
+
+      fullHighlightSpy.mockRestore();
+      simpleHighlightSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should remove and clear highlights', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const removeSpy = jest.spyOn(board.drawingManager, 'removeHighlight');
+      const clearSpy = jest.spyOn(board.drawingManager, 'clearHighlights');
+
+      renderSpy.mockClear();
+
+      board.removeHighlight('e4');
+      expect(removeSpy).toHaveBeenCalledWith('e4');
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.clearHighlights();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      clearSpy.mockRestore();
+      removeSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should export, import and clear drawing state', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const importSpy = jest.spyOn(board.drawingManager, 'importState');
+      const clearAllSpy = jest.spyOn(board.drawingManager, 'clearAll');
+
+      renderSpy.mockClear();
+
+      board.addArrow({ from: 'a2', to: 'a4' });
+      const exported = board.exportDrawings();
+
+      expect(typeof exported).toBe('string');
+
+      renderSpy.mockClear();
+      board.importDrawings(exported!);
+      expect(importSpy).toHaveBeenCalledWith(exported);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.clearAllDrawings();
+      expect(clearAllSpy).toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      clearAllSpy.mockRestore();
+      importSpy.mockRestore();
+      renderSpy.mockRestore();
     });
   });
 });
