@@ -2,11 +2,11 @@ import type { Theme } from './types';
 
 export const THEMES: Record<string, Theme> = {
   classic: {
-    light: '#EBEDF0',
-    dark: '#B3C0CE',
+    light: '#2a3547',
+    dark: '#b8d0ea',
     boardBorder: '#0F172A0F',
-    whitePiece: '#9ca3af',
-    blackPiece: '#0f172a',
+    whitePiece: '#ffffff',
+    blackPiece: '#000000',
     pieceShadow: 'rgba(0,0,0,0.15)',
     pieceStroke: 'rgba(15,23,42,0.6)',
     pieceHighlight: 'rgba(255,255,255,0.55)',
