@@ -9,6 +9,17 @@ export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
   private pgnNotation: PgnNotation;
 
+  private getFenParts(fen?: string): string[] {
+    const fenString = (fen ?? this.chess.fen()).trim();
+    const parts = fenString.split(/\s+/);
+
+    if (parts.length < 6) {
+      return parts.concat(new Array(6 - parts.length).fill(''));
+    }
+
+    return parts;
+  }
+
   public getChessInstance(): Chess {
     return this.chess;
   }
@@ -273,8 +284,11 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir le nombre de demi-coups depuis la dernière prise ou mouvement de pion
    */
   halfMoves(): number {
-    // Méthode simplifiée - retourne 0 pour éviter les problèmes de types
-    return 0;
+    const fenParts = this.getFenParts();
+    const halfMoveField = fenParts[4] ?? '0';
+    const halfMoveCount = Number.parseInt(halfMoveField, 10);
+
+    return Number.isNaN(halfMoveCount) ? 0 : halfMoveCount;
   }
 
   /**
