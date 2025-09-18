@@ -124,6 +124,7 @@ export interface BoardOptions {
   showSquareNames?: boolean;
   autoFlip?: boolean;
   soundUrl?: string;
+  soundUrls?: Partial<Record<'white' | 'black', string>>;
 }
 
 export interface PgnMoveAnnotations {

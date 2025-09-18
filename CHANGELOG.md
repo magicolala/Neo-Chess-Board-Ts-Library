@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation and examples
 - Auto-flip option to keep the active side at the bottom of the board
 - Square coordinates now remain anchored to the bottom and left edges regardless of orientation
+- Configurable move sounds per side to allow different audio for white and black moves
 
 ## [0.1.0] - 2024-12-31
 
