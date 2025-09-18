@@ -36,6 +36,16 @@ declare const styles: {
   readonly themeCreatorLink: string;
   readonly boardWrapper: string;
   readonly boardCanvas: string;
+  readonly boardCanvasContainer: string;
+  readonly boardSizeControl: string;
+  readonly boardSizeHeader: string;
+  readonly boardSizeLabel: string;
+  readonly boardSizeIcon: string;
+  readonly boardSizeValue: string;
+  readonly boardSizeSlider: string;
+  readonly boardSizeHint: string;
+  readonly boardSizePresets: string;
+  readonly boardSizePresetButton: string;
   readonly controlsSection: string;
   readonly panel: string;
   readonly panelHeader: string;

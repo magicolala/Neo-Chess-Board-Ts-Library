@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback, useId } from 'react';
 import { NeoChessBoard, NeoChessRef } from '../src/react';
 import { ChessJsRules } from '../src/core/ChessJsRules';
 import styles from './App.module.css';
@@ -97,6 +97,16 @@ const OrientationIcon: React.FC = () => (
   </SvgIcon>
 );
 
+const BoardSizeIcon: React.FC = () => (
+  <SvgIcon>
+    <rect x={4.5} y={4.5} width={15} height={15} rx={2} />
+    <path d="M8 16h8" />
+    <path d="M16 8v8" />
+    <path d="m8 8 2 2" />
+    <path d="m8 8 2-2" />
+  </SvgIcon>
+);
+
 const AddArrowIcon: React.FC = () => (
   <SvgIcon>
     <path d="M5 16h8" />
@@ -138,8 +148,26 @@ const buildStatusSnapshot = (rules: ChessJsRules) => ({
 
 type GameStatus = ReturnType<typeof buildStatusSnapshot>;
 
+const MIN_BOARD_SIZE = 320;
+const MAX_BOARD_SIZE = 720;
+const BOARD_SIZE_STEP = 20;
+const DEFAULT_BOARD_SIZE = 520;
+const BOARD_SIZE_PRESETS = [360, 480, 600, 720] as const;
+
+const clampBoardSize = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_BOARD_SIZE;
+  }
+
+  const clamped = Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, value));
+  const stepsFromMin = Math.round((clamped - MIN_BOARD_SIZE) / BOARD_SIZE_STEP);
+  const snapped = MIN_BOARD_SIZE + stepsFromMin * BOARD_SIZE_STEP;
+
+  return Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, snapped));
+};
+
 // Type pour les options de l'échiquier
-interface BoardOptions {
+interface BoardFeatureOptions {
   showArrows: boolean;
   showHighlights: boolean;
   allowPremoves: boolean;
@@ -156,7 +184,7 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
   const [status, setStatus] = useState<GameStatus>(() => buildStatusSnapshot(chessRules));
   const [pgnText, setPgnText] = useState('');
-  const [boardOptions, setBoardOptions] = useState<BoardOptions>({
+  const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
     showHighlights: true,
     allowPremoves: true,
@@ -166,7 +194,32 @@ export const App: React.FC = () => {
     highlightLegal: true,
     autoFlip: false,
   });
+  const [boardSize, setBoardSize] = useState(() => clampBoardSize(DEFAULT_BOARD_SIZE));
+  const boardSizeValue = useMemo(() => `${boardSize}px`, [boardSize]);
+  const boardSizeSliderId = useId();
+  const boardSizeHintId = `${boardSizeSliderId}-hint`;
+  const boardSizePresets = useMemo(() => [...BOARD_SIZE_PRESETS], []);
+  const updateBoardSize = useCallback((value: number) => {
+    setBoardSize(clampBoardSize(value));
+  }, []);
+  const handleBoardSizeInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateBoardSize(Number(event.currentTarget.value));
+    },
+    [updateBoardSize],
+  );
+  const handleBoardSizePreset = useCallback(
+    (preset: number) => {
+      updateBoardSize(preset);
+    },
+    [updateBoardSize],
+  );
   const boardRef = useRef<NeoChessRef>(null);
+
+  useEffect(() => {
+    const boardInstance = boardRef.current?.getBoard();
+    boardInstance?.resize?.();
+  }, [boardSize]);
 
   const updateStatusSnapshot = useCallback(() => {
     setStatus(buildStatusSnapshot(chessRules));
@@ -505,31 +558,73 @@ export const App: React.FC = () => {
           </div>
         </header>
 
-        <div className={styles.boardWrapper} style={{ position: 'relative' }}>
-          <NeoChessBoard
-            ref={boardRef}
-            theme={theme}
-            fen={fen}
-            onMove={({ from, to, fen: nextFen }) => {
-              // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
-              chessRules.move({ from, to });
-              // Obtenir la notation PGN standard depuis chess.js
-              setPgnText(chessRules.toPgn(false));
-              setFen(nextFen);
-              syncOrientationWithFen(nextFen);
-              updateStatusSnapshot();
-            }}
-            className={styles.boardCanvas}
-            showSquareNames={boardOptions.showSquareNames}
-            showArrows={boardOptions.showArrows}
-            showHighlights={boardOptions.showHighlights}
-            allowPremoves={boardOptions.allowPremoves}
-            soundEnabled={boardOptions.soundEnabled}
-            soundUrl={moveSound}
-            orientation={boardOptions.orientation}
-            highlightLegal={boardOptions.highlightLegal}
-            autoFlip={boardOptions.autoFlip}
-          />
+        <div className={styles.boardWrapper}>
+          <div className={styles.boardCanvasContainer}>
+            <NeoChessBoard
+              ref={boardRef}
+              theme={theme}
+              fen={fen}
+              size={boardSize}
+              showSquareNames={boardOptions.showSquareNames}
+              showArrows={boardOptions.showArrows}
+              showHighlights={boardOptions.showHighlights}
+              allowPremoves={boardOptions.allowPremoves}
+              soundEnabled={boardOptions.soundEnabled}
+              soundUrl={moveSound}
+              orientation={boardOptions.orientation}
+              highlightLegal={boardOptions.highlightLegal}
+              autoFlip={boardOptions.autoFlip}
+              onMove={({ from, to, fen: nextFen }) => {
+                // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
+                chessRules.move({ from, to });
+                // Obtenir la notation PGN standard depuis chess.js
+                setPgnText(chessRules.toPgn(false));
+                setFen(nextFen);
+                syncOrientationWithFen(nextFen);
+                updateStatusSnapshot();
+              }}
+              className={styles.boardCanvas}
+            />
+            <div className={styles.boardSizeControl}>
+              <div className={styles.boardSizeHeader}>
+                <label htmlFor={boardSizeSliderId} className={styles.boardSizeLabel}>
+                  <span className={styles.boardSizeIcon}>
+                    <BoardSizeIcon />
+                  </span>
+                  Taille de l'échiquier
+                </label>
+                <span className={styles.boardSizeValue}>{boardSizeValue}</span>
+              </div>
+              <input
+                id={boardSizeSliderId}
+                type="range"
+                min={MIN_BOARD_SIZE}
+                max={MAX_BOARD_SIZE}
+                step={BOARD_SIZE_STEP}
+                value={boardSize}
+                onChange={handleBoardSizeInputChange}
+                className={styles.boardSizeSlider}
+                aria-valuetext={boardSizeValue}
+                aria-describedby={boardSizeHintId}
+              />
+              <p className={styles.boardSizeHint} id={boardSizeHintId}>
+                Format carré automatique — {MIN_BOARD_SIZE} à {MAX_BOARD_SIZE} px.
+              </p>
+              <div className={styles.boardSizePresets} role="group" aria-label="Taille rapide">
+                {boardSizePresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={styles.boardSizePresetButton}
+                    onClick={() => handleBoardSizePreset(preset)}
+                    aria-pressed={boardSize === preset}
+                  >
+                    {`${preset}px`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
