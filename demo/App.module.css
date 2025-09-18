@@ -186,10 +186,11 @@ body {
   min-height: 100vh;
   background: var(--bg-primary);
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) 380px;
-  gap: var(--spacing-lg);
+  width: 100%;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-lg);
   padding: var(--spacing-xl);
-  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -359,6 +360,12 @@ body {
     inset 0 1px 0 var(--glass-highlight);
   position: relative;
   overflow: hidden;
+}
+
+.boardCanvas {
+  width: 100%;
+  max-width: clamp(260px, 100%, 720px);
+  aspect-ratio: 1 / 1;
 }
 
 .boardWrapper::before {

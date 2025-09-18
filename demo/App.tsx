@@ -406,7 +406,7 @@ export const App: React.FC = () => {
               syncOrientationWithFen(nextFen);
               updateStatusSnapshot();
             }}
-            style={{ width: 'min(90vmin,720px)', aspectRatio: '1/1' }}
+            className={styles.boardCanvas}
             showSquareNames={boardOptions.showSquareNames}
             showArrows={boardOptions.showArrows}
             showHighlights={boardOptions.showHighlights}
