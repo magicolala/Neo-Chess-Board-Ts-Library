@@ -37,6 +37,17 @@ declare const styles: {
   readonly panelTitle: string;
   readonly '1rem': string;
   readonly panelContent: string;
+  readonly statusGrid: string;
+  readonly statusItem: string;
+  readonly statusLabel: string;
+  readonly statusValue: string;
+  readonly statusHint: string;
+  readonly statusTags: string;
+  readonly statusTag: string;
+  readonly statusTagSuccess: string;
+  readonly statusTagWarning: string;
+  readonly statusTagCritical: string;
+  readonly statusTagInfo: string;
   readonly textarea: string;
   readonly '2': string;
   readonly textareaSmall: string;

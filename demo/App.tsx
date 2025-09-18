@@ -12,6 +12,19 @@ import {
   useLoadingState,
 } from './components/Loaders';
 
+const buildStatusSnapshot = (rules: ChessJsRules) => ({
+  moveNumber: rules.moveNumber(),
+  turn: rules.turn(),
+  inCheck: rules.inCheck(),
+  isCheckmate: rules.isCheckmate(),
+  isStalemate: rules.isStalemate(),
+  isGameOver: rules.isGameOver(),
+  legalMoves: rules.getAllMoves().length,
+  halfMoves: rules.halfMoves(),
+});
+
+type GameStatus = ReturnType<typeof buildStatusSnapshot>;
+
 // Type pour les options de l'échiquier
 interface BoardOptions {
   showArrows: boolean;
@@ -25,9 +38,10 @@ interface BoardOptions {
 }
 
 export const App: React.FC = () => {
+  const chessRules = useMemo(() => new ChessJsRules(), []);
   const [fen, setFen] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
-  const chessRules = useMemo(() => new ChessJsRules(), []);
+  const [status, setStatus] = useState<GameStatus>(() => buildStatusSnapshot(chessRules));
   const [pgnText, setPgnText] = useState('');
   const [boardOptions, setBoardOptions] = useState<BoardOptions>({
     showArrows: true,
@@ -40,6 +54,10 @@ export const App: React.FC = () => {
     autoFlip: false,
   });
   const boardRef = useRef<NeoChessRef>(null);
+
+  const updateStatusSnapshot = useCallback(() => {
+    setStatus(buildStatusSnapshot(chessRules));
+  }, [chessRules]);
 
   const getOrientationFromFen = useCallback((fenString: string) => {
     return fenString.split(' ')[1] === 'w' ? 'white' : 'black';
@@ -82,13 +100,14 @@ export const App: React.FC = () => {
         setFen(updatedFen); // Update FEN state with corrected FEN
         syncOrientationWithFen(updatedFen);
         setPgnText(chessRules.toPgn(false));
+        updateStatusSnapshot();
         setIsManualFenChange(false);
       } catch (error) {
         console.error('FEN invalide:', error);
         setIsManualFenChange(false);
       }
     }
-  }, [fen, chessRules, isManualFenChange, syncOrientationWithFen]);
+  }, [fen, chessRules, isManualFenChange, syncOrientationWithFen, updateStatusSnapshot]);
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
@@ -116,6 +135,7 @@ export const App: React.FC = () => {
     const resetFen = chessRules.getFEN();
     setFen(resetFen);
     syncOrientationWithFen(resetFen);
+    updateStatusSnapshot();
     setIsResetting(false);
   };
 
@@ -259,6 +279,36 @@ export const App: React.FC = () => {
     boardRef.current.clearHighlights();
   }, []);
 
+  const halfMovesRemaining = Math.max(0, 100 - status.halfMoves);
+  const gameTagClass = status.isCheckmate
+    ? `${styles.statusTag} ${styles.statusTagCritical}`
+    : status.isStalemate || status.inCheck
+      ? `${styles.statusTag} ${styles.statusTagWarning}`
+      : status.isGameOver
+        ? `${styles.statusTag} ${styles.statusTagInfo}`
+        : `${styles.statusTag} ${styles.statusTagSuccess}`;
+  const gameTagLabel = status.isCheckmate
+    ? 'Échec et mat'
+    : status.isStalemate
+      ? 'Pat'
+      : status.inCheck
+        ? 'Échec en cours'
+        : status.isGameOver
+          ? 'Partie terminée'
+          : 'Partie en cours';
+  const fiftyTagClass =
+    status.halfMoves >= 100
+      ? `${styles.statusTag} ${styles.statusTagCritical}`
+      : status.halfMoves >= 80
+        ? `${styles.statusTag} ${styles.statusTagWarning}`
+        : `${styles.statusTag} ${styles.statusTagInfo}`;
+  const fiftyTagLabel =
+    status.halfMoves >= 100
+      ? 'Limite des 50 coups atteinte'
+      : status.halfMoves >= 80
+        ? `${halfMovesRemaining} demi-coups avant la limite`
+        : `${halfMovesRemaining} demi-coups restants`;
+
   // Afficher l'écran de chargement initial
   if (isInitialLoading) {
     return (
@@ -347,13 +397,14 @@ export const App: React.FC = () => {
             ref={boardRef}
             theme={theme}
             fen={fen}
-            onMove={({ from, to, fen }) => {
+            onMove={({ from, to, fen: nextFen }) => {
               // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
               chessRules.move({ from, to });
               // Obtenir la notation PGN standard depuis chess.js
               setPgnText(chessRules.toPgn(false));
-              setFen(fen);
-              syncOrientationWithFen(fen);
+              setFen(nextFen);
+              syncOrientationWithFen(nextFen);
+              updateStatusSnapshot();
             }}
             style={{ width: 'min(90vmin,720px)', aspectRatio: '1/1' }}
             showSquareNames={boardOptions.showSquareNames}
@@ -370,6 +421,48 @@ export const App: React.FC = () => {
       </div>
 
       <div className={styles.controlsSection}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>📊 Statut de la partie</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <div className={styles.statusGrid}>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Trait</span>
+                <span className={styles.statusValue}>
+                  {status.turn === 'w' ? 'Blancs' : 'Noirs'}
+                </span>
+                <span className={styles.statusHint}>Coup n° {status.moveNumber}</span>
+              </div>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Coups légaux</span>
+                <span className={styles.statusValue}>{status.legalMoves}</span>
+                <span className={styles.statusHint}>
+                  Options disponibles pour {status.turn === 'w' ? 'les Blancs' : 'les Noirs'}
+                </span>
+              </div>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Demi-coups</span>
+                <span className={styles.statusValue}>{status.halfMoves}</span>
+                <span className={styles.statusHint}>
+                  Depuis la dernière prise ou avancée de pion
+                </span>
+              </div>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Reste avant 50 coups</span>
+                <span className={styles.statusValue}>{halfMovesRemaining}</span>
+                <span className={styles.statusHint}>
+                  Demi-coups restants avant une nulle réclamable
+                </span>
+              </div>
+            </div>
+            <div className={styles.statusTags}>
+              <span className={gameTagClass}>{gameTagLabel}</span>
+              <span className={fiftyTagClass}>{fiftyTagLabel}</span>
+            </div>
+          </div>
+        </div>
+
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
             <h3 className={styles.panelTitle}>⚙️ Options de l'échiquier</h3>

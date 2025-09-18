@@ -8,14 +8,32 @@ import { ChessJsRules } from '../../src/core/ChessJsRules';
 jest.mock('../../src/core/ChessJsRules', () => {
   let currentPgn = '';
   let currentFen = '';
+  let currentTurn: 'w' | 'b' = 'w';
+  let halfMoveClock = 0;
+  let fullMoveNumber = 1;
+
+  const updateFromFen = (fen: string) => {
+    if (!fen) {
+      currentTurn = 'w';
+      halfMoveClock = 0;
+      fullMoveNumber = 1;
+      return;
+    }
+
+    const parts = fen.trim().split(/\s+/);
+    currentTurn = parts[1] === 'b' ? 'b' : 'w';
+    halfMoveClock = parts[4] ? Number.parseInt(parts[4], 10) || 0 : 0;
+    fullMoveNumber = parts[5] ? Number.parseInt(parts[5], 10) || 1 : 1;
+  };
 
   const mockChessJsRulesInstance = {
     move: jest.fn(() => {
       currentPgn = '1. e4'; // Simulate PGN after a move
       currentFen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2'; // Simulate FEN after a move
+      updateFromFen(currentFen);
     }),
     toPgn: jest.fn(() => currentPgn),
-    setFEN: jest.fn((fen) => {
+    setFEN: jest.fn((fen: string) => {
       currentFen = fen; // Update internal FEN state
       // Simulate chess.js correcting the FEN if it's problematic
       if (fen === 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4') {
@@ -25,22 +43,38 @@ jest.mock('../../src/core/ChessJsRules', () => {
       } else if (fen === 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1') {
         currentFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
       }
+      updateFromFen(currentFen);
     }),
     getFEN: jest.fn(() => currentFen),
     reset: jest.fn(() => {
       currentPgn = '*'; // Simulate PGN after reset
       currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1'; // Initial FEN after reset
+      updateFromFen(currentFen);
     }),
     setPgnMetadata: jest.fn(),
     downloadPgn: jest.fn(),
+    moveNumber: jest.fn(() => fullMoveNumber),
+    turn: jest.fn(() => currentTurn),
+    inCheck: jest.fn(() => false),
+    isCheckmate: jest.fn(() => false),
+    isStalemate: jest.fn(() => false),
+    isGameOver: jest.fn(() => false),
+    getAllMoves: jest.fn(() => Array.from({ length: 20 }, (_, index) => `move${index + 1}`)),
+    halfMoves: jest.fn(() => halfMoveClock),
   };
 
-  // Initialize currentPgn and currentFen to their default values
+  // Initialize current state to default values when the mock is created
   currentPgn = '';
-  currentFen = '';
+  currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  updateFromFen(currentFen);
 
   return {
-    ChessJsRules: jest.fn(() => mockChessJsRulesInstance),
+    ChessJsRules: jest.fn(() => {
+      currentPgn = '';
+      currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+      updateFromFen(currentFen);
+      return mockChessJsRulesInstance;
+    }),
   };
 });
 
