@@ -792,6 +792,105 @@ export class NeoChessBoard {
     ctx.restore();
   }
 
+  private _setSelection(square: Square, piece: string): void {
+    const side = isWhitePiece(piece) ? 'w' : 'b';
+    this._selected = square;
+    if (side === (this.state.turn as any)) {
+      this._legalCached = this.rules.movesFrom(square);
+    } else if (this.allowPremoves) {
+      this._legalCached = [];
+    } else {
+      this._legalCached = null;
+    }
+  }
+
+  private _handleClickMove(target: Square): void {
+    const from = this._selected;
+    if (!from || from === target) {
+      if (from === target) {
+        this.renderAll();
+      }
+      return;
+    }
+
+    const piece = this._pieceAt(from);
+    if (!piece) {
+      this._selected = null;
+      this._legalCached = null;
+      this.renderAll();
+      return;
+    }
+
+    const targetPiece = this._pieceAt(target);
+    if (targetPiece && isWhitePiece(targetPiece) === isWhitePiece(piece)) {
+      this._setSelection(target, targetPiece);
+      this.renderAll();
+      return;
+    }
+
+    this._attemptMove(from, target, piece);
+  }
+
+  private _attemptMove(from: Square, to: Square, piece: string): boolean {
+    const side = isWhitePiece(piece) ? 'w' : 'b';
+
+    if (from === to) {
+      this.renderAll();
+      return true;
+    }
+
+    if (side !== (this.state.turn as any)) {
+      if (!this.allowPremoves) {
+        return false;
+      }
+
+      if (this.drawingManager) {
+        this.drawingManager.setPremove(from, to);
+      }
+      this._premove = { from, to };
+      this._selected = null;
+      this._legalCached = null;
+      this._hoverSq = null;
+      this.renderAll();
+      return true;
+    }
+
+    const legal = this.rules.move({ from, to });
+    if (legal && (legal as any).ok) {
+      const fen = this.rules.getFEN();
+      const old = this.state;
+      const next = parseFEN(fen);
+      this.state = next;
+      this._syncOrientationFromTurn(false);
+      this._selected = null;
+      this._legalCached = null;
+      this._hoverSq = null;
+      this._lastMove = { from, to };
+
+      if (this.drawingManager) {
+        this.drawingManager.clearArrows();
+      }
+
+      this._playMoveSound();
+
+      this._animateTo(next, old);
+      this.bus.emit('move', { from, to, fen });
+
+      setTimeout(() => {
+        this._executePremoveIfValid();
+      }, this.animationMs + 50);
+
+      return true;
+    }
+
+    this._selected = null;
+    this._legalCached = null;
+    this._hoverSq = null;
+    this.renderAll();
+    this.bus.emit('illegal', { from, to, reason: (legal as any)?.reason || 'illegal' });
+    return true;
+  }
+
   // ---- interaction ----
   private _attachEvents() {
     let cancelledDragWithRightClick = false;
@@ -847,21 +946,11 @@ export class NeoChessBoard {
       if (!piece) return;
       const side = isWhitePiece(piece) ? 'w' : 'b';
 
-      // If it's not the player's turn and premoves are allowed
-      if (side !== (this.state.turn as any) && this.allowPremoves) {
-        // Start a premove drag
-        this._selected = from;
-        this._legalCached = []; // No legal validation for premoves
-        this._dragging = { from, piece, x: pt.x, y: pt.y };
-        this._hoverSq = from;
-        this.renderAll();
+      if (side !== (this.state.turn as any) && !this.allowPremoves) {
         return;
       }
 
-      // Normal logic for current turn moves
-      if (side !== (this.state.turn as any)) return;
-      this._selected = from;
-      this._legalCached = this.rules.movesFrom(from);
+      this._setSelection(from, piece);
       this._dragging = { from, piece, x: pt.x, y: pt.y };
       this._hoverSq = from;
       this.renderAll();
@@ -944,11 +1033,17 @@ export class NeoChessBoard {
         return;
       }
 
-      if (!this._dragging) return;
+      if (!this._dragging) {
+        if (this.interactive && e.button === 0 && pt) {
+          const square = this._xyToSquare(pt.x, pt.y);
+          this._handleClickMove(square);
+        }
+        return;
+      }
+
       const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
       const from = this._dragging.from;
       const piece = this._dragging.piece;
-      const side = isWhitePiece(piece) ? 'w' : 'b';
 
       this._dragging = null;
       this._hoverSq = null;
@@ -960,56 +1055,12 @@ export class NeoChessBoard {
         return;
       }
 
-      // Check if it's a premove (not the player's turn)
-      const isPremove = side !== (this.state.turn as any) && this.allowPremoves;
-
-      if (isPremove) {
-        // It's a premove - store it without executing
-        if (this.drawingManager) {
-          this.drawingManager.setPremove(from, drop!);
-          // Clear the old premove in _premove (compatibility)
-          this._premove = { from, to: drop! };
-        }
-        this._selected = null;
-        this._legalCached = null;
+      if (drop === from) {
         this.renderAll();
         return;
       }
 
-      // Normal move (it's the player's turn)
-      const legal = this.rules.move({ from, to: drop! });
-      if (legal && (legal as any).ok) {
-        const fen = this.rules.getFEN();
-        const old = this.state;
-        const next = parseFEN(fen);
-        this.state = next;
-        this._syncOrientationFromTurn(false);
-        this._selected = null;
-        this._legalCached = null;
-        this._lastMove = { from, to: drop! };
-
-        // Clear all arrows after each move played
-        if (this.drawingManager) {
-          this.drawingManager.clearArrows();
-        }
-
-        // Play the move sound
-        this._playMoveSound();
-
-        this._animateTo(next, old);
-        this.bus.emit('move', { from, to: drop!, fen });
-
-        // After playing a move, check and execute the premove if there is one
-        // Do it after the animation to avoid conflicts
-        setTimeout(() => {
-          this._executePremoveIfValid();
-        }, this.animationMs + 50); // Wait for the animation to complete
-      } else {
-        this._selected = null;
-        this._legalCached = null;
-        this.renderAll();
-        this.bus.emit('illegal', { from, to: drop!, reason: (legal as any)?.reason || 'illegal' });
-      }
+      this._attemptMove(from, drop, piece);
     };
 
     // Keyboard event handler
