@@ -484,19 +484,19 @@ body {
 .statusTagSuccess {
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.45);
-  color: #34d399;
+  color: var(--success-dark);
 }
 
 .statusTagWarning {
   background: rgba(251, 191, 36, 0.18);
   border-color: rgba(251, 191, 36, 0.4);
-  color: #fbbf24;
+  color: var(--warning-dark);
 }
 
 .statusTagCritical {
   background: rgba(248, 113, 113, 0.22);
   border-color: rgba(248, 113, 113, 0.45);
-  color: #f87171;
+  color: var(--error-dark);
 }
 
 .statusTagInfo {
