@@ -11,6 +11,7 @@ import {
   SkeletonButtons,
   useLoadingState,
 } from './components/Loaders';
+import { useBoardSize } from './hooks/useBoardSize';
 
 const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <svg
@@ -152,19 +153,6 @@ const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
 const DEFAULT_BOARD_SIZE = 520;
-const BOARD_SIZE_PRESETS = [360, 480, 600, 720] as const;
-
-const clampBoardSize = (value: number): number => {
-  if (!Number.isFinite(value)) {
-    return DEFAULT_BOARD_SIZE;
-  }
-
-  const clamped = Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, value));
-  const stepsFromMin = Math.round((clamped - MIN_BOARD_SIZE) / BOARD_SIZE_STEP);
-  const snapped = MIN_BOARD_SIZE + stepsFromMin * BOARD_SIZE_STEP;
-
-  return Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, snapped));
-};
 
 // Type pour les options de l'échiquier
 interface BoardFeatureOptions {
@@ -176,6 +164,7 @@ interface BoardFeatureOptions {
   orientation: 'white' | 'black';
   highlightLegal: boolean;
   autoFlip: boolean;
+  allowResize: boolean;
 }
 
 export const App: React.FC = () => {
@@ -193,27 +182,30 @@ export const App: React.FC = () => {
     orientation: 'white',
     highlightLegal: true,
     autoFlip: false,
+    allowResize: true,
   });
-  const [boardSize, setBoardSize] = useState(() => clampBoardSize(DEFAULT_BOARD_SIZE));
-  const boardSizeValue = useMemo(() => `${boardSize}px`, [boardSize]);
-  const boardSizeSliderId = useId();
-  const boardSizeHintId = `${boardSizeSliderId}-hint`;
-  const boardSizePresets = useMemo(() => [...BOARD_SIZE_PRESETS], []);
-  const updateBoardSize = useCallback((value: number) => {
-    setBoardSize(clampBoardSize(value));
-  }, []);
-  const handleBoardSizeInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      updateBoardSize(Number(event.currentTarget.value));
-    },
-    [updateBoardSize],
-  );
-  const handleBoardSizePreset = useCallback(
-    (preset: number) => {
-      updateBoardSize(preset);
-    },
-    [updateBoardSize],
-  );
+
+  const {
+    containerRef: boardContainerRef,
+    containerStyle: boardContainerStyle,
+    size: boardSize,
+    sizeLabel: boardSizeLabel,
+    isResizing: isResizingBoard,
+    minSize: minBoardSize,
+    maxSize: maxBoardSize,
+    handlePointerDown: handleBoardResizeStart,
+    handlePointerMove: handleBoardResizeMove,
+    handlePointerUp: handleBoardResizeEnd,
+    handlePointerCancel: handleBoardResizeCancel,
+    handleKeyDown: handleBoardResizeKeyDown,
+    handleDoubleClick: handleBoardResizeReset,
+  } = useBoardSize({
+    defaultSize: DEFAULT_BOARD_SIZE,
+    minSize: MIN_BOARD_SIZE,
+    maxSize: MAX_BOARD_SIZE,
+    step: BOARD_SIZE_STEP,
+  });
+
   const boardRef = useRef<NeoChessRef>(null);
 
   useEffect(() => {
@@ -343,7 +335,8 @@ export const App: React.FC = () => {
     | 'allowPremoves'
     | 'showSquareNames'
     | 'soundEnabled'
-    | 'highlightLegal';
+    | 'highlightLegal'
+    | 'allowResize';
 
   const toggleOption = useCallback((option: ToggleableOption) => {
     setBoardOptions((prev) => ({
@@ -559,7 +552,11 @@ export const App: React.FC = () => {
         </header>
 
         <div className={styles.boardWrapper}>
-          <div className={styles.boardCanvasContainer}>
+          <div
+            ref={boardContainerRef}
+            className={styles.boardCanvasContainer}
+            style={boardContainerStyle}
+          >
             <NeoChessBoard
               ref={boardRef}
               theme={theme}
@@ -585,45 +582,39 @@ export const App: React.FC = () => {
               }}
               className={styles.boardCanvas}
             />
-            <div className={styles.boardSizeControl}>
-              <div className={styles.boardSizeHeader}>
-                <label htmlFor={boardSizeSliderId} className={styles.boardSizeLabel}>
-                  <span className={styles.boardSizeIcon}>
+            {boardOptions.allowResize && (
+              <div className={styles.boardResizeAffordance}>
+                <span className={styles.boardResizeSize} aria-live="polite">
+                  <span className={styles.boardResizeIcon} aria-hidden="true">
                     <BoardSizeIcon />
                   </span>
-                  Taille de l'échiquier
-                </label>
-                <span className={styles.boardSizeValue}>{boardSizeValue}</span>
+                  {boardSizeLabel}
+                </span>
+                <button
+                  type="button"
+                  className={
+                    isResizingBoard
+                      ? `${styles.boardResizeHandle} ${styles.boardResizeHandleActive}`
+                      : styles.boardResizeHandle
+                  }
+                  onPointerDown={handleBoardResizeStart}
+                  onPointerMove={handleBoardResizeMove}
+                  onPointerUp={handleBoardResizeEnd}
+                  onPointerCancel={handleBoardResizeCancel}
+                  onDoubleClick={handleBoardResizeReset}
+                  onKeyDown={handleBoardResizeKeyDown}
+                  role="slider"
+                  aria-label="Redimensionner l'échiquier"
+                  aria-valuemin={minBoardSize}
+                  aria-valuemax={maxBoardSize}
+                  aria-valuenow={boardSize}
+                  aria-valuetext={boardSizeLabel}
+                  title="Glisser pour redimensionner (double-clic pour réinitialiser)"
+                >
+                  <span className={styles.boardResizeHandleGrip} aria-hidden="true" />
+                </button>
               </div>
-              <input
-                id={boardSizeSliderId}
-                type="range"
-                min={MIN_BOARD_SIZE}
-                max={MAX_BOARD_SIZE}
-                step={BOARD_SIZE_STEP}
-                value={boardSize}
-                onChange={handleBoardSizeInputChange}
-                className={styles.boardSizeSlider}
-                aria-valuetext={boardSizeValue}
-                aria-describedby={boardSizeHintId}
-              />
-              <p className={styles.boardSizeHint} id={boardSizeHintId}>
-                Format carré automatique — {MIN_BOARD_SIZE} à {MAX_BOARD_SIZE} px.
-              </p>
-              <div className={styles.boardSizePresets} role="group" aria-label="Taille rapide">
-                {boardSizePresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={styles.boardSizePresetButton}
-                    onClick={() => handleBoardSizePreset(preset)}
-                    aria-pressed={boardSize === preset}
-                  >
-                    {`${preset}px`}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -758,6 +749,23 @@ export const App: React.FC = () => {
                   <span className={styles.optionTitle}>Effets sonores</span>
                   <span className={styles.optionHint}>
                     {boardOptions.soundEnabled ? 'Actifs' : 'Coupés'}
+                  </span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.optionButton} ${boardOptions.allowResize ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('allowResize')}
+                aria-pressed={boardOptions.allowResize}
+              >
+                <span className={styles.optionIcon}>
+                  <BoardSizeIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Coin redimensionnable</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.allowResize ? 'Activé' : 'Désactivé'}
                   </span>
                 </span>
               </button>
