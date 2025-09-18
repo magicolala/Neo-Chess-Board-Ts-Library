@@ -11,6 +11,7 @@ import {
   SkeletonButtons,
   useLoadingState,
 } from './components/Loaders';
+import { useBoardSize } from './hooks/useBoardSize';
 
 const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <svg
@@ -153,18 +154,6 @@ const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
 const DEFAULT_BOARD_SIZE = 520;
 
-const clampBoardSize = (value: number): number => {
-  if (!Number.isFinite(value)) {
-    return DEFAULT_BOARD_SIZE;
-  }
-
-  const clamped = Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, value));
-  const stepsFromMin = Math.round((clamped - MIN_BOARD_SIZE) / BOARD_SIZE_STEP);
-  const snapped = MIN_BOARD_SIZE + stepsFromMin * BOARD_SIZE_STEP;
-
-  return Math.min(MAX_BOARD_SIZE, Math.max(MIN_BOARD_SIZE, snapped));
-};
-
 // Type pour les options de l'échiquier
 interface BoardFeatureOptions {
   showArrows: boolean;
@@ -175,6 +164,7 @@ interface BoardFeatureOptions {
   orientation: 'white' | 'black';
   highlightLegal: boolean;
   autoFlip: boolean;
+  allowResize: boolean;
 }
 
 export const App: React.FC = () => {
@@ -192,70 +182,30 @@ export const App: React.FC = () => {
     orientation: 'white',
     highlightLegal: true,
     autoFlip: false,
+    allowResize: true,
   });
-  const [boardSize, setBoardSize] = useState(() => clampBoardSize(DEFAULT_BOARD_SIZE));
-  const boardSizeValue = useMemo(() => `${boardSize}px`, [boardSize]);
-  const boardContainerRef = useRef<HTMLDivElement>(null);
-  const resizeSessionRef = useRef<{ pointerId: number } | null>(null);
-  const [isResizingBoard, setIsResizingBoard] = useState(false);
-  const updateBoardSize = useCallback((value: number) => {
-    setBoardSize((previousSize) => {
-      const nextSize = clampBoardSize(value);
-      return previousSize === nextSize ? previousSize : nextSize;
-    });
-  }, []);
-  const boardContainerStyle = useMemo(() => {
-    const dimension = `${boardSize}px`;
-    return {
-      width: dimension,
-      maxWidth: '100%',
-      aspectRatio: '1 / 1',
-    };
-  }, [boardSize]);
-  const handleBoardResizeStart = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!boardContainerRef.current) {
-      return;
-    }
 
-    resizeSessionRef.current = { pointerId: event.pointerId };
-    setIsResizingBoard(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  }, []);
-  const handleBoardResizeMove = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      const session = resizeSessionRef.current;
-      if (!session || event.pointerId !== session.pointerId) {
-        return;
-      }
+  const {
+    containerRef: boardContainerRef,
+    containerStyle: boardContainerStyle,
+    size: boardSize,
+    sizeLabel: boardSizeLabel,
+    isResizing: isResizingBoard,
+    minSize: minBoardSize,
+    maxSize: maxBoardSize,
+    handlePointerDown: handleBoardResizeStart,
+    handlePointerMove: handleBoardResizeMove,
+    handlePointerUp: handleBoardResizeEnd,
+    handlePointerCancel: handleBoardResizeCancel,
+    handleKeyDown: handleBoardResizeKeyDown,
+    handleDoubleClick: handleBoardResizeReset,
+  } = useBoardSize({
+    defaultSize: DEFAULT_BOARD_SIZE,
+    minSize: MIN_BOARD_SIZE,
+    maxSize: MAX_BOARD_SIZE,
+    step: BOARD_SIZE_STEP,
+  });
 
-      const container = boardContainerRef.current;
-      if (!container) {
-        return;
-      }
-
-      event.preventDefault();
-
-      const rect = container.getBoundingClientRect();
-      const offsetX = event.clientX - rect.left;
-      const offsetY = event.clientY - rect.top;
-      const desiredSize = Math.max(offsetX, offsetY);
-
-      updateBoardSize(desiredSize);
-    },
-    [updateBoardSize],
-  );
-  const handleBoardResizeEnd = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    const session = resizeSessionRef.current;
-    if (!session || event.pointerId !== session.pointerId) {
-      return;
-    }
-
-    resizeSessionRef.current = null;
-    setIsResizingBoard(false);
-    event.currentTarget.releasePointerCapture(event.pointerId);
-    event.preventDefault();
-  }, []);
   const boardRef = useRef<NeoChessRef>(null);
 
   useEffect(() => {
@@ -385,7 +335,8 @@ export const App: React.FC = () => {
     | 'allowPremoves'
     | 'showSquareNames'
     | 'soundEnabled'
-    | 'highlightLegal';
+    | 'highlightLegal'
+    | 'allowResize';
 
   const toggleOption = useCallback((option: ToggleableOption) => {
     setBoardOptions((prev) => ({
@@ -631,29 +582,39 @@ export const App: React.FC = () => {
               }}
               className={styles.boardCanvas}
             />
-            <div className={styles.boardResizeAffordance}>
-              <span className={styles.boardResizeSize} aria-live="polite">
-                <span className={styles.boardResizeIcon} aria-hidden="true">
-                  <BoardSizeIcon />
+            {boardOptions.allowResize && (
+              <div className={styles.boardResizeAffordance}>
+                <span className={styles.boardResizeSize} aria-live="polite">
+                  <span className={styles.boardResizeIcon} aria-hidden="true">
+                    <BoardSizeIcon />
+                  </span>
+                  {boardSizeLabel}
                 </span>
-                {boardSizeValue}
-              </span>
-              <button
-                type="button"
-                className={
-                  isResizingBoard
-                    ? `${styles.boardResizeHandle} ${styles.boardResizeHandleActive}`
-                    : styles.boardResizeHandle
-                }
-                onPointerDown={handleBoardResizeStart}
-                onPointerMove={handleBoardResizeMove}
-                onPointerUp={handleBoardResizeEnd}
-                onPointerCancel={handleBoardResizeEnd}
-                aria-label="Redimensionner l'échiquier"
-              >
-                <span className={styles.boardResizeHandleGrip} aria-hidden="true" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className={
+                    isResizingBoard
+                      ? `${styles.boardResizeHandle} ${styles.boardResizeHandleActive}`
+                      : styles.boardResizeHandle
+                  }
+                  onPointerDown={handleBoardResizeStart}
+                  onPointerMove={handleBoardResizeMove}
+                  onPointerUp={handleBoardResizeEnd}
+                  onPointerCancel={handleBoardResizeCancel}
+                  onDoubleClick={handleBoardResizeReset}
+                  onKeyDown={handleBoardResizeKeyDown}
+                  role="slider"
+                  aria-label="Redimensionner l'échiquier"
+                  aria-valuemin={minBoardSize}
+                  aria-valuemax={maxBoardSize}
+                  aria-valuenow={boardSize}
+                  aria-valuetext={boardSizeLabel}
+                  title="Glisser pour redimensionner (double-clic pour réinitialiser)"
+                >
+                  <span className={styles.boardResizeHandleGrip} aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -788,6 +749,23 @@ export const App: React.FC = () => {
                   <span className={styles.optionTitle}>Effets sonores</span>
                   <span className={styles.optionHint}>
                     {boardOptions.soundEnabled ? 'Actifs' : 'Coupés'}
+                  </span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.optionButton} ${boardOptions.allowResize ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('allowResize')}
+                aria-pressed={boardOptions.allowResize}
+              >
+                <span className={styles.optionIcon}>
+                  <BoardSizeIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Coin redimensionnable</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.allowResize ? 'Activé' : 'Désactivé'}
                   </span>
                 </span>
               </button>
