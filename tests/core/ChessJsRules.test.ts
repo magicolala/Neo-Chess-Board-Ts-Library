@@ -385,10 +385,34 @@ describe('ChessJsRules', () => {
       expect(isAttacked).toBe(false); // Simplified implementation returns false
     });
 
-    test('should get half moves', () => {
-      const halfMoves = rules.halfMoves();
-      expect(typeof halfMoves).toBe('number');
-      expect(halfMoves).toBe(0); // Simplified implementation returns 0
+    test('should track half moves across various move types', () => {
+      expect(rules.halfMoves()).toBe(0);
+
+      const sequence: Array<{
+        move: { from: string; to: string; promotion?: string };
+        expected: number;
+      }> = [
+        { move: { from: 'g1', to: 'f3' }, expected: 1 }, // Knight move (no pawn/capture)
+        { move: { from: 'g8', to: 'f6' }, expected: 2 }, // Knight move (no pawn/capture)
+        { move: { from: 'g2', to: 'g3' }, expected: 0 }, // Pawn move resets counter
+        { move: { from: 'g7', to: 'g6' }, expected: 0 }, // Pawn move resets counter
+        { move: { from: 'f1', to: 'g2' }, expected: 1 }, // Bishop move increments
+        { move: { from: 'f8', to: 'g7' }, expected: 2 }, // Bishop move increments
+        { move: { from: 'e1', to: 'g1' }, expected: 3 }, // Castling counts as non-capture move
+        { move: { from: 'e8', to: 'g8' }, expected: 4 }, // Castling increments further
+        { move: { from: 'c2', to: 'c4' }, expected: 0 }, // Pawn double push resets
+        { move: { from: 'd7', to: 'd5' }, expected: 0 }, // Pawn move resets
+        { move: { from: 'c4', to: 'd5' }, expected: 0 }, // Capture resets
+        { move: { from: 'd8', to: 'd5' }, expected: 0 }, // Capture resets
+        { move: { from: 'b1', to: 'c3' }, expected: 1 }, // Knight move increments after capture
+        { move: { from: 'b8', to: 'c6' }, expected: 2 }, // Knight move increments again
+      ];
+
+      sequence.forEach(({ move, expected }) => {
+        const result = rules.move(move);
+        expect(result.ok).toBe(true);
+        expect(rules.halfMoves()).toBe(expected);
+      });
     });
 
     test('should generate FEN', () => {
