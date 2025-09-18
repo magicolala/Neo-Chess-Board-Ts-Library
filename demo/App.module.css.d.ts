@@ -31,6 +31,7 @@ declare const styles: {
   readonly '4': string;
   readonly themeCreatorLink: string;
   readonly boardWrapper: string;
+  readonly boardCanvas: string;
   readonly controlsSection: string;
   readonly panel: string;
   readonly panelHeader: string;
