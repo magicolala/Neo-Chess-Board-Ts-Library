@@ -521,4 +521,68 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockRestore();
     });
   });
+
+  describe('Interaction behaviour', () => {
+    it('cancels an active drag on right-click and skips drawing actions', () => {
+      const overlay = (board as any).cOverlay as HTMLCanvasElement;
+      const onPointerDown = (board as any)._onPointerDown as (event: PointerEvent) => void;
+      const onPointerMove = (board as any)._onPointerMove as (event: PointerEvent) => void;
+      const onPointerUp = (board as any)._onPointerUp as (event: PointerEvent) => void;
+
+      const rightDownSpy = jest.spyOn(board.drawingManager, 'handleRightMouseDown');
+      const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp');
+      const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
+
+      const overlayRect = overlay.getBoundingClientRect();
+      const createPointerEventForSquare = (button: number, squareName: string) => {
+        const { x, y } = (board as any)._sqToXY(squareName);
+        const squareSize = (board as any).square as number;
+        const canvasX = x + squareSize / 2;
+        const canvasY = y + squareSize / 2;
+
+        const baseEvent = {
+          button,
+          clientX: overlayRect.left + (canvasX * overlayRect.width) / overlay.width,
+          clientY: overlayRect.top + (canvasY * overlayRect.height) / overlay.height,
+          preventDefault: jest.fn(),
+          shiftKey: false,
+          ctrlKey: false,
+          altKey: false,
+        };
+
+        return {
+          event: baseEvent as unknown as PointerEvent,
+          preventDefault: baseEvent.preventDefault,
+        };
+      };
+
+      const initialFen = board.getPosition();
+
+      const leftDown = createPointerEventForSquare(0, 'e2');
+      onPointerDown(leftDown.event);
+      expect((board as any)._dragging).not.toBeNull();
+
+      onPointerMove(createPointerEventForSquare(0, 'e4').event);
+
+      const rightDown = createPointerEventForSquare(2, 'e4');
+      onPointerDown(rightDown.event);
+
+      expect(rightDown.preventDefault).toHaveBeenCalled();
+      expect((board as any)._dragging).toBeNull();
+      expect((board as any)._selected).toBeNull();
+      expect((board as any)._legalCached).toBeNull();
+      expect((board as any)._hoverSq).toBeNull();
+
+      onPointerUp(createPointerEventForSquare(2, 'e4').event);
+
+      expect(board.getPosition()).toBe(initialFen);
+      expect(rightDownSpy).not.toHaveBeenCalled();
+      expect(rightUpSpy).not.toHaveBeenCalled();
+      expect(highlightSpy).not.toHaveBeenCalled();
+
+      rightDownSpy.mockRestore();
+      rightUpSpy.mockRestore();
+      highlightSpy.mockRestore();
+    });
+  });
 });

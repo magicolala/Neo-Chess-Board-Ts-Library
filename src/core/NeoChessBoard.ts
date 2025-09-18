@@ -794,24 +794,53 @@ export class NeoChessBoard {
 
   // ---- interaction ----
   private _attachEvents() {
+    let cancelledDragWithRightClick = false;
+
+    const cancelActiveDrag = () => {
+      if (!this._dragging) return false;
+      this._dragging = null;
+      this._selected = null;
+      this._legalCached = null;
+      this._hoverSq = null;
+      this.renderAll();
+      return true;
+    };
+
     const onDown = (e: PointerEvent) => {
-      const pt = this._evt(e);
-      if (!pt) return;
-      if (!this.interactive) return;
+      if (!this.interactive) {
+        if (e.button === 2) {
+          e.preventDefault();
+          if (cancelActiveDrag()) {
+            cancelledDragWithRightClick = true;
+          }
+        }
+        return;
+      }
 
       // Handle right-click for arrows (drag & drop)
       if (e.button === 2) {
         e.preventDefault();
+        if (cancelActiveDrag()) {
+          cancelledDragWithRightClick = true;
+          return;
+        }
+        cancelledDragWithRightClick = false;
+
+        const pt = this._evt(e);
         if (
+          pt &&
           this.drawingManager &&
           this.drawingManager.handleRightMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey, e.altKey)
         ) {
           this.renderAll();
-          return;
         }
+        return;
       }
 
       if (e.button !== 0) return;
+
+      const pt = this._evt(e);
+      if (!pt) return;
       const from = this._xyToSquare(pt.x, pt.y);
 
       const piece = this._pieceAt(from);
@@ -866,6 +895,17 @@ export class NeoChessBoard {
     };
 
     const onUp = (e: PointerEvent) => {
+      if (e.button === 2) {
+        if (cancelActiveDrag()) {
+          cancelledDragWithRightClick = false;
+          return;
+        }
+        if (cancelledDragWithRightClick) {
+          cancelledDragWithRightClick = false;
+          return;
+        }
+      }
+
       const pt = this._evt(e);
 
       // Handle right-click release for arrows
