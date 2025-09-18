@@ -27,7 +27,7 @@
 .optionActive {
   background: var(--accent-primary-light);
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-primary-dark);
   font-weight: 500;
 }
 
@@ -46,28 +46,32 @@
   --border-focus: #6366f1;
 
   /* Texte - hiérarchie claire */
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: #4d86ff;
+  --text-secondary: #7a92b4;
+  --text-muted: #6B7280;
   --text-placeholder: #d1d5db;
 
   /* Couleurs d'accent - minimalistes */
   --accent-primary: #6366f1;
   --accent-primary-hover: #4f46e5;
   --accent-primary-light: #eef2ff;
+  --accent-primary-dark: #4338CA;
 
   /* États sémantiques */
   --success: #10b981;
   --success-hover: #059669;
   --success-light: #ecfdf5;
+  --success-dark: #047857;
 
   --warning: #f59e0b;
   --warning-hover: #d97706;
   --warning-light: #fffbeb;
+  --warning-dark: #B45309;
 
   --error: #ef4444;
   --error-hover: #dc2626;
   --error-light: #fef2f2;
+  --error-dark: #B91C1C;
 
   /* Géométrie - angles droits */
   --radius-sm: 0px;
@@ -147,7 +151,7 @@ body {
 .optionButton.optionActive {
   background-color: var(--accent-primary-light);
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-primary-dark);
 }
 
 .optionButton svg {
@@ -168,7 +172,7 @@ body {
 
 .optionButton.danger {
   background-color: var(--error-light);
-  color: var(--error);
+  color: var(--error-dark);
   border-color: var(--error);
 }
 
