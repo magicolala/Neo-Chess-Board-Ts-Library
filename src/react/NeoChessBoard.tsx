@@ -1,7 +1,9 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle } from 'react';
 import type { CSSProperties } from 'react';
-import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
+import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
 import type { BoardOptions, Square } from '../core/types';
+import { useNeoChessBoard } from './useNeoChessBoard';
+import type { UpdatableBoardOptions } from './useNeoChessBoard';
 
 export interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'> {
   fen?: string;
@@ -24,93 +26,18 @@ export interface NeoChessRef {
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
-  ({ fen, className, style, onMove, onIllegal, onUpdate, ...opts }, ref) => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
-    const boardRef = useRef<Chessboard | null>(null);
+  ({ fen, className, style, onMove, onIllegal, onUpdate, ...restOptions }, ref) => {
+    const options = restOptions as UpdatableBoardOptions;
 
-    useEffect(() => {
-      if (!containerRef.current) return;
+    const { containerRef, api } = useNeoChessBoard({
+      fen,
+      options,
+      onMove,
+      onIllegal,
+      onUpdate,
+    });
 
-      if (!boardRef.current) {
-        const b = new Chessboard(containerRef.current, { ...opts, fen });
-        boardRef.current = b;
-      } else {
-        // Update individual options that can be changed after initialization
-        if (fen !== undefined && boardRef.current.getPosition() !== fen) {
-          boardRef.current.setFEN(fen);
-        }
-        if (opts.theme !== undefined) {
-          if (typeof opts.theme === 'string') {
-            boardRef.current.setTheme(opts.theme);
-          } else {
-            boardRef.current.applyTheme(opts.theme);
-          }
-        }
-        if ('pieceSet' in opts) {
-          void boardRef.current.setPieceSet(opts.pieceSet);
-        }
-        if (opts.soundEnabled !== undefined) {
-          boardRef.current.setSoundEnabled(opts.soundEnabled);
-        }
-        if (opts.autoFlip !== undefined) {
-          boardRef.current.setAutoFlip(opts.autoFlip);
-        }
-        if (opts.orientation !== undefined) {
-          boardRef.current.setOrientation(opts.orientation);
-        }
-        if (opts.showArrows !== undefined) {
-          boardRef.current.setShowArrows(opts.showArrows);
-        }
-        if (opts.showHighlights !== undefined) {
-          boardRef.current.setShowHighlights(opts.showHighlights);
-        }
-        if (opts.allowPremoves !== undefined) {
-          boardRef.current.setAllowPremoves(opts.allowPremoves);
-        }
-        if (opts.highlightLegal !== undefined) {
-          boardRef.current.setHighlightLegal(opts.highlightLegal);
-        }
-        if (opts.showSquareNames !== undefined) {
-          boardRef.current.setShowSquareNames(opts.showSquareNames);
-        }
-      }
-
-      const off1 = boardRef.current.on('move', (e) => onMove?.(e));
-      const off2 = boardRef.current.on('illegal', (e) => onIllegal?.(e));
-      const off3 = boardRef.current.on('update', (e) => onUpdate?.(e));
-
-      return () => {
-        off1?.();
-        off2?.();
-        off3?.();
-      };
-    }, [fen, opts, onMove, onIllegal, onUpdate]);
-
-    useEffect(() => {
-      return () => {
-        boardRef.current?.destroy();
-      };
-    }, []);
-
-    useImperativeHandle(
-      ref,
-      () => ({
-        getBoard: () => boardRef.current,
-        addArrow: (arrow: { from: Square; to: Square; color?: string }) => {
-          return boardRef.current?.addArrow?.(arrow);
-        },
-        addHighlight: (square: Square, type: string) => {
-          return boardRef.current?.addHighlight?.(square, type);
-        },
-        clearArrows: () => {
-          return boardRef.current?.clearArrows?.();
-        },
-        clearHighlights: () => {
-          return boardRef.current?.clearHighlights?.();
-        },
-      }),
-      [],
-    );
+    useImperativeHandle(ref, () => api, [api]);
 
     return <div ref={containerRef} className={className} style={style} />;
   },
