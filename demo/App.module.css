@@ -488,6 +488,156 @@ body {
   aspect-ratio: 1 / 1;
 }
 
+.boardCanvasContainer {
+  position: relative;
+  display: grid;
+  grid-template-areas: 'board';
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.boardCanvasContainer > :first-child {
+  grid-area: board;
+  width: 100%;
+}
+
+.boardResizeAffordance {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.boardResizeSize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
+}
+
+.boardResizeIcon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.boardResizeIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.boardResizeHandle {
+  pointer-events: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: nwse-resize;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+  touch-action: none;
+}
+
+.boardResizeHandle:hover {
+  background: rgba(30, 41, 59, 0.82);
+  border-color: rgba(148, 163, 184, 0.72);
+  transform: translateY(-1px);
+}
+
+.boardResizeHandle:focus-visible {
+  outline: none;
+  border-color: var(--glass-active-border);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 0 3px var(--glass-focus-ring);
+}
+
+.boardResizeHandleActive,
+.boardResizeHandle:active {
+  background: rgba(99, 102, 241, 0.22);
+  border-color: var(--glass-active-border);
+  box-shadow: var(--shadow-glass);
+}
+
+.boardResizeHandleGrip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.boardResizeHandleGrip::before,
+.boardResizeHandleGrip::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.85);
+  transform-origin: right center;
+  transform: rotate(-45deg);
+  transition: background 0.2s ease;
+}
+
+.boardResizeHandleGrip::after {
+  right: 10px;
+  bottom: 18px;
+  width: 12px;
+}
+
+.boardResizeHandle:hover .boardResizeHandleGrip::before,
+.boardResizeHandle:hover .boardResizeHandleGrip::after,
+.boardResizeHandleActive .boardResizeHandleGrip::before,
+.boardResizeHandleActive .boardResizeHandleGrip::after {
+  background: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .boardCanvasContainer {
+    width: 100%;
+  }
+
+  .boardResizeAffordance {
+    right: 10px;
+    bottom: 10px;
+    gap: 8px;
+  }
+
+  .boardResizeSize {
+    font-size: 0.68rem;
+    padding: 5px 10px;
+  }
+
+  .boardResizeHandle {
+    width: 34px;
+    height: 34px;
+  }
+}
+
 .boardWrapper::before {
   content: '';
   position: absolute;

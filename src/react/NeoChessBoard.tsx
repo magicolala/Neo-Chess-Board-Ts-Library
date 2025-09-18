@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
 import type { BoardOptions, Square } from '../core/types';
@@ -26,8 +26,30 @@ export interface NeoChessRef {
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
-  ({ fen, className, style, onMove, onIllegal, onUpdate, ...restOptions }, ref) => {
-    const options = restOptions as UpdatableBoardOptions;
+  ({ fen, className, style, onMove, onIllegal, onUpdate, size, ...restOptions }, ref) => {
+    const options = useMemo<UpdatableBoardOptions>(() => {
+      const typedOptions = restOptions as UpdatableBoardOptions;
+      if (typeof size === 'number') {
+        return { ...typedOptions, size };
+      }
+      return typedOptions;
+    }, [restOptions, size]);
+
+    const computedStyle = useMemo<CSSProperties | undefined>(() => {
+      if (typeof size !== 'number' || Number.isNaN(size) || size <= 0) {
+        return style;
+      }
+
+      const roundedSize = Math.round(size);
+      const sizeStyles: CSSProperties = {
+        width: '100%',
+        maxWidth: `${roundedSize}px`,
+        maxHeight: `${roundedSize}px`,
+        aspectRatio: '1 / 1',
+      };
+
+      return style ? { ...sizeStyles, ...style } : sizeStyles;
+    }, [size, style]);
 
     const { containerRef, api } = useNeoChessBoard({
       fen,
@@ -39,7 +61,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
 
     useImperativeHandle(ref, () => api, [api]);
 
-    return <div ref={containerRef} className={className} style={style} />;
+    return <div ref={containerRef} className={className} style={computedStyle} />;
   },
 );
 
