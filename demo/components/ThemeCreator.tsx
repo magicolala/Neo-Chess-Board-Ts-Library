@@ -11,8 +11,48 @@ interface ColorInputProps {
   description?: string;
 }
 
+// Utility functions for color conversion
+const rgbaToHex = (rgba: string): string => {
+  const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (!match) return '#000000';
+
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
+const hexToRgba = (hex: string, alpha: number = 1): string => {
+  const match = hex.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!match) return hex;
+
+  const r = parseInt(match[1], 16);
+  const g = parseInt(match[2], 16);
+  const b = parseInt(match[3], 16);
+
+  if (alpha === 1) return hex;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const extractAlphaFromRgba = (rgba: string): number => {
+  const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  return match && match[4] ? parseFloat(match[4]) : 1;
+};
+
 const ColorInput: React.FC<ColorInputProps> = ({ label, value, onChange, description }) => {
   const isRgba = value.startsWith('rgba(');
+  const alpha = isRgba ? extractAlphaFromRgba(value) : 1;
+  const hexValue = isRgba ? rgbaToHex(value) : value;
+
+  const handleColorPickerChange = (hexColor: string) => {
+    if (isRgba) {
+      // Convert hex back to RGBA with original alpha
+      onChange(hexToRgba(hexColor, alpha));
+    } else {
+      onChange(hexColor);
+    }
+  };
 
   return (
     <div className={styles.colorInput}>
@@ -23,10 +63,9 @@ const ColorInput: React.FC<ColorInputProps> = ({ label, value, onChange, descrip
       <div className={styles.colorControls}>
         <input
           type="color"
-          value={isRgba ? '#000000' : value}
-          onChange={(e) => onChange(e.target.value)}
+          value={hexValue}
+          onChange={(e) => handleColorPickerChange(e.target.value)}
           className={styles.colorPicker}
-          disabled={isRgba}
         />
         <input
           type="text"
