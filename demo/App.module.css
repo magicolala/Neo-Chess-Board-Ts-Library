@@ -1,36 +1,5 @@
 /* ===== DESIGN FLAT MINIMALISTE MODERN ===== */
 
-/* Options Grid */
-.optionGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.optionButton {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  padding: var(--spacing-sm);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-.optionButton:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-medium);
-}
-
-.optionActive {
-  background: var(--accent-primary-light);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary-dark);
-  font-weight: 500;
-}
-
 /* Variables CSS - Design System Minimaliste */
 :root {
   /* Couleurs principales - palette neutre moderne */
@@ -91,6 +60,21 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.1);
   --app-shell-header-height: 0px;
+
+  /* Palette verre dépoli */
+  --accent-color: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-glass: rgba(99, 102, 241, 0.22);
+  --glass-bg: rgba(15, 23, 42, 0.58);
+  --glass-hover: rgba(30, 41, 59, 0.68);
+  --glass-active: rgba(99, 102, 241, 0.22);
+  --glass-border: rgba(148, 163, 184, 0.28);
+  --glass-active-border: rgba(129, 140, 248, 0.65);
+  --glass-highlight: rgba(255, 255, 255, 0.16);
+  --glass-focus-ring: rgba(99, 102, 241, 0.45);
+  --blur-amount: 20px;
+  --blur-light: 12px;
+  --shadow-glass: 0 18px 38px rgba(15, 23, 42, 0.4);
 }
 
 /* Reset et base */
@@ -116,69 +100,190 @@ body {
 /* ===== OPTIONS DE L'ECHIQUIER ===== */
 .optionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
 .optionButton {
-  padding: 10px 14px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  background-color: var(--bg-card);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 14px 18px;
+  border-radius: calc(var(--radius) + 16px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
   text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  min-height: 64px;
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
   box-shadow: var(--shadow-sm);
 }
 
 .optionButton:hover {
-  background-color: var(--bg-hover);
+  background: var(--glass-hover);
+  border-color: var(--glass-active-border);
+  box-shadow: var(--shadow-glass);
   transform: translateY(-1px);
-  box-shadow: var(--shadow);
+}
+
+.optionButton:focus-visible {
+  outline: none;
+  border-color: var(--glass-active-border);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 0 3px var(--glass-focus-ring);
+  transform: translateY(-1px);
 }
 
 .optionButton:active {
   transform: translateY(0);
+}
+
+.optionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  background: rgba(15, 23, 42, 0.42);
+  border-color: rgba(148, 163, 184, 0.22);
   box-shadow: none;
+  transform: none;
 }
 
-.optionButton.optionActive {
-  background-color: var(--accent-primary-light);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary-dark);
+.optionButton:disabled .optionLabel {
+  color: rgba(148, 163, 184, 0.75);
 }
 
-.optionButton svg {
-  font-size: 1.1em;
-}
-
-/* Style spécifique pour les boutons d'action */
-.optionButton.action {
-  background-color: var(--accent-primary);
+.optionButton.optionActive,
+.optionButton[aria-pressed='true'] {
+  background: var(--glass-active);
+  border-color: var(--glass-active-border);
+  box-shadow: var(--shadow-glass);
   color: white;
-  justify-content: center;
+}
+
+.optionIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-secondary);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.optionButton:hover .optionIcon {
+  color: var(--text-primary);
+  background: rgba(148, 163, 184, 0.22);
+  transform: scale(1.05);
+}
+
+.optionButton.optionActive .optionIcon,
+.optionButton[aria-pressed='true'] .optionIcon {
+  background: var(--accent-glass);
+  color: white;
+}
+
+.optionIcon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.optionLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+.optionTitle {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.optionHint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.optionButton.optionActive .optionHint,
+.optionButton[aria-pressed='true'] .optionHint {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.optionButton.optionActive .optionLabel,
+.optionButton[aria-pressed='true'] .optionLabel {
+  color: white;
+}
+
+.optionButton:disabled .optionIcon {
+  background: rgba(148, 163, 184, 0.1);
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.optionButton:disabled .optionHint {
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.optionButton.action {
+  background: var(--accent-color);
+  border-color: transparent;
+  color: white;
+}
+
+.optionButton.action .optionIcon {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
 }
 
 .optionButton.action:hover {
-  background-color: var(--accent-primary-hover);
+  background: var(--accent-hover);
+}
+
+.optionButton.action:hover .optionIcon {
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .optionButton.danger {
-  background-color: var(--error-light);
-  color: var(--error-dark);
-  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #f87171;
+}
+
+.optionButton.danger .optionIcon {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
 }
 
 .optionButton.danger:hover {
-  background-color: #fee2e2;
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+}
+
+.optionButton.danger:hover .optionIcon {
+  background: rgba(248, 113, 113, 0.28);
+  color: #fee2e2;
 }
 
 /* ===== LAYOUT PRINCIPAL ===== */
@@ -189,8 +294,10 @@ body {
   min-height: 100dvh;
   background: var(--bg-primary);
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) 380px;
-  gap: var(--spacing-lg);
+  width: 100%;
+  grid-template-columns: minmax(320px, 2fr) minmax(0, 1fr);
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-lg);
   padding: var(--container-padding-block);
   max-width: 1400px;
   margin: 0 auto;
@@ -373,6 +480,12 @@ body {
     inset 0 1px 0 var(--glass-highlight);
   position: relative;
   overflow: hidden;
+}
+
+.boardCanvas {
+  width: 100%;
+  max-width: clamp(260px, 100%, 720px);
+  aspect-ratio: 1 / 1;
 }
 
 .boardWrapper::before {
