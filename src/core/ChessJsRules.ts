@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js';
+import { Chess, SQUARES, type Color } from 'chess.js';
 import type { RulesAdapter, Move } from './types';
 import { PgnNotation, PgnMetadata } from './PgnNotation';
 
@@ -216,18 +216,45 @@ export class ChessJsRules implements RulesAdapter {
 
   /**
    * Obtenir les cases attaquées par le joueur actuel
+   *
+   * Utilise la détection native de chess.js pour identifier toutes les cases
+   * actuellement contrôlées par le joueur au trait.
    */
   getAttackedSquares(): string[] {
-    // Méthode simplifiée - retourne un tableau vide pour éviter les problèmes de types
-    return [];
+    const attackingColor: Color = this.chess.turn();
+
+    return SQUARES.filter((square) => this.chess.isAttacked(square, attackingColor)).map(
+      (square) => square,
+    );
   }
 
   /**
    * Vérifier si une case est attaquée
+   *
+   * @param square Case à vérifier (notation algébrique, insensible à la casse)
+   * @param by Couleur optionnelle pour vérifier une couleur spécifique
+   * @throws {Error} si la case ou la couleur fournie est invalide
    */
   isSquareAttacked(square: string, by?: 'w' | 'b'): boolean {
-    // Méthode simplifiée - retourne false pour éviter les problèmes de types
-    return false;
+    if (typeof square !== 'string') {
+      throw new Error(`Invalid square: ${square}`);
+    }
+
+    const normalizedSquare = square.toLowerCase();
+    if (!(SQUARES as readonly string[]).includes(normalizedSquare)) {
+      throw new Error(`Invalid square: ${square}`);
+    }
+
+    let colorToCheck: Color;
+    if (by === undefined) {
+      colorToCheck = this.chess.turn();
+    } else if (by === 'w' || by === 'b') {
+      colorToCheck = by;
+    } else {
+      throw new Error(`Invalid color: ${by}`);
+    }
+
+    return this.chess.isAttacked(normalizedSquare as (typeof SQUARES)[number], colorToCheck);
   }
 
   /**
