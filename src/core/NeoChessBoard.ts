@@ -179,6 +179,11 @@ export class NeoChessBoard {
   private soundUrl: string | undefined;
 
   /**
+   * URLs for move sounds by the side that just played.
+   */
+  private soundUrls: BoardOptions['soundUrls'];
+
+  /**
    * Custom piece sprites provided by the user.
    */
   private customPieceSprites: Partial<Record<Piece, ResolvedPieceSprite>> = {};
@@ -198,6 +203,11 @@ export class NeoChessBoard {
    * Audio element for playing move sounds.
    */
   private moveSound: HTMLAudioElement | null = null;
+
+  /**
+   * Audio elements keyed by the color that just moved.
+   */
+  private moveSounds: Partial<Record<'white' | 'black', HTMLAudioElement>> = {};
 
   // Internal state tracking for interactions and animations
   /**
@@ -266,6 +276,7 @@ export class NeoChessBoard {
     this.showSquareNames = options.showSquareNames || false;
     this.autoFlip = options.autoFlip ?? false;
     this.soundUrl = options.soundUrl;
+    this.soundUrls = options.soundUrls;
 
     // Initialize sound
     this._initializeSound();
@@ -1256,20 +1267,53 @@ export class NeoChessBoard {
    * Handles potential loading errors silently.
    */
   private _initializeSound() {
-    if (!this.soundEnabled || typeof Audio === 'undefined' || !this.soundUrl) return;
+    this.moveSound = null;
+    this.moveSounds = {};
 
-    try {
-      this.moveSound = new Audio(this.soundUrl);
-      this.moveSound.volume = 0.3; // Moderate volume
-      this.moveSound.preload = 'auto';
+    if (!this.soundEnabled || typeof Audio === 'undefined') return;
 
-      // Handle loading errors silently
-      this.moveSound.addEventListener('error', () => {
-        console.debug('Sound not available');
-      });
-    } catch (error) {
-      console.warn('Unable to load move sound:', error);
-      this.moveSound = null;
+    const defaultUrl = this.soundUrl;
+    const whiteUrl = this.soundUrls?.white;
+    const blackUrl = this.soundUrls?.black;
+
+    if (!defaultUrl && !whiteUrl && !blackUrl) {
+      return;
+    }
+
+    const createAudio = (url: string): HTMLAudioElement | null => {
+      try {
+        const audio = new Audio(url);
+        audio.volume = 0.3; // Moderate volume
+        audio.preload = 'auto';
+        audio.addEventListener('error', () => {
+          console.debug('Sound not available');
+        });
+        return audio;
+      } catch (error) {
+        console.warn('Unable to load move sound:', error);
+        return null;
+      }
+    };
+
+    if (whiteUrl) {
+      const audio = createAudio(whiteUrl);
+      if (audio) {
+        this.moveSounds.white = audio;
+      }
+    }
+
+    if (blackUrl) {
+      const audio = createAudio(blackUrl);
+      if (audio) {
+        this.moveSounds.black = audio;
+      }
+    }
+
+    if (defaultUrl) {
+      const audio = createAudio(defaultUrl);
+      if (audio) {
+        this.moveSound = audio;
+      }
     }
   }
 
@@ -1278,12 +1322,17 @@ export class NeoChessBoard {
    * Catches and ignores playback errors (e.g., due to user interaction policies).
    */
   private _playMoveSound() {
-    if (!this.soundEnabled || !this.moveSound) return;
+    if (!this.soundEnabled) return;
+
+    const movedColor: 'white' | 'black' = this.state.turn === 'w' ? 'black' : 'white';
+    const sound = this.moveSounds[movedColor] ?? this.moveSound;
+
+    if (!sound) return;
 
     try {
       // Reset sound to beginning and play
-      this.moveSound.currentTime = 0;
-      this.moveSound.play().catch((error) => {
+      sound.currentTime = 0;
+      sound.play().catch((error) => {
         // Ignore playback errors (e.g., user hasn't interacted with page yet)
         console.debug('Sound not played:', error.message);
       });
@@ -1323,8 +1372,25 @@ export class NeoChessBoard {
    */
   public setSoundEnabled(enabled: boolean) {
     this.soundEnabled = enabled;
-    if (enabled && !this.moveSound) {
+    if (enabled) {
       this._initializeSound();
+    } else {
+      this.moveSound = null;
+      this.moveSounds = {};
+    }
+  }
+
+  /**
+   * Updates the URLs used for move sounds and reinitializes audio elements if needed.
+   * @param soundUrls Move sound URLs keyed by the color that just played.
+   */
+  public setSoundUrls(soundUrls: BoardOptions['soundUrls']) {
+    this.soundUrls = soundUrls;
+    if (this.soundEnabled) {
+      this._initializeSound();
+    } else {
+      this.moveSound = null;
+      this.moveSounds = {};
     }
   }
 

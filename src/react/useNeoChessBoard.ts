@@ -149,6 +149,11 @@ export function useNeoChessBoard({
     [],
   );
 
+  const applySoundUrls = useCallback(
+    (board: Chessboard, urls: BoardOptions['soundUrls']) => board.setSoundUrls(urls),
+    [],
+  );
+
   const applyAutoFlip = useCallback((board: Chessboard, autoFlip: BoardOptions['autoFlip']) => {
     if (typeof autoFlip === 'undefined') {
       return;
@@ -217,6 +222,7 @@ export function useNeoChessBoard({
     theme,
     pieceSet,
     soundEnabled,
+    soundUrls,
     autoFlip,
     orientation,
     showArrows,
@@ -227,6 +233,7 @@ export function useNeoChessBoard({
   } = resolvedOptions;
 
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
+  const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
 
   useBoardOption(boardRef, isReady, theme, typeof theme !== 'undefined', applyTheme);
   useBoardOption(boardRef, isReady, pieceSet, hasPieceSet, applyPieceSet);
@@ -237,6 +244,7 @@ export function useNeoChessBoard({
     typeof soundEnabled !== 'undefined',
     applySoundEnabled,
   );
+  useBoardOption(boardRef, isReady, soundUrls, hasSoundUrls, applySoundUrls);
   useBoardOption(boardRef, isReady, autoFlip, typeof autoFlip !== 'undefined', applyAutoFlip);
   useBoardOption(
     boardRef,

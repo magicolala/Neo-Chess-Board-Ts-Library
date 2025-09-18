@@ -282,6 +282,96 @@ describe('NeoChessBoard Core', () => {
       silentBoard.destroy();
     });
 
+    describe('per-color move sounds', () => {
+      let originalAudio: typeof Audio | undefined;
+      let audioInstances: Record<string, any>;
+
+      beforeEach(() => {
+        audioInstances = {};
+        originalAudio = (global as any).Audio;
+        (global as any).Audio = jest.fn().mockImplementation((src: string) => {
+          const audio = {
+            play: jest.fn().mockResolvedValue(undefined),
+            addEventListener: jest.fn(),
+            preload: 'auto',
+            volume: 0.3,
+            currentTime: 0,
+          };
+          audioInstances[src] = audio;
+          return audio;
+        });
+      });
+
+      afterEach(() => {
+        (global as any).Audio = originalAudio;
+      });
+
+      it('should play color-specific sounds when provided', () => {
+        const localContainer = document.createElement('div') as HTMLDivElement;
+        const soundBoard = new NeoChessBoard(localContainer, {
+          soundUrls: {
+            white: 'white-sound.mp3',
+            black: 'black-sound.mp3',
+          },
+        });
+
+        const whiteSound = audioInstances['white-sound.mp3'];
+        const blackSound = audioInstances['black-sound.mp3'];
+
+        expect(whiteSound).toBeDefined();
+        expect(blackSound).toBeDefined();
+
+        whiteSound.currentTime = 2;
+        (soundBoard as any).state.turn = 'b';
+        (soundBoard as any)._playMoveSound();
+
+        expect(whiteSound.play).toHaveBeenCalledTimes(1);
+        expect(whiteSound.currentTime).toBe(0);
+        expect(blackSound.play).not.toHaveBeenCalled();
+
+        blackSound.currentTime = 3;
+        (soundBoard as any).state.turn = 'w';
+        (soundBoard as any)._playMoveSound();
+
+        expect(blackSound.play).toHaveBeenCalledTimes(1);
+        expect(blackSound.currentTime).toBe(0);
+
+        soundBoard.destroy();
+      });
+
+      it('should fall back to the default move sound when a color-specific sound is missing', () => {
+        const localContainer = document.createElement('div') as HTMLDivElement;
+        const soundBoard = new NeoChessBoard(localContainer, {
+          soundUrl: 'default-sound.mp3',
+          soundUrls: {
+            black: 'black-only.mp3',
+          },
+        });
+
+        const defaultSound = audioInstances['default-sound.mp3'];
+        const blackSound = audioInstances['black-only.mp3'];
+
+        expect(defaultSound).toBeDefined();
+        expect(blackSound).toBeDefined();
+
+        defaultSound.currentTime = 5;
+        (soundBoard as any).state.turn = 'b';
+        (soundBoard as any)._playMoveSound();
+
+        expect(defaultSound.play).toHaveBeenCalledTimes(1);
+        expect(defaultSound.currentTime).toBe(0);
+
+        blackSound.currentTime = 4;
+        (soundBoard as any).state.turn = 'w';
+        (soundBoard as any)._playMoveSound();
+
+        expect(blackSound.play).toHaveBeenCalledTimes(1);
+        expect(blackSound.currentTime).toBe(0);
+
+        soundBoard.destroy();
+      });
+    });
+
     it('should toggle arrow visibility and trigger rerender', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
       renderSpy.mockClear();
