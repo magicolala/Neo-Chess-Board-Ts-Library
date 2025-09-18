@@ -2,10 +2,10 @@ import type { Theme } from './types';
 
 export const THEMES: Record<string, Theme> = {
   classic: {
-    light: "#2a3547",
-    dark: "#57728e",
-    boardBorder: "#0F172A0F",
-    whitePiece: "#e2d4cb",
+    light: '#2a3547',
+    dark: '#57728e',
+    boardBorder: '#0F172A0F',
+    whitePiece: '#e2d4cb',
     blackPiece: '#171616',
     pieceShadow: 'rgba(0,0,0,0.15)',
     pieceStroke: 'rgba(15,23,42,0.6)',
