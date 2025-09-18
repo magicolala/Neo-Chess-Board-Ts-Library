@@ -12,6 +12,119 @@ import {
   useLoadingState,
 } from './components/Loaders';
 
+const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    focusable="false"
+  >
+    {children}
+  </svg>
+);
+
+const ArrowsIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M5 7h8" />
+    <path d="m13 7-2-2" />
+    <path d="m13 7-2 2" />
+    <path d="M19 17h-8" />
+    <path d="m11 17 2-2" />
+    <path d="m11 17 2 2" />
+  </SvgIcon>
+);
+
+const HighlightIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m12 6.4 1.7 3.3 3.6.5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
+  </SvgIcon>
+);
+
+const PremovesIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m6 8 4 4-4 4" />
+    <path d="m12 8 4 4-4 4" />
+  </SvgIcon>
+);
+
+const SquareNamesIcon: React.FC = () => (
+  <SvgIcon>
+    <rect x={4.5} y={4.5} width={15} height={15} rx={2} />
+    <path d="M9.5 4.5v15" />
+    <path d="M14.5 4.5v15" />
+    <path d="M4.5 9.5h15" />
+    <path d="M4.5 14.5h15" />
+  </SvgIcon>
+);
+
+const SoundIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M5.5 10v4h2.8L12 15.7V8.3L8.3 10z" />
+    <path d="M15 9.5a2.5 2.5 0 0 1 0 5" />
+    <path d="M17.5 8a5 5 0 0 1 0 8" />
+  </SvgIcon>
+);
+
+const LegalMovesIcon: React.FC = () => (
+  <SvgIcon>
+    <circle cx={12} cy={12} r={6} />
+    <circle cx={12} cy={12} r={2.6} />
+    <path d="M12 6v2" />
+    <path d="M12 16v2" />
+    <path d="M6 12h2" />
+    <path d="M16 12h2" />
+  </SvgIcon>
+);
+
+const AutoFlipIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M8 7a6 6 0 0 1 9 2" />
+    <path d="M17 5v4h-4" />
+    <path d="M16 17a6 6 0 0 1-9-2" />
+    <path d="M7 19v-4h4" />
+  </SvgIcon>
+);
+
+const OrientationIcon: React.FC = () => (
+  <SvgIcon>
+    <rect x={4.5} y={4.5} width={15} height={15} rx={2} />
+    <path d="m9 9 3 3-3 3" />
+    <path d="m15 9-3 3 3 3" />
+  </SvgIcon>
+);
+
+const AddArrowIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M5 16h8" />
+    <path d="m13 16-2-2" />
+    <path d="m13 16-2 2" />
+    <path d="M17 7v4" />
+    <path d="M15 9h4" />
+  </SvgIcon>
+);
+
+const AddHighlightIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m12 6.4 1.7 3.3 3.6.5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
+    <path d="M19 6v4" />
+    <path d="M17 8h4" />
+  </SvgIcon>
+);
+
+const TrashIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M10 5h4" />
+    <path d="M6 7h12" />
+    <path d="M9 7v10a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V7" />
+    <path d="M10.5 11v6" />
+    <path d="M13.5 11v6" />
+  </SvgIcon>
+);
+
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
   moveNumber: rules.moveNumber(),
   turn: rules.turn(),
@@ -470,55 +583,126 @@ export const App: React.FC = () => {
           <div className={styles.panelContent}>
             <div className={styles.optionGrid}>
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.showArrows ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('showArrows')}
+                aria-pressed={boardOptions.showArrows}
               >
-                {boardOptions.showArrows ? '✅' : '❌'} Flèches
+                <span className={styles.optionIcon}>
+                  <ArrowsIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Flèches interactives</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.showArrows ? 'Activées' : 'Masquées'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.showHighlights ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('showHighlights')}
+                aria-pressed={boardOptions.showHighlights}
               >
-                {boardOptions.showHighlights ? '✅' : '❌'} Surbrillances
+                <span className={styles.optionIcon}>
+                  <HighlightIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Surbrillances</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.showHighlights ? 'Visibles' : 'Masquées'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.allowPremoves ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('allowPremoves')}
+                aria-pressed={boardOptions.allowPremoves}
               >
-                {boardOptions.allowPremoves ? '✅' : '❌'} Pré-mouvements
+                <span className={styles.optionIcon}>
+                  <PremovesIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Pré-mouvements</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.allowPremoves ? 'Autorisés' : 'Bloqués'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.showSquareNames ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('showSquareNames')}
+                aria-pressed={boardOptions.showSquareNames}
               >
-                {boardOptions.showSquareNames ? '✅' : '❌'} Noms des cases
+                <span className={styles.optionIcon}>
+                  <SquareNamesIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Coordonnées</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.showSquareNames ? 'Affichées' : 'Masquées'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.soundEnabled ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('soundEnabled')}
+                aria-pressed={boardOptions.soundEnabled}
               >
-                {boardOptions.soundEnabled ? '🔊' : '🔇'} Sons
+                <span className={styles.optionIcon}>
+                  <SoundIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Effets sonores</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.soundEnabled ? 'Actifs' : 'Coupés'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.highlightLegal ? styles.optionActive : ''}`}
                 onClick={() => toggleOption('highlightLegal')}
+                aria-pressed={boardOptions.highlightLegal}
               >
-                {boardOptions.highlightLegal ? '✅' : '❌'} Surbrillance légale
+                <span className={styles.optionIcon}>
+                  <LegalMovesIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Coups légaux</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.highlightLegal ? 'Signalés' : 'Masqués'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={`${styles.optionButton} ${boardOptions.autoFlip ? styles.optionActive : ''}`}
                 onClick={toggleAutoFlip}
+                aria-pressed={boardOptions.autoFlip}
               >
-                {boardOptions.autoFlip ? '✅' : '❌'} Auto flip
+                <span className={styles.optionIcon}>
+                  <AutoFlipIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Auto-flip</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.autoFlip ? 'Synchronisé' : 'Manuel'}
+                  </span>
+                </span>
               </button>
 
               <button
+                type="button"
                 className={styles.optionButton}
                 onClick={toggleOrientation}
                 disabled={boardOptions.autoFlip}
@@ -528,23 +712,51 @@ export const App: React.FC = () => {
                     : undefined
                 }
               >
-                🔄 Orientation: {boardOptions.orientation === 'white' ? 'Blanc' : 'Noir'}
+                <span className={styles.optionIcon}>
+                  <OrientationIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Orientation</span>
+                  <span className={styles.optionHint}>
+                    {boardOptions.autoFlip
+                      ? 'Contrôlée automatiquement'
+                      : `Vue ${boardOptions.orientation === 'white' ? 'Blancs' : 'Noirs'}`}
+                  </span>
+                </span>
               </button>
 
-              <button className={styles.optionButton} onClick={addRandomArrow}>
-                🎯 Ajouter une flèche aléatoire
+              <button type="button" className={styles.optionButton} onClick={addRandomArrow}>
+                <span className={styles.optionIcon}>
+                  <AddArrowIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Ajouter une flèche</span>
+                  <span className={styles.optionHint}>Placement aléatoire</span>
+                </span>
               </button>
 
-              <button className={styles.optionButton} onClick={addRandomHighlight}>
-                ✨ Ajouter une surbrillance
+              <button type="button" className={styles.optionButton} onClick={addRandomHighlight}>
+                <span className={styles.optionIcon}>
+                  <AddHighlightIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Ajouter une zone</span>
+                  <span className={styles.optionHint}>Surbrillance aléatoire</span>
+                </span>
               </button>
 
               <button
-                className={styles.optionButton}
+                type="button"
+                className={`${styles.optionButton} ${styles.danger}`}
                 onClick={clearAll}
-                style={{ backgroundColor: '#ffebee', color: '#c62828' }}
               >
-                🗑️ Tout effacer
+                <span className={styles.optionIcon}>
+                  <TrashIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>Tout effacer</span>
+                  <span className={styles.optionHint}>Réinitialise annotations</span>
+                </span>
               </button>
             </div>
           </div>

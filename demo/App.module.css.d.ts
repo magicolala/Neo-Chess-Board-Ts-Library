@@ -3,6 +3,10 @@
 declare const styles: {
   readonly optionGrid: string;
   readonly optionButton: string;
+  readonly optionIcon: string;
+  readonly optionLabel: string;
+  readonly optionTitle: string;
+  readonly optionHint: string;
   readonly '85rem': string;
   readonly '2s': string;
   readonly optionActive: string;
