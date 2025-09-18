@@ -523,38 +523,46 @@ describe('NeoChessBoard Core', () => {
   });
 
   describe('Interaction behaviour', () => {
-    it('cancels an active drag on right-click and skips drawing actions', () => {
-      const overlay = (board as any).cOverlay as HTMLCanvasElement;
-      const onPointerDown = (board as any)._onPointerDown as (event: PointerEvent) => void;
-      const onPointerMove = (board as any)._onPointerMove as (event: PointerEvent) => void;
-      const onPointerUp = (board as any)._onPointerUp as (event: PointerEvent) => void;
+    let overlay: HTMLCanvasElement;
+    let onPointerDown: (event: PointerEvent) => void;
+    let onPointerMove: (event: PointerEvent) => void;
+    let onPointerUp: (event: PointerEvent) => void;
+    let overlayRect: DOMRect;
 
+    const createPointerEventForSquare = (button: number, squareName: string) => {
+      const { x, y } = (board as any)._sqToXY(squareName);
+      const squareSize = (board as any).square as number;
+      const canvasX = x + squareSize / 2;
+      const canvasY = y + squareSize / 2;
+
+      const baseEvent = {
+        button,
+        clientX: overlayRect.left + (canvasX * overlayRect.width) / overlay.width,
+        clientY: overlayRect.top + (canvasY * overlayRect.height) / overlay.height,
+        preventDefault: jest.fn(),
+        shiftKey: false,
+        ctrlKey: false,
+        altKey: false,
+      } as Partial<PointerEvent>;
+
+      return {
+        event: baseEvent as PointerEvent,
+        preventDefault: baseEvent.preventDefault as jest.Mock,
+      };
+    };
+
+    beforeEach(() => {
+      overlay = (board as any).cOverlay as HTMLCanvasElement;
+      onPointerDown = (board as any)._onPointerDown as (event: PointerEvent) => void;
+      onPointerMove = (board as any)._onPointerMove as (event: PointerEvent) => void;
+      onPointerUp = (board as any)._onPointerUp as (event: PointerEvent) => void;
+      overlayRect = overlay.getBoundingClientRect();
+    });
+
+    it('cancels an active drag on right-click and skips drawing actions', () => {
       const rightDownSpy = jest.spyOn(board.drawingManager, 'handleRightMouseDown');
       const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp');
       const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
-
-      const overlayRect = overlay.getBoundingClientRect();
-      const createPointerEventForSquare = (button: number, squareName: string) => {
-        const { x, y } = (board as any)._sqToXY(squareName);
-        const squareSize = (board as any).square as number;
-        const canvasX = x + squareSize / 2;
-        const canvasY = y + squareSize / 2;
-
-        const baseEvent = {
-          button,
-          clientX: overlayRect.left + (canvasX * overlayRect.width) / overlay.width,
-          clientY: overlayRect.top + (canvasY * overlayRect.height) / overlay.height,
-          preventDefault: jest.fn(),
-          shiftKey: false,
-          ctrlKey: false,
-          altKey: false,
-        };
-
-        return {
-          event: baseEvent as unknown as PointerEvent,
-          preventDefault: baseEvent.preventDefault,
-        };
-      };
 
       const initialFen = board.getPosition();
 
@@ -583,6 +591,29 @@ describe('NeoChessBoard Core', () => {
       rightDownSpy.mockRestore();
       rightUpSpy.mockRestore();
       highlightSpy.mockRestore();
+    });
+
+    it('allows moving a piece by selecting it and clicking the destination square', () => {
+      const moveSpy = jest.fn();
+      board.on('move', moveSpy);
+
+      const sourceClick = createPointerEventForSquare(0, 'e2');
+      onPointerDown(sourceClick.event);
+      onPointerUp(sourceClick.event);
+
+      expect((board as any)._selected).toBe('e2');
+      expect((board as any)._dragging).toBeNull();
+
+      const destinationClick = createPointerEventForSquare(0, 'e4');
+      onPointerDown(destinationClick.event);
+      onPointerUp(destinationClick.event);
+
+      expect(board.getPosition()).toBe(
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+      );
+      expect(moveSpy).toHaveBeenCalledWith(expect.objectContaining({ from: 'e2', to: 'e4' }));
+      expect((board as any)._selected).toBeNull();
+      expect((board as any)._legalCached).toBeNull();
     });
   });
 });
