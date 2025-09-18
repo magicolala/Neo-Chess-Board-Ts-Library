@@ -28,7 +28,7 @@ export const ArrowsIcon: React.FC = () => (
 
 export const HighlightIcon: React.FC = () => (
   <SvgIcon>
-    <path d="m12 6.4 1.7 3.3 3.6.5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
+    <path d="m12 6.4 1.7 3.3 3.6 .5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
   </SvgIcon>
 );
 
@@ -107,7 +107,7 @@ export const AddArrowIcon: React.FC = () => (
 
 export const AddHighlightIcon: React.FC = () => (
   <SvgIcon>
-    <path d="m12 6.4 1.7 3.3 3.6.5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
+    <path d="m12 6.4 1.7 3.3 3.6 .5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
     <path d="M19 6v4" />
     <path d="M17 8h4" />
   </SvgIcon>
