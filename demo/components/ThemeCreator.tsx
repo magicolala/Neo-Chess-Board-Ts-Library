@@ -288,7 +288,7 @@ registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});`}
               showSquareNames={true}
               highlightLegal={true}
               style={{
-                width: 'min(80vmin, 600px)',
+                width: 'min(70vmin, 500px)',
                 aspectRatio: '1/1',
                 border: '2px solid #ccc',
                 borderRadius: '8px',
