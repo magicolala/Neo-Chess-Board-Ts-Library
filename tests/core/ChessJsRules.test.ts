@@ -374,15 +374,26 @@ describe('ChessJsRules', () => {
 
   describe('Additional Methods', () => {
     test('should get attacked squares', () => {
+      rules.setFEN('4k3/8/3n4/8/4N3/8/8/4K3 w - - 0 1');
+
       const attackedSquares = rules.getAttackedSquares();
-      expect(Array.isArray(attackedSquares)).toBe(true);
-      expect(attackedSquares.length).toBe(0); // Simplified implementation returns empty array
+      const expectedSquares = ['d6', 'f6', 'c5', 'g5', 'c3', 'g3', 'd2', 'e2', 'f2', 'd1', 'f1'];
+
+      expect(attackedSquares).toHaveLength(expectedSquares.length);
+      expect(attackedSquares).toEqual(expect.arrayContaining(expectedSquares));
     });
 
     test('should check if square is attacked', () => {
-      const isAttacked = rules.isSquareAttacked('e4');
-      expect(typeof isAttacked).toBe('boolean');
-      expect(isAttacked).toBe(false); // Simplified implementation returns false
+      rules.setFEN('4k3/8/3n4/8/4N3/8/8/4K3 w - - 0 1');
+
+      expect(rules.isSquareAttacked('d6')).toBe(true);
+      expect(rules.isSquareAttacked('e4')).toBe(false);
+      expect(rules.isSquareAttacked('e4', 'b')).toBe(true);
+      expect(rules.isSquareAttacked('D6')).toBe(true); // Case insensitive input
+    });
+
+    test('should reject invalid squares when checking attacks', () => {
+      expect(() => rules.isSquareAttacked('z9')).toThrow('Invalid square');
     });
 
     test('should get half moves', () => {

@@ -369,6 +369,14 @@ const pgnWithAnnotations = rules.toPgn(true);
 console.log(pgnWithAnnotations);
 ```
 
+#### Détection des cases attaquées
+
+`ChessJsRules` s'appuie directement sur `chess.js` pour analyser le contrôle des cases :
+
+- `getAttackedSquares()` retourne toutes les cases actuellement menacées par le joueur au trait, idéal pour mettre à jour un surlignage dynamique.
+- `isSquareAttacked(square, by?)` vérifie si une case donnée est attaquée par la couleur spécifiée (ou par le joueur au trait par défaut). La méthode valide la case fournie (notation algébrique) et accepte des entrées insensibles à la casse.
+
+
 ## 🏗️ Architecture
 
 ```
