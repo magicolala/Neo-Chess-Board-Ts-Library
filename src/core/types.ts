@@ -131,6 +131,7 @@ export interface PgnMoveAnnotations {
   arrows?: Arrow[];
   circles?: SquareHighlight[];
   textComment?: string;
+  evaluation?: number | string;
 }
 
 export interface PgnMove {
@@ -141,4 +142,8 @@ export interface PgnMove {
   blackComment?: string;
   whiteAnnotations?: PgnMoveAnnotations;
   blackAnnotations?: PgnMoveAnnotations;
+  evaluation?: {
+    white?: number | string;
+    black?: number | string;
+  };
 }
