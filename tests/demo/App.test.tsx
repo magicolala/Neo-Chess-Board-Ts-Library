@@ -11,6 +11,8 @@ jest.mock('../../src/core/ChessJsRules', () => {
   let currentTurn: 'w' | 'b' = 'w';
   let halfMoveClock = 0;
   let fullMoveNumber = 1;
+  let historySan: string[] = [];
+  let verboseHistory: Array<{ from: string; to: string; promotion?: string }> = [];
 
   const updateFromFen = (fen: string) => {
     if (!fen) {
@@ -30,7 +32,10 @@ jest.mock('../../src/core/ChessJsRules', () => {
     move: jest.fn(() => {
       currentPgn = '1. e4'; // Simulate PGN after a move
       currentFen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2'; // Simulate FEN after a move
+      historySan.push('e4');
+      verboseHistory.push({ from: 'e2', to: 'e4' });
       updateFromFen(currentFen);
+      return { ok: true };
     }),
     toPgn: jest.fn(() => currentPgn),
     setFEN: jest.fn((fen: string) => {
@@ -43,13 +48,25 @@ jest.mock('../../src/core/ChessJsRules', () => {
       } else if (fen === 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1') {
         currentFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
       }
+      historySan = [];
+      verboseHistory = [];
       updateFromFen(currentFen);
     }),
     getFEN: jest.fn(() => currentFen),
     reset: jest.fn(() => {
       currentPgn = '*'; // Simulate PGN after reset
       currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1'; // Initial FEN after reset
+      historySan = [];
+      verboseHistory = [];
       updateFromFen(currentFen);
+    }),
+    loadPgn: jest.fn((pgn: string) => {
+      currentPgn = pgn;
+      historySan = [];
+      verboseHistory = [];
+      currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+      updateFromFen(currentFen);
+      return true;
     }),
     setPgnMetadata: jest.fn(),
     downloadPgn: jest.fn(),
@@ -61,17 +78,27 @@ jest.mock('../../src/core/ChessJsRules', () => {
     isGameOver: jest.fn(() => false),
     getAllMoves: jest.fn(() => Array.from({ length: 20 }, (_, index) => `move${index + 1}`)),
     halfMoves: jest.fn(() => halfMoveClock),
+    getHistory: jest.fn(() => [...verboseHistory]),
+    history: jest.fn(() => [...historySan]),
+    getPgnNotation: jest.fn(() => ({
+      getMovesWithAnnotations: jest.fn(() => []),
+      getMetadata: jest.fn(() => ({ SetUp: '0' })),
+    })),
   };
 
   // Initialize current state to default values when the mock is created
   currentPgn = '';
   currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  historySan = [];
+  verboseHistory = [];
   updateFromFen(currentFen);
 
   return {
     ChessJsRules: jest.fn(() => {
       currentPgn = '';
       currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+      historySan = [];
+      verboseHistory = [];
       updateFromFen(currentFen);
       return mockChessJsRulesInstance;
     }),
@@ -241,6 +268,25 @@ describe('App Component', () => {
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
       // PGN text starts empty and is populated on first move
       expect(pgnTextarea).toHaveValue('');
+    });
+
+    it('should allow loading a PGN from the textarea', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
+      const samplePgn = '1. e4 e5';
+      await user.type(pgnTextarea, samplePgn);
+
+      const loadButton = screen.getByRole('button', { name: 'Charger' });
+      await user.click(loadButton);
+
+      await waitFor(() => {
+        const chessRulesMock = ChessJsRules as unknown as jest.Mock;
+        const loadPgnMock = (chessRulesMock.mock.results[0]?.value?.loadPgn ??
+          chessRulesMock.mock.instances[0]?.loadPgn) as jest.Mock | undefined;
+        expect(loadPgnMock).toHaveBeenCalledWith(expect.stringContaining('1. e4 e5'));
+      });
     });
 
     it('should have functional copy button', async () => {

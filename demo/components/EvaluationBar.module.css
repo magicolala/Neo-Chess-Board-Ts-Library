@@ -1,0 +1,109 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.barWrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.barTrack {
+  position: relative;
+  width: 56px;
+  height: 220px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(226, 232, 240, 0.5) 40%,
+    rgba(30, 41, 59, 0.85) 100%
+  );
+  overflow: hidden;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.25);
+}
+
+.barFill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.92) 0%, rgba(79, 70, 229, 0.88) 100%);
+  transition: height 0.35s ease;
+}
+
+.score {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.55);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.35);
+}
+
+.scoreMuted {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+  width: 100%;
+}
+
+.summaryPrimary {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.summarySecondary {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .barTrack {
+    height: 180px;
+  }
+}

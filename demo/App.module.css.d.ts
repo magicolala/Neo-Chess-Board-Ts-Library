@@ -60,10 +60,18 @@ declare const styles: {
   readonly statusTagWarning: string;
   readonly statusTagCritical: string;
   readonly statusTagInfo: string;
+  readonly evaluationPanel: string;
+  readonly evaluationBarSlot: string;
+  readonly evaluationInfo: string;
+  readonly evaluationInfoTitle: string;
+  readonly evaluationInfoText: string;
+  readonly evaluationInfoList: string;
   readonly textarea: string;
   readonly '2': string;
   readonly textareaSmall: string;
   readonly buttonGroup: string;
+  readonly pgnHelper: string;
+  readonly pgnError: string;
   readonly button: string;
   readonly buttonPrimary: string;
   readonly '3': string;
