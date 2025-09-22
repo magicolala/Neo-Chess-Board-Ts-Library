@@ -9,6 +9,7 @@ export interface ParsedAnnotations {
   arrows: Arrow[];
   highlights: Array<SquareHighlight & { color: string }>;
   textComment: string;
+  evaluation?: number | string;
 }
 
 // Regular expressions for parsing annotations
@@ -16,6 +17,20 @@ const CAL_REGEX = /%cal\s+([^%\s]+)/g;
 const CSL_REGEX = /%csl\s+([^%\s]+)/g;
 const VISUAL_ANNOTATION_REGEX = /%(?:cal|csl)\s+[^%\s]+/;
 const SQUARE_REGEX = /^[a-h][1-8]$/;
+const EVAL_REGEX = /(?:\[\s*)?%eval\s+([^\]\s}]+)(?:\s*\])?/gi;
+
+const NUMERIC_VALUE_REGEX = /^[-+]?((\d+(?:\.\d+)?)|(?:\.\d+))$/;
+
+const parseAnnotationValue = (value: string): number | string => {
+  const trimmed = value.trim();
+  if (NUMERIC_VALUE_REGEX.test(trimmed)) {
+    const parsed = Number(trimmed);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  return trimmed;
+};
 
 // Color mapping
 const COLOR_MAP: Record<string, string> = {
@@ -45,6 +60,7 @@ export class PgnAnnotationParser {
 
     const arrows: Arrow[] = [];
     const highlights: Array<SquareHighlight & { color: string }> = [];
+    let evaluation: number | string | undefined;
 
     // Parse arrows (%cal)
     const arrowMatches = [...processingComment.matchAll(CAL_REGEX)]; // Use spread to get all matches at once
@@ -96,6 +112,12 @@ export class PgnAnnotationParser {
       processingComment = processingComment.replace(match[0], ' ');
     }
 
+    // Parse evaluation (%eval)
+    processingComment = processingComment.replace(EVAL_REGEX, (_match, value: string) => {
+      evaluation = parseAnnotationValue(value);
+      return ' ';
+    });
+
     // The remaining text in processingComment is the actual text comment
     let textComment = processingComment.replace(/\s+/g, ' ').trim();
 
@@ -103,6 +125,7 @@ export class PgnAnnotationParser {
       arrows,
       highlights,
       textComment: textComment || '',
+      evaluation,
     };
   }
 

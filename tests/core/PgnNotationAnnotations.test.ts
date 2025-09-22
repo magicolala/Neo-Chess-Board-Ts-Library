@@ -121,13 +121,17 @@ describe('PgnNotation with Annotations', () => {
         to: 'e4',
         color: '#ff0000',
       });
-      expect(firstMove.whiteAnnotations?.textComment).toBe('[%eval 0.30] Aggressive push');
+      expect(firstMove.whiteAnnotations?.textComment).toBe('Aggressive push');
+      expect(firstMove.whiteAnnotations?.evaluation).toBe(0.3);
       expect(firstMove.blackAnnotations?.circles).toHaveLength(1);
       expect(firstMove.blackAnnotations?.circles?.[0]).toMatchObject({
         square: 'c5',
         color: '#ff0000',
       });
-      expect(firstMove.blackAnnotations?.textComment).toBe('[%eval 0.25]');
+      expect(firstMove.blackAnnotations?.textComment).toBe('');
+      expect(firstMove.blackAnnotations?.evaluation).toBe(0.25);
+      expect(firstMove.evaluation?.white).toBe(0.3);
+      expect(firstMove.evaluation?.black).toBe(0.25);
 
       const secondMove = moves[1];
       expect(secondMove.moveNumber).toBe(2);
@@ -139,7 +143,8 @@ describe('PgnNotation with Annotations', () => {
         to: 'f3',
         color: '#ff0000',
       });
-      expect(secondMove.whiteAnnotations?.textComment).toBe('[%eval 0.35]');
+      expect(secondMove.whiteAnnotations?.textComment).toBe('');
+      expect(secondMove.whiteAnnotations?.evaluation).toBe(0.35);
       expect(secondMove.blackAnnotations?.arrows).toHaveLength(1);
       expect(secondMove.blackAnnotations?.arrows?.[0]).toMatchObject({
         from: 'd7',
@@ -151,7 +156,10 @@ describe('PgnNotation with Annotations', () => {
         square: 'd6',
         color: '#00ff00',
       });
-      expect(secondMove.blackAnnotations?.textComment).toBe('[%eval 0.10] Solid setup');
+      expect(secondMove.blackAnnotations?.textComment).toBe('Solid setup');
+      expect(secondMove.blackAnnotations?.evaluation).toBe(0.1);
+      expect(secondMove.evaluation?.white).toBe(0.35);
+      expect(secondMove.evaluation?.black).toBe(0.1);
     });
   });
 
@@ -300,6 +308,32 @@ describe('PgnNotation with Annotations', () => {
       expect(pgnWithAnnotations).toContain('%cal Rc7c5');
       expect(pgnWithAnnotations).toContain('%csl Rc5');
       expect(pgnWithAnnotations).toContain('Sicilian Defense');
+    });
+
+    it('should export PGN with evaluation annotations', () => {
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+
+      pgnNotation.importFromChessJs(rules.getChessInstance());
+
+      pgnNotation.addMoveAnnotations(1, true, {
+        arrows: [],
+        circles: [],
+        textComment: '',
+        evaluation: -0.75,
+      });
+
+      pgnNotation.addMoveAnnotations(1, false, {
+        arrows: [],
+        circles: [],
+        textComment: 'Solid defence',
+        evaluation: '#3',
+      });
+
+      const pgnWithAnnotations = pgnNotation.toPgnWithAnnotations();
+
+      expect(pgnWithAnnotations).toContain('[%eval -0.75]');
+      expect(pgnWithAnnotations).toContain('[%eval #3] Solid defence');
     });
 
     it('should preserve standard PGN format when no annotations are present', () => {

@@ -126,6 +126,20 @@ describe('PgnAnnotationParser', () => {
       });
     });
 
+    describe('Evaluation annotations (%eval)', () => {
+      it('should parse evaluation values as numbers when possible', () => {
+        const result = PgnAnnotationParser.parseComment('{[%eval -0.45] Strong follow-up}');
+        expect(result.evaluation).toBe(-0.45);
+        expect(result.textComment).toBe('Strong follow-up');
+      });
+
+      it('should keep non-numeric evaluation values as strings', () => {
+        const result = PgnAnnotationParser.parseComment('{[%eval #5]}');
+        expect(result.evaluation).toBe('#5');
+        expect(result.textComment).toBe('');
+      });
+    });
+
     describe('Edge cases', () => {
       it('should handle invalid square notation gracefully', () => {
         const result = PgnAnnotationParser.parseComment('%cal Rz9z9,Ra1a2');

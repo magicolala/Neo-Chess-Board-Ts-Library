@@ -349,10 +349,13 @@ export class PgnNotation {
     const existingMoveIndex = this.moves.findIndex((move) => move.moveNumber === moveNumber);
 
     if (existingMoveIndex >= 0) {
+      const move = this.moves[existingMoveIndex];
       if (isWhite) {
-        this.moves[existingMoveIndex].whiteAnnotations = annotations;
+        move.whiteAnnotations = annotations;
+        this.updateMoveEvaluation(move, 'white', annotations.evaluation);
       } else {
-        this.moves[existingMoveIndex].blackAnnotations = annotations;
+        move.blackAnnotations = annotations;
+        this.updateMoveEvaluation(move, 'black', annotations.evaluation);
       }
     }
   }
@@ -495,7 +498,9 @@ export class PgnNotation {
                 arrows: parsed.arrows,
                 circles: parsed.highlights,
                 textComment: parsed.textComment,
+                evaluation: parsed.evaluation,
               };
+              this.updateMoveEvaluation(pgnMove, 'white', parsed.evaluation);
             }
           }
         }
@@ -513,10 +518,44 @@ export class PgnNotation {
               arrows: parsed.arrows,
               circles: parsed.highlights,
               textComment: parsed.textComment,
+              evaluation: parsed.evaluation,
             };
+            this.updateMoveEvaluation(pgnMove, 'black', parsed.evaluation);
           }
         }
       }
+    }
+  }
+
+  private static formatEvaluation(value: number | string): string {
+    return `[%eval ${String(value).trim()}]`;
+  }
+
+  private updateMoveEvaluation(
+    move: PgnMove,
+    color: 'white' | 'black',
+    value: number | string | undefined,
+  ): void {
+    if (typeof value !== 'undefined') {
+      move.evaluation = { ...(move.evaluation || {}), [color]: value };
+      return;
+    }
+
+    if (!move.evaluation) {
+      return;
+    }
+
+    if (color === 'white') {
+      delete move.evaluation.white;
+    } else {
+      delete move.evaluation.black;
+    }
+
+    if (
+      typeof move.evaluation.white === 'undefined' &&
+      typeof move.evaluation.black === 'undefined'
+    ) {
+      move.evaluation = undefined;
     }
   }
 
@@ -572,12 +611,22 @@ export class PgnNotation {
 
         let fullWhiteComment = '';
         if (move.whiteAnnotations) {
+          const annotationParts: string[] = [];
           const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
             move.whiteAnnotations.arrows || [],
             move.whiteAnnotations.circles || [],
           );
-          const textComment = move.whiteAnnotations.textComment || '';
-          fullWhiteComment = [visualAnnotations, textComment].filter(Boolean).join(' ').trim();
+          if (visualAnnotations) {
+            annotationParts.push(visualAnnotations);
+          }
+          if (typeof move.whiteAnnotations.evaluation !== 'undefined') {
+            annotationParts.push(PgnNotation.formatEvaluation(move.whiteAnnotations.evaluation));
+          }
+          const textComment = move.whiteAnnotations.textComment?.trim();
+          if (textComment) {
+            annotationParts.push(textComment);
+          }
+          fullWhiteComment = annotationParts.join(' ').trim();
         }
         // If there's a whiteComment but no whiteAnnotations, use it as a fallback
         else if (move.whiteComment) {
@@ -594,12 +643,22 @@ export class PgnNotation {
 
         let fullBlackComment = '';
         if (move.blackAnnotations) {
+          const annotationParts: string[] = [];
           const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
             move.blackAnnotations.arrows || [],
             move.blackAnnotations.circles || [],
           );
-          const textComment = move.blackAnnotations.textComment || '';
-          fullBlackComment = [visualAnnotations, textComment].filter(Boolean).join(' ').trim();
+          if (visualAnnotations) {
+            annotationParts.push(visualAnnotations);
+          }
+          if (typeof move.blackAnnotations.evaluation !== 'undefined') {
+            annotationParts.push(PgnNotation.formatEvaluation(move.blackAnnotations.evaluation));
+          }
+          const textComment = move.blackAnnotations.textComment?.trim();
+          if (textComment) {
+            annotationParts.push(textComment);
+          }
+          fullBlackComment = annotationParts.join(' ').trim();
         }
         // If there's a blackComment but no blackAnnotations, use it as a fallback
         else if (move.blackComment) {
