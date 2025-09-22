@@ -288,7 +288,6 @@ describe('App Component', () => {
         ) ?? (chessRulesMock.mock.instances[0]?.loadPgn as jest.Mock | undefined);
         expect(loadPgnMock).toHaveBeenCalledWith(expect.stringContaining('1. e4 e5'));
       });
-    });
 
     it('should have functional copy button', async () => {
       const user = userEvent.setup();
