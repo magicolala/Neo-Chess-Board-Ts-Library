@@ -98,6 +98,61 @@ describe('PgnNotation with Annotations', () => {
       expect(move.blackAnnotations?.arrows?.[0].color).toBe('#00ff00');
       expect(move.blackAnnotations?.circles?.[0].color).toBe('#ff0000');
     });
+
+    it('should handle lichess style PGN with ellipsis move numbers and merged comments', () => {
+      const lichessStylePgn =
+        '1. e4 { [%eval 0.30] } {Aggressive push} {%cal Re1e4} ' +
+        '1... c5 { [%eval 0.25] } {%csl Rc5} ' +
+        '2. Nf3 {[%eval 0.35]} {%cal Rg1f3} ' +
+        '2... d6 {[%eval 0.10]} {Solid setup} {%cal Rd7d6} {%csl Gd6}';
+
+      pgnNotation.loadPgnWithAnnotations(lichessStylePgn);
+      const moves = pgnNotation.getMovesWithAnnotations();
+
+      expect(moves).toHaveLength(2);
+
+      const firstMove = moves[0];
+      expect(firstMove.moveNumber).toBe(1);
+      expect(firstMove.white).toBe('e4');
+      expect(firstMove.black).toBe('c5');
+      expect(firstMove.whiteAnnotations?.arrows).toHaveLength(1);
+      expect(firstMove.whiteAnnotations?.arrows?.[0]).toMatchObject({
+        from: 'e1',
+        to: 'e4',
+        color: '#ff0000',
+      });
+      expect(firstMove.whiteAnnotations?.textComment).toBe('[%eval 0.30] Aggressive push');
+      expect(firstMove.blackAnnotations?.circles).toHaveLength(1);
+      expect(firstMove.blackAnnotations?.circles?.[0]).toMatchObject({
+        square: 'c5',
+        color: '#ff0000',
+      });
+      expect(firstMove.blackAnnotations?.textComment).toBe('[%eval 0.25]');
+
+      const secondMove = moves[1];
+      expect(secondMove.moveNumber).toBe(2);
+      expect(secondMove.white).toBe('Nf3');
+      expect(secondMove.black).toBe('d6');
+      expect(secondMove.whiteAnnotations?.arrows).toHaveLength(1);
+      expect(secondMove.whiteAnnotations?.arrows?.[0]).toMatchObject({
+        from: 'g1',
+        to: 'f3',
+        color: '#ff0000',
+      });
+      expect(secondMove.whiteAnnotations?.textComment).toBe('[%eval 0.35]');
+      expect(secondMove.blackAnnotations?.arrows).toHaveLength(1);
+      expect(secondMove.blackAnnotations?.arrows?.[0]).toMatchObject({
+        from: 'd7',
+        to: 'd6',
+        color: '#ff0000',
+      });
+      expect(secondMove.blackAnnotations?.circles).toHaveLength(1);
+      expect(secondMove.blackAnnotations?.circles?.[0]).toMatchObject({
+        square: 'd6',
+        color: '#00ff00',
+      });
+      expect(secondMove.blackAnnotations?.textComment).toBe('[%eval 0.10] Solid setup');
+    });
   });
 
   describe('Adding annotations to moves', () => {
