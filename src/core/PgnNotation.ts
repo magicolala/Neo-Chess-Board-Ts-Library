@@ -391,50 +391,148 @@ export class PgnNotation {
   private parseMovesWithAnnotations(movesText: string): void {
     this.moves = [];
 
-    // Regex to find move number, white move, white comment, black move, black comment
-    // This regex is designed to be more robust in handling comments and moves.
-    const movePattern =
-      /(\d+)\.\s*([^\s{]+)(?:\s*(\{[^}]+\}))?(?:\s+([^\s{]+)(?:\s*(\{[^}]+\}))?)?/g;
+    const movePattern = /(\d+)\.(?!\d)(\.{2})?/g;
+    const extractMoveSection = (
+      startIndex: number,
+    ): { san?: string; comments: string[]; nextIndex: number } => {
+      let index = startIndex;
+      const comments: string[] = [];
+      const length = movesText.length;
+
+      const skipWhitespace = () => {
+        while (index < length && /\s/.test(movesText[index])) {
+          index++;
+        }
+      };
+
+      const collectComments = () => {
+        while (true) {
+          skipWhitespace();
+          if (index >= length || movesText[index] !== '{') {
+            break;
+          }
+
+          const closingIndex = movesText.indexOf('}', index + 1);
+          if (closingIndex === -1) {
+            const remaining = movesText.slice(index + 1).trim();
+            if (remaining) {
+              comments.push(remaining);
+            }
+            index = length;
+            break;
+          }
+
+          const content = movesText.slice(index + 1, closingIndex).trim();
+          if (content) {
+            comments.push(content);
+          }
+          index = closingIndex + 1;
+        }
+      };
+
+      collectComments();
+      skipWhitespace();
+
+      if (index >= length) {
+        return { san: undefined, comments, nextIndex: index };
+      }
+
+      const rest = movesText.slice(index);
+
+      if (/^(\d+)\.(?!\d)(\.{2})?/.test(rest) || /^(1-0|0-1|1\/2-1\/2|\*)/.test(rest)) {
+        return { san: undefined, comments, nextIndex: index };
+      }
+
+      const sanMatch = rest.match(/^([^\s{]+)/);
+      if (!sanMatch) {
+        return { san: undefined, comments, nextIndex: index };
+      }
+
+      const san = sanMatch[1];
+      index += san.length;
+
+      collectComments();
+
+      return { san, comments, nextIndex: index };
+    };
+
     let match;
 
     while ((match = movePattern.exec(movesText)) !== null) {
-      const moveNumber = parseInt(match[1]);
-      const whiteMoveSan = match[2];
-      const whiteCommentRaw = match[3];
-      const blackMoveSan = match[4];
-      const blackCommentRaw = match[5];
+      const moveNumber = parseInt(match[1], 10);
+      const startsWithBlack = Boolean(match[2]);
+      let currentIndex = movePattern.lastIndex;
 
-      const pgnMove: PgnMove = {
-        moveNumber,
-        white: whiteMoveSan,
-        black: blackMoveSan,
-        whiteAnnotations: { arrows: [], circles: [], textComment: '' }, // Initialize
-        blackAnnotations: { arrows: [], circles: [], textComment: '' }, // Initialize
-      };
-
-      if (whiteCommentRaw) {
-        const parsed = PgnAnnotationParser.parseComment(whiteCommentRaw);
-        pgnMove.whiteComment = whiteCommentRaw;
-        pgnMove.whiteAnnotations = {
-          arrows: parsed.arrows,
-          circles: parsed.highlights,
-          textComment: parsed.textComment,
+      let pgnMove = this.moves.find((move) => move.moveNumber === moveNumber);
+      if (!pgnMove) {
+        pgnMove = {
+          moveNumber,
+          whiteAnnotations: { arrows: [], circles: [], textComment: '' },
+          blackAnnotations: { arrows: [], circles: [], textComment: '' },
         };
+        this.moves.push(pgnMove);
+      } else {
+        if (!pgnMove.whiteAnnotations) {
+          pgnMove.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
+        }
+        if (!pgnMove.blackAnnotations) {
+          pgnMove.blackAnnotations = { arrows: [], circles: [], textComment: '' };
+        }
       }
 
-      if (blackMoveSan && blackCommentRaw) {
-        // Only process black comment if black move exists
-        const parsed = PgnAnnotationParser.parseComment(blackCommentRaw);
-        pgnMove.blackComment = blackCommentRaw;
-        pgnMove.blackAnnotations = {
-          arrows: parsed.arrows,
-          circles: parsed.highlights,
-          textComment: parsed.textComment,
-        };
+      if (!startsWithBlack) {
+        const whiteSection = extractMoveSection(currentIndex);
+        currentIndex = whiteSection.nextIndex;
+
+        if (whiteSection.san) {
+          pgnMove.white = whiteSection.san;
+          if (whiteSection.comments.length > 0) {
+            const normalizedComment = this.normalizeCommentParts(whiteSection.comments);
+            if (normalizedComment) {
+              const parsed = PgnAnnotationParser.parseComment(normalizedComment);
+              pgnMove.whiteComment = normalizedComment;
+              pgnMove.whiteAnnotations = {
+                arrows: parsed.arrows,
+                circles: parsed.highlights,
+                textComment: parsed.textComment,
+              };
+            }
+          }
+        }
       }
 
-      this.moves.push(pgnMove);
+      const blackSection = extractMoveSection(currentIndex);
+      if (blackSection.san) {
+        pgnMove.black = blackSection.san;
+        if (blackSection.comments.length > 0) {
+          const normalizedComment = this.normalizeCommentParts(blackSection.comments);
+          if (normalizedComment) {
+            const parsed = PgnAnnotationParser.parseComment(normalizedComment);
+            pgnMove.blackComment = normalizedComment;
+            pgnMove.blackAnnotations = {
+              arrows: parsed.arrows,
+              circles: parsed.highlights,
+              textComment: parsed.textComment,
+            };
+          }
+        }
+      }
     }
+  }
+
+  private normalizeCommentParts(parts: string[]): string | undefined {
+    const normalizedParts = parts.map((part) => part.trim()).filter((part) => part.length > 0);
+
+    if (normalizedParts.length === 0) {
+      return undefined;
+    }
+
+    const normalizedContent = normalizedParts.join(' ').replace(/\s+/g, ' ').trim();
+    if (!normalizedContent) {
+      return undefined;
+    }
+
+    return `{${normalizedContent}}`;
   }
 
   /**
