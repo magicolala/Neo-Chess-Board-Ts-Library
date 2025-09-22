@@ -283,11 +283,11 @@ describe('App Component', () => {
 
       await waitFor(() => {
         const chessRulesMock = ChessJsRules as unknown as jest.Mock;
-        const loadPgnMock = (chessRulesMock.mock.results[0]?.value?.loadPgn ??
-          chessRulesMock.mock.instances[0]?.loadPgn) as jest.Mock | undefined;
+        const loadPgnMock = (
+          chessRulesMock.mock.results[0]?.value?.loadPgn as jest.Mock | undefined
+        ) ?? (chessRulesMock.mock.instances[0]?.loadPgn as jest.Mock | undefined);
         expect(loadPgnMock).toHaveBeenCalledWith(expect.stringContaining('1. e4 e5'));
       });
-    });
 
     it('should have functional copy button', async () => {
       const user = userEvent.setup();
