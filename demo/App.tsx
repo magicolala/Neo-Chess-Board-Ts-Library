@@ -25,6 +25,7 @@ import {
   SquareNamesIcon,
   TrashIcon,
 } from './components/Icons';
+import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
 import { useBoardSize } from './hooks/useBoardSize';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
@@ -64,6 +65,14 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
   const [status, setStatus] = useState<GameStatus>(() => buildStatusSnapshot(chessRules));
   const [pgnText, setPgnText] = useState('');
+  const [pgnError, setPgnError] = useState<string | null>(null);
+  const [isPgnLoading, setIsPgnLoading] = useState(false);
+  const [evaluationsByPly, setEvaluationsByPly] = useState<Record<number, number | string>>({});
+  const [fenToPlyMap, setFenToPlyMap] = useState<Record<string, number>>({});
+  const [currentPly, setCurrentPly] = useState(0);
+  const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>(
+    undefined,
+  );
   const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
     showHighlights: true,
@@ -128,6 +137,134 @@ export const App: React.FC = () => {
     [getOrientationFromFen],
   );
 
+  const formatPlyDescriptor = useCallback((ply: number) => {
+    if (ply <= 0) {
+      return 'le début de partie';
+    }
+    const moveNumber = Math.ceil(ply / 2);
+    const isWhiteMove = ply % 2 === 1;
+    return `${moveNumber}${isWhiteMove ? '' : '...'} (${isWhiteMove ? 'Blancs' : 'Noirs'})`;
+  }, []);
+
+  const updateEvaluationFromMap = useCallback(
+    (ply: number, map?: Record<number, number | string>) => {
+      const source = map ?? evaluationsByPly;
+      setCurrentEvaluation(source[ply]);
+      setCurrentPly(ply);
+    },
+    [evaluationsByPly],
+  );
+
+  const clearEvaluations = useCallback(() => {
+    setEvaluationsByPly({});
+    setFenToPlyMap({});
+    setCurrentEvaluation(undefined);
+    setCurrentPly(chessRules.history().length);
+  }, [chessRules]);
+
+  const syncEvaluationsFromRules = useCallback(() => {
+    const notation = chessRules.getPgnNotation();
+    const evaluationMap: Record<number, number | string> = {};
+    const metadata =
+      typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
+    const fenFromMetadata =
+      metadata?.FEN && metadata.FEN.trim().length > 0
+        ? (() => {
+            const rawSetup = metadata?.SetUp;
+            const normalizedSetup = rawSetup ? rawSetup.trim().toLowerCase() : undefined;
+            if (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true') {
+              return metadata.FEN.trim();
+            }
+            return undefined;
+          })()
+        : undefined;
+
+    for (const move of notation.getMovesWithAnnotations()) {
+      const baseIndex = (move.moveNumber - 1) * 2;
+      if (move.evaluation?.white !== undefined) {
+        evaluationMap[baseIndex + 1] = move.evaluation.white;
+      }
+      if (move.evaluation?.black !== undefined) {
+        evaluationMap[baseIndex + 2] = move.evaluation.black;
+      }
+    }
+
+    const verboseHistory = chessRules.getHistory().map((move: any) => ({
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion,
+    }));
+
+    let timelineRules: ChessJsRules;
+    let startingFenApplied = false;
+
+    if (fenFromMetadata) {
+      try {
+        timelineRules = new ChessJsRules(fenFromMetadata);
+        startingFenApplied = true;
+      } catch (error) {
+        console.warn('Impossible de reconstruire la timeline PGN avec le FEN initial :', error);
+        timelineRules = new ChessJsRules();
+      }
+    } else {
+      timelineRules = new ChessJsRules();
+    }
+
+    if (!startingFenApplied) {
+      timelineRules.reset();
+    }
+
+    const fenMap: Record<string, number> = {};
+    fenMap[timelineRules.getFEN()] = 0;
+
+    verboseHistory.forEach((move, index) => {
+      const result = timelineRules.move({
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion,
+      });
+      if (result.ok) {
+        fenMap[timelineRules.getFEN()] = index + 1;
+      }
+    });
+
+    setEvaluationsByPly(evaluationMap);
+    setFenToPlyMap(fenMap);
+    updateEvaluationFromMap(verboseHistory.length, evaluationMap);
+  }, [chessRules, updateEvaluationFromMap]);
+
+  const handleBoardUpdate = useCallback(
+    ({ fen: nextFen }: { fen: string }) => {
+      setFen((previousFen) => (previousFen === nextFen ? previousFen : nextFen));
+      syncOrientationWithFen(nextFen);
+      setPgnError(null);
+
+      if (chessRules.getFEN() !== nextFen) {
+        try {
+          chessRules.setFEN(nextFen);
+        } catch (error) {
+          console.error('Erreur lors de la synchronisation du FEN avec la navigation PGN:', error);
+        }
+        updateStatusSnapshot();
+      }
+
+      const mappedPly = fenToPlyMap[nextFen];
+      if (typeof mappedPly === 'number') {
+        updateEvaluationFromMap(mappedPly);
+      } else {
+        setCurrentEvaluation(undefined);
+        setCurrentPly(chessRules.history().length);
+      }
+    },
+    [
+      chessRules,
+      fenToPlyMap,
+      syncOrientationWithFen,
+      updateEvaluationFromMap,
+      updateStatusSnapshot,
+    ],
+  );
+
   // États de loading pour démonstration
   const [isCopying, setIsCopying] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -149,6 +286,8 @@ export const App: React.FC = () => {
         setFen(updatedFen); // Update FEN state with corrected FEN
         syncOrientationWithFen(updatedFen);
         setPgnText(chessRules.toPgn(false));
+        clearEvaluations();
+        setPgnError(null);
         updateStatusSnapshot();
         setIsManualFenChange(false);
       } catch (error) {
@@ -156,7 +295,51 @@ export const App: React.FC = () => {
         setIsManualFenChange(false);
       }
     }
-  }, [fen, chessRules, isManualFenChange, syncOrientationWithFen, updateStatusSnapshot]);
+  }, [
+    fen,
+    chessRules,
+    isManualFenChange,
+    syncOrientationWithFen,
+    updateStatusSnapshot,
+    clearEvaluations,
+  ]);
+
+  const handleLoadPgn = useCallback(async () => {
+    const trimmed = pgnText.trim();
+    if (!trimmed) {
+      setPgnError('Veuillez coller un PGN avant de le charger.');
+      return;
+    }
+
+    setIsPgnLoading(true);
+    try {
+      setPgnError(null);
+      const success = chessRules.loadPgn(trimmed);
+      const board = boardRef.current?.getBoard();
+      const boardResult = board?.loadPgnWithAnnotations(trimmed);
+
+      if (!success) {
+        setPgnError('Impossible de charger le PGN fourni.');
+        return;
+      }
+
+      if (board && boardResult === false) {
+        console.warn('Le chargement des annotations PGN a échoué côté échiquier.');
+      }
+
+      const updatedFen = chessRules.getFEN();
+      setFen(updatedFen);
+      syncOrientationWithFen(updatedFen);
+      setPgnText(chessRules.toPgn(false));
+      updateStatusSnapshot();
+      syncEvaluationsFromRules();
+    } catch (error) {
+      console.error('Erreur lors du chargement du PGN:', error);
+      setPgnError('Une erreur est survenue pendant le chargement du PGN.');
+    } finally {
+      setIsPgnLoading(false);
+    }
+  }, [chessRules, pgnText, syncOrientationWithFen, updateStatusSnapshot, syncEvaluationsFromRules]);
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
@@ -181,6 +364,8 @@ export const App: React.FC = () => {
     }
     chessRules.reset();
     setPgnText(chessRules.toPgn(false));
+    clearEvaluations();
+    setPgnError(null);
     const resetFen = chessRules.getFEN();
     setFen(resetFen);
     syncOrientationWithFen(resetFen);
@@ -190,6 +375,7 @@ export const App: React.FC = () => {
 
   const handleExport = async () => {
     setIsExporting(true);
+    setPgnError(null);
     try {
       // Simuler un délai pour montrer le loader (désactivé pendant les tests)
       if (process.env.NODE_ENV !== 'test') {
@@ -329,6 +515,10 @@ export const App: React.FC = () => {
     boardRef.current.clearHighlights();
   }, []);
 
+  const evaluationSnapshot = useMemo(
+    () => interpretEvaluationValue(currentEvaluation),
+    [currentEvaluation],
+  );
   const halfMovesRemaining = Math.max(0, 100 - status.halfMoves);
   const gameTagClass = status.isCheckmate
     ? `${styles.statusTag} ${styles.statusTagCritical}`
@@ -464,13 +654,26 @@ export const App: React.FC = () => {
               autoFlip={boardOptions.autoFlip}
               onMove={({ from, to, fen: nextFen }) => {
                 // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
-                chessRules.move({ from, to });
+                const result = chessRules.move({ from, to });
+                if (!result.ok) {
+                  return;
+                }
+                setPgnError(null);
                 // Obtenir la notation PGN standard depuis chess.js
                 setPgnText(chessRules.toPgn(false));
                 setFen(nextFen);
                 syncOrientationWithFen(nextFen);
                 updateStatusSnapshot();
+                const historyLength = chessRules.history().length;
+                setFenToPlyMap((prev) => {
+                  if (prev[nextFen] === historyLength) {
+                    return prev;
+                  }
+                  return { ...prev, [nextFen]: historyLength };
+                });
+                updateEvaluationFromMap(historyLength);
               }}
+              onUpdate={handleBoardUpdate}
               className={styles.boardCanvas}
             />
             {boardOptions.allowResize && (
@@ -549,6 +752,44 @@ export const App: React.FC = () => {
             <div className={styles.statusTags}>
               <span className={gameTagClass}>{gameTagLabel}</span>
               <span className={fiftyTagClass}>{fiftyTagLabel}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>📈 Barre d'évaluation</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <div className={styles.evaluationPanel}>
+              <div className={styles.evaluationBarSlot}>
+                <EvaluationBar
+                  evaluation={currentEvaluation}
+                  orientation={boardOptions.orientation}
+                  ply={currentPly}
+                />
+              </div>
+              <div className={styles.evaluationInfo}>
+                <h4 className={styles.evaluationInfoTitle}>Suivi des analyses</h4>
+                <p className={styles.evaluationInfoText}>
+                  {evaluationSnapshot.hasValue
+                    ? `Dernier score importé : ${evaluationSnapshot.label}${
+                        currentPly > 0 ? ` (après ${formatPlyDescriptor(currentPly)})` : ''
+                      }`
+                    : 'En attente de données provenant d’un PGN annoté.'}
+                </p>
+                <p className={styles.evaluationInfoText}>
+                  Collez un PGN contenant des commentaires <code>[%eval ...]</code> puis cliquez sur{' '}
+                  <strong>Charger</strong> pour synchroniser la position, l’orientation et les
+                  évaluations.
+                </p>
+                <ul className={styles.evaluationInfoList}>
+                  <li>La barre reflète automatiquement la perspective actuellement affichée.</li>
+                  <li>
+                    Les évaluations sont mises à jour à chaque import et après chaque coup joué.
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -764,11 +1005,25 @@ export const App: React.FC = () => {
             <textarea
               className={styles.textarea}
               value={pgnText}
-              readOnly
+              onChange={(event) => {
+                setPgnText(event.target.value);
+                if (pgnError) {
+                  setPgnError(null);
+                }
+              }}
               aria-label="PGN notation"
-              placeholder="Les mouvements apparaîtront ici au format PGN..."
+              placeholder="Collez un PGN (avec [%eval]) ou jouez pour générer la notation..."
             />
             <div className={styles.buttonGroup}>
+              <LoadingButton
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                onClick={() => {
+                  void handleLoadPgn();
+                }}
+                isLoading={isPgnLoading}
+              >
+                {isPgnLoading ? 'Chargement...' : 'Charger'}
+              </LoadingButton>
               <LoadingButton
                 className={`${styles.button} ${styles.buttonSuccess} ${styles.buttonCopy}`}
                 onClick={handleCopyPGN}
@@ -791,6 +1046,11 @@ export const App: React.FC = () => {
                 {isExporting ? 'Export...' : 'Exporter'}
               </LoadingButton>
             </div>
+            {pgnError ? <div className={styles.pgnError}>{pgnError}</div> : null}
+            <p className={styles.pgnHelper}>
+              Astuce : importez un PGN contenant des commentaires <code>[%eval ...]</code> pour
+              alimenter la barre d'évaluation ou explorez les coups enregistrés.
+            </p>
           </div>
         </div>
 

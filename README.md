@@ -35,6 +35,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - 🧩 Bring your own piece set (SVG, PNG, or Canvas sources)
 - ✨ Fluid animations and transitions
 - 🎯 Legal move highlighting
+- 📈 Demo evaluation bar that reads PGN [%eval] annotations
 - 🔄 Optional auto-flip to follow the side to move
 - 📱 Responsive design
 
@@ -164,6 +165,11 @@ Looking for a faster way to design palettes? The project ships with an interacti
 2. Pick a starting palette from the dropdown or begin with a blank canvas.
 3. Adjust colors via the color pickers/text inputs and watch the preview board update in real time.
 4. Give your creation a name, save it, and export the JSON/code snippet when you are happy with the result.
+
+### 🧪 Demo Playground Highlights
+
+- The demo PGN textarea now accepts pasted games (including comments such as `[%eval 0.45]`). Hit **Charger** to load the position, annotations and metadata in one go.
+- A vertical evaluation bar displays the last imported score, stays aligned with the current board orientation and refreshes as you replay moves or navigate through the game.
 
 Once exported you can register the theme in your app:
 

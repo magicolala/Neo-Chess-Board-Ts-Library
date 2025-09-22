@@ -782,6 +782,71 @@ body {
   color: #60a5fa;
 }
 
+.evaluationPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  align-items: stretch;
+}
+
+.evaluationBarSlot {
+  flex: 0 0 180px;
+  display: flex;
+  justify-content: center;
+}
+
+.evaluationInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+
+.evaluationInfoTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.evaluationInfoText {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.evaluationInfoText code {
+  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--accent-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.evaluationInfoList {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.evaluationInfoList li {
+  margin-bottom: 0.35rem;
+}
+
+.evaluationInfoList li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .evaluationBarSlot {
+    flex: 1 1 100%;
+  }
+}
+
 .textarea {
   width: 100%;
   min-height: 200px;
@@ -833,6 +898,28 @@ body {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.pgnHelper {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.pgnHelper code {
+  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--accent-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pgnError {
+  margin-top: 12px;
+  color: var(--error);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .button {
