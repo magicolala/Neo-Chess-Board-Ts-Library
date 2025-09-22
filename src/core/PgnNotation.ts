@@ -64,6 +64,10 @@ export class PgnNotation {
     if (!this.metadata.Result) this.metadata.Result = this.result;
   }
 
+  getMetadata(): PgnMetadata {
+    return { ...this.metadata };
+  }
+
   /**
    * Add a move to the game
    */
