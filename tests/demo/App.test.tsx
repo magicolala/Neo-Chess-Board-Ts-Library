@@ -135,7 +135,7 @@ describe('App Component', () => {
     it('should render without crashing', () => {
       render(<App />);
 
-      expect(screen.getByText(/NeoChessBoard/)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /NeoChessBoard/i, level: 1 })).toBeInTheDocument();
       expect(screen.getByTestId('neo-chessboard')).toBeInTheDocument();
     });
 

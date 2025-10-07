@@ -46,6 +46,40 @@ const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
 const DEFAULT_BOARD_SIZE = 520;
 
+interface LiveExampleLink {
+  href: string;
+  label: string;
+  description: string;
+  icon: string;
+}
+
+const LIVE_EXAMPLES: LiveExampleLink[] = [
+  {
+    href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html',
+    label: 'Vanilla JS Starter',
+    description: 'Échiquier interactif autonome avec thèmes, historique et export PGN.',
+    icon: '🌐',
+  },
+  {
+    href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html',
+    label: 'Intégration Chess.js',
+    description: 'Synchronisation complète avec chess.js et mise à jour temps réel du statut.',
+    icon: '♞',
+  },
+  {
+    href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html',
+    label: 'PGN + Barre d’évaluation',
+    description: 'Import de parties annotées, orientation automatique et suivi des évaluations.',
+    icon: '📈',
+  },
+  {
+    href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html',
+    label: 'Fonctionnalités avancées',
+    description: 'Modes puzzle, outils d’analyse et interactions clavier pour power-users.',
+    icon: '⚡',
+  },
+];
+
 // Type pour les options de l'échiquier
 interface BoardFeatureOptions {
   showArrows: boolean;
@@ -1118,6 +1152,42 @@ export const App: React.FC = () => {
               >
                 Finale simple
               </button>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>🧪 Exemples prêts à l'emploi</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <p className={styles.exampleIntro}>
+              Explorez les pages d'exemples hébergées pour voir NeoChessBoard en action dans
+              différents contextes.
+            </p>
+            <div className={styles.exampleLinks}>
+              {LIVE_EXAMPLES.map((example) => (
+                <a
+                  key={example.href}
+                  className={styles.exampleLinkCard}
+                  href={example.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <div className={styles.exampleLinkText}>
+                    <span className={styles.exampleLinkLabel}>
+                      <span aria-hidden="true" className={styles.exampleLinkIcon}>
+                        {example.icon}
+                      </span>
+                      {example.label}
+                    </span>
+                    <span className={styles.exampleLinkDescription}>{example.description}</span>
+                  </div>
+                  <span aria-hidden="true" className={styles.exampleLinkArrow}>
+                    ↗
+                  </span>
+                </a>
+              ))}
             </div>
           </div>
         </div>

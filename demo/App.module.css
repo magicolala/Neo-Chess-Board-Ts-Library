@@ -702,6 +702,93 @@ body {
   padding: 20px;
 }
 
+.exampleIntro {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.exampleLinks {
+  display: grid;
+  gap: 12px;
+}
+
+.exampleLinkCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: calc(var(--radius) + 14px);
+  border: 1px solid var(--glass-border);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
+}
+
+.exampleLinkCard:hover {
+  transform: translateY(-1px);
+  border-color: var(--glass-active-border);
+  box-shadow: var(--shadow-glass);
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.exampleLinkCard:focus-visible {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 0 3px var(--glass-focus-ring);
+  transform: translateY(-1px);
+}
+
+.exampleLinkText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exampleLinkLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.exampleLinkDescription {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.exampleLinkArrow {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.exampleLinkCard:hover .exampleLinkArrow,
+.exampleLinkCard:focus-visible .exampleLinkArrow {
+  transform: translateX(2px);
+  color: var(--text-primary);
+}
+
+.exampleLinkIcon {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
 .statusGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
