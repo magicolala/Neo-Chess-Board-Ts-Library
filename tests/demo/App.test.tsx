@@ -26,18 +26,67 @@ jest.mock('../../src/core/ChessJsRules', () => {
     currentTurn = parts[1] === 'b' ? 'b' : 'w';
     halfMoveClock = parts[4] ? Number.parseInt(parts[4], 10) || 0 : 0;
     fullMoveNumber = parts[5] ? Number.parseInt(parts[5], 10) || 1 : 1;
+type VerboseMove = { from: string; to: string; promotion?: string };
+
+interface MockRulesState {
+  fen: string;
+  pgn: string;
+  turn: 'w' | 'b';
+  halfMoveClock: number;
+  fullMoveNumber: number;
+  historySan: string[];
+  verboseHistory: VerboseMove[];
+}
+
+const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
+
+const updateFromFen = (state: MockRulesState) => {
+  const parts = state.fen.trim().split(/\s+/);
+  state.turn = parts[1] === 'b' ? 'b' : 'w';
+  state.halfMoveClock = parts[4] ? Number.parseInt(parts[4], 10) || 0 : 0;
+  state.fullMoveNumber = parts[5] ? Number.parseInt(parts[5], 10) || 1 : 1;
+};
+
+const normaliseFen = (fen: string) => {
+  if (fen === 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4') {
+    return `${fen} 1`;
+  }
+  return fen;
+};
+
+const createMockChessJsRules = () => {
+  const state: MockRulesState = {
+    fen: INITIAL_FEN,
+    pgn: '',
+    turn: 'w',
+    halfMoveClock: 0,
+    fullMoveNumber: 1,
+    historySan: [],
+    verboseHistory: [],
   };
 
-  const mockChessJsRulesInstance = {
+  const setFenInternal = (fen: string) => {
+    state.fen = normaliseFen(fen);
+    state.historySan = [];
+    state.verboseHistory = [];
+    updateFromFen(state);
+  };
+
+  const instance = {
     move: jest.fn(() => {
       currentPgn = '1. e4'; // Simulate PGN after a move
       currentFen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2'; // Simulate FEN after a move
       historySan.push('e4');
       verboseHistory.push({ from: 'e2', to: 'e4' });
       updateFromFen(currentFen);
+      state.pgn = '1. e4';
+      state.fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2';
+      state.historySan = ['e4'];
+      state.verboseHistory = [{ from: 'e2', to: 'e4' }];
+      updateFromFen(state);
       return { ok: true };
     }),
-    toPgn: jest.fn(() => currentPgn),
+    toPgn: jest.fn(() => state.pgn),
     setFEN: jest.fn((fen: string) => {
       currentFen = fen; // Update internal FEN state
       // Simulate chess.js correcting the FEN if it's problematic
@@ -51,14 +100,22 @@ jest.mock('../../src/core/ChessJsRules', () => {
       historySan = [];
       verboseHistory = [];
       updateFromFen(currentFen);
+      setFenInternal(fen);
     }),
-    getFEN: jest.fn(() => currentFen),
+    getFEN: jest.fn(() => state.fen),
     reset: jest.fn(() => {
       currentPgn = '*'; // Simulate PGN after reset
       currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1'; // Initial FEN after reset
       historySan = [];
       verboseHistory = [];
       updateFromFen(currentFen);
+      state.pgn = '*';
+      setFenInternal(INITIAL_FEN);
+    }),
+    loadPgn: jest.fn((pgn: string) => {
+      state.pgn = pgn;
+      setFenInternal('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      return true;
     }),
     loadPgn: jest.fn((pgn: string) => {
       currentPgn = pgn;
@@ -70,8 +127,8 @@ jest.mock('../../src/core/ChessJsRules', () => {
     }),
     setPgnMetadata: jest.fn(),
     downloadPgn: jest.fn(),
-    moveNumber: jest.fn(() => fullMoveNumber),
-    turn: jest.fn(() => currentTurn),
+    moveNumber: jest.fn(() => state.fullMoveNumber),
+    turn: jest.fn(() => state.turn),
     inCheck: jest.fn(() => false),
     isCheckmate: jest.fn(() => false),
     isStalemate: jest.fn(() => false),
@@ -80,6 +137,9 @@ jest.mock('../../src/core/ChessJsRules', () => {
     halfMoves: jest.fn(() => halfMoveClock),
     getHistory: jest.fn(() => [...verboseHistory]),
     history: jest.fn(() => [...historySan]),
+    halfMoves: jest.fn(() => state.halfMoveClock),
+    getHistory: jest.fn(() => [...state.verboseHistory]),
+    history: jest.fn(() => [...state.historySan]),
     getPgnNotation: jest.fn(() => ({
       getMovesWithAnnotations: jest.fn(() => []),
       getMetadata: jest.fn(() => ({ SetUp: '0' })),
@@ -104,36 +164,37 @@ jest.mock('../../src/core/ChessJsRules', () => {
     }),
   };
 });
+  updateFromFen(state);
+  return instance;
+};
 
-// Mock the NeoChessBoard React component
+jest.mock('../../src/core/ChessJsRules', () => ({
+  ChessJsRules: jest.fn(() => createMockChessJsRules()),
+}));
+
 jest.mock('../../src/react/NeoChessBoard', () => ({
-  NeoChessBoard: jest.fn(({ onMove, theme }) => (
-    <div
-      data-testid="neo-chessboard"
-      data-theme={theme}
-      onClick={() => {
-        // Simulate a move
+  __esModule: true,
+  NeoChessBoard: jest.fn(({ onMove, theme }) =>
+    React.createElement('div', {
+      'data-testid': 'neo-chessboard',
+      'data-theme': theme,
+      onClick: () => {
         onMove?.({
           from: 'e2',
           to: 'e4',
           fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
         });
-      }}
-    />
-  )),
+      },
+    }),
+  ),
 }));
 
-// Mock clipboard API
 const mockWriteText = jest.fn(() => Promise.resolve());
 
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Ensure we're in test environment
     process.env.NODE_ENV = 'test';
-
-    // Setup clipboard mock in beforeEach
     Object.defineProperty(navigator, 'clipboard', {
       value: {
         writeText: mockWriteText,
@@ -209,18 +270,13 @@ describe('App Component', () => {
       const { unmount } = render(<App />);
 
       try {
-        // Wait for initial render
         await screen.findByTestId('neo-chessboard');
-
-        // Simulate a move by clicking the board
         await user.click(screen.getByTestId('neo-chessboard'));
 
-        // Wait for the PGN textarea to be updated
         const pgnTextarea = (await screen.findByRole('textbox', {
           name: /pgn notation/i,
         })) as HTMLTextAreaElement;
 
-        // Check the value with a timeout
         await waitFor(
           () => {
             expect(pgnTextarea.value).toContain('1. e4');
@@ -237,16 +293,12 @@ describe('App Component', () => {
       const { unmount } = render(<App />);
 
       try {
-        // Wait for initial render
         await screen.findByTestId('neo-chessboard');
 
-        // Get the FEN textarea
         const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
 
-        // Simulate a move by clicking the board
         await user.click(screen.getByTestId('neo-chessboard'));
 
-        // Wait for the FEN to be updated
         await waitFor(
           () => {
             expect(fenTextarea).toHaveValue(
@@ -266,7 +318,6 @@ describe('App Component', () => {
       render(<App />);
 
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
-      // PGN text starts empty and is populated on first move
       expect(pgnTextarea).toHaveValue('');
     });
 
@@ -286,6 +337,9 @@ describe('App Component', () => {
         const loadPgnMock = (
           chessRulesMock.mock.results[0]?.value?.loadPgn as jest.Mock | undefined
         ) ?? (chessRulesMock.mock.instances[0]?.loadPgn as jest.Mock | undefined);
+        const loadPgnMock =
+          (chessRulesMock.mock.results[0]?.value?.loadPgn as jest.Mock | undefined) ??
+          (chessRulesMock.mock.instances[0]?.loadPgn as jest.Mock | undefined);
         expect(loadPgnMock).toHaveBeenCalledWith(expect.stringContaining('1. e4 e5'));
       });
     });
@@ -294,10 +348,8 @@ describe('App Component', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      // First simulate a move to populate PGN
       await user.click(screen.getByTestId('neo-chessboard'));
 
-      // Wait for state update
       await waitFor(() => {
         const pgnTextarea = screen.getByRole('textbox', {
           name: /pgn notation/i,
@@ -305,12 +357,9 @@ describe('App Component', () => {
         expect(pgnTextarea).toHaveValue('1. e4');
       });
 
-      // Verify copy button exists and is clickable
       const copyButton = screen.getByText('Copier');
       expect(copyButton).toBeInTheDocument();
       expect(copyButton).not.toHaveAttribute('disabled');
-
-      // Test that clicking doesn't throw an error
       expect(() => user.click(copyButton)).not.toThrow();
     });
 
@@ -319,8 +368,6 @@ describe('App Component', () => {
       render(<App />);
 
       await user.click(screen.getByText('Reset'));
-
-      // Attendre que l'opération asynchrone se termine
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
@@ -332,12 +379,8 @@ describe('App Component', () => {
       render(<App />);
 
       await user.click(screen.getByText('Exporter'));
-
-      // Attendre que l'opération asynchrone se termine
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // We can't easily test the download, so we just check that the button is there
-      // and clickable.
       const exportButton = screen.getByText('Exporter');
       expect(exportButton).toBeInTheDocument();
       expect(exportButton).not.toHaveAttribute('disabled');
@@ -351,19 +394,16 @@ describe('App Component', () => {
 
       const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
 
-      // Test with a valid FEN
       const validFEN = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
       await user.clear(fenTextarea);
       await user.type(fenTextarea, validFEN);
       expect(fenTextarea).toHaveValue(validFEN);
 
-      // Test with the problematic FEN (5 parts)
       const problematicFEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4';
       await user.clear(fenTextarea);
       await user.type(fenTextarea, problematicFEN);
-      // Expect the FEN to be corrected by ChessJsRules
-      expect(fenTextarea).toHaveValue(problematicFEN + ' 1');
-    }, 10000); // Increase timeout to 10 seconds
+      expect(fenTextarea).toHaveValue(`${problematicFEN} 1`);
+    }, 10000);
 
     it('should start with empty FEN textarea', () => {
       render(<App />);
@@ -384,7 +424,6 @@ describe('App Component', () => {
     it('should have correct button layout', () => {
       render(<App />);
 
-      // Le bouton est maintenant un LoadingButton, on cherche le conteneur des boutons
       const buttonContainer = screen.getByText('Copier').closest('.buttonGroup');
       expect(buttonContainer).toBeInTheDocument();
     });
@@ -392,14 +431,12 @@ describe('App Component', () => {
 
   describe('PGN Recorder integration', () => {
     it('should handle PGN recorder with or without Chess.js', () => {
-      // Test without Chess.js
       delete (window as any).Chess;
 
       expect(() => {
         render(<App />);
       }).not.toThrow();
 
-      // Test with Chess.js
       (window as any).Chess = {};
 
       expect(() => {
@@ -412,7 +449,6 @@ describe('App Component', () => {
     it('should handle clipboard API failures gracefully', async () => {
       const user = userEvent.setup();
 
-      // Mock clipboard to reject
       mockWriteText.mockRejectedValue(new Error('Clipboard error'));
 
       render(<App />);
