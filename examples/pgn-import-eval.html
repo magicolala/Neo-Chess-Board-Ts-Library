@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neo Chess Board – Import PGN & barre d'évaluation</title>
+    <style>
+      :root {
+        color-scheme: dark light;
+        --surface: #0f172a;
+        --surface-alt: #1e293b;
+        --surface-muted: rgba(148, 163, 184, 0.12);
+        --border: rgba(148, 163, 184, 0.24);
+        --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
+        --success: #34d399;
+        --danger: #fb7185;
+        --text: #e2e8f0;
+        --text-muted: rgba(226, 232, 240, 0.72);
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, #0f172a 0%, #020617 60%);
+        color: var(--text);
+        padding: 32px;
+        box-sizing: border-box;
+      }
+
+      h1 {
+        font-size: clamp(28px, 4vw, 40px);
+        margin: 0 0 12px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--text-muted);
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 32px;
+        align-items: start;
+      }
+
+      .board-shell {
+        display: grid;
+        gap: 24px;
+      }
+
+      .board-wrapper {
+        background: linear-gradient(145deg, rgba(148, 163, 184, 0.12), rgba(15, 23, 42, 0.8));
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 28px 80px rgba(8, 47, 73, 0.45);
+      }
+
+      .board-canvas {
+        width: min(520px, 100%);
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+      }
+
+      .panel {
+        background: rgba(15, 23, 42, 0.72);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        padding: 20px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 40px rgba(2, 6, 23, 0.4);
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 160px;
+        resize: vertical;
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        color: var(--text);
+        border-radius: 16px;
+        padding: 16px;
+        font: inherit;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(148, 163, 184, 0.14);
+        color: var(--text);
+        font: inherit;
+        padding: 10px 18px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+        border-color: rgba(14, 165, 233, 0.4);
+        color: #0b1120;
+        font-weight: 600;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(15, 118, 110, 0.25);
+        border-color: rgba(148, 163, 184, 0.45);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .status-message {
+        margin-top: 16px;
+        padding: 12px 16px;
+        border-radius: 16px;
+        border: 1px solid transparent;
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--text);
+        font-size: 14px;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      .status-message[data-state="success"] {
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.4);
+        color: #a7f3d0;
+      }
+
+      .status-message[data-state="error"] {
+        background: rgba(248, 113, 113, 0.12);
+        border-color: rgba(248, 113, 113, 0.4);
+        color: #fecaca;
+      }
+
+      .sidebar {
+        display: grid;
+        gap: 24px;
+      }
+
+      .evaluation-card {
+        background: rgba(15, 23, 42, 0.72);
+        border-radius: 24px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.45);
+      }
+
+      .evaluation-title {
+        margin: 0 0 16px;
+        font-size: 22px;
+        font-weight: 600;
+      }
+
+      .evaluation-bar {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .evaluation-labels {
+        display: grid;
+        grid-template-rows: repeat(2, 1fr);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .evaluation-labels span:first-child {
+        align-self: start;
+      }
+
+      .evaluation-labels span:last-child {
+        align-self: end;
+      }
+
+      .evaluation-track {
+        position: relative;
+        border-radius: 999px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.85));
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+
+      .evaluation-fill {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 50%;
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.25), rgba(56, 189, 248, 0.8));
+        transition: height 0.25s ease;
+      }
+
+      .evaluation-score {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        backdrop-filter: blur(6px);
+        min-width: 64px;
+        text-align: center;
+      }
+
+      .evaluation-summary {
+        margin-top: 20px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .evaluation-summary .primary {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .evaluation-summary .secondary {
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      .orientation-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(148, 163, 184, 0.24);
+        font-size: 14px;
+        color: var(--text-muted);
+        gap: 12px;
+      }
+
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .toggle input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .info-card {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 20px;
+        padding: 20px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--text-muted);
+      }
+
+      .info-card code {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 6px;
+        padding: 2px 6px;
+        color: var(--accent);
+        font-family: "Fira Code", "Source Code Pro", monospace;
+        font-size: 13px;
+      }
+
+      .info-card strong {
+        color: var(--text);
+      }
+
+      @media (max-width: 1080px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          order: -1;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 20px;
+        }
+
+        .board-wrapper {
+          padding: 16px;
+        }
+
+        .board-canvas {
+          width: 100%;
+        }
+
+        textarea {
+          min-height: 140px;
+        }
+
+        .button-row {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .orientation-controls {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Import PGN &amp; barre d'évaluation</h1>
+      <p>
+        Collez un PGN annoté avec des balises <code>[%eval ...]</code> pour alimenter la barre. Les
+        évaluations suivent la perspective affichée et se synchronisent avec l'orientation de l'échiquier.
+      </p>
+    </header>
+    <main>
+      <section class="board-shell">
+        <div class="board-wrapper">
+          <div id="board" class="board-canvas" aria-label="Échiquier interactif"></div>
+        </div>
+
+        <div class="panel" aria-labelledby="pgnTitle">
+          <h2 id="pgnTitle">📋 Import PGN</h2>
+          <textarea
+            id="pgnInput"
+            placeholder="Collez un PGN contenant des commentaires [%eval 0.45] ou [%eval #3]..."
+            aria-describedby="pgnHelp"
+          ></textarea>
+          <div class="button-row">
+            <button id="loadPgn" class="primary" type="button">Charger le PGN</button>
+            <button id="loadSample" type="button">Charger l'exemple fourni</button>
+            <button id="resetBoard" type="button">Réinitialiser</button>
+            <button id="copyPgn" type="button">Copier la notation</button>
+          </div>
+          <div id="pgnStatus" class="status-message" role="status" aria-live="polite"></div>
+          <p id="pgnHelp" style="margin-top: 12px; font-size: 14px;">
+            Astuce&nbsp;: les balises <code>[%eval +0.85]</code> sont attribuées au joueur qui vient de jouer. Ajoutez
+            également un commentaire <code>[%eval #5]</code> pour afficher une annonce de mat.
+          </p>
+        </div>
+      </section>
+
+      <aside class="sidebar" aria-label="Barre d'évaluation et options">
+        <section class="evaluation-card" aria-live="polite">
+          <h2 class="evaluation-title">📈 Barre d'évaluation</h2>
+          <div
+            id="evaluationBar"
+            class="evaluation-bar"
+            role="meter"
+            aria-label="Avantage selon le moteur"
+            aria-valuemin="-10"
+            aria-valuemax="10"
+            aria-valuenow="0"
+          >
+            <div class="evaluation-labels" aria-hidden="true">
+              <span id="evalTopLabel">Blancs</span>
+              <span id="evalBottomLabel">Noirs</span>
+            </div>
+            <div class="evaluation-track">
+              <div id="evalFill" class="evaluation-fill"></div>
+              <div id="evalScore" class="evaluation-score">—</div>
+            </div>
+          </div>
+          <div class="evaluation-summary">
+            <span id="evalSummaryPrimary" class="primary">Aucune évaluation importée</span>
+            <span id="evalSummarySecondary" class="secondary"
+              >Ajoutez des balises <code>[%eval ...]</code> pour démarrer.</span
+            >
+          </div>
+          <div class="orientation-controls">
+            <span id="orientationStatus">Orientation actuelle&nbsp;: Blancs en bas</span>
+            <div>
+              <label class="toggle">
+                <input id="autoFlip" type="checkbox" checked />
+                <span>Synchroniser automatiquement avec le trait</span>
+              </label>
+            </div>
+            <button id="flipBoard" type="button">Inverser la vue</button>
+          </div>
+        </section>
+
+        <section class="info-card">
+          <strong>Comment ça marche&nbsp;?</strong>
+          <ul style="padding-left: 18px; margin: 12px 0 0; list-style: square;">
+            <li>Le PGN est chargé côté règles <em>et</em> côté échiquier pour afficher flèches &amp; commentaires.</li>
+            <li>Chaque coup avec <code>[%eval]</code> est associé à son demi-coup pour alimenter la barre.</li>
+            <li>Lorsque vous naviguez ou jouez de nouveaux coups, l'évaluation se met à jour en direct.</li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module">
+      import { NeoChessBoard, ChessJsRules } from '../dist/index.js';
+
+      const boardContainer = document.getElementById('board');
+      const pgnTextarea = document.getElementById('pgnInput');
+      const statusMessage = document.getElementById('pgnStatus');
+      const loadButton = document.getElementById('loadPgn');
+      const sampleButton = document.getElementById('loadSample');
+      const resetButton = document.getElementById('resetBoard');
+      const copyButton = document.getElementById('copyPgn');
+      const flipButton = document.getElementById('flipBoard');
+      const autoFlipToggle = document.getElementById('autoFlip');
+
+      const evalBar = document.getElementById('evaluationBar');
+      const evalFill = document.getElementById('evalFill');
+      const evalScore = document.getElementById('evalScore');
+      const evalTopLabel = document.getElementById('evalTopLabel');
+      const evalBottomLabel = document.getElementById('evalBottomLabel');
+      const evalSummaryPrimary = document.getElementById('evalSummaryPrimary');
+      const evalSummarySecondary = document.getElementById('evalSummarySecondary');
+      const orientationStatus = document.getElementById('orientationStatus');
+
+      const chessRules = new ChessJsRules();
+      const board = new NeoChessBoard(boardContainer, {
+        interactive: true,
+        showCoordinates: true,
+        highlightLegal: true,
+        showArrows: true,
+        showHighlights: true,
+        animationMs: 250,
+        rulesAdapter: chessRules,
+        theme: 'midnight',
+      });
+
+      const state = {
+        evaluationsByPly: {},
+        fenToPlyMap: {},
+        currentPly: 0,
+        currentEvaluation: undefined,
+        orientation: 'white',
+        autoFlip: true,
+      };
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      const interpretEvaluationValue = (value) => {
+        if (value === null || typeof value === 'undefined') {
+          return {
+            hasValue: false,
+            numeric: null,
+            label: '—',
+            mate: false,
+            sign: 0,
+            raw: null,
+          };
+        }
+
+        if (typeof value === 'number') {
+          if (!Number.isFinite(value)) {
+            const sign = value > 0 ? 1 : value < 0 ? -1 : 0;
+            return {
+              hasValue: true,
+              numeric: sign === 0 ? 0 : sign * 100,
+              label: value > 0 ? '+∞' : value < 0 ? '-∞' : '0.00',
+              mate: false,
+              sign,
+              raw: value,
+            };
+          }
+
+          const sign = value === 0 ? 0 : value > 0 ? 1 : -1;
+          const formatted = value === 0 ? '0.00' : value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
+          return {
+            hasValue: true,
+            numeric: value,
+            label: formatted,
+            mate: false,
+            sign,
+            raw: value,
+          };
+        }
+
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          return {
+            hasValue: false,
+            numeric: null,
+            label: '—',
+            mate: false,
+            sign: 0,
+            raw: value,
+          };
+        }
+
+        if (/^[-+]?#/.test(trimmed)) {
+          const negative = trimmed.startsWith('-');
+          const positive = trimmed.startsWith('+');
+          const sign = negative ? -1 : 1;
+          const normalizedLabel = positive ? trimmed.slice(1) : trimmed;
+          return {
+            hasValue: true,
+            numeric: sign * 100,
+            label: normalizedLabel,
+            mate: true,
+            sign,
+            raw: value,
+          };
+        }
+
+        const parsedNumber = Number.parseFloat(trimmed);
+        if (!Number.isNaN(parsedNumber)) {
+          if (!Number.isFinite(parsedNumber)) {
+            const sign = parsedNumber > 0 ? 1 : parsedNumber < 0 ? -1 : 0;
+            const label = parsedNumber > 0 ? '+∞' : parsedNumber < 0 ? '-∞' : '0.00';
+            return {
+              hasValue: true,
+              numeric: sign === 0 ? 0 : sign * 100,
+              label,
+              mate: false,
+              sign,
+              raw: value,
+            };
+          }
+
+          const sign = parsedNumber === 0 ? 0 : parsedNumber > 0 ? 1 : -1;
+          const formatted =
+            parsedNumber === 0 ? '0.00' : parsedNumber > 0 ? `+${parsedNumber.toFixed(2)}` : parsedNumber.toFixed(2);
+          return {
+            hasValue: true,
+            numeric: parsedNumber,
+            label: formatted,
+            mate: false,
+            sign,
+            raw: value,
+          };
+        }
+
+        return {
+          hasValue: true,
+          numeric: null,
+          label: trimmed,
+          mate: false,
+          sign: 0,
+          raw: value,
+        };
+      };
+
+      const formatPlyDescriptor = (ply) => {
+        if (ply <= 0) {
+          return "le début de partie";
+        }
+        const moveNumber = Math.ceil(ply / 2);
+        const isWhiteMove = ply % 2 === 1;
+        return `${moveNumber}${isWhiteMove ? '' : '...'} (${isWhiteMove ? 'Blancs' : 'Noirs'})`;
+      };
+
+      const renderEvaluation = () => {
+        const parsed = interpretEvaluationValue(state.currentEvaluation);
+        const isBlackPerspective = state.orientation === 'black';
+        const orientedValue = parsed.numeric !== null ? (isBlackPerspective ? -parsed.numeric : parsed.numeric) : 0;
+        const fillPercent = parsed.hasValue ? ((clamp(orientedValue, -10, 10) + 10) / 20) * 100 : 50;
+
+        evalFill.style.height = `${fillPercent}%`;
+        evalScore.textContent = parsed.label;
+        evalBar.setAttribute('aria-valuenow', String(parsed.numeric ?? 0));
+        evalTopLabel.textContent = isBlackPerspective ? 'Noirs' : 'Blancs';
+        evalBottomLabel.textContent = isBlackPerspective ? 'Blancs' : 'Noirs';
+
+        const advantageText = (() => {
+          if (!parsed.hasValue) {
+            return 'Aucune évaluation importée';
+          }
+          if (parsed.mate) {
+            return parsed.sign >= 0 ? 'Mat annoncé pour les Blancs' : 'Mat annoncé pour les Noirs';
+          }
+          if (parsed.numeric === null) {
+            return 'Évaluation personnalisée';
+          }
+          if (Math.abs(parsed.numeric) < 0.01) {
+            return 'Équilibre';
+          }
+          return parsed.sign > 0 ? 'Avantage Blancs' : 'Avantage Noirs';
+        })();
+
+        evalSummaryPrimary.textContent = advantageText;
+        evalSummarySecondary.innerHTML = parsed.hasValue
+          ? state.currentPly > 0
+            ? `Après ${formatPlyDescriptor(state.currentPly)}`
+            : 'Évaluation initiale'
+          : 'Ajoutez des balises <code>[%eval ...]</code> pour démarrer.';
+      };
+
+      const showStatus = (message, type = 'info') => {
+        statusMessage.textContent = message;
+        statusMessage.dataset.state = type;
+      };
+
+      const clearEvaluations = () => {
+        state.evaluationsByPly = {};
+        state.fenToPlyMap = {};
+        state.currentEvaluation = undefined;
+        state.currentPly = chessRules.history().length;
+        renderEvaluation();
+      };
+
+      const setOrientation = (orientation) => {
+        state.orientation = orientation;
+        board.setOrientation(orientation);
+        orientationStatus.textContent = `Orientation actuelle\u00A0: ${orientation === 'white' ? 'Blancs' : 'Noirs'} en bas`;
+        renderEvaluation();
+      };
+
+      const syncOrientationWithFen = (fen) => {
+        if (!state.autoFlip) {
+          return;
+        }
+        const sideToMove = fen.split(' ')[1] === 'w' ? 'white' : 'black';
+        if (state.orientation !== sideToMove) {
+          setOrientation(sideToMove);
+        }
+      };
+
+      const updateEvaluationFromPly = (ply) => {
+        state.currentPly = ply;
+        state.currentEvaluation = state.evaluationsByPly[ply];
+        renderEvaluation();
+      };
+
+      const refreshEvaluationForFen = (fen) => {
+        const mappedPly = state.fenToPlyMap[fen];
+        if (typeof mappedPly === 'number') {
+          updateEvaluationFromPly(mappedPly);
+        } else {
+          state.currentEvaluation = undefined;
+          state.currentPly = chessRules.history().length;
+          renderEvaluation();
+        }
+      };
+
+      const syncEvaluationsFromRules = () => {
+        try {
+          const notation = chessRules.getPgnNotation();
+          const evaluationMap = {};
+          const metadata = typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
+          const fenFromMetadata = metadata?.FEN && metadata.FEN.trim().length > 0
+            ? (() => {
+                const rawSetup = metadata?.SetUp;
+                const normalizedSetup = rawSetup ? rawSetup.trim().toLowerCase() : undefined;
+                if (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true') {
+                  return metadata.FEN.trim();
+                }
+                return undefined;
+              })()
+            : undefined;
+
+          for (const move of notation.getMovesWithAnnotations()) {
+            const baseIndex = (move.moveNumber - 1) * 2;
+            if (move.evaluation?.white !== undefined) {
+              evaluationMap[baseIndex + 1] = move.evaluation.white;
+            }
+            if (move.evaluation?.black !== undefined) {
+              evaluationMap[baseIndex + 2] = move.evaluation.black;
+            }
+          }
+
+          const verboseHistory = chessRules.getHistory().map((move) => ({
+            from: move.from,
+            to: move.to,
+            promotion: move.promotion,
+          }));
+
+          let timelineRules;
+          let startingFenApplied = false;
+
+          if (fenFromMetadata) {
+            try {
+              timelineRules = new ChessJsRules(fenFromMetadata);
+              startingFenApplied = true;
+            } catch (error) {
+              console.warn('Impossible de reconstruire la timeline PGN avec le FEN initial :', error);
+              timelineRules = new ChessJsRules();
+            }
+          } else {
+            timelineRules = new ChessJsRules();
+          }
+
+          if (!startingFenApplied) {
+            timelineRules.reset();
+          }
+
+          const fenMap = {};
+          fenMap[timelineRules.getFEN()] = 0;
+
+          verboseHistory.forEach((move, index) => {
+            const result = timelineRules.move({
+              from: move.from,
+              to: move.to,
+              promotion: move.promotion,
+            });
+            if (result.ok) {
+              fenMap[timelineRules.getFEN()] = index + 1;
+            }
+          });
+
+          state.evaluationsByPly = evaluationMap;
+          state.fenToPlyMap = fenMap;
+          updateEvaluationFromPly(verboseHistory.length);
+        } catch (error) {
+          console.error("Échec de la synchronisation des évaluations PGN:", error);
+          clearEvaluations();
+        }
+      };
+
+      const loadPgn = async (pgn) => {
+        const trimmed = pgn.trim();
+        if (!trimmed) {
+          showStatus('Veuillez coller un PGN avant de le charger.', 'error');
+          return;
+        }
+
+        try {
+          const success = chessRules.loadPgn(trimmed);
+          const boardResult = board.loadPgnWithAnnotations(trimmed);
+
+          if (!success) {
+            showStatus("Impossible de charger le PGN fourni.", 'error');
+            return;
+          }
+
+          if (boardResult === false) {
+            console.warn('Le chargement des annotations PGN a échoué côté échiquier.');
+          }
+
+          syncEvaluationsFromRules();
+          const updatedFen = chessRules.getFEN();
+          board.setPosition(updatedFen, true);
+          syncOrientationWithFen(updatedFen);
+          refreshEvaluationForFen(updatedFen);
+          pgnTextarea.value = chessRules.toPgn(false);
+          showStatus('PGN chargé avec succès. Les évaluations sont synchronisées ✅', 'success');
+        } catch (error) {
+          console.error('Erreur lors du chargement du PGN:', error);
+          showStatus('Une erreur est survenue pendant le chargement du PGN.', 'error');
+        }
+      };
+
+      const resetBoard = () => {
+        chessRules.reset();
+        board.setPosition(chessRules.getFEN(), true);
+        pgnTextarea.value = chessRules.toPgn(false);
+        clearEvaluations();
+        setOrientation('white');
+        showStatus('Échiquier remis à zéro.', 'info');
+      };
+
+      loadButton.addEventListener('click', () => {
+        void loadPgn(pgnTextarea.value);
+      });
+
+      sampleButton.addEventListener('click', async () => {
+        try {
+          const response = await fetch('./example-game.pgn');
+          const text = await response.text();
+          pgnTextarea.value = text.trim();
+          showStatus("PGN d'exemple chargé dans la zone de texte.", 'info');
+        } catch (error) {
+          console.error('Erreur lors du chargement du PGN exemple:', error);
+          showStatus("Impossible de charger l'exemple local (servez le dossier via HTTP).", 'error');
+        }
+      });
+
+      resetButton.addEventListener('click', () => {
+        resetBoard();
+      });
+
+      copyButton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(pgnTextarea.value);
+          showStatus('PGN copié dans le presse-papiers.', 'success');
+        } catch (error) {
+          console.error('Erreur lors de la copie du PGN:', error);
+          showStatus("Impossible de copier le PGN (permissions navigateur?).", 'error');
+        }
+      });
+
+      flipButton.addEventListener('click', () => {
+        const next = state.orientation === 'white' ? 'black' : 'white';
+        state.autoFlip = false;
+        autoFlipToggle.checked = false;
+        setOrientation(next);
+        showStatus('Orientation mise à jour manuellement.', 'info');
+      });
+
+      autoFlipToggle.addEventListener('change', () => {
+        state.autoFlip = autoFlipToggle.checked;
+        if (state.autoFlip) {
+          syncOrientationWithFen(chessRules.getFEN());
+          showStatus('La synchronisation automatique est activée.', 'info');
+        }
+      });
+
+      board.on('update', ({ fen }) => {
+        syncOrientationWithFen(fen);
+        refreshEvaluationForFen(fen);
+        pgnTextarea.value = chessRules.toPgn(false);
+      });
+
+      board.on('move', () => {
+        const fen = chessRules.getFEN();
+        refreshEvaluationForFen(fen);
+        pgnTextarea.value = chessRules.toPgn(false);
+        showStatus('Coup joué. PGN mis à jour.', 'info');
+      });
+
+      board.on('illegal', ({ reason }) => {
+        showStatus(`Coup illégal: ${reason}`, 'error');
+      });
+
+      resetBoard();
+    </script>
+  </body>
+</html>

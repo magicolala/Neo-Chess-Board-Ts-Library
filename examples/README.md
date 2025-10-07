@@ -12,6 +12,11 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
   - PGN export
   - FEN position loading
   - Game status monitoring
+- **`pgn-import-eval.html`** - Import UI showcasing PGN annotations and the evaluation bar
+  - Paste or load games annotated with <code>[%eval]</code>
+  - Automatic orientation sync with the side to move
+  - Live evaluation bar that follows the current perspective
+  - Clipboard helpers and sample PGN loader
 
 ### ⚛️ React Examples
 
