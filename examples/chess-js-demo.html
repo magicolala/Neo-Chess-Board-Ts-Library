@@ -289,7 +289,19 @@
     </div>
 
     <script type="module">
-      import { NeoChessBoard, ChessJsRules } from '../dist/index.js';
+      const neoChessModule = await (async () => {
+        try {
+          return await import('../dist/index.js');
+        } catch (error) {
+          console.warn('Impossible de charger dist/index.js, utilisation du code source.', error);
+          return await import('../src/index.ts');
+        }
+      })().catch((error) => {
+        console.error('Impossible de charger Neo Chess Board', error);
+        alert('Erreur de chargement: consultez la console pour plus de details.');
+        throw error;
+      });
+      const { NeoChessBoard, ChessJsRules } = neoChessModule;
 
       // Créer le board avec ChessJsRules
       const board = new NeoChessBoard('#board', {
