@@ -499,12 +499,12 @@ npm run test:coverage # Coverage report
 
 ## 🌟 Examples Gallery
 
-Check out these amazing projects built with Neo Chess Board:
+Check out these live examples powered by Neo Chess Board:
 
-- 🏆 [Tournament Manager](https://example.com) - Complete tournament system
-- 🎓 [Chess Trainer](https://example.com) - Interactive learning platform
-- 📱 [Mobile Chess](https://example.com) - Touch-optimized interface
-- 🤖 [AI Chess](https://example.com) - Play against computer
+- 🌐 [Vanilla JS Starter](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html) – Quick start board with theme switching, move history, and PGN export helpers.
+- ♞ [Chess.js Integration](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Demonstrates the ChessJsRules adapter synchronized with the chess.js engine.
+- 📈 [PGN + Evaluation HUD](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Import annotated games and follow the evaluation bar as you navigate.
+- ⚡ [Advanced Features Showcase](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html) – Explore puzzles, analysis tools, and keyboard-driven workflows.
 
 ## 🤝 Contributing
 
