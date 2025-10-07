@@ -803,6 +803,27 @@ export class NeoChessBoard {
     ctx.restore();
   }
 
+  private _shouldSelectOnPointerDown(square: Square, piece: string): boolean {
+    if (!this._selected || this._selected === square) {
+      return true;
+    }
+
+    const current = this._pieceAt(this._selected);
+    if (!current) {
+      return true;
+    }
+
+    const currentIsWhite = isWhitePiece(current);
+    const nextIsWhite = isWhitePiece(piece);
+
+    if (currentIsWhite === nextIsWhite) {
+      return true;
+    }
+
+    const orientationIsWhite = this.orientation === 'white';
+    return nextIsWhite === orientationIsWhite;
+  }
+
   private _setSelection(square: Square, piece: string): void {
     const side = isWhitePiece(piece) ? 'w' : 'b';
     this._selected = square;
@@ -958,6 +979,12 @@ export class NeoChessBoard {
       const side = isWhitePiece(piece) ? 'w' : 'b';
 
       if (side !== (this.state.turn as any) && !this.allowPremoves) {
+        return;
+      }
+
+      if (!this._shouldSelectOnPointerDown(from, piece)) {
+        this._hoverSq = from;
+        this.renderAll();
         return;
       }
 
