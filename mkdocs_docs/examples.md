@@ -2,6 +2,15 @@
 
 This document provides comprehensive examples for using Neo Chess Board in various scenarios.
 
+## 🔗 Live Example Pages
+
+Experience the library directly in your browser with these hosted demos:
+
+- 🌐 [Vanilla JS Starter](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html) – Standalone HTML setup featuring theme switching, move history, and PGN export helpers.
+- ♞ [Chess.js Integration](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Demonstrates the ChessJsRules adapter synchronized with the chess.js engine.
+- 📈 [PGN + Evaluation HUD](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Import annotated games, auto-sync the orientation, and follow the evaluation bar.
+- ⚡ [Advanced Features Showcase](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html) – Explore puzzles, analysis helpers, and keyboard-driven workflows.
+
 ## 🚀 Quick Start Examples
 
 ### Basic Vanilla JavaScript Setup

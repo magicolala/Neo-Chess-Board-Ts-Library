@@ -49,6 +49,14 @@ declare const styles: {
   readonly panelTitle: string;
   readonly '1rem': string;
   readonly panelContent: string;
+  readonly exampleIntro: string;
+  readonly exampleLinks: string;
+  readonly exampleLinkCard: string;
+  readonly exampleLinkText: string;
+  readonly exampleLinkLabel: string;
+  readonly exampleLinkDescription: string;
+  readonly exampleLinkArrow: string;
+  readonly exampleLinkIcon: string;
   readonly statusGrid: string;
   readonly statusItem: string;
   readonly statusLabel: string;

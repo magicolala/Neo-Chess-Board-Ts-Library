@@ -82,6 +82,11 @@ jobs:
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
 
+      - name: Copy static examples
+        run: |
+          mkdir -p dist/examples
+          cp -R examples/. dist/examples/
+
       - name: Copy index.html to dist
         run: cp index.html dist/
 
@@ -148,6 +153,11 @@ jobs:
 
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
+
+      - name: Copy static examples
+        run: |
+          mkdir -p dist/examples
+          cp -R examples/. dist/examples/
 
       - name: Copy index.html to dist
         run: cp index.html dist/
