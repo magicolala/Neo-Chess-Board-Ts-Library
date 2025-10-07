@@ -705,5 +705,47 @@ describe('NeoChessBoard Core', () => {
       expect((board as any)._selected).toBeNull();
       expect((board as any)._legalCached).toBeNull();
     });
+
+    it('keeps the current selection when clicking an opposing piece for a capture with premoves enabled', () => {
+      board.setFEN('8/8/8/5p2/4P3/8/8/4K2k w - - 0 1');
+      const moveSpy = jest.fn();
+      board.on('move', moveSpy);
+
+      const selectSource = createPointerEventForSquare(0, 'e4');
+      onPointerDown(selectSource.event);
+      onPointerUp(selectSource.event);
+
+      expect((board as any)._selected).toBe('e4');
+      expect((board as any)._dragging).toBeNull();
+
+      const targetClick = createPointerEventForSquare(0, 'f5');
+      onPointerDown(targetClick.event);
+
+      expect((board as any)._selected).toBe('e4');
+      expect((board as any)._dragging).toBeNull();
+
+      onPointerUp(targetClick.event);
+
+      expect(moveSpy).toHaveBeenCalledWith(expect.objectContaining({ from: 'e4', to: 'f5' }));
+      expect((board as any)._pieceAt('f5')).toBe('P');
+      expect((board as any)._pieceAt('e4')).toBeNull();
+      expect((board as any)._selected).toBeNull();
+    });
+
+    it('still allows selecting a friendly piece after selecting an opposing one first', () => {
+      board.setFEN('8/8/8/8/4P3/8/5p2/4K2k w - - 0 1');
+
+      const enemyClick = createPointerEventForSquare(0, 'f2');
+      onPointerDown(enemyClick.event);
+      onPointerUp(enemyClick.event);
+
+      expect((board as any)._selected).toBe('f2');
+
+      const friendlyClick = createPointerEventForSquare(0, 'e4');
+      onPointerDown(friendlyClick.event);
+      onPointerUp(friendlyClick.event);
+
+      expect((board as any)._selected).toBe('e4');
+    });
   });
 });
