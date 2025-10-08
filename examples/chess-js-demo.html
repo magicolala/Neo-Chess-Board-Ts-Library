@@ -290,27 +290,9 @@
 
     <script type="module">
       async function loadNeoChessModule() {
-        const candidates = [
-          { url: new URL('../dist/index.js', import.meta.url).href, origin: 'bundle dist/index.js' },
-          { url: new URL('../index.js', import.meta.url).href, origin: 'fallback index.js' },
-          { url: new URL('../src/index.ts', import.meta.url).href, origin: 'source src/index.ts' },
-          {
-            url: 'https://cdn.jsdelivr.net/gh/magicolala/Neo-Chess-Board-Ts-Library@main/dist/index.js',
-            origin: 'CDN dist/index.js',
-          },
-        ];
-
-        let lastError = null;
-        for (const candidate of candidates) {
-          try {
-            return await import(candidate.url);
-          } catch (error) {
-            lastError = error;
-            console.warn(`Impossible de charger ${candidate.origin} (${candidate.url}).`, error);
-          }
-        }
-
-        throw lastError ?? new Error('Aucun module Neo Chess Board disponible.');
+        // Import directly from the expected path on the server.
+        // This path should be relative to the file's location after deployment.
+        return await import('../index.js');
       }
 
       const neoChessModule = await loadNeoChessModule().catch((error) => {
