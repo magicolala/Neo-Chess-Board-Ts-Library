@@ -291,7 +291,7 @@
     <script type="module">
       async function loadNeoChessModule() {
         const candidates = [
-          { url: new URL('../dist/index.js', import.meta.url).href, origin: 'bundle dist/index.js' },
+          { url: new URL('../index.js', import.meta.url).href, origin: 'bundle index.js' },
           { url: new URL('../src/index.ts', import.meta.url).href, origin: 'source src/index.ts' },
           {
             url: 'https://cdn.jsdelivr.net/gh/magicolala/Neo-Chess-Board-Ts-Library@main/dist/index.js',
