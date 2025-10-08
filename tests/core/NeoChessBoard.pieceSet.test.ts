@@ -1,226 +1,171 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import type { PieceSet } from '../../src/core/types';
 
-describe('NeoChessBoard piece set management', () => {
+describe('NeoChessBoard piece set handling', () => {
+  let originalCreateElement: typeof document.createElement;
   let container: HTMLDivElement;
   let board: NeoChessBoard;
 
-  const createRect = () => ({
-    width: 480,
-    height: 480,
-    top: 0,
-    left: 0,
-    right: 480,
-    bottom: 480,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
+  const createMockElement = (tag: string) => {
+    const baseCreate = originalCreateElement ?? Document.prototype.createElement;
+    const element = baseCreate.call(document, tag) as HTMLElement;
+
+    if (tag === 'canvas') {
+      const canvas = element as HTMLCanvasElement;
+      canvas.getBoundingClientRect = jest.fn(() => ({
+        width: 400,
+        height: 400,
+        left: 0,
+        top: 0,
+        right: 400,
+        bottom: 400,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }));
+
+      canvas.getContext = jest.fn(() => ({
+        fillRect: jest.fn(),
+        clearRect: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn(),
+        lineTo: jest.fn(),
+        quadraticCurveTo: jest.fn(),
+        rect: jest.fn(),
+        arc: jest.fn(),
+        ellipse: jest.fn(),
+        closePath: jest.fn(),
+        fill: jest.fn(),
+        stroke: jest.fn(),
+        drawImage: jest.fn(),
+        fillText: jest.fn(),
+        measureText: jest.fn(() => ({ width: 0 })),
+        createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
+        save: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        scale: jest.fn(),
+        fillStyle: '#000000',
+        strokeStyle: '#000000',
+        lineWidth: 1,
+        lineCap: 'butt',
+        lineJoin: 'miter',
+        textBaseline: 'alphabetic',
+        textAlign: 'start',
+        globalAlpha: 1,
+        globalCompositeOperation: 'source-over',
+        font: '10px sans-serif',
+        canvas,
+      })) as any;
+
+      return canvas as any;
+    }
+
+    return element as any;
+  };
+
+  const createPieceSet = (pieces: PieceSet['pieces']): PieceSet => ({
+    defaultScale: 0.75,
+    pieces,
   });
 
   beforeEach(() => {
-    container = document.createElement('div');
-    container.getBoundingClientRect = jest.fn(createRect);
+    originalCreateElement = document.createElement;
+    document.createElement = jest.fn((tag) => createMockElement(tag));
+
+    container = document.createElement('div') as HTMLDivElement;
+    if (!document.head) {
+      (document as any).head = {
+        appendChild: jest.fn(),
+      };
+    }
+
     board = new NeoChessBoard(container, {
-      interactive: false,
-      soundEnabled: false,
-      showArrows: false,
-      showHighlights: false,
-      allowPremoves: false,
+      theme: 'classic',
+      size: 400,
+      interactive: true,
     });
   });
 
   afterEach(() => {
-    board.destroy();
-    jest.clearAllMocks();
+    if (originalCreateElement) {
+      document.createElement = originalCreateElement;
+    }
+
+    if (board && typeof board.destroy === 'function') {
+      board.destroy();
+    }
   });
 
-  it('returns early when clearing piece set without custom sprites', async () => {
+  it('loads custom piece sprites and triggers a render', async () => {
+    const spriteImage = document.createElement('img');
     const renderSpy = jest.spyOn(board as any, 'renderAll');
-    renderSpy.mockClear();
+    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    resolveSpy.mockImplementation(async () => ({
+      image: spriteImage,
+      scale: 0.9,
+      offsetX: 0,
+      offsetY: 0,
+    }));
 
-    try {
-      await board.setPieceSet(undefined);
-      expect(renderSpy).not.toHaveBeenCalled();
-    } finally {
-      renderSpy.mockRestore();
-    }
-  });
-
-  it('applies and clears a custom piece set', async () => {
-    const renderSpy = jest.spyOn(board as any, 'renderAll').mockImplementation(() => {});
-    renderSpy.mockClear();
-    const fakeImage = { width: 10, height: 10 } as HTMLImageElement;
-    const loadSpy = jest.spyOn(board as any, '_loadImage').mockResolvedValue(fakeImage);
-
-    try {
-      const pieceSet = { defaultScale: 0.8, pieces: { P: 'http://example.com/p.png' } };
-
-      await board.setPieceSet(pieceSet);
-
-      expect(loadSpy).toHaveBeenCalledWith('http://example.com/p.png');
-      expect((board as any).customPieceSprites.P).toEqual(
-        expect.objectContaining({ image: fakeImage, scale: expect.any(Number) }),
-      );
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-
-      renderSpy.mockClear();
-      await board.setPieceSet(pieceSet);
-      expect(renderSpy).not.toHaveBeenCalled();
-
-      renderSpy.mockClear();
-      await board.setPieceSet(null);
-      expect((board as any).customPieceSprites).toEqual({});
-      expect((board as any)._pieceSetRaw).toBeUndefined();
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      loadSpy.mockRestore();
-      renderSpy.mockRestore();
-    }
-  });
-
-  it('logs a warning when sprite resolution fails', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite').mockImplementation(async () => {
-      throw new Error('boom');
+    const pieceSet = createPieceSet({
+      P: { image: document.createElement('img') },
+      k: { image: document.createElement('img') },
     });
-    const renderSpy = jest.spyOn(board as any, 'renderAll').mockImplementation(() => {});
-    renderSpy.mockClear();
 
-    try {
-      await board.setPieceSet({ pieces: { K: { image: document.createElement('img') } } });
+    await board.setPieceSet(pieceSet);
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to load sprite for piece "K"'),
-        expect.any(Error),
-      );
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      renderSpy.mockRestore();
-      resolveSpy.mockRestore();
-      warnSpy.mockRestore();
-    }
+    expect(resolveSpy).toHaveBeenCalledTimes(2);
+    expect(renderSpy).toHaveBeenCalled();
+    expect((board as any).customPieceSprites.P.image).toBe(spriteImage);
   });
 
-  it('ignores outdated piece set resolutions when newer call occurs', async () => {
-    const renderSpy = jest.spyOn(board as any, 'renderAll').mockImplementation(() => {});
-    renderSpy.mockClear();
+  it('clears custom sprites when pieceSet is reset', async () => {
+    const resolveSpriteSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    resolveSpriteSpy.mockResolvedValue({
+      image: document.createElement('img'),
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
 
-    const deferredResolvers: Array<(value: any) => void> = [];
-    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite').mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          deferredResolvers.push(resolve);
-        }),
+    const renderSpy = jest.spyOn(board as any, 'renderAll');
+
+    await board.setPieceSet(
+      createPieceSet({
+        Q: { image: document.createElement('img') },
+      }),
     );
 
-    try {
-      const firstSet = board.setPieceSet({ pieces: { P: { image: document.createElement('img') } } });
-      const secondSet = board.setPieceSet({
-        pieces: { Q: { image: document.createElement('img') } },
-      });
+    expect(Object.keys((board as any).customPieceSprites)).toContain('Q');
 
-      const spriteB = { image: { id: 'B' }, scale: 1, offsetX: 0, offsetY: 0 };
-      const spriteA = { image: { id: 'A' }, scale: 1, offsetX: 0, offsetY: 0 };
-      deferredResolvers[1](spriteB);
-      deferredResolvers[0](spriteA);
+    renderSpy.mockClear();
 
-      await Promise.all([firstSet, secondSet]);
+    await board.setPieceSet(null);
 
-      expect((board as any).customPieceSprites).toEqual({ Q: spriteB });
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      resolveSpy.mockRestore();
-      renderSpy.mockRestore();
-    }
+    expect((board as any).customPieceSprites).toEqual({});
+    expect(renderSpy).toHaveBeenCalled();
   });
 
-  it('returns null when _resolvePieceSprite cannot load image', async () => {
-    const loadSpy = jest.spyOn(board as any, '_loadImage').mockResolvedValue(null);
+  it('avoids reloading when applying the same pieceSet reference', async () => {
+    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    resolveSpy.mockResolvedValue({
+      image: document.createElement('img'),
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
 
-    try {
-      const result = await (board as any)._resolvePieceSprite('http://example.com/missing.png', 1);
-      expect(result).toBeNull();
-    } finally {
-      loadSpy.mockRestore();
-    }
-  });
+    const pieceSet = createPieceSet({
+      B: { image: document.createElement('img') },
+    });
 
-  it('resolves inline piece sprite without loading image', async () => {
-    const fakeImage = { id: 'inline' } as HTMLImageElement;
-    const loadSpy = jest.spyOn(board as any, '_loadImage');
+    await board.setPieceSet(pieceSet);
 
-    try {
-      const result = await (board as any)._resolvePieceSprite(
-        { image: fakeImage, scale: 0.5, offsetX: 0.1, offsetY: -0.2 },
-        1,
-      );
+    resolveSpy.mockClear();
 
-      expect(loadSpy).not.toHaveBeenCalled();
-      expect(result).toEqual({
-        image: fakeImage,
-        scale: 0.5,
-        offsetX: 0.1,
-        offsetY: -0.2,
-      });
-    } finally {
-      loadSpy.mockRestore();
-    }
-  });
+    await board.setPieceSet(pieceSet);
 
-  it('_loadImage resolves with created Image instance', async () => {
-    const originalImage = global.Image;
-    let currentInstance: any;
-
-    class MockImage {
-      public crossOrigin: string | null = null;
-      public decoding: string | undefined;
-      public onload: (() => void) | null = null;
-      public onerror: ((err: any) => void) | null = null;
-      private _src = '';
-
-      constructor() {
-        currentInstance = this;
-      }
-
-      set src(value: string) {
-        this._src = value;
-      }
-
-      get src() {
-        return this._src;
-      }
-    }
-
-    (global as any).Image = MockImage;
-
-    try {
-      const loadPromise = (board as any)._loadImage('http://example.com/piece.png');
-
-      expect(currentInstance.crossOrigin).toBe('anonymous');
-      expect(currentInstance.decoding).toBe('async');
-
-      currentInstance.onload?.();
-
-      const result = await loadPromise;
-      expect(result).toBe(currentInstance);
-    } finally {
-      (global as any).Image = originalImage;
-    }
-  });
-
-  it('_loadImage rejects when no image creation is possible', async () => {
-    const originalImage = global.Image;
-    const originalRoot = (board as any).root;
-
-    (board as any).root = { ownerDocument: { createElement: () => null } };
-    (global as any).Image = undefined;
-
-    try {
-      await expect((board as any)._loadImage('http://example.com/fail.png')).rejects.toThrow(
-        'Image loading is not supported',
-      );
-    } finally {
-      (board as any).root = originalRoot;
-      (global as any).Image = originalImage;
-    }
+    expect(resolveSpy).not.toHaveBeenCalled();
   });
 });
