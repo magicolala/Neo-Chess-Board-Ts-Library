@@ -69,6 +69,12 @@ jobs:
       - name: Build library bundle
         run: npm run build
 
+      - name: Stage library bundle for Pages artifact
+        run: |
+          rm -rf dist-lib
+          mv dist dist-lib
+          mkdir dist
+
       - name: Build demo
         run: npm run build:demo
         env:
@@ -89,6 +95,12 @@ jobs:
         run: |
           mkdir -p dist/examples
           cp -R examples/. dist/examples/
+
+      - name: Copy library bundle into Pages artifact
+        run: |
+          mkdir -p dist/dist
+          cp -R dist-lib/. dist/dist/
+          rm -rf dist-lib
 
       - name: Copy index.html to dist
         run: cp index.html dist/
@@ -144,6 +156,12 @@ jobs:
       - name: Build library bundle
         run: npm run build
 
+      - name: Stage library bundle for Pages artifact
+        run: |
+          rm -rf dist-lib
+          mv dist dist-lib
+          mkdir dist
+
       - name: Build demo
         run: npm run build:demo
         env:
@@ -164,6 +182,12 @@ jobs:
         run: |
           mkdir -p dist/examples
           cp -R examples/. dist/examples/
+
+      - name: Copy library bundle into Pages artifact
+        run: |
+          mkdir -p dist/dist
+          cp -R dist-lib/. dist/dist/
+          rm -rf dist-lib
 
       - name: Copy index.html to dist
         run: cp index.html dist/
