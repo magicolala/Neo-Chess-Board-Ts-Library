@@ -289,14 +289,30 @@
     </div>
 
     <script type="module">
-      const neoChessModule = await (async () => {
-        try {
-          return await import('../dist/index.js');
-        } catch (error) {
-          console.warn('Impossible de charger dist/index.js, utilisation du code source.', error);
-          return await import('../src/index.ts');
+      async function loadNeoChessModule() {
+        const candidates = [
+          { url: new URL('../dist/index.js', import.meta.url).href, origin: 'bundle dist/index.js' },
+          { url: new URL('../src/index.ts', import.meta.url).href, origin: 'source src/index.ts' },
+          {
+            url: 'https://cdn.jsdelivr.net/gh/magicolala/Neo-Chess-Board-Ts-Library@main/dist/index.js',
+            origin: 'CDN dist/index.js',
+          },
+        ];
+
+        let lastError = null;
+        for (const candidate of candidates) {
+          try {
+            return await import(candidate.url);
+          } catch (error) {
+            lastError = error;
+            console.warn(`Impossible de charger ${candidate.origin} (${candidate.url}).`, error);
+          }
         }
-      })().catch((error) => {
+
+        throw lastError ?? new Error('Aucun module Neo Chess Board disponible.');
+      }
+
+      const neoChessModule = await loadNeoChessModule().catch((error) => {
         console.error('Impossible de charger Neo Chess Board', error);
         alert('Erreur de chargement: consultez la console pour plus de details.');
         throw error;
