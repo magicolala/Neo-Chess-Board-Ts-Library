@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../demo/App';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
@@ -313,20 +313,23 @@ describe('App Component', () => {
 
   describe('FEN input', () => {
     it('should allow FEN input changes', async () => {
-      const user = userEvent.setup();
       render(<App />);
 
       const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
 
       const validFEN = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
-      await user.clear(fenTextarea);
-      await user.type(fenTextarea, validFEN);
-      expect(fenTextarea).toHaveValue(validFEN);
+      fireEvent.change(fenTextarea, { target: { value: '' } });
+      fireEvent.change(fenTextarea, { target: { value: validFEN } });
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(validFEN);
+      });
 
       const problematicFEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4';
-      await user.clear(fenTextarea);
-      await user.type(fenTextarea, problematicFEN);
-      expect(fenTextarea).toHaveValue(`${problematicFEN} 1`);
+      fireEvent.change(fenTextarea, { target: { value: '' } });
+      fireEvent.change(fenTextarea, { target: { value: problematicFEN } });
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(`${problematicFEN} 1`);
+      });
     }, 10000);
 
     it('should start with empty FEN textarea', () => {
