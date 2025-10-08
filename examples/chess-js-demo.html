@@ -297,25 +297,63 @@
       </div>
     </div>
 
-    <script type="module">
-      function ensureProcessEnv() {
-        const globalProcess = globalThis.process ?? {};
-        const env = {
-          ...globalProcess.env,
-          NODE_ENV: globalProcess.env?.NODE_ENV ?? 'production',
+    <script>
+      (function installNodeProcessShim() {
+        const globalObject = window;
+
+        if (!globalObject.global) {
+          globalObject.global = globalObject;
+        }
+
+        const existingProcess = globalObject.process ?? {};
+        const env = existingProcess.env ?? {};
+
+        if (!env.NODE_ENV) {
+          env.NODE_ENV = 'production';
+        }
+
+        const shimmedProcess = {
+          ...existingProcess,
+          browser: true,
+          env,
         };
-        globalThis.process = { ...globalProcess, env };
+
+        if (typeof shimmedProcess.cwd !== 'function') {
+          shimmedProcess.cwd = () => '/';
+        }
+
+        if (typeof shimmedProcess.nextTick !== 'function') {
+          shimmedProcess.nextTick = (callback) => Promise.resolve().then(callback);
+        }
+
+        globalObject.process = shimmedProcess;
+      })();
+      // Declare a global variable so ESM bundles can reference `process` directly.
+      // eslint-disable-next-line no-var
+      var process = window.process;
+      void process;
+    </script>
+
+    <script type="module">
+      function getImportCandidates() {
+        const sameOriginDist = new URL('../dist/index.js', window.location.href).href;
+        const sameOriginNestedDist = new URL('../dist/dist/index.js', window.location.href).href;
+
+        const cdnCandidates = [
+          'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/dist/index.js',
+          'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/dist/dist/index.js',
+          'https://esm.sh/@magicolala/neo-chess-board@0.1.1?bundle&target=es2022&define:process.env.NODE_ENV="production"',
+          'https://esm.sh/@magicolala/neo-chess-board?bundle&target=es2022&define:process.env.NODE_ENV="production"',
+          'https://cdn.jsdelivr.net/npm/@magicolala/neo-chess-board@latest/dist/index.js',
+        ];
+
+        return [sameOriginDist, sameOriginNestedDist, ...cdnCandidates].filter(
+          (url, index, array) => array.indexOf(url) === index,
+        );
       }
 
       async function loadNeoChessModule() {
-        ensureProcessEnv();
-
-        const importPaths = [
-          '../dist/index.js',
-          'https://esm.sh/@magicolala/neo-chess-board@0.1.1?bundle',
-          'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/dist/index.js',
-          'https://esm.sh/@magicolala/neo-chess-board?bundle',
-        ];
+        const importPaths = getImportCandidates();
 
         let lastError;
 
