@@ -299,9 +299,27 @@
 
     <script type="module">
       async function loadNeoChessModule() {
-        // Import directly from the expected path on the server.
-        // This path should be relative to the file's location after deployment.
-        return await import('../index.js');
+        const importPaths = [
+          '../index.js',
+          '../dist/index.js',
+          'https://cdn.jsdelivr.net/npm/@magicolala/neo-chess-board@latest/dist/index.js',
+        ];
+
+        let lastError;
+
+        for (const path of importPaths) {
+          try {
+            // eslint-disable-next-line no-console
+            console.debug(`Attempting to load Neo Chess Board from: ${path}`);
+            return await import(path);
+          } catch (error) {
+            lastError = error;
+            // eslint-disable-next-line no-console
+            console.warn(`Failed to load Neo Chess Board from ${path}`, error);
+          }
+        }
+
+        throw lastError ?? new Error('Unable to load Neo Chess Board module');
       }
 
       const neoChessModule = await loadNeoChessModule().catch((error) => {
