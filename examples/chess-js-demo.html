@@ -298,10 +298,21 @@
     </div>
 
     <script type="module">
+      function ensureProcessEnv() {
+        const globalProcess = globalThis.process ?? {};
+        const env = {
+          ...globalProcess.env,
+          NODE_ENV: globalProcess.env?.NODE_ENV ?? 'production',
+        };
+        globalThis.process = { ...globalProcess, env };
+      }
+
       async function loadNeoChessModule() {
+        ensureProcessEnv();
+
         const importPaths = [
-          '../index.js',
           '../dist/index.js',
+          'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/dist/index.js',
           'https://cdn.jsdelivr.net/npm/@magicolala/neo-chess-board@latest/dist/index.js',
         ];
 
