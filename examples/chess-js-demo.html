@@ -301,7 +301,7 @@
       async function loadNeoChessModule() {
         // Import directly from the expected path on the server.
         // This path should be relative to the file's location after deployment.
-        return await import('../index.js');
+        return await import('../dist/index.js');
       }
 
       const neoChessModule = await loadNeoChessModule().catch((error) => {
