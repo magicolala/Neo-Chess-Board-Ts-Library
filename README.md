@@ -90,14 +90,14 @@ function ChessApp() {
 }
 ```
 
-> ℹ️ The React bindings live under the `neochessboard/react` subpath. If you prefer importing everything from the root package, you can use the `NeoChessBoardReact` named export instead.
+> ℹ️ The React bindings live under the `neochessboard/react` subpath. If you prefer importing everything from the root package, you can use either the legacy `NeoChessBoard` named export or the clearer `NeoChessBoardReact` alias.
 
 ### Vanilla JavaScript
 
 ```javascript
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoardCore } from 'neochessboard';
 
-const board = new NeoChessBoard(document.getElementById('board'), {
+const board = new NeoChessBoardCore(document.getElementById('board'), {
   theme: 'classic',
   interactive: true,
   showCoordinates: true,
@@ -107,6 +107,8 @@ board.on('move', ({ from, to, fen }) => {
   console.log(`Move: ${from} → ${to}`);
 });
 ```
+
+> 💡 Already importing `{ NeoChessBoard }` from the root package in an existing codebase? Keep that name by aliasing the class on import: `import { NeoChessBoardCore as NeoChessBoard } from 'neochessboard';`
 
 ## 🎨 Themes
 
