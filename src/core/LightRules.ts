@@ -26,6 +26,9 @@ function boardToFEN(state: any) {
 
 export class LightRules implements RulesAdapter {
   private state = parseFEN(START_FEN);
+  reset() {
+    this.state = parseFEN(START_FEN);
+  }
   setFEN(f: string) {
     this.state = parseFEN(f);
   }

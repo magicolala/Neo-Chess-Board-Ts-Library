@@ -55,6 +55,7 @@ export interface RulesAdapter {
     to: Square;
     promotion?: Move['promotion'];
   }): { ok: boolean; fen?: string; state?: any; move?: any; reason?: string } | null | undefined;
+  reset?(): void;
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here
   header?: (h: Record<string, string>) => void; // chess.js header

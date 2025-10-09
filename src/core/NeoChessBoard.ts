@@ -9,6 +9,7 @@ import {
   clamp,
   lerp,
   easeOutCubic,
+  START_FEN,
 } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
@@ -315,6 +316,67 @@ export class NeoChessBoard {
    */
   public setPosition(fen: string, immediate = false) {
     this.setFEN(fen, immediate);
+  }
+
+  /**
+   * Loads a board position from a FEN string and clears transient interaction state.
+   * @param fen The FEN string to load.
+   * @param immediate If true, the board updates instantly without animation.
+   */
+  public loadPosition(fen: string, immediate = true) {
+    this.setPosition(fen, immediate);
+    this._lastMove = null;
+    this._selected = null;
+    this._hoverSq = null;
+    this._legalCached = null;
+    this._premove = null;
+    this._dragging = null;
+    if (this.drawingManager) {
+      this.drawingManager.clearPremove();
+    }
+  }
+
+  /**
+   * Reset the board to the initial chess position.
+   * @param immediate If true, the board updates instantly without animation.
+   */
+  public reset(immediate = true) {
+    if (typeof (this.rules as any).reset === 'function') {
+      (this.rules as any).reset();
+    } else {
+      this.rules.setFEN(START_FEN);
+    }
+
+    this.loadPosition(this.rules.getFEN(), immediate);
+    this._customHighlights = null;
+    this._arrows = [];
+
+    if (this.drawingManager) {
+      if (typeof this.drawingManager.clearAllDrawings === 'function') {
+        this.drawingManager.clearAllDrawings();
+      } else {
+        this.drawingManager.clearArrows();
+        this.drawingManager.clearHighlights();
+        this.drawingManager.clearPremove();
+      }
+    }
+  }
+
+  /**
+   * Export the current game as a PGN string, if the active rules adapter supports it.
+   * @returns The PGN representation of the game or an empty string when unavailable.
+   */
+  public exportPGN(): string {
+    if (typeof (this.rules as any).toPgn === 'function') {
+      return (this.rules as any).toPgn(true);
+    }
+
+    if (this.rules.getPGN) {
+      return this.rules.getPGN();
+    }
+
+    console.warn('[NeoChessBoard] The current rules adapter does not support PGN export.');
+    return '';
   }
 
   /**
