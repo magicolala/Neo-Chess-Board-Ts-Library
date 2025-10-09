@@ -72,7 +72,7 @@ pnpm add neochessboard
 
 ```tsx
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from 'neochessboard/react';
 
 function ChessApp() {
   const [fen, setFen] = useState();
@@ -89,6 +89,8 @@ function ChessApp() {
   );
 }
 ```
+
+> ℹ️ The React bindings live under the `neochessboard/react` subpath. If you prefer importing everything from the root package, you can use the `NeoChessBoardReact` named export instead.
 
 ### Vanilla JavaScript
 
@@ -276,7 +278,8 @@ pgn.downloadPgn('annotated_game.pgn');
 
 ```tsx
 import React, { useState, useMemo } from 'react';
-import { NeoChessBoard, PGNRecorder } from 'neochessboard';
+import { NeoChessBoard } from 'neochessboard/react';
+import { PGNRecorder } from 'neochessboard';
 
 function ChessGame() {
   const [fen, setFen] = useState();
