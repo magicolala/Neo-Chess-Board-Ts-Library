@@ -180,7 +180,7 @@
       import { NeoChessBoard } from '../index.js';
 
       // Créer le board
-      const board = new NeoChessBoard('#board', {
+      const board = new NeoChessBoard(document.querySelector('#board'), {
         position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         showArrows: true,
         showHighlights: true,
