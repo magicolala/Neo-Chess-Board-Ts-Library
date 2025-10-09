@@ -7,4 +7,4 @@ export * from './core/PgnNotation';
 export * from './core/FlatSprites';
 export * from './core/PGN';
 export * from './core/utils';
-export * from './react/NeoChessBoard';
+export * from './core/NeoChessBoard';
