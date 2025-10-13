@@ -1,4 +1,6 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
+import type { Arrow, SquareHighlight } from '../../src/core/types';
 
 let originalCreateElement: typeof document.createElement;
 
@@ -746,6 +748,57 @@ describe('NeoChessBoard Core', () => {
       onPointerUp(friendlyClick.event);
 
       expect((board as any)._selected).toBe('e4');
+    });
+  });
+
+  describe('Extensions integration', () => {
+    it('applies arrow/highlight extension hooks and cleans up on destroy', () => {
+      const arrow: Arrow = { from: 'a2', to: 'a4', color: '#ff0000' };
+      const highlight: SquareHighlight = { square: 'h7', type: 'circle', color: '#00ff00' };
+
+      board.destroy();
+      board = new NeoChessBoard(container, {
+        theme: 'classic',
+        extensions: [
+          createArrowHighlightExtension({
+            arrows: [arrow],
+            highlights: [highlight],
+            lastMoveColor: '#0000ff',
+            persistOnUpdate: true,
+          }),
+        ],
+      });
+
+      expect(board.drawingManager.getArrows()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ from: 'a2', to: 'a4' })]),
+      );
+      expect(board.drawingManager.getHighlights()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ square: 'h7', type: 'circle' })]),
+      );
+
+      board.clearArrows();
+      board.clearHighlights();
+      const currentFen = board.getPosition();
+      board.setFEN(currentFen);
+
+      expect(board.drawingManager.getArrows()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ from: 'a2', to: 'a4' })]),
+      );
+      expect(board.drawingManager.getHighlights()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ square: 'h7' })]),
+      );
+
+      const piece = (board as any)._pieceAt('e2');
+      (board as any)._attemptMove('e2', 'e4', piece);
+
+      expect(
+        board.drawingManager.getArrows().some((entry) => entry.from === 'e2' && entry.to === 'e4'),
+      ).toBe(true);
+
+      board.destroy();
+
+      expect(board.drawingManager.getArrows()).toHaveLength(0);
+      expect(board.drawingManager.getHighlights()).toHaveLength(0);
     });
   });
 });
