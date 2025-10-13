@@ -261,6 +261,7 @@ const board = new NeoChessBoard(document.getElementById('board')!, {
 // Position management
 board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 const currentFEN = board.getPosition();
+
 ```
 
 #### PGN Recording & Annotations
@@ -413,7 +414,6 @@ console.log(pgnWithAnnotations);
 
 - `getAttackedSquares()` retourne toutes les cases actuellement menacées par le joueur au trait, idéal pour mettre à jour un surlignage dynamique.
 - `isSquareAttacked(square, by?)` vérifie si une case donnée est attaquée par la couleur spécifiée (ou par le joueur au trait par défaut). La méthode valide la case fournie (notation algébrique) et accepte des entrées insensibles à la casse.
-
 
 ## 🏗️ Architecture
 
