@@ -1,20 +1,8 @@
 import { EventBus } from './EventBus';
-import {
-  parseFEN,
-  FILES,
-  RANKS,
-  isWhitePiece,
-  sq,
-  sqToFR,
-  clamp,
-  lerp,
-  easeOutCubic,
-  START_FEN,
-} from './utils';
+import { parseFEN, isWhitePiece, sq, sqToFR, clamp, lerp, easeOutCubic, START_FEN } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
 import { FlatSprites } from './FlatSprites';
-import { LightRules } from './LightRules';
 import { ChessJsRules } from './ChessJsRules';
 import { DrawingManager } from './DrawingManager';
 import type {
@@ -24,7 +12,6 @@ import type {
   RulesAdapter,
   Arrow,
   SquareHighlight,
-  HighlightType,
   Premove,
   Theme,
   Piece,
@@ -1967,7 +1954,7 @@ export class NeoChessBoard {
 
       try {
         img.decoding = 'async';
-      } catch (e) {
+      } catch (_error) {
         // Ignore browsers that do not support decoding
       }
 

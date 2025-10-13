@@ -36,11 +36,27 @@ export default [
       ...pluginReact.configs.recommended.rules,
       ...prettierPlugin.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'react/no-unescaped-entities': 'off', // Temporarily disable
-      'no-useless-escape': 'off', // Temporarily disable
-      '@typescript-eslint/no-unused-vars': 'off', // Temporarily disable
-      'no-unused-vars': 'off', // Temporarily disable from @eslint/js
+      'prettier/prettier': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+          disallowTypeAnnotations: false,
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react/no-unescaped-entities': 'error',
+      'no-useless-escape': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      'no-unused-vars': 'off',
     },
     settings: {
       react: {

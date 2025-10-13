@@ -1,5 +1,6 @@
-import { THEMES, ThemeName, registerTheme, resolveTheme } from '../../src/core/themes';
+import { THEMES, registerTheme, resolveTheme } from '../../src/core/themes';
 import type { Theme } from '../../src/core/types';
+import type { ThemeName } from '../../src/core/themes';
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 
 describe('Themes', () => {

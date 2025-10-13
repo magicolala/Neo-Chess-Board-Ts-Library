@@ -4,7 +4,6 @@
  */
 
 import { ChessJsRules } from '../../src/core/ChessJsRules';
-import { PgnNotation } from '../../src/core/PgnNotation';
 
 describe('PGN and ChessJs Integration', () => {
   let rules: ChessJsRules;

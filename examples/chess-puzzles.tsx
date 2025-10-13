@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { NeoChessBoard } from '../src/react/NeoChessBoard';
 import type { Move } from '../src/core/types';
 
@@ -484,7 +484,7 @@ export function ChessPuzzleApp() {
             gap: '15px',
           }}
         >
-          {filteredPuzzles.map((puzzleItem, index) => {
+          {filteredPuzzles.map((puzzleItem) => {
             const actualIndex = chessPuzzles.findIndex((p) => p.id === puzzleItem.id);
             const isSolved = puzzle.solvedPuzzles.has(puzzleItem.id);
             const isCurrent = actualIndex === puzzle.currentPuzzleIndex;

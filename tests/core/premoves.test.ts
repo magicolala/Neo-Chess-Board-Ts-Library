@@ -1,5 +1,4 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
-import { LightRules } from '../../src/core/LightRules';
 
 /**
  * @fileoverview Test suite for premove functionality in NeoChessBoard.
