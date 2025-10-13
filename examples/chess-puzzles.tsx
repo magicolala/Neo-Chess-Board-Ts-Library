@@ -661,8 +661,19 @@ export function ChessPuzzleApp() {
 }
 
 // Puzzle creator component
+type PuzzleDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'master';
+
+interface CustomPuzzleForm {
+  title: string;
+  description: string;
+  fen: string;
+  solution: string[];
+  difficulty: PuzzleDifficulty;
+  tags: string[];
+}
+
 export function PuzzleCreator() {
-  const [customPuzzle, setCustomPuzzle] = useState({
+  const [customPuzzle, setCustomPuzzle] = useState<CustomPuzzleForm>({
     title: '',
     description: '',
     fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -786,7 +797,10 @@ export function PuzzleCreator() {
               <select
                 value={customPuzzle.difficulty}
                 onChange={(e) =>
-                  setCustomPuzzle((prev) => ({ ...prev, difficulty: e.target.value as any }))
+                  setCustomPuzzle((prev) => ({
+                    ...prev,
+                    difficulty: e.target.value as PuzzleDifficulty,
+                  }))
                 }
                 style={{ width: '100%', padding: '8px' }}
               >

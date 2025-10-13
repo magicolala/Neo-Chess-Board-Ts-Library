@@ -1,4 +1,5 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import type { Square, Move, RulesAdapter, RulesMoveResponse, Premove } from '../../src/core/types';
 
 /**
  * @fileoverview Test suite for premove functionality in NeoChessBoard.
@@ -15,8 +16,27 @@ import { NeoChessBoard } from '../../src/core/NeoChessBoard';
  * It has predefined responses for specific moves to facilitate controlled testing scenarios.
  * @returns A mock object mimicking a chess engine's interface.
  */
-const createMockEngine = () => {
+const createMockEngine = (): RulesAdapter => {
   let position = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  const moveMock = jest.fn<
+    RulesMoveResponse | null | undefined,
+    [Parameters<RulesAdapter['move']>[0]]
+  >((move) => {
+    if (move.from === 'e2' && move.to === 'e4') {
+      position = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
+      return { ok: true, fen: position };
+    }
+    if (move.from === 'e7' && move.to === 'e5') {
+      position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2';
+      return { ok: true, fen: position };
+    }
+    if (move.from === 'g1' && move.to === 'f3') {
+      position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
+      return { ok: true, fen: position };
+    }
+    return { ok: false, reason: 'illegal move' };
+  });
 
   return {
     /**
@@ -41,9 +61,9 @@ const createMockEngine = () => {
      * For testing, it always returns a fixed set of moves from 'e2'.
      * @returns An array of mock moves.
      */
-    movesFrom: jest.fn(() => [
-      { from: 'e2' as any, to: 'e4' as any },
-      { from: 'e2' as any, to: 'e3' as any },
+    movesFrom: jest.fn((): Move[] => [
+      { from: 'e2' as Square, to: 'e4' as Square },
+      { from: 'e2' as Square, to: 'e3' as Square },
     ]),
     /**
      * Simulates executing a move.
@@ -51,22 +71,7 @@ const createMockEngine = () => {
      * @param move The move to execute.
      * @returns An object indicating if the move was successful and the new FEN if so.
      */
-    move: jest.fn((move: any) => {
-      // Simulate a valid move
-      if (move.from === 'e2' && move.to === 'e4') {
-        position = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
-        return { ok: true, fen: position };
-      }
-      if (move.from === 'e7' && move.to === 'e5') {
-        position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2';
-        return { ok: true, fen: position };
-      }
-      if (move.from === 'g1' && move.to === 'f3') {
-        position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
-        return { ok: true, fen: position };
-      }
-      return { ok: false, reason: 'illegal move' };
-    }),
+    move: moveMock,
   };
 };
 
@@ -89,7 +94,7 @@ describe('Premoves', () => {
     mockEngine = createMockEngine();
     board = new NeoChessBoard(container, {
       allowPremoves: true,
-      rulesAdapter: mockEngine as any,
+      rulesAdapter: mockEngine,
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1',
     });
   });
@@ -110,7 +115,7 @@ describe('Premoves', () => {
    * and retrieved correctly using `getPremove`.
    */
   it('should allow setting a premove programmatically', () => {
-    const premove = { from: 'e7' as any, to: 'e5' as any };
+    const premove: Premove = { from: 'e7', to: 'e5' };
 
     board.setPremove(premove);
 
@@ -123,7 +128,7 @@ describe('Premoves', () => {
    * resulting in no active premove on the board.
    */
   it('should clear premoves', () => {
-    const premove = { from: 'e7' as any, to: 'e5' as any };
+    const premove: Premove = { from: 'e7', to: 'e5' };
 
     board.setPremove(premove);
     expect(board.getPremove()).toEqual(premove);
@@ -138,7 +143,7 @@ describe('Premoves', () => {
    * It also verifies that the premove is cleared after successful execution.
    */
   it('should execute premove automatically when position changes', (done) => {
-    const premove = { from: 'e7' as any, to: 'e5' as any };
+    const premove: Premove = { from: 'e7', to: 'e5' };
 
     // Set a premove for black
     board.setPremove(premove);
@@ -171,7 +176,7 @@ describe('Premoves', () => {
    * and the premove cannot be executed.
    */
   it('should clear invalid premoves when position changes', (done) => {
-    const invalidPremove = { from: 'e7' as any, to: 'e3' as any }; // Invalid move for black from initial position
+    const invalidPremove: Premove = { from: 'e7', to: 'e3' }; // Invalid move for black from initial position
 
     board.setPremove(invalidPremove);
     expect(board.getPremove()).toEqual(invalidPremove);
@@ -197,10 +202,10 @@ describe('Premoves', () => {
     board.destroy();
     board = new NeoChessBoard(container, {
       allowPremoves: false,
-      rulesAdapter: mockEngine as any,
+      rulesAdapter: mockEngine,
     });
 
-    const premove = { from: 'e7' as any, to: 'e5' as any };
+    const premove: Premove = { from: 'e7', to: 'e5' };
 
     board.setPremove(premove);
 
@@ -213,7 +218,7 @@ describe('Premoves', () => {
    * This ensures that premove state is correctly serialized and deserialized.
    */
   it('should export and import premoves with drawings', () => {
-    const premove = { from: 'e7' as any, to: 'e5' as any };
+    const premove: Premove = { from: 'e7', to: 'e5' };
 
     board.setPremove(premove);
 

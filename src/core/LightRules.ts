@@ -1,6 +1,6 @@
-import type { RulesAdapter, Move, Square, Color } from './types';
-import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN } from './utils';
-function boardToFEN(state: any) {
+import type { RulesAdapter, Move, Square, Color, RulesMoveResponse } from './types';
+import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN, type ParsedFENState } from './utils';
+function boardToFEN(state: ParsedFENState) {
   const rows: string[] = [];
   for (let r = 7; r >= 0; r--) {
     let s = '';
@@ -39,8 +39,8 @@ export class LightRules implements RulesAdapter {
     return this.state.turn;
   }
   pieceAt(square: Square) {
-    const f = FILES.indexOf(square[0] as any);
-    const r = RANKS.indexOf(square[1] as any);
+    const f = FILES.indexOf(square[0] as (typeof FILES)[number]);
+    const r = RANKS.indexOf(square[1] as (typeof RANKS)[number]);
     return this.state.board[r][f];
   }
   movesFrom(square: Square): Move[] {
@@ -49,8 +49,8 @@ export class LightRules implements RulesAdapter {
     const isW = isWhitePiece(p);
     const me: Color = isW ? 'w' : 'b';
     if (me !== this.state.turn) return [];
-    const f0 = FILES.indexOf(square[0] as any);
-    const r0 = RANKS.indexOf(square[1] as any);
+    const f0 = FILES.indexOf(square[0] as (typeof FILES)[number]);
+    const r0 = RANKS.indexOf(square[1] as (typeof RANKS)[number]);
     const occ = (F: number, R: number) => this.state.board[R][F];
     const enemy = (pp: string | null) => pp && isWhitePiece(pp) !== isW;
     const pushes: { f: number; r: number; ep?: boolean }[] = [];
@@ -84,8 +84,8 @@ export class LightRules implements RulesAdapter {
           }
         }
         if (this.state.ep && this.state.ep !== '-') {
-          const ef = FILES.indexOf(this.state.ep[0] as any);
-          const er = RANKS.indexOf(this.state.ep[1] as any);
+          const ef = FILES.indexOf(this.state.ep[0] as (typeof FILES)[number]);
+          const er = RANKS.indexOf(this.state.ep[1] as (typeof RANKS)[number]);
           if (er === r0 + dir && Math.abs(ef - f0) === 1) pushes.push({ f: ef, r: er, ep: true });
         }
         break;
@@ -149,12 +149,20 @@ export class LightRules implements RulesAdapter {
       ...(ep ? { captured: 'p', ep: true } : {}),
     }));
   }
-  move({ from, to, promotion }: { from: Square; to: Square; promotion?: Move['promotion'] }) {
-    const s = JSON.parse(JSON.stringify(this.state));
-    const f0 = FILES.indexOf(from[0] as any);
-    const r0 = RANKS.indexOf(from[1] as any);
-    const f1 = FILES.indexOf(to[0] as any);
-    const r1 = RANKS.indexOf(to[1] as any);
+  move({
+    from,
+    to,
+    promotion,
+  }: {
+    from: Square;
+    to: Square;
+    promotion?: Move['promotion'];
+  }): RulesMoveResponse {
+    const s = JSON.parse(JSON.stringify(this.state)) as ParsedFENState;
+    const f0 = FILES.indexOf(from[0] as (typeof FILES)[number]);
+    const r0 = RANKS.indexOf(from[1] as (typeof RANKS)[number]);
+    const f1 = FILES.indexOf(to[0] as (typeof FILES)[number]);
+    const r1 = RANKS.indexOf(to[1] as (typeof RANKS)[number]);
     const p = s.board[r0][f0];
     if (!p) return { ok: false, reason: 'empty' };
     const isW = isWhitePiece(p);

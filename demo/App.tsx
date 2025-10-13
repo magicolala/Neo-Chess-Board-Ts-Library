@@ -3,7 +3,7 @@ import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
 import { ChessJsRules } from '../src/core/ChessJsRules';
-import type { PromotionRequest } from '../src/core/types';
+import type { PromotionRequest, Square } from '../src/core/types';
 import styles from './App.module.css';
 import moveSound from './assets/souffle.ogg';
 import {
@@ -494,10 +494,10 @@ export const App: React.FC = () => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
-    const randomSquare = () => {
+    const randomSquare = (): Square => {
       const file = files[Math.floor(Math.random() * files.length)];
       const rank = ranks[Math.floor(Math.random() * ranks.length)];
-      return `${file}${rank}` as any;
+      return `${file}${rank}` as Square;
     };
 
     const from = randomSquare();
@@ -525,10 +525,10 @@ export const App: React.FC = () => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
-    const randomSquare = () => {
+    const randomSquare = (): Square => {
       const file = files[Math.floor(Math.random() * files.length)];
       const rank = ranks[Math.floor(Math.random() * ranks.length)];
-      return `${file}${rank}` as any;
+      return `${file}${rank}` as Square;
     };
 
     const square = randomSquare();

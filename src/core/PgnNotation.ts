@@ -4,7 +4,13 @@
  * Supports visual annotations (%cal arrows and %csl circles)
  */
 import { PgnAnnotationParser } from './PgnAnnotationParser';
-import type { RulesAdapter, PgnMove, PgnMoveAnnotations } from './types';
+import type {
+  RulesAdapter,
+  PgnMove,
+  PgnMoveAnnotations,
+  ChessLike,
+  VerboseHistoryEntry,
+} from './types';
 
 export interface PgnMetadata {
   Event?: string;
@@ -31,6 +37,12 @@ export class PgnNotation {
   private moves: PgnMove[];
   private result: string;
   private rulesAdapter?: RulesAdapter;
+
+  private static isVerboseHistory(
+    history: ReturnType<ChessLike['history']>,
+  ): history is VerboseHistoryEntry[] {
+    return history.length > 0 && typeof history[0] !== 'string';
+  }
 
   constructor(rulesAdapter?: RulesAdapter) {
     this.rulesAdapter = rulesAdapter;
@@ -117,7 +129,7 @@ export class PgnNotation {
   /**
    * Import moves from a chess.js game
    */
-  importFromChessJs(chess: any): void {
+  importFromChessJs(chess: ChessLike): void {
     try {
       if (this.rulesAdapter && typeof this.rulesAdapter.getPGN === 'function') {
         const pgnString = this.rulesAdapter.getPGN();
@@ -129,20 +141,30 @@ export class PgnNotation {
         const detailedHistory = chess.history({ verbose: true });
         this.moves = [];
 
-        for (let i = 0; i < detailedHistory.length; i++) {
-          const move = detailedHistory[i];
-          const moveNumber = Math.floor(i / 2) + 1;
-          const isWhite = i % 2 === 0;
+        if (PgnNotation.isVerboseHistory(detailedHistory)) {
+          for (let i = 0; i < detailedHistory.length; i++) {
+            const move = detailedHistory[i];
+            const moveNumber = Math.floor(i / 2) + 1;
+            const isWhite = i % 2 === 0;
 
-          if (isWhite) {
-            this.addMove(moveNumber, move.san);
-          } else {
-            const existingMove = this.moves.find((m) => m.moveNumber === moveNumber);
-            if (existingMove) {
-              existingMove.black = move.san;
+            if (isWhite) {
+              this.addMove(moveNumber, move.san);
             } else {
-              this.addMove(moveNumber, undefined, move.san);
+              const existingMove = this.moves.find((m) => m.moveNumber === moveNumber);
+              if (existingMove) {
+                existingMove.black = move.san;
+              } else {
+                this.addMove(moveNumber, undefined, move.san);
+              }
             }
+          }
+        } else {
+          const historyStrings = detailedHistory as string[];
+          for (let i = 0; i < historyStrings.length; i += 2) {
+            const moveNumber = Math.floor(i / 2) + 1;
+            const whiteMove = historyStrings[i];
+            const blackMove = historyStrings[i + 1];
+            this.addMove(moveNumber, whiteMove, blackMove);
           }
         }
       }
@@ -153,15 +175,16 @@ export class PgnNotation {
       this.moves = [];
       for (let i = 0; i < history.length; i += 2) {
         const moveNumber = Math.floor(i / 2) + 1;
-        const whiteMove = history[i];
-        const blackMove = history[i + 1];
+        const whiteMove = history[i] as string | undefined;
+        const blackMove = history[i + 1] as string | undefined;
         this.addMove(moveNumber, whiteMove, blackMove);
       }
     }
 
     // Set result based on game state
     if (chess.isCheckmate()) {
-      this.setResult(chess.turn() === 'w' ? '0-1' : '1-0');
+      const turn = chess.turn();
+      this.setResult((turn === 'w' ? '0-1' : '1-0') as '0-1' | '1-0');
     } else if (
       chess.isStalemate() ||
       chess.isThreefoldRepetition() ||

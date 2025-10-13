@@ -7,7 +7,7 @@ declare global {
       toHaveClass(className: string): R;
       toHaveAttribute(attr: string, value?: string): R;
       toHaveValue(value: string | string[] | number): R;
-      toHaveStyle(css: string | Record<string, any>): R;
+      toHaveStyle(css: string | Record<string, string | number>): R;
     }
   }
 }

@@ -26,7 +26,7 @@ export class PGNRecorder {
   }
   setHeaders(h: Partial<Record<keyof typeof this.headers, string>>) {
     Object.assign(this.headers, h);
-    if (this.adapter?.header) this.adapter.header(this.headers as any);
+    this.adapter?.header?.(this.headers);
   }
   setResult(res: '1-0' | '0-1' | '1/2-1/2' | '*') {
     this.headers.Result = res;

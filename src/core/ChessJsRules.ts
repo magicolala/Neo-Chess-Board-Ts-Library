@@ -1,7 +1,9 @@
-import { Chess, SQUARES, type Color, type Move as ChessMove, type VerboseMove } from 'chess.js';
-import type { RulesAdapter, Move } from './types';
+import { Chess, SQUARES, type Color, type Move as ChessMove } from 'chess.js';
+import type { RulesAdapter, Move, RulesMoveResponse } from './types';
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
+
+type ChessSquare = (typeof SQUARES)[number];
 
 /**
  * Adapter de règles utilisant chess.js pour une validation complète des coups
@@ -9,6 +11,12 @@ import type { PgnMetadata } from './PgnNotation';
 export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
   private pgnNotation: PgnNotation;
+
+  private normalizePromotion(symbol: ChessMove['promotion']): Move['promotion'] {
+    return symbol === 'q' || symbol === 'r' || symbol === 'b' || symbol === 'n'
+      ? symbol
+      : undefined;
+  }
 
   private getFenParts(fen?: string): string[] {
     const fenString = (fen ?? this.chess.fen()).trim();
@@ -62,10 +70,7 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Jouer un coup
    */
-  move(moveData: { from: string; to: string; promotion?: string }): {
-    ok: boolean;
-    reason?: string;
-  } {
+  move(moveData: { from: string; to: string; promotion?: string }): RulesMoveResponse {
     try {
       const move = this.chess.move({
         from: moveData.from,
@@ -74,12 +79,15 @@ export class ChessJsRules implements RulesAdapter {
       });
 
       if (move) {
-        return { ok: true };
+        return { ok: true, fen: this.chess.fen(), move };
       } else {
         return { ok: false, reason: 'Invalid move' };
       }
-    } catch (error: any) {
-      return { ok: false, reason: error.message || 'Invalid move' };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return { ok: false, reason: error.message };
+      }
+      return { ok: false, reason: 'Invalid move' };
     }
   }
 
@@ -87,11 +95,14 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir tous les coups légaux depuis une case
    */
   movesFrom(square: string): Move[] {
-    const moves = this.chess.moves({ square: square as any, verbose: true }) as VerboseMove[];
+    const moves = this.chess.moves({
+      square: square as ChessSquare,
+      verbose: true,
+    }) as ChessMove[];
     return moves.map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion === 'k' ? undefined : move.promotion,
+      promotion: this.normalizePromotion(move.promotion),
       piece: move.piece,
       captured: move.captured,
       flags: move.flags,
@@ -102,11 +113,11 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir tous les coups légaux
    */
   getAllMoves(): Move[] {
-    const moves = this.chess.moves({ verbose: true }) as VerboseMove[];
+    const moves = this.chess.moves({ verbose: true }) as ChessMove[];
     return moves.map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion === 'k' ? undefined : move.promotion,
+      promotion: this.normalizePromotion(move.promotion),
       piece: move.piece,
       captured: move.captured,
       flags: move.flags,
@@ -182,7 +193,7 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir la pièce sur une case
    */
   get(square: string): { type: string; color: string } | null {
-    const piece = this.chess.get(square as any);
+    const piece = this.chess.get(square as ChessSquare);
     return piece || null;
   }
 
@@ -278,7 +289,7 @@ export class ChessJsRules implements RulesAdapter {
     for (const file of files) {
       for (const rank of ranks) {
         const square = `${file}${rank}`;
-        const piece = this.chess.get(square as any);
+        const piece = this.chess.get(square as ChessSquare);
         if (piece && piece.type === 'k' && piece.color === color) {
           return square;
         }

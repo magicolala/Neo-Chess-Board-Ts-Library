@@ -41,8 +41,11 @@ describe('FlatSprites', () => {
     });
 
     it('should fallback to regular canvas when OffscreenCanvas not available', () => {
-      const originalOffscreenCanvas = global.OffscreenCanvas;
-      delete (global as any).OffscreenCanvas;
+      const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+      Reflect.deleteProperty(
+        globalThis as typeof globalThis & { OffscreenCanvas?: unknown },
+        'OffscreenCanvas',
+      );
 
       const fallbackSprites = new FlatSprites(64, THEMES.classic);
       const sheet = fallbackSprites.getSheet();
@@ -50,7 +53,7 @@ describe('FlatSprites', () => {
       expect(sheet).toBeDefined();
       expect(sheet.width).toBe(64 * 6);
 
-      global.OffscreenCanvas = originalOffscreenCanvas;
+      globalThis.OffscreenCanvas = originalOffscreenCanvas;
     });
   });
 
@@ -61,11 +64,17 @@ describe('FlatSprites', () => {
       const mockTranslate = jest.fn();
 
       const originalGetContext = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
-        ...((originalGetContext as any).call(document.createElement('canvas'), '2d') || {}),
-        fill: mockFill,
-        translate: mockTranslate,
-      })) as any;
+      const baseContext = originalGetContext?.call(document.createElement('canvas'), '2d');
+      const contextSource = (baseContext ?? {}) as Record<string, unknown>;
+      const getContextMock = jest.fn(() => {
+        const context = {
+          ...contextSource,
+          fill: mockFill,
+          translate: mockTranslate,
+        } as Record<string, unknown>;
+        return context as unknown as CanvasRenderingContext2D;
+      }) as unknown as jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
+      HTMLCanvasElement.prototype.getContext = getContextMock;
 
       new FlatSprites(128, THEMES.classic);
 

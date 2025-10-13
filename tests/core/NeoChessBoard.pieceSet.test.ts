@@ -1,17 +1,34 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import type { PieceSet } from '../../src/core/types';
 
+type MockCanvasElement = HTMLCanvasElement & {
+  getContext: jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
+  getBoundingClientRect: jest.Mock<ReturnType<HTMLCanvasElement['getBoundingClientRect']>>;
+};
+
+const getCustomPieceSprites = (instance: NeoChessBoard): Record<string, unknown> =>
+  Reflect.get(instance as unknown as Record<string, unknown>, 'customPieceSprites') as Record<
+    string,
+    unknown
+  >;
+
+const asPieceSetInternals = (instance: NeoChessBoard) =>
+  instance as unknown as {
+    renderAll: () => void;
+    _resolvePieceSprite: (...args: unknown[]) => Promise<unknown>;
+  };
+
 describe('NeoChessBoard piece set handling', () => {
   let originalCreateElement: typeof document.createElement;
   let container: HTMLDivElement;
   let board: NeoChessBoard;
 
-  const createMockElement = (tag: string) => {
+  const createMockElement = (tag: string): HTMLElement => {
     const baseCreate = originalCreateElement ?? Document.prototype.createElement;
     const element = baseCreate.call(document, tag) as HTMLElement;
 
     if (tag === 'canvas') {
-      const canvas = element as HTMLCanvasElement;
+      const canvas = element as MockCanvasElement;
       canvas.getBoundingClientRect = jest.fn(() => ({
         width: 400,
         height: 400,
@@ -24,7 +41,7 @@ describe('NeoChessBoard piece set handling', () => {
         toJSON: () => {},
       }));
 
-      canvas.getContext = jest.fn(() => ({
+      const contextMock = {
         fillRect: jest.fn(),
         clearRect: jest.fn(),
         beginPath: jest.fn(),
@@ -56,12 +73,14 @@ describe('NeoChessBoard piece set handling', () => {
         globalCompositeOperation: 'source-over',
         font: '10px sans-serif',
         canvas,
-      })) as any;
+      } as unknown as jest.Mocked<CanvasRenderingContext2D>;
 
-      return canvas as any;
+      canvas.getContext = jest.fn(() => contextMock) as unknown as MockCanvasElement['getContext'];
+
+      return canvas;
     }
 
-    return element as any;
+    return element;
   };
 
   const createPieceSet = (pieces: PieceSet['pieces']): PieceSet => ({
@@ -75,10 +94,12 @@ describe('NeoChessBoard piece set handling', () => {
 
     container = document.createElement('div') as HTMLDivElement;
     if (!document.head) {
-      (document as any).head = {
-        appendChild: jest.fn(),
-      };
+      Object.defineProperty(document, 'head', {
+        value: document.createElement('head'),
+        configurable: true,
+      });
     }
+    jest.spyOn(document.head!, 'appendChild').mockImplementation((node) => node);
 
     board = new NeoChessBoard(container, {
       theme: 'classic',
@@ -99,8 +120,9 @@ describe('NeoChessBoard piece set handling', () => {
 
   it('loads custom piece sprites and triggers a render', async () => {
     const spriteImage = document.createElement('img');
-    const renderSpy = jest.spyOn(board as any, 'renderAll');
-    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    const internals = asPieceSetInternals(board);
+    const renderSpy = jest.spyOn(internals, 'renderAll');
+    const resolveSpy = jest.spyOn(internals, '_resolvePieceSprite');
     resolveSpy.mockImplementation(async () => ({
       image: spriteImage,
       scale: 0.9,
@@ -117,11 +139,13 @@ describe('NeoChessBoard piece set handling', () => {
 
     expect(resolveSpy).toHaveBeenCalledTimes(2);
     expect(renderSpy).toHaveBeenCalled();
-    expect((board as any).customPieceSprites.P.image).toBe(spriteImage);
+    const sprites = getCustomPieceSprites(board);
+    expect((sprites.P as { image: unknown } | undefined)?.image).toBe(spriteImage);
   });
 
   it('clears custom sprites when pieceSet is reset', async () => {
-    const resolveSpriteSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    const internals = asPieceSetInternals(board);
+    const resolveSpriteSpy = jest.spyOn(internals, '_resolvePieceSprite');
     resolveSpriteSpy.mockResolvedValue({
       image: document.createElement('img'),
       scale: 1,
@@ -129,7 +153,7 @@ describe('NeoChessBoard piece set handling', () => {
       offsetY: 0,
     });
 
-    const renderSpy = jest.spyOn(board as any, 'renderAll');
+    const renderSpy = jest.spyOn(internals, 'renderAll');
 
     await board.setPieceSet(
       createPieceSet({
@@ -137,18 +161,21 @@ describe('NeoChessBoard piece set handling', () => {
       }),
     );
 
-    expect(Object.keys((board as any).customPieceSprites)).toContain('Q');
+    const updatedSprites = getCustomPieceSprites(board);
+    expect(Object.keys(updatedSprites)).toContain('Q');
 
     renderSpy.mockClear();
 
     await board.setPieceSet(null);
 
-    expect((board as any).customPieceSprites).toEqual({});
+    const clearedSprites = getCustomPieceSprites(board);
+    expect(clearedSprites).toEqual({});
     expect(renderSpy).toHaveBeenCalled();
   });
 
   it('avoids reloading when applying the same pieceSet reference', async () => {
-    const resolveSpy = jest.spyOn(board as any, '_resolvePieceSprite');
+    const internals = asPieceSetInternals(board);
+    const resolveSpy = jest.spyOn(internals, '_resolvePieceSprite');
     resolveSpy.mockResolvedValue({
       image: document.createElement('img'),
       scale: 1,

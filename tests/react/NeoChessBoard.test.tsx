@@ -2,7 +2,7 @@ import React from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 import type { NeoChessRef } from '../../src/react/NeoChessBoard';
-import type { Theme } from '../../src/core/types';
+import type { Theme, BoardEventMap } from '../../src/core/types';
 
 // Mock the core NeoChessBoard class
 let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
@@ -134,19 +134,19 @@ describe('NeoChessBoard React Component', () => {
 
     it('should call move handler when board emits move event', () => {
       const onMove = jest.fn();
-      let moveCallback: any;
+      let moveCallback: ((payload: BoardEventMap['move']) => void) | undefined;
 
       (mockBoard.on as jest.Mock).mockImplementation((event: string, callback: Function) => {
         if (event === 'move') {
-          moveCallback = callback;
+          moveCallback = callback as (payload: BoardEventMap['move']) => void;
         }
         return jest.fn();
       });
 
       render(<NeoChessBoard onMove={onMove} />);
 
-      const moveData = { from: 'e2', to: 'e4', fen: 'test-fen' };
-      moveCallback(moveData);
+      const moveData: BoardEventMap['move'] = { from: 'e2', to: 'e4', fen: 'test-fen' };
+      moveCallback?.(moveData);
 
       expect(onMove).toHaveBeenCalledWith(moveData);
     });

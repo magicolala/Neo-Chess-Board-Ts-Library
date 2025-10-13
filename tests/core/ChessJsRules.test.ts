@@ -212,8 +212,9 @@ describe('ChessJsRules', () => {
 
       rules.move({ from: 'e2', to: 'e4' });
       const lastMove = rules.getLastMove();
-      expect(lastMove.from).toBe('e2');
-      expect(lastMove.to).toBe('e4');
+      expect(lastMove).not.toBeNull();
+      expect(lastMove?.from).toBe('e2');
+      expect(lastMove?.to).toBe('e4');
     });
 
     test('should get last move notation', () => {

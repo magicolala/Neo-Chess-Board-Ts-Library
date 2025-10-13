@@ -1,10 +1,21 @@
 import { EventBus } from './EventBus';
-import { parseFEN, isWhitePiece, sq, sqToFR, clamp, lerp, easeOutCubic, START_FEN } from './utils';
+import {
+  parseFEN,
+  isWhitePiece,
+  sq,
+  sqToFR,
+  clamp,
+  lerp,
+  easeOutCubic,
+  START_FEN,
+  type ParsedFENState,
+} from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
 import { FlatSprites } from './FlatSprites';
 import { ChessJsRules } from './ChessJsRules';
 import { DrawingManager } from './DrawingManager';
+import type { PgnNotation } from './PgnNotation';
 import type {
   Square,
   BoardOptions,
@@ -26,6 +37,8 @@ import type {
   PromotionRequest,
   PromotionMode,
   PromotionPiece,
+  RulesMoveResponse,
+  PgnMoveAnnotations,
 } from './types';
 
 // ============================================================================
@@ -63,14 +76,7 @@ const PIECE_INDEX_MAP: Record<string, number> = {
 // Interfaces
 // ============================================================================
 
-interface BoardState {
-  board: (string | null)[][];
-  turn: 'w' | 'b';
-  castling: string;
-  ep: string | null;
-  halfmove: number;
-  fullmove: number;
-}
+type BoardState = ParsedFENState;
 
 interface ResolvedPieceSprite {
   image: PieceSpriteImage;
@@ -81,9 +87,9 @@ interface ResolvedPieceSprite {
 
 interface ExtensionState {
   id: string;
-  config: ExtensionConfig<any>;
-  context: ExtensionContext<any>;
-  instance: Extension<any>;
+  config: ExtensionConfig<unknown>;
+  context: ExtensionContext<unknown> | null;
+  instance: Extension<unknown> | null;
   disposers: Array<() => void>;
   initialized: boolean;
   destroyed: boolean;
@@ -358,8 +364,8 @@ export class NeoChessBoard {
   // ============================================================================
 
   public exportPGN(): string {
-    if (typeof (this.rules as any).toPgn === 'function') {
-      return (this.rules as any).toPgn(true);
+    if (typeof this.rules.toPgn === 'function') {
+      return this.rules.toPgn(true);
     }
 
     if (this.rules.getPGN) {
@@ -390,7 +396,7 @@ export class NeoChessBoard {
     if (pgnNotation && typeof pgnNotation.toPgnWithAnnotations === 'function') {
       return pgnNotation.toPgnWithAnnotations();
     }
-    return (this.rules as any).toPgn ? (this.rules as any).toPgn() : '';
+    return this.rules.toPgn?.() ?? '';
   }
 
   public addAnnotationsToCurrentMove(
@@ -583,11 +589,11 @@ export class NeoChessBoard {
     }
   }
 
-  public exportDrawings(): any {
+  public exportDrawings(): string | null {
     return this.drawingManager ? this.drawingManager.exportState() : null;
   }
 
-  public importDrawings(state: any): void {
+  public importDrawings(state: string): void {
     if (this.drawingManager) {
       this.drawingManager.importState(state);
       this.renderAll();
@@ -1436,7 +1442,7 @@ export class NeoChessBoard {
   private _executeMove(from: Square, to: Square, promotion?: PromotionPiece): boolean {
     const legal = this.rules.move({ from, to, promotion });
 
-    if (legal && (legal as any).ok) {
+    if (legal?.ok) {
       this._processMoveSuccess(from, to);
       return true;
     }
@@ -1468,7 +1474,11 @@ export class NeoChessBoard {
     }, this.animationMs + POST_MOVE_PREMOVE_DELAY);
   }
 
-  private _processMoveFailure(from: Square, to: Square, legal: any): void {
+  private _processMoveFailure(
+    from: Square,
+    to: Square,
+    legal: RulesMoveResponse | null | undefined,
+  ): void {
     this._clearSelectionState();
     this.renderAll();
     this._emitIllegalMoveEvent(from, to, legal);
@@ -1631,7 +1641,7 @@ export class NeoChessBoard {
       promotion: premove.promotion,
     });
 
-    if (premoveResult && (premoveResult as any).ok) {
+    if (premoveResult?.ok) {
       setTimeout(() => {
         this._executePremove(premove);
       }, PREMOVE_EXECUTION_DELAY);
@@ -1977,8 +1987,8 @@ export class NeoChessBoard {
       const state: ExtensionState = {
         id,
         config,
-        context: undefined as unknown as ExtensionContext<any>,
-        instance: {},
+        context: null,
+        instance: null,
         disposers: [],
         initialized: false,
         destroyed: false,
@@ -1986,14 +1996,15 @@ export class NeoChessBoard {
 
       this.extensionStates.push(state);
       const options = (config.options ?? {}) as unknown;
-      state.context = this._createExtensionContext(state, options);
+      const context = this._createExtensionContext(state, options);
+      state.context = context;
 
       try {
-        const instance = config.create(state.context);
-        state.instance = (instance ?? {}) as Extension<any>;
+        const instance = config.create(context);
+        state.instance = (instance as Extension<unknown>) ?? null;
       } catch (error) {
         console.error(`[NeoChessBoard] Failed to create extension "${id}".`, error);
-        state.instance = {} as Extension<any>;
+        state.instance = null;
       }
     });
   }
@@ -2032,14 +2043,18 @@ export class NeoChessBoard {
 
   private _callExtensionHook(
     state: ExtensionState,
-    hook: keyof Extension<any>,
-    ...args: any[]
+    hook: keyof Extension<unknown>,
+    ...args: unknown[]
   ): void {
+    if (!state.instance || !state.context) {
+      return;
+    }
+
     const fn = state.instance[hook];
     if (typeof fn !== 'function') return;
 
     try {
-      (fn as any).call(state.instance, state.context, ...args);
+      (fn as (...fnArgs: unknown[]) => void).apply(state.instance, [state.context, ...args]);
     } catch (error) {
       console.error(`Extension "${state.id}" hook ${String(hook)} failed.`, error);
     }
@@ -2093,11 +2108,11 @@ export class NeoChessBoard {
   // ============================================================================
 
   private _loadPgnInRules(pgnString: string): boolean {
-    return (this.rules as any).loadPgn ? (this.rules as any).loadPgn(pgnString) : false;
+    return this.rules.loadPgn?.(pgnString) ?? false;
   }
 
-  private _getPgnNotation(): any {
-    return (this.rules as any).getPgnNotation ? (this.rules as any).getPgnNotation() : null;
+  private _getPgnNotation(): PgnNotation | null {
+    return this.rules.getPgnNotation?.() ?? null;
   }
 
   private _displayPgnAnnotations(pgnString: string): void {
@@ -2114,7 +2129,7 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
-  private _displayAnnotationsFromPgn(pgnNotation: any): void {
+  private _displayAnnotationsFromPgn(pgnNotation: PgnNotation): void {
     if (!this.drawingManager) return;
 
     this.drawingManager.clearArrows();
@@ -2125,11 +2140,11 @@ export class NeoChessBoard {
 
     const lastMove = moves[moves.length - 1];
     const totalMoves = moves.reduce(
-      (acc: number, move: any) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
+      (acc, move) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
       0,
     );
 
-    let annotationsToShow: any = null;
+    let annotationsToShow: PgnMoveAnnotations | null = null;
 
     if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
       annotationsToShow = lastMove.blackAnnotations;
@@ -2142,7 +2157,7 @@ export class NeoChessBoard {
     }
   }
 
-  private _applyAnnotations(annotations: any): void {
+  private _applyAnnotations(annotations: PgnMoveAnnotations): void {
     if (annotations.arrows) {
       for (const arrow of annotations.arrows) {
         this.drawingManager!.addArrowFromObject(arrow);
@@ -2219,8 +2234,8 @@ export class NeoChessBoard {
   }
 
   private _resetRulesAdapter(): void {
-    if (typeof (this.rules as any).reset === 'function') {
-      (this.rules as any).reset();
+    if (typeof this.rules.reset === 'function') {
+      this.rules.reset();
     } else {
       this.rules.setFEN(START_FEN);
     }
@@ -2260,11 +2275,15 @@ export class NeoChessBoard {
     this._notifyExtensionEvent('onMove', movePayload);
   }
 
-  private _emitIllegalMoveEvent(from: Square, to: Square, legal: any): void {
+  private _emitIllegalMoveEvent(
+    from: Square,
+    to: Square,
+    legal: RulesMoveResponse | null | undefined,
+  ): void {
     const illegalPayload = {
       from,
       to,
-      reason: (legal as any)?.reason || 'illegal',
+      reason: legal?.reason ?? 'illegal',
     } as BoardEventMap['illegal'];
     this.bus.emit('illegal', illegalPayload);
     this._notifyExtensionEvent('onIllegalMove', illegalPayload);
