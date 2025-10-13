@@ -1,6 +1,6 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
-import type { Arrow, SquareHighlight } from '../../src/core/types';
+import type { Arrow, SquareHighlight, PromotionRequest } from '../../src/core/types';
 
 let originalCreateElement: typeof document.createElement;
 
@@ -798,6 +798,89 @@ describe('NeoChessBoard Core', () => {
 
       expect(board.drawingManager.getArrows()).toHaveLength(0);
       expect(board.drawingManager.getHighlights()).toHaveLength(0);
+    });
+  });
+
+  describe('Promotion handling', () => {
+    it('waits for a promotion choice before executing pawn promotions', () => {
+      board.destroy();
+
+      let captured: PromotionRequest | null = null;
+      const promotionBoard = new NeoChessBoard(container, {
+        onPromotionRequired: (request) => {
+          captured = request;
+        },
+      });
+
+      board = promotionBoard;
+      promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
+
+      const moveListener = jest.fn();
+      promotionBoard.on('move', moveListener);
+
+      const result = promotionBoard.attemptMove('e7', 'e8');
+
+      expect(result).toBe(true);
+      expect(captured).not.toBeNull();
+      if (!captured) {
+        throw new Error('Promotion request was not captured');
+      }
+      const request = captured as PromotionRequest;
+      expect(request.mode).toBe('move');
+      expect(request.choices).toEqual(['q', 'r', 'b', 'n']);
+      expect(promotionBoard.isPromotionPending()).toBe(true);
+      expect(promotionBoard.getPieceAt('e7')).toBe('P');
+      expect(promotionBoard.getPieceAt('e8')).toBeNull();
+
+      const pendingPreview = promotionBoard.drawingManager.getDrawingState().promotionPreview;
+      expect(pendingPreview).toEqual(expect.objectContaining({ square: 'e8', piece: undefined }));
+
+      promotionBoard.previewPromotionPiece('b');
+      expect(promotionBoard.drawingManager.getDrawingState().promotionPreview).toEqual(
+        expect.objectContaining({ piece: 'b' }),
+      );
+
+      request.resolve('n');
+
+      expect(promotionBoard.isPromotionPending()).toBe(false);
+      expect(promotionBoard.drawingManager.getDrawingState().promotionPreview).toBeUndefined();
+      expect(promotionBoard.getPieceAt('e8')).toBe('N');
+      expect(moveListener).toHaveBeenCalledWith(
+        expect.objectContaining({ from: 'e7', to: 'e8', fen: expect.any(String) }),
+      );
+    });
+
+    it('stores the promotion choice for premoves', () => {
+      board.destroy();
+
+      let captured: PromotionRequest | null = null;
+      const promotionBoard = new NeoChessBoard(container, {
+        allowPremoves: true,
+        onPromotionRequired: (request) => {
+          captured = request;
+        },
+      });
+
+      board = promotionBoard;
+      promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 b - - 0 1', true);
+
+      const result = promotionBoard.attemptMove('e7', 'e8');
+
+      expect(result).toBe(true);
+      expect(captured).not.toBeNull();
+      if (!captured) {
+        throw new Error('Promotion request was not captured');
+      }
+      const premoveRequest = captured as PromotionRequest;
+      expect(premoveRequest.mode).toBe('premove');
+      expect(promotionBoard.getPremove()).toBeNull();
+
+      premoveRequest.resolve('q');
+
+      const premove = promotionBoard.getPremove();
+      expect(premove).toEqual({ from: 'e7', to: 'e8', promotion: 'q' });
+      expect(promotionBoard.isPromotionPending()).toBe(false);
+      expect(promotionBoard.drawingManager.getDrawingState().promotionPreview).toBeUndefined();
     });
   });
 });

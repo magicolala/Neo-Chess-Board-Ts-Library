@@ -300,9 +300,14 @@ board.on('stalemate', () => {
   endGame('Draw by stalemate');
 });
 
-board.on('promotion', (square, color) => {
-  console.log(`Pawn promotion at ${square} for ${color}`);
-  showPromotionDialog(square, color);
+board.on('promotion', (request) => {
+  console.log(`Pawn promotion at ${request.to} for ${request.color}`);
+  showPromotionDialog(request);
+});
+
+// Or plug in the built-in overlay
+const boardWithDialog = new NeoChessBoard(canvas, {
+  extensions: [createPromotionDialogExtension()],
 });
 
 board.on('pieceSelect', (square, piece) => {

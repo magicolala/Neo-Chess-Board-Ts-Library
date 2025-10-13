@@ -86,6 +86,19 @@ Export the current game as PGN format.
 
 Clean up event listeners and resources.
 
+##### `previewPromotionPiece(piece: 'q' | 'r' | 'b' | 'n' | null): void`
+
+Display a ghosted promotion piece on the target square while a promotion request is pending. Pass `null` to return to the
+default highlight.
+
+##### `isPromotionPending(): boolean`
+
+Returns `true` while the board is waiting for a promotion choice.
+
+##### `getPendingPromotion(): { from: Square; to: Square; color: 'w' | 'b'; mode: 'move' | 'premove' } | null`
+
+Inspect the currently pending promotion request, if any.
+
 #### Events
 
 The board emits events through the EventBus system:
@@ -94,7 +107,7 @@ The board emits events through the EventBus system:
 - `check` - When a king is in check
 - `checkmate` - When checkmate occurs
 - `stalemate` - When stalemate occurs
-- `promotion` - When pawn promotion is needed
+- `promotion` - Fired with a `PromotionRequest` when a pawn reaches the back rank and a piece choice is required
 
 ### EventBus
 
@@ -452,6 +465,7 @@ interface NeoChessBoardProps {
   onCheck?: () => void;
   onCheckmate?: () => void;
   onStalemate?: () => void;
+  onPromotionRequired?: (request: PromotionRequest) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -505,6 +519,7 @@ interface BoardOptions {
   autoFlip?: boolean;
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
+  onPromotionRequired?: (request: PromotionRequest) => void;
 }
 ```
 
@@ -547,6 +562,20 @@ interface Move {
   check?: boolean;
   checkmate?: boolean;
   stalemate?: boolean;
+}
+```
+
+### PromotionRequest
+
+```typescript
+interface PromotionRequest {
+  from: Square;
+  to: Square;
+  color: 'w' | 'b';
+  mode: 'move' | 'premove';
+  choices: Array<'q' | 'r' | 'b' | 'n'>;
+  resolve(choice: 'q' | 'r' | 'b' | 'n'): void;
+  cancel(): void;
 }
 ```
 

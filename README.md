@@ -206,6 +206,7 @@ interface NeoChessProps {
   highlightLegal?: boolean; // Highlight legal moves
   onMove?: (move) => void; // Move event handler
   onIllegal?: (attempt) => void; // Illegal move handler
+  onPromotionRequired?: (request) => void; // Optional promotion resolver
   style?: React.CSSProperties; // CSS styling
   className?: string; // CSS class
 }
@@ -225,6 +226,37 @@ board.on('move', ({ from, to, fen }) => {
 board.on('illegal', ({ from, to, reason }) => {
   // Handle illegal move attempt
 });
+
+board.on('promotion', (request) => {
+  // Show your UI here or default to a queen
+  request.resolve('q');
+});
+
+### Pawn promotion helpers
+
+When a pawn reaches the back rank, NeoChessBoard pauses the move and emits a `promotion` request. You can respond in three
+different ways:
+
+- **Listen for the `promotion` event** (as shown above) and resolve or cancel the request when your UI is ready.
+- **Provide `onPromotionRequired` in the board options** to centralize the handler without registering listeners manually.
+- **Use the built-in `createPromotionDialogExtension`** to display a ready-to-go overlay that lets players pick between a queen,
+  rook, bishop, or knight.
+
+Each `PromotionRequest` exposes `{ from, to, color, mode, choices, resolve, cancel }`. Call `resolve('q' | 'r' | 'b' | 'n')` once
+the user has selected a piece or `cancel()` to abort. While the chooser is open you can preview the selection with
+`board.previewPromotionPiece(piece)` and inspect the pending request via `board.getPendingPromotion()`.
+
+```ts
+import { NeoChessBoard, createPromotionDialogExtension } from 'neochessboard';
+
+const board = new NeoChessBoard(document.getElementById('board')!, {
+  onPromotionRequired(request) {
+    // Optional hook (the extension also calls resolve/cancel)
+    console.log('Promotion pending for', request.mode, request.from, '→', request.to);
+  },
+  extensions: [createPromotionDialogExtension()],
+});
+```
 
 // Position management
 board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -439,6 +471,7 @@ interface NeoChessProps {
   onMove?: (move: MoveEvent) => void;
   onIllegal?: (attempt: IllegalMoveEvent) => void;
   onUpdate?: (state: UpdateEvent) => void;
+  onPromotionRequired?: (request: PromotionRequest) => void;
 
   // Styling
   style?: React.CSSProperties;
@@ -465,6 +498,9 @@ class NeoChessBoard {
   getTurn(): 'w' | 'b';
   getPieceAt(square: Square): string | null;
   attemptMove(from: Square, to: Square, options?: { promotion?: Move['promotion'] }): boolean;
+  previewPromotionPiece(piece: Move['promotion'] | null): void;
+  isPromotionPending(): boolean;
+  getPendingPromotion(): { from: Square; to: Square; color: 'w' | 'b'; mode: 'move' | 'premove' } | null;
 
   // Event System
   on<T>(event: string, handler: (data: T) => void): () => void;

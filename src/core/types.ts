@@ -16,6 +16,20 @@ export interface Move {
   ep?: boolean;
 }
 
+export type PromotionPiece = Required<Move>['promotion'];
+
+export type PromotionMode = 'move' | 'premove';
+
+export interface PromotionRequest {
+  from: Square;
+  to: Square;
+  color: Color;
+  mode: PromotionMode;
+  choices: PromotionPiece[];
+  resolve: (choice: PromotionPiece) => void;
+  cancel: () => void;
+}
+
 // Nouveaux types pour les fonctionnalités avancées
 export interface Arrow {
   from: Square;
@@ -45,12 +59,18 @@ export interface DrawingState {
   arrows: Arrow[];
   highlights: SquareHighlight[];
   premove?: Premove;
+  promotionPreview?: {
+    square: Square;
+    color: Color;
+    piece?: PromotionPiece;
+  };
 }
 
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
+  promotion: PromotionRequest;
 }
 
 export interface RulesAdapter {
@@ -135,6 +155,7 @@ export interface BoardOptions {
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
   extensions?: ExtensionConfig[];
+  onPromotionRequired?: (request: PromotionRequest) => void | Promise<void>;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

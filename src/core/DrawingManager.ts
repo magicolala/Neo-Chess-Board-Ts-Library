@@ -1,4 +1,13 @@
-import type { Square, Arrow, SquareHighlight, HighlightType, DrawingState, Premove } from './types';
+import type {
+  Square,
+  Arrow,
+  SquareHighlight,
+  HighlightType,
+  DrawingState,
+  Premove,
+  Color,
+  PromotionPiece,
+} from './types';
 import { FILES, RANKS } from './utils';
 
 type ModifierKey = 'shiftKey' | 'ctrlKey' | 'altKey';
@@ -63,6 +72,7 @@ export class DrawingManager {
     arrows: [],
     highlights: [],
     premove: undefined,
+    promotionPreview: undefined,
   };
 
   private readonly canvas: HTMLCanvasElement;
@@ -268,6 +278,14 @@ export class DrawingManager {
 
   public getPremove(): Premove | undefined {
     return this.state.premove;
+  }
+
+  public setPromotionPreview(square: Square, color: Color, piece?: PromotionPiece): void {
+    this.state.promotionPreview = { square, color, piece };
+  }
+
+  public clearPromotionPreview(): void {
+    this.state.promotionPreview = undefined;
   }
 
   // Coordinate utilities
@@ -681,12 +699,42 @@ export class DrawingManager {
     ctx.restore();
   }
 
+  private drawPromotionPreview(ctx: CanvasRenderingContext2D): void {
+    const preview = this.state.promotionPreview;
+    if (!preview) {
+      return;
+    }
+
+    const [x, y] = this.squareToCoords(preview.square);
+    const size = this.squareSize;
+
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
+    ctx.fillRect(x, y, size, size);
+
+    if (preview.piece) {
+      const isWhite = preview.color === 'w';
+      ctx.fillStyle = isWhite ? '#f9fafb' : '#111827';
+      ctx.font = `${Math.max(24, Math.round(size * 0.58))}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const label = preview.piece.toUpperCase();
+      ctx.fillText(label, x + size / 2, y + size / 2);
+    }
+
+    ctx.restore();
+  }
+
   // Methods to get the complete state
   public getDrawingState(): DrawingState {
     return {
       arrows: this.getArrows(),
       highlights: this.getHighlights(),
       premove: this.state.premove ? { ...this.state.premove } : undefined,
+      promotionPreview: this.state.promotionPreview
+        ? { ...this.state.promotionPreview }
+        : undefined,
     };
   }
 
@@ -699,6 +747,11 @@ export class DrawingManager {
     }
     if (state.premove !== undefined) {
       this.state.premove = state.premove ? { ...state.premove } : undefined;
+    }
+    if (state.promotionPreview !== undefined) {
+      this.state.promotionPreview = state.promotionPreview
+        ? { ...state.promotionPreview }
+        : undefined;
     }
   }
 
@@ -913,6 +966,10 @@ export class DrawingManager {
     this.withContext((ctx) => this.drawHighlights(ctx));
   }
 
+  public renderPromotionPreview(): void {
+    this.withContext((ctx) => this.drawPromotionPreview(ctx));
+  }
+
   // Methods with signatures adapted for NeoChessBoard
   public addArrowFromObject(arrow: Arrow): void {
     this.addArrow(arrow.from, arrow.to, arrow.color, arrow.width, arrow.opacity);
@@ -1001,5 +1058,6 @@ export class DrawingManager {
     this.state.arrows = [];
     this.state.highlights = [];
     this.state.premove = undefined;
+    this.state.promotionPreview = undefined;
   }
 }

@@ -237,7 +237,7 @@
     </div>
 
     <script type="module">
-      import { NeoChessBoard } from '../index.js';
+      import { NeoChessBoard, createPromotionDialogExtension } from '../index.js';
 
       // Initialize board
       const canvas = document.getElementById('chess-board');
@@ -245,6 +245,10 @@
         theme: 'light',
         showCoordinates: true,
         draggable: true,
+        onPromotionRequired: (request) => {
+          console.log('Promotion pending:', request);
+        },
+        extensions: [createPromotionDialogExtension()],
       });
 
       // Game state
@@ -293,10 +297,8 @@
         updateGameStatus('Stalemate - Draw!', 'checkmate');
       });
 
-      board.on('promotion', (square, color) => {
-        // Simple promotion to queen (in real app, show dialog)
-        board.promote(square, 'queen');
-        console.log(`${color} pawn promoted to queen at ${square}`);
+      board.on('promotion', (request) => {
+        console.log(`Pawn promotion requested for ${request.color} at ${request.to} (${request.mode})`);
       });
 
       board.on('illegalMove', (from, to) => {
