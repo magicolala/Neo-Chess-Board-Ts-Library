@@ -69,12 +69,12 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
    import { NeoChessBoard } from '../src/react/NeoChessBoard';
 
    // To this:
-   import { NeoChessBoard } from 'neochessboard/react';
+   import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
    ```
 
 3. Install Neo Chess Board in your project:
    ```bash
-   npm install neochessboard
+   npm install @magicolala/neo-chess-board
    ```
 
 ## 🎯 Example Features Demonstrated
@@ -353,7 +353,7 @@ useEffect(() => {
 
 ```typescript
 import { render, fireEvent } from '@testing-library/react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 test('handles move events correctly', () => {
   const handleMove = jest.fn();
@@ -375,9 +375,9 @@ test('handles move events correctly', () => {
 
 For live, interactive examples, visit:
 
-- **CodeSandbox**: [Try Neo Chess Board](https://codesandbox.io/s/neochessboard-demo)
-- **StackBlitz**: [Edit in StackBlitz](https://stackblitz.com/github/yourusername/neochessboard)
-- **Demo Site**: [Live Demo](https://yourusername.github.io/neochessboard)
+- **CodeSandbox**: [Try Neo Chess Board](https://codesandbox.io/s/github/magicolala/Neo-Chess-Board-Ts-Library)
+- **StackBlitz**: [Edit in StackBlitz](https://stackblitz.com/github/magicolala/Neo-Chess-Board-Ts-Library)
+- **Demo Site**: [Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/)
 
 ## 🤝 Contributing Examples
 

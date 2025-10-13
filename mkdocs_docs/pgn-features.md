@@ -31,7 +31,7 @@ Le Neo Chess Board inclut maintenant un support complet du format PGN (Portable 
 Utilisez `PgnNotation` pour une gestion avancée du PGN, y compris les annotations visuelles.
 
 ```typescript
-import { PgnNotation } from 'neochessboard';
+import { PgnNotation } from '@magicolala/neo-chess-board';
 
 const pgn = new PgnNotation();
 pgn.setMetadata({
@@ -55,7 +55,7 @@ pgn.downloadPgn('ma-partie-annotee.pgn');
 `PgnNotation` peut également charger des PGN avec des annotations visuelles.
 
 ```typescript
-import { PgnNotation } from 'neochessboard';
+import { PgnNotation } from '@magicolala/neo-chess-board';
 
 const pgn = new PgnNotation();
 const annotatedPgnString = `[Event "Partie Annotée"]
@@ -243,11 +243,11 @@ if (chessRules.loadPgn(immortalGame)) {
 ### 🚀 **Intégration dans vos Projets**
 
 ```bash
-npm install neo-chess-board-ts-library
+npm install @magicolala/neo-chess-board
 ```
 
 ```typescript
-import { NeoChessBoard, ChessJsRules } from 'neo-chess-board-ts-library';
+import { NeoChessBoard, ChessJsRules } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard('#board', {
   rulesAdapter: new ChessJsRules(),

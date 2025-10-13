@@ -99,4 +99,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-For a detailed view of changes, see the [commit history](https://github.com/yourusername/neochessboard/commits/main).
+For a detailed view of changes, see the [commit history](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/commits/main).

@@ -192,7 +192,7 @@ export const ThemeCreator: React.FC = () => {
 
   const exportTheme = useCallback(() => {
     const themeJson = JSON.stringify(currentTheme, null, 2);
-    const codeSnippet = `import { registerTheme } from 'neochessboard';
+    const codeSnippet = `import { registerTheme } from '@magicolala/neo-chess-board';
 
 const ${themeName || 'myTheme'} = ${themeJson};
 

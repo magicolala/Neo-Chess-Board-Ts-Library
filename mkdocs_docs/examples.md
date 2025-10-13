@@ -16,7 +16,7 @@ Experience the library directly in your browser with these hosted demos:
 ### Basic Vanilla JavaScript Setup
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 // Get canvas element
 const canvas = document.getElementById('chess-board') as HTMLCanvasElement;
@@ -37,7 +37,7 @@ board.loadPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessGame() {
   const [position, setPosition] = useState('start');
@@ -70,7 +70,7 @@ function ChessGame() {
 
 ```typescript path=null start=null
 import React, { useState, useCallback } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 interface GameMove {
   move: Move;
@@ -142,7 +142,7 @@ function ChessGameWithHistory() {
 
 ```typescript path=null start=null
 import React, { useState, useEffect } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 interface ChessPuzzle {
   fen: string;
@@ -223,7 +223,7 @@ function ChessPuzzle() {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function MultiboardAnalysis() {
   const [mainPosition, setMainPosition] = useState('start');
@@ -274,7 +274,7 @@ function MultiboardAnalysis() {
 ### Custom Event Handling
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 const canvas = document.getElementById('board') as HTMLCanvasElement;
 const board = new NeoChessBoard(canvas);
@@ -336,7 +336,7 @@ function showCheckWarning(color) {
 ### PGN Import/Export
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 class PGNManager {
   private board: NeoChessBoard;
@@ -439,7 +439,7 @@ function downloadPGN(content: string, filename: string) {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 const availableThemes = ['light', 'dark', 'wood', 'glass', 'neon', 'retro'];
 
@@ -478,7 +478,7 @@ function ThemeSwitcher() {
 
 ```typescript path=null start=null
 import React, { useState, useCallback, useEffect } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 interface GameState {
   position: string;
@@ -700,7 +700,7 @@ function FullChessGame() {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function PositionEditor() {
   const [editMode, setEditMode] = useState(false);
@@ -821,7 +821,7 @@ function PositionEditor() {
 ### King of the Hill
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 class KingOfTheHillGame {
   private board: NeoChessBoard;
@@ -904,7 +904,7 @@ function Chess960Game() {
 ### With Chess Engine
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 // Assuming integration with a chess engine like Stockfish
 
 class EngineGame {
@@ -950,7 +950,7 @@ class EngineGame {
 ### Real-time Multiplayer
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 import { io, Socket } from 'socket.io-client';
 
 class MultiplayerGame {
@@ -1016,7 +1016,7 @@ game.joinGame('game-123');
 ### Position Analysis
 
 ```typescript path=null start=null
-import { LightRules } from 'neochessboard';
+import { LightRules } from '@magicolala/neo-chess-board';
 
 function analyzePosition(fen: string) {
   const rules = new LightRules(fen);
@@ -1082,7 +1082,7 @@ function PositionAnalysis({ position }: { position: string }) {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function MobileChessBoard() {
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
