@@ -36,6 +36,9 @@ import type {
   Extension,
   ExtensionConfig,
   ExtensionContext,
+  PromotionRequest,
+  PromotionMode,
+  PromotionPiece,
 } from './types';
 
 interface BoardState {
@@ -63,6 +66,19 @@ interface ExtensionState {
   initialized: boolean;
   destroyed: boolean;
 }
+
+interface PendingPromotionState {
+  token: number;
+  from: Square;
+  to: Square;
+  color: 'w' | 'b';
+  mode: PromotionMode;
+  request: PromotionRequest;
+}
+
+const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
+
+type PendingPromotionSummary = Pick<PendingPromotionState, 'from' | 'to' | 'color' | 'mode'>;
 
 export class NeoChessBoard {
   /**
@@ -198,6 +214,21 @@ export class NeoChessBoard {
   private customPieceSprites: Partial<Record<Piece, ResolvedPieceSprite>> = {};
 
   /**
+   * Optional handler that can resolve promotion requests without extensions.
+   */
+  private promotionHandler?: BoardOptions['onPromotionRequired'];
+
+  /**
+   * Tracks the currently pending promotion request when one is active.
+   */
+  private _pendingPromotion: PendingPromotionState | null = null;
+
+  /**
+   * Incremental token used to invalidate stale promotion interactions.
+   */
+  private _promotionToken = 0;
+
+  /**
    * Token used to invalidate pending custom piece loading operations.
    */
   private _pieceSetToken = 0;
@@ -230,7 +261,7 @@ export class NeoChessBoard {
   /**
    * The currently stored premove.
    */
-  private _premove: { from: Square; to: Square } | null = null;
+  private _premove: { from: Square; to: Square; promotion?: PromotionPiece } | null = null;
   /**
    * The currently selected square.
    */
@@ -291,6 +322,7 @@ export class NeoChessBoard {
     this.autoFlip = options.autoFlip ?? false;
     this.soundUrl = options.soundUrl;
     this.soundUrls = options.soundUrls;
+    this.promotionHandler = options.onPromotionRequired;
 
     // Initialize sound
     this._initializeSound();
@@ -489,6 +521,9 @@ export class NeoChessBoard {
    * Destroys the board instance, removing all event listeners and clearing the DOM.
    */
   public destroy() {
+    if (this._pendingPromotion) {
+      this._pendingPromotion.request.cancel();
+    }
     this._removeEvents();
     this._disposeExtensions();
     this.root.innerHTML = '';
@@ -570,6 +605,9 @@ export class NeoChessBoard {
    * @param immediate If true, the board updates instantly without animation.
    */
   public setFEN(fen: string, immediate = false) {
+    if (this._pendingPromotion) {
+      this._pendingPromotion.request.cancel();
+    }
     const old = this.state;
     const oldTurn = this.state.turn;
     this.rules.setFEN(fen);
@@ -910,6 +948,7 @@ export class NeoChessBoard {
       if (this.allowPremoves) {
         this.drawingManager.renderPremove();
       }
+      this.drawingManager.renderPromotionPreview();
       if (this.showSquareNames) {
         this.drawingManager.renderSquareNames(this.orientation, this.square, this.dpr);
       }
@@ -1033,11 +1072,32 @@ export class NeoChessBoard {
     to: Square,
     options: { promotion?: Move['promotion'] } = {},
   ): boolean {
+    const outcome = this._attemptMove(from, to, options);
+    return outcome !== false;
+  }
+
+  private _attemptMove(
+    from: Square,
+    to: Square,
+    options: { promotion?: Move['promotion'] } = {},
+  ): boolean | 'pending' {
+    if (
+      this._pendingPromotion &&
+      this._pendingPromotion.mode === 'move' &&
+      (this._pendingPromotion.from !== from || this._pendingPromotion.to !== to)
+    ) {
+      return false;
+    }
+
     const piece = this._pieceAt(from);
     if (!piece) {
       return false;
     }
+
     const side = isWhitePiece(piece) ? 'w' : 'b';
+    const promotion = options.promotion
+      ? (options.promotion.toLowerCase() as PromotionPiece)
+      : undefined;
 
     if (from === to) {
       this.renderAll();
@@ -1049,18 +1109,19 @@ export class NeoChessBoard {
         return false;
       }
 
-      if (this.drawingManager) {
-        this.drawingManager.setPremove(from, to);
+      if (this._isPromotionMove(piece, to, side) && !promotion) {
+        return this._beginPromotionRequest(from, to, side, 'premove');
       }
-      this._premove = { from, to };
-      this._selected = null;
-      this._legalCached = null;
-      this._hoverSq = null;
-      this.renderAll();
+
+      this._setPremove(from, to, promotion);
       return true;
     }
 
-    const legal = this.rules.move({ from, to, promotion: options.promotion });
+    if (this._isPromotionMove(piece, to, side) && !promotion) {
+      return this._beginPromotionRequest(from, to, side, 'move');
+    }
+
+    const legal = this.rules.move({ from, to, promotion });
     if (legal && (legal as any).ok) {
       const fen = this.rules.getFEN();
       const old = this.state;
@@ -1102,6 +1163,123 @@ export class NeoChessBoard {
     this.bus.emit('illegal', illegalPayload);
     this._notifyExtensionEvent('onIllegalMove', illegalPayload);
     return false;
+  }
+
+  private _setPremove(from: Square, to: Square, promotion?: PromotionPiece): void {
+    if (!this.allowPremoves) {
+      return;
+    }
+
+    if (this.drawingManager) {
+      this.drawingManager.setPremove(from, to, promotion);
+    }
+    this._premove = promotion ? { from, to, promotion } : { from, to };
+    this._selected = null;
+    this._legalCached = null;
+    this._hoverSq = null;
+    this.renderAll();
+  }
+
+  private _isPromotionMove(piece: string, to: Square, side: 'w' | 'b'): boolean {
+    if (piece.toLowerCase() !== 'p') {
+      return false;
+    }
+
+    const targetRank = Number(to[1]);
+    if (Number.isNaN(targetRank)) {
+      return false;
+    }
+
+    return (side === 'w' && targetRank === 8) || (side === 'b' && targetRank === 1);
+  }
+
+  private _beginPromotionRequest(
+    from: Square,
+    to: Square,
+    color: 'w' | 'b',
+    mode: PromotionMode,
+  ): 'pending' {
+    if (this._pendingPromotion) {
+      // Notify existing listeners that their request has been superseded
+      this._pendingPromotion.request.cancel();
+    }
+
+    const token = ++this._promotionToken;
+    const pending: PendingPromotionState = {
+      token,
+      from,
+      to,
+      color,
+      mode,
+      request: undefined as unknown as PromotionRequest,
+    };
+    this._pendingPromotion = pending;
+    this._selected = null;
+    this._legalCached = null;
+    this._hoverSq = null;
+    this._dragging = null;
+    this.previewPromotionPiece(null);
+
+    const request: PromotionRequest = {
+      from,
+      to,
+      color,
+      mode,
+      choices: [...PROMOTION_CHOICES],
+      resolve: (choice) => this._resolvePromotion(token, choice),
+      cancel: () => this._cancelPromotionRequestInternal(token),
+    };
+
+    pending.request = request;
+    this._emitPromotionRequest(request);
+    return 'pending';
+  }
+
+  private _resolvePromotion(token: number, piece: PromotionPiece): void {
+    const pending = this._pendingPromotion;
+    if (!pending || pending.token !== token) {
+      return;
+    }
+
+    this.previewPromotionPiece(piece);
+
+    const { from, to, mode } = pending;
+    this._pendingPromotion = null;
+
+    if (mode === 'move') {
+      this._attemptMove(from, to, { promotion: piece });
+    } else {
+      this._setPremove(from, to, piece);
+    }
+
+    this.clearPromotionPreview();
+  }
+
+  private _cancelPromotionRequestInternal(token: number): void {
+    const pending = this._pendingPromotion;
+    if (!pending || pending.token !== token) {
+      return;
+    }
+
+    this._pendingPromotion = null;
+    this.clearPromotionPreview();
+  }
+
+  private _emitPromotionRequest(request: PromotionRequest): void {
+    if (this.promotionHandler) {
+      try {
+        const result = this.promotionHandler(request);
+        if (result && typeof (result as Promise<void>).then === 'function') {
+          void (result as Promise<void>).catch((error) => {
+            console.error('[NeoChessBoard] Promotion handler rejected.', error);
+          });
+        }
+      } catch (error) {
+        console.error('[NeoChessBoard] Promotion handler threw an error.', error);
+      }
+    }
+
+    this.bus.emit('promotion', request);
   }
 
   // ---- interaction ----
@@ -1937,6 +2115,7 @@ export class NeoChessBoard {
   public setPremove(premove: Premove) {
     if (this.drawingManager && this.allowPremoves) {
       this.drawingManager.setPremoveFromObject(premove);
+      this._premove = { ...premove };
       this.renderAll();
     }
   }
@@ -1947,6 +2126,7 @@ export class NeoChessBoard {
   public clearPremove() {
     if (this.drawingManager) {
       this.drawingManager.clearPremove();
+      this._premove = null;
       this.renderAll();
     }
   }
@@ -1956,6 +2136,41 @@ export class NeoChessBoard {
    */
   public getPremove(): Premove | null {
     return this.drawingManager ? this.drawingManager.getPremove() || null : null;
+  }
+
+  public previewPromotionPiece(piece: PromotionPiece | null): void {
+    if (!this._pendingPromotion || !this.drawingManager) {
+      return;
+    }
+
+    const { to, color } = this._pendingPromotion;
+    if (piece) {
+      this.drawingManager.setPromotionPreview(to, color, piece);
+    } else {
+      this.drawingManager.setPromotionPreview(to, color);
+    }
+    this.renderAll();
+  }
+
+  public clearPromotionPreview(): void {
+    if (!this.drawingManager) {
+      return;
+    }
+    this.drawingManager.clearPromotionPreview();
+    this.renderAll();
+  }
+
+  public isPromotionPending(): boolean {
+    return this._pendingPromotion !== null;
+  }
+
+  public getPendingPromotion(): PendingPromotionSummary | null {
+    if (!this._pendingPromotion) {
+      return null;
+    }
+
+    const { from, to, color, mode } = this._pendingPromotion;
+    return { from, to, color, mode };
   }
 
   /**

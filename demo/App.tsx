@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { NeoChessBoard, NeoChessRef } from '../src/react';
+import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
 import { ChessJsRules } from '../src/core/ChessJsRules';
+import type { PromotionRequest } from '../src/core/types';
 import styles from './App.module.css';
 import moveSound from './assets/souffle.ogg';
 import {
@@ -118,6 +120,7 @@ export const App: React.FC = () => {
     autoFlip: false,
     allowResize: true,
   });
+  const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const {
     containerRef: boardContainerRef,
@@ -150,6 +153,10 @@ export const App: React.FC = () => {
   const updateStatusSnapshot = useCallback(() => {
     setStatus(buildStatusSnapshot(chessRules));
   }, [chessRules]);
+
+  const handlePromotionRequest = useCallback((request: PromotionRequest) => {
+    console.info('Promotion request pending', request);
+  }, []);
 
   const getOrientationFromFen = useCallback((fenString: string) => {
     return fenString.split(' ')[1] === 'w' ? 'white' : 'black';
@@ -686,6 +693,8 @@ export const App: React.FC = () => {
               orientation={boardOptions.orientation}
               highlightLegal={boardOptions.highlightLegal}
               autoFlip={boardOptions.autoFlip}
+              extensions={promotionExtensions}
+              onPromotionRequired={handlePromotionRequest}
               onMove={({ from, to, fen: nextFen }) => {
                 // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
                 const result = chessRules.move({ from, to });
