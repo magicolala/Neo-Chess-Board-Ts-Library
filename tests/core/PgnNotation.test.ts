@@ -3,7 +3,8 @@
  * Tests PGN standard compliance and functionality
  */
 
-import { PgnNotation, PgnMetadata } from '../../src/core/PgnNotation';
+import { PgnNotation } from '../../src/core/PgnNotation';
+import type { PgnMetadata } from '../../src/core/PgnNotation';
 
 // Mock chess.js for testing
 const mockChess = {

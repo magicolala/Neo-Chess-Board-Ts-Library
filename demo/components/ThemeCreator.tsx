@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { NeoChessBoard } from '../../src/react';
-import { Theme } from '../../src/core/types';
-import { THEMES, registerTheme, resolveTheme } from '../../src/core/themes';
+import type { Theme } from '../../src/core/types';
+import { THEMES, registerTheme } from '../../src/core/themes';
 import styles from '../App.module.css';
 
 interface ColorInputProps {

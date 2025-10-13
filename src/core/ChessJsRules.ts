@@ -1,6 +1,7 @@
 import { Chess, SQUARES, type Color } from 'chess.js';
 import type { RulesAdapter, Move } from './types';
-import { PgnNotation, PgnMetadata } from './PgnNotation';
+import { PgnNotation } from './PgnNotation';
+import type { PgnMetadata } from './PgnNotation';
 
 /**
  * Adapter de règles utilisant chess.js pour une validation complète des coups
@@ -391,7 +392,7 @@ export class ChessJsRules implements RulesAdapter {
       this.chess.loadPgn(pgn);
       this.pgnNotation.importFromChessJs(this.chess);
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

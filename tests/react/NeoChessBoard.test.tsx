@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 import type { NeoChessRef } from '../../src/react/NeoChessBoard';
 import type { Theme } from '../../src/core/types';

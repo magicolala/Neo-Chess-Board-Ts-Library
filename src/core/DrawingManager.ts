@@ -863,7 +863,7 @@ export class DrawingManager {
 
   // Interaction methods for NeoChessBoard
 
-  public handleMouseDown(x: number, y: number, shiftKey: boolean, ctrlKey: boolean): boolean {
+  public handleMouseDown(_x: number, _y: number, _shiftKey: boolean, _ctrlKey: boolean): boolean {
     // Do not handle left-click here, arrows are now made with right-click
     return false;
   }
@@ -882,12 +882,12 @@ export class DrawingManager {
     return true;
   }
 
-  public handleMouseMove(x: number, y: number): boolean {
+  public handleMouseMove(_x: number, _y: number): boolean {
     // For now, do nothing during movement
     return false;
   }
 
-  public handleMouseUp(x: number, y: number): boolean {
+  public handleMouseUp(_x: number, _y: number): boolean {
     // This method is no longer used for arrows (right-click)
     this.cancelCurrentAction();
     return false;

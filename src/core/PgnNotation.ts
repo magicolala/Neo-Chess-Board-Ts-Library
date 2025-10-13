@@ -3,8 +3,8 @@
  * Provides functionality to export games in standard PGN format
  * Supports visual annotations (%cal arrows and %csl circles)
  */
-import { PgnAnnotationParser, type ParsedAnnotations } from './PgnAnnotationParser';
-import type { Arrow, SquareHighlight, RulesAdapter, PgnMove, PgnMoveAnnotations } from './types';
+import { PgnAnnotationParser } from './PgnAnnotationParser';
+import type { RulesAdapter, PgnMove, PgnMoveAnnotations } from './types';
 
 export interface PgnMetadata {
   Event?: string;
@@ -377,7 +377,7 @@ export class PgnNotation {
     for (const line of lines) {
       if (line.startsWith('[')) {
         // Header line
-        const match = line.match(/\[(\w+)\s+\"([^\"]*)\"\]/);
+        const match = line.match(/\[(\w+)\s+"([^"]*)"\]/);
         if (match) {
           this.metadata[match[1]] = match[2];
         }

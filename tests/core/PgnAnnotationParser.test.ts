@@ -1,5 +1,5 @@
 import { PgnAnnotationParser } from '../../src/core/PgnAnnotationParser';
-import { Arrow, SquareHighlight } from '../../src/core/types';
+import type { Arrow, SquareHighlight } from '../../src/core/types';
 
 describe('PgnAnnotationParser', () => {
   describe('hasVisualAnnotations', () => {

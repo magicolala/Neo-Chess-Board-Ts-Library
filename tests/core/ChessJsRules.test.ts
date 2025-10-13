@@ -90,7 +90,7 @@ describe('ChessJsRules', () => {
         // We expect at least one of these to be true in an endgame
         expect(typeof isStalemate).toBe('boolean');
         expect(typeof isGameOver).toBe('boolean');
-      } catch (error) {
+      } catch (_error) {
         // If the position is invalid, just test that methods work
         expect(rules.isStalemate()).toBe(false);
         expect(rules.isGameOver()).toBe(false);
@@ -258,7 +258,7 @@ describe('ChessJsRules', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       try {
         rules.setFEN('8/8/8/8/8/8/8/8 w - - 0 1'); // No kings - invalid but caught
-      } catch (error) {
+      } catch (_error) {
         // Expected to throw, now test getCheckSquares with current valid position
         const checkSquares = rules.getCheckSquares();
         expect(Array.isArray(checkSquares)).toBe(true);

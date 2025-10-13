@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { NeoChessBoard, NeoChessRef } from '../src/react';
+import { NeoChessBoard } from '../src/react';
+import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
 import { ChessJsRules } from '../src/core/ChessJsRules';
 import type { PromotionRequest } from '../src/core/types';
@@ -608,7 +609,7 @@ export const App: React.FC = () => {
           <div className={styles.boardWrapper}>
             <div className={styles.boardLoading}>
               <DotLoader />
-              <div className={styles.loadingText}>Initialisation de l'échiquier...</div>
+              <div className={styles.loadingText}>Initialisation de l’échiquier...</div>
             </div>
           </div>
         </div>
@@ -741,7 +742,7 @@ export const App: React.FC = () => {
                   onDoubleClick={handleBoardResizeReset}
                   onKeyDown={handleBoardResizeKeyDown}
                   role="slider"
-                  aria-label="Redimensionner l'échiquier"
+                  aria-label="Redimensionner l’échiquier"
                   aria-valuemin={minBoardSize}
                   aria-valuemax={maxBoardSize}
                   aria-valuenow={boardSize}
@@ -801,7 +802,7 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>📈 Barre d'évaluation</h3>
+            <h3 className={styles.panelTitle}>📈 Barre d’évaluation</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.evaluationPanel}>
@@ -839,7 +840,7 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>⚙️ Options de l'échiquier</h3>
+            <h3 className={styles.panelTitle}>⚙️ Options de l’échiquier</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.optionGrid}>
@@ -1092,7 +1093,7 @@ export const App: React.FC = () => {
             {pgnError ? <div className={styles.pgnError}>{pgnError}</div> : null}
             <p className={styles.pgnHelper}>
               Astuce : importez un PGN contenant des commentaires <code>[%eval ...]</code> pour
-              alimenter la barre d'évaluation ou explorez les coups enregistrés.
+              alimenter la barre d’évaluation ou explorez les coups enregistrés.
             </p>
           </div>
         </div>
@@ -1110,7 +1111,7 @@ export const App: React.FC = () => {
                 setIsManualFenChange(true);
               }}
               aria-label="FEN position"
-              placeholder="Saisissez une position FEN pour définir l'échiquier..."
+              placeholder="Saisissez une position FEN pour définir l’échiquier..."
             />
           </div>
         </div>
@@ -1125,11 +1126,11 @@ export const App: React.FC = () => {
                 <strong>Comment tester les premoves:</strong>
               </p>
               <ul>
-                <li>Utilisez les positions d'exemple ci-dessous</li>
-                <li>Essayez de déplacer une pièce qui n'est pas de votre tour</li>
-                <li>Le coup sera stocké comme "premove" (flèche orange pointillée)</li>
+                <li>Utilisez les positions d’exemple ci-dessous</li>
+                <li>Essayez de déplacer une pièce qui n’est pas de votre tour</li>
+                <li>Le coup sera stocké comme « premove » (flèche orange pointillée)</li>
                 <li>
-                  Jouez un coup normal - le premove s'exécutera automatiquement s'il est légal
+                  Jouez un coup normal - le premove s’exécutera automatiquement s’il est légal
                 </li>
               </ul>
             </div>
@@ -1141,7 +1142,7 @@ export const App: React.FC = () => {
                   setIsManualFenChange(true);
                 }}
               >
-                Position d'ouverture
+                Position d’ouverture
               </button>
               <button
                 className={`${styles.button} ${styles.buttonPrimary}`}
@@ -1167,11 +1168,11 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>🧪 Exemples prêts à l'emploi</h3>
+            <h3 className={styles.panelTitle}>🧪 Exemples prêts à l’emploi</h3>
           </div>
           <div className={styles.panelContent}>
             <p className={styles.exampleIntro}>
-              Explorez les pages d'exemples hébergées pour voir NeoChessBoard en action dans
+              Explorez les pages d’exemples hébergées pour voir NeoChessBoard en action dans
               différents contextes.
             </p>
             <div className={styles.exampleLinks}>

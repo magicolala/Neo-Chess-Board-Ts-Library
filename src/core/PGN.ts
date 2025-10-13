@@ -53,7 +53,7 @@ export class PGNRecorder {
     return new Blob([pgn], { type: 'application/x-chess-pgn' });
   }
   suggestFilename() {
-    const safe = (s: string) => s.replace(/[^a-z0-9_\-]+/gi, '_');
+    const safe = (s: string) => s.replace(/[^a-z0-9_-]+/gi, '_');
     const d = (this.headers.Date || new Date().toISOString().slice(0, 10)).replace(/\./g, '-');
     return `${safe(this.headers.White || 'White')}_vs_${safe(this.headers.Black || 'Black')}_${d}.pgn`;
   }
