@@ -2,6 +2,11 @@ import { DrawingManager } from '../../src/core/DrawingManager';
 import type { Arrow, SquareHighlight, Premove } from '../../src/core/types';
 
 // Mock HTMLCanvasElement
+type MockCanvasElement = HTMLCanvasElement & {
+  getContext: jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
+  getBoundingClientRect: jest.Mock<ReturnType<HTMLCanvasElement['getBoundingClientRect']>>;
+};
+
 const mockCanvas = {
   width: 400,
   height: 400,
@@ -17,7 +22,7 @@ const mockCanvas = {
     y: 0,
     toJSON: () => ({}),
   })),
-} as any;
+} as unknown as MockCanvasElement;
 
 // Mock CanvasRenderingContext2D
 const mockContext = {
@@ -52,7 +57,7 @@ const mockContext = {
   setLineDash: jest.fn(),
   fillText: jest.fn(),
   measureText: jest.fn(() => ({ width: 10 })),
-} as any;
+} as unknown as jest.Mocked<CanvasRenderingContext2D>;
 
 describe('DrawingManager', () => {
   let drawingManager: DrawingManager;
@@ -420,7 +425,7 @@ describe('DrawingManager', () => {
       drawingManager.addHighlight('e4', 'green');
       // Manually set opacity to undefined to test the fallback
       const highlights = drawingManager.getHighlights();
-      highlights[0].opacity = undefined as any;
+      highlights[0].opacity = undefined;
 
       drawingManager.renderHighlights();
 

@@ -358,13 +358,13 @@ describe('App Component', () => {
 
   describe('PGN Recorder integration', () => {
     it('should handle PGN recorder with or without Chess.js', () => {
-      delete (window as any).Chess;
+      delete (window as typeof window & { Chess?: unknown }).Chess;
 
       expect(() => {
         render(<App />);
       }).not.toThrow();
 
-      (window as any).Chess = {};
+      (window as typeof window & { Chess?: unknown }).Chess = {};
 
       expect(() => {
         render(<App />);

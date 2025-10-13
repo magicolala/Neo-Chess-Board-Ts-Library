@@ -4,6 +4,7 @@ interface TestEvents {
   test: { message: string; value: number };
   empty: void;
   multiple: string;
+  [event: string]: unknown;
 }
 
 describe('EventBus', () => {

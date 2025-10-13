@@ -127,12 +127,14 @@ describe('PGNRecorder', () => {
   describe('File export', () => {
     beforeEach(() => {
       // Mock DOM methods for file download
-      global.document.createElement = jest.fn(() => ({
+      const anchorMock = {
         href: '',
         download: '',
         click: jest.fn(),
         style: {},
-      })) as any;
+      } as unknown as HTMLAnchorElement;
+
+      global.document.createElement = jest.fn(() => anchorMock);
 
       global.document.body.appendChild = jest.fn();
       global.document.body.removeChild = jest.fn();
@@ -180,7 +182,7 @@ describe('PGNRecorder', () => {
 
     it('should handle SSR environment gracefully', () => {
       const originalDocument = global.document;
-      delete (global as any).document;
+      Reflect.deleteProperty(globalThis as typeof globalThis & { document?: Document }, 'document');
 
       expect(() => {
         pgn.download('test.pgn');

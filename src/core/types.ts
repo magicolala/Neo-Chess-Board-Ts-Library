@@ -1,6 +1,7 @@
 import type { ThemeName } from './themes';
 import type { NeoChessBoard } from './NeoChessBoard';
 import type { EventBus } from './EventBus';
+import type { PgnNotation } from './PgnNotation';
 
 export type Square =
   `${'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'}${'1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}`;
@@ -71,6 +72,27 @@ export interface BoardEventMap {
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
   promotion: PromotionRequest;
+  [event: string]: unknown;
+}
+
+export type VerboseHistoryEntry = { san: string } & Record<string, unknown>;
+
+export interface ChessLike {
+  history(options?: { verbose?: boolean }): string[] | VerboseHistoryEntry[];
+  pgn?(): string;
+  isCheckmate(): boolean;
+  isStalemate(): boolean;
+  isThreefoldRepetition(): boolean;
+  isInsufficientMaterial(): boolean;
+  turn(): Color | string;
+}
+
+export interface RulesMoveResponse {
+  ok: boolean;
+  fen?: string;
+  state?: unknown;
+  move?: unknown;
+  reason?: string;
 }
 
 export interface RulesAdapter {
@@ -82,12 +104,15 @@ export interface RulesAdapter {
     from: Square;
     to: Square;
     promotion?: Move['promotion'];
-  }): { ok: boolean; fen?: string; state?: any; move?: any; reason?: string } | null | undefined;
+  }): RulesMoveResponse | null | undefined;
   reset?(): void;
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here
   header?: (h: Record<string, string>) => void; // chess.js header
-  history?(): any[]; // Move history for annotation purposes
+  history?(): string[]; // Move history for annotation purposes
+  toPgn?(includeHeaders?: boolean): string;
+  loadPgn?(pgn: string): boolean;
+  getPgnNotation?(): PgnNotation;
 }
 
 export interface Theme {

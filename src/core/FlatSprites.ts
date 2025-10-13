@@ -110,12 +110,12 @@ export class FlatSprites {
       ctx.quadraticCurveTo(s * 0.26, s * 0.6, s * 0.38, s * 0.62);
       ctx.closePath();
       ctx.fill();
-      const C = ctx.fillStyle;
+      const originalFillStyle = ctx.fillStyle;
       ctx.fillStyle = 'rgba(0,0,0,0.15)';
       ctx.beginPath();
       ctx.arc(s * 0.5, s * 0.36, s * 0.02, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = C as any;
+      ctx.fillStyle = originalFillStyle;
       base();
     }
     if (type === 'b') {

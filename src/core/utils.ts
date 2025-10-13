@@ -9,18 +9,32 @@ export function isWhitePiece(piece: string): boolean {
   return piece === piece.toUpperCase();
 }
 
+type FileChar = (typeof FILES)[number];
+type RankChar = (typeof RANKS)[number];
+
+export interface ParsedFENState {
+  board: (string | null)[][];
+  turn: Color;
+  castling: string;
+  ep: string | null;
+  halfmove: number;
+  fullmove: number;
+}
+
 export function sq(file: number, rank: number): Square {
   return (FILES[file] + RANKS[rank]) as Square;
 }
 
 export function sqToFR(square: Square): { f: number; r: number } {
+  const file = square[0] as FileChar;
+  const rank = square[1] as RankChar;
   return {
-    f: FILES.indexOf(square[0] as any),
-    r: RANKS.indexOf(square[1] as any),
+    f: FILES.indexOf(file),
+    r: RANKS.indexOf(rank),
   };
 }
 
-export function parseFEN(fen: string) {
+export function parseFEN(fen: string): ParsedFENState {
   const parts = fen.split(' ');
   const board: (string | null)[][] = Array(8)
     .fill(null)

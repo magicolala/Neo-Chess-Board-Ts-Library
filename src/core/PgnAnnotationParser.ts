@@ -102,7 +102,7 @@ export class PgnAnnotationParser {
           if (PgnAnnotationParser.isValidSquare(square)) {
             highlights.push({
               square,
-              type: 'circle' as any, // Cast to avoid type issues
+              type: 'circle',
               color: PgnAnnotationParser.colorToHex(colorCode),
             });
           }
@@ -167,7 +167,10 @@ export class PgnAnnotationParser {
 
     if (highlights.length > 0) {
       const circleSpecs = highlights
-        .map((circle) => `${PgnAnnotationParser.hexToColor((circle as any).color)}${circle.square}`)
+        .map(
+          (circle) =>
+            `${PgnAnnotationParser.hexToColor(circle.color ?? COLOR_MAP['R'])}${circle.square}`,
+        )
         .join(',');
       parts.push(`%csl ${circleSpecs}`);
     }

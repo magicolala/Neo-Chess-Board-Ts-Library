@@ -159,7 +159,7 @@ describe('Themes', () => {
       expect(normalized.light).toBe(customTheme.light);
       expect(normalized.pieceStroke).toBe(THEMES.classic.pieceStroke);
       expect(normalized.pieceHighlight).toBe(THEMES.classic.pieceHighlight);
-      expect(resolveTheme(CUSTOM_THEME_KEY as any)).toBe(THEMES[CUSTOM_THEME_KEY]);
+      expect(resolveTheme(CUSTOM_THEME_KEY as unknown as ThemeName)).toBe(THEMES[CUSTOM_THEME_KEY]);
 
       const serialized = JSON.parse(JSON.stringify(THEMES[CUSTOM_THEME_KEY]));
       expect(serialized.light).toBe(customTheme.light);

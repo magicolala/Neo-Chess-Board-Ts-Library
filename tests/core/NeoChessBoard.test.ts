@@ -1,15 +1,46 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
-import type { Arrow, SquareHighlight, PromotionRequest } from '../../src/core/types';
+import type { Arrow, SquareHighlight, PromotionRequest, Square } from '../../src/core/types';
+
+type MockCanvasElement = HTMLCanvasElement & {
+  getContext: jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
+  getBoundingClientRect: jest.Mock<ReturnType<HTMLCanvasElement['getBoundingClientRect']>>;
+};
+
+const getPrivate = <T>(instance: NeoChessBoard, key: string): T =>
+  Reflect.get(instance as unknown as Record<string, unknown>, key) as T;
+
+const getOrientation = (instance: NeoChessBoard): 'white' | 'black' =>
+  getPrivate<'white' | 'black'>(instance, 'orientation');
+
+const getSoundEnabled = (instance: NeoChessBoard): boolean =>
+  getPrivate<boolean>(instance, 'soundEnabled');
+
+const getBoardState = (instance: NeoChessBoard): { turn: 'w' | 'b' } =>
+  getPrivate<{ turn: 'w' | 'b' }>(instance, 'state');
+
+const getMethodHost = (instance: NeoChessBoard): Record<string, (...args: unknown[]) => unknown> =>
+  instance as unknown as Record<string, (...args: unknown[]) => unknown>;
+
+type AudioMock = {
+  play: jest.Mock<Promise<void>, []>;
+  addEventListener: jest.Mock<void, [string, () => void]>;
+  preload: string;
+  volume: number;
+  currentTime: number;
+};
+
+type AudioConstructor = new (src?: string) => HTMLAudioElement;
 
 let originalCreateElement: typeof document.createElement;
+let headAppendChildSpy: jest.SpyInstance<Node, [node: Node]> | undefined;
 
-const createMockElement = (tag: string) => {
+const createMockElement = (tag: string): HTMLElement => {
   const baseCreate = originalCreateElement ?? Document.prototype.createElement;
   const element = baseCreate.call(document, tag) as HTMLElement;
 
   if (tag === 'canvas') {
-    const canvas = element as HTMLCanvasElement;
+    const canvas = element as MockCanvasElement;
     canvas.getBoundingClientRect = jest.fn(() => ({
       width: 400,
       height: 400,
@@ -22,7 +53,7 @@ const createMockElement = (tag: string) => {
       toJSON: () => {},
     }));
 
-    canvas.getContext = jest.fn(() => ({
+    const contextMock = {
       fillRect: jest.fn(),
       clearRect: jest.fn(),
       beginPath: jest.fn(),
@@ -54,12 +85,14 @@ const createMockElement = (tag: string) => {
       globalCompositeOperation: 'source-over',
       font: '10px sans-serif',
       canvas,
-    })) as any;
+    } as unknown as jest.Mocked<CanvasRenderingContext2D>;
 
-    return canvas as any;
+    canvas.getContext = jest.fn(() => contextMock) as unknown as MockCanvasElement['getContext'];
+
+    return canvas;
   }
 
-  return element as any;
+  return element;
 };
 
 describe('NeoChessBoard Core', () => {
@@ -78,10 +111,14 @@ describe('NeoChessBoard Core', () => {
 
     // Mock document.head for style injection
     if (!document.head) {
-      (document as any).head = {
-        appendChild: jest.fn(),
-      };
+      Object.defineProperty(document, 'head', {
+        value: document.createElement('head'),
+        configurable: true,
+      });
     }
+    headAppendChildSpy = jest
+      .spyOn(document.head!, 'appendChild')
+      .mockImplementation((node) => node);
 
     // Initialize board with container and options
     board = new NeoChessBoard(container, {
@@ -96,6 +133,8 @@ describe('NeoChessBoard Core', () => {
     if (originalCreateElement) {
       document.createElement = originalCreateElement;
     }
+
+    headAppendChildSpy?.mockRestore();
 
     if (board && typeof board.destroy === 'function') {
       board.destroy();
@@ -184,12 +223,12 @@ describe('NeoChessBoard Core', () => {
 
     it('should follow side to move when autoFlip is enabled', () => {
       const autoBoard = new NeoChessBoard(container, { autoFlip: true });
-      expect((autoBoard as any).orientation).toBe('white');
+      expect(getOrientation(autoBoard)).toBe('white');
 
       const blackTurnFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
       autoBoard.setFEN(blackTurnFen, true);
 
-      expect((autoBoard as any).orientation).toBe('black');
+      expect(getOrientation(autoBoard)).toBe('black');
       autoBoard.destroy();
     });
 
@@ -198,10 +237,10 @@ describe('NeoChessBoard Core', () => {
       const blackTurnFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
 
       manualBoard.setFEN(blackTurnFen, true);
-      expect((manualBoard as any).orientation).toBe('white');
+      expect(getOrientation(manualBoard)).toBe('white');
 
       manualBoard.setAutoFlip(true);
-      expect((manualBoard as any).orientation).toBe('black');
+      expect(getOrientation(manualBoard)).toBe('black');
       manualBoard.destroy();
     });
 
@@ -214,7 +253,7 @@ describe('NeoChessBoard Core', () => {
 
   describe('Custom piece sets', () => {
     it('should draw custom sprites when a piece set is provided', async () => {
-      const ctx = (board as any).ctxP;
+      const ctx = getPrivate<CanvasRenderingContext2D>(board, 'ctxP');
       const drawImageMock = ctx.drawImage as jest.Mock;
       drawImageMock.mockClear();
 
@@ -231,7 +270,7 @@ describe('NeoChessBoard Core', () => {
     });
 
     it('should revert to default sprites when the piece set is cleared', async () => {
-      const ctx = (board as any).ctxP;
+      const ctx = getPrivate<CanvasRenderingContext2D>(board, 'ctxP');
       const drawImageMock = ctx.drawImage as jest.Mock;
       const customCanvas = document.createElement('canvas');
 
@@ -245,7 +284,10 @@ describe('NeoChessBoard Core', () => {
 
       await board.setPieceSet(undefined);
 
-      const spriteSheet = (board as any).sprites.getSheet();
+      const spriteSheet = getPrivate<{ getSheet(): HTMLCanvasElement | OffscreenCanvas }>(
+        board,
+        'sprites',
+      ).getSheet();
       const usedDefaultSprite = drawImageMock.mock.calls.some((call) => call[0] === spriteSheet);
       expect(usedDefaultSprite).toBe(true);
     });
@@ -272,12 +314,12 @@ describe('NeoChessBoard Core', () => {
       });
 
       const initSpy = jest
-        .spyOn(silentBoard as any, '_initializeSound')
+        .spyOn(getMethodHost(silentBoard), '_initializeSound')
         .mockImplementation(() => {});
 
       silentBoard.setSoundEnabled(true);
 
-      expect((silentBoard as any).soundEnabled).toBe(true);
+      expect(getSoundEnabled(silentBoard)).toBe(true);
       expect(initSpy).toHaveBeenCalledTimes(1);
 
       initSpy.mockRestore();
@@ -285,14 +327,14 @@ describe('NeoChessBoard Core', () => {
     });
 
     describe('per-color move sounds', () => {
-      let originalAudio: typeof Audio | undefined;
-      let audioInstances: Record<string, any>;
+      let originalAudio: AudioConstructor | undefined;
+      let audioInstances: Record<string, AudioMock>;
 
       beforeEach(() => {
         audioInstances = {};
-        originalAudio = (global as any).Audio;
-        (global as any).Audio = jest.fn().mockImplementation((src: string) => {
-          const audio = {
+        originalAudio = globalThis.Audio as AudioConstructor | undefined;
+        const audioFactory = jest.fn((src: string) => {
+          const audio: AudioMock = {
             play: jest.fn().mockResolvedValue(undefined),
             addEventListener: jest.fn(),
             preload: 'auto',
@@ -300,12 +342,20 @@ describe('NeoChessBoard Core', () => {
             currentTime: 0,
           };
           audioInstances[src] = audio;
-          return audio;
+          return audio as unknown as HTMLAudioElement;
         });
+        globalThis.Audio = audioFactory as unknown as AudioConstructor;
       });
 
       afterEach(() => {
-        (global as any).Audio = originalAudio;
+        if (originalAudio) {
+          globalThis.Audio = originalAudio;
+        } else {
+          Reflect.deleteProperty(
+            globalThis as typeof globalThis & { Audio?: AudioConstructor },
+            'Audio',
+          );
+        }
       });
 
       it('should play color-specific sounds when provided', () => {
@@ -316,6 +366,7 @@ describe('NeoChessBoard Core', () => {
             black: 'black-sound.mp3',
           },
         });
+        const soundMethods = getMethodHost(soundBoard);
 
         const whiteSound = audioInstances['white-sound.mp3'];
         const blackSound = audioInstances['black-sound.mp3'];
@@ -324,16 +375,16 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         whiteSound.currentTime = 2;
-        (soundBoard as any).state.turn = 'b';
-        (soundBoard as any)._playMoveSound();
+        getBoardState(soundBoard).turn = 'b';
+        soundMethods._playMoveSound();
 
         expect(whiteSound.play).toHaveBeenCalledTimes(1);
         expect(whiteSound.currentTime).toBe(0);
         expect(blackSound.play).not.toHaveBeenCalled();
 
         blackSound.currentTime = 3;
-        (soundBoard as any).state.turn = 'w';
-        (soundBoard as any)._playMoveSound();
+        getBoardState(soundBoard).turn = 'w';
+        soundMethods._playMoveSound();
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
@@ -349,6 +400,7 @@ describe('NeoChessBoard Core', () => {
             black: 'black-only.mp3',
           },
         });
+        const soundMethods = getMethodHost(soundBoard);
 
         const defaultSound = audioInstances['default-sound.mp3'];
         const blackSound = audioInstances['black-only.mp3'];
@@ -357,15 +409,15 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         defaultSound.currentTime = 5;
-        (soundBoard as any).state.turn = 'b';
-        (soundBoard as any)._playMoveSound();
+        getBoardState(soundBoard).turn = 'b';
+        soundMethods._playMoveSound();
 
         expect(defaultSound.play).toHaveBeenCalledTimes(1);
         expect(defaultSound.currentTime).toBe(0);
 
         blackSound.currentTime = 4;
-        (soundBoard as any).state.turn = 'w';
-        (soundBoard as any)._playMoveSound();
+        getBoardState(soundBoard).turn = 'w';
+        soundMethods._playMoveSound();
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
@@ -380,13 +432,13 @@ describe('NeoChessBoard Core', () => {
 
       board.setShowArrows(false);
 
-      expect((board as any).showArrows).toBe(false);
+      expect(getPrivate<boolean>(board, 'showArrows')).toBe(false);
       expect(renderSpy).toHaveBeenCalled();
 
       renderSpy.mockClear();
       board.setShowArrows(true);
 
-      expect((board as any).showArrows).toBe(true);
+      expect(getPrivate<boolean>(board, 'showArrows')).toBe(true);
       expect(renderSpy).toHaveBeenCalled();
 
       renderSpy.mockRestore();
@@ -398,7 +450,7 @@ describe('NeoChessBoard Core', () => {
 
       board.setShowHighlights(false);
 
-      expect((board as any).showHighlights).toBe(false);
+      expect(getPrivate<boolean>(board, 'showHighlights')).toBe(false);
       expect(renderSpy).toHaveBeenCalled();
 
       renderSpy.mockRestore();
@@ -410,7 +462,7 @@ describe('NeoChessBoard Core', () => {
 
       board.setHighlightLegal(false);
 
-      expect((board as any).highlightLegal).toBe(false);
+      expect(getPrivate<boolean>(board, 'highlightLegal')).toBe(false);
       expect(renderSpy).toHaveBeenCalled();
 
       renderSpy.mockRestore();
@@ -424,7 +476,7 @@ describe('NeoChessBoard Core', () => {
 
       board.setShowSquareNames(true);
 
-      expect((board as any).showSquareNames).toBe(true);
+      expect(getPrivate<boolean>(board, 'showSquareNames')).toBe(true);
       expect(showSquareNamesSpy).toHaveBeenCalledWith(true);
       expect(renderSpy).toHaveBeenCalled();
 
@@ -440,7 +492,7 @@ describe('NeoChessBoard Core', () => {
 
       board.setAllowPremoves(false);
 
-      expect((board as any).allowPremoves).toBe(false);
+      expect(getPrivate<boolean>(board, 'allowPremoves')).toBe(false);
       expect(clearSpy).toHaveBeenCalled();
       expect(renderSpy).toHaveBeenCalled();
 
@@ -508,7 +560,7 @@ describe('NeoChessBoard Core', () => {
         to: 'c3',
         color: '#123456',
         knightMove: true,
-      } as any);
+      });
 
       expect(fullArrowSpy).toHaveBeenCalledWith({
         from: 'b1',
@@ -622,8 +674,12 @@ describe('NeoChessBoard Core', () => {
     let overlayRect: DOMRect;
 
     const createPointerEventForSquare = (button: number, squareName: string) => {
-      const { x, y } = (board as any)._sqToXY(squareName);
-      const squareSize = (board as any).square as number;
+      const toCoordinates = getPrivate<(square: Square) => { x: number; y: number }>(
+        board,
+        '_sqToXY',
+      ).bind(board);
+      const { x, y } = toCoordinates(squareName as Square);
+      const squareSize = getPrivate<number>(board, 'square');
       const canvasX = x + squareSize / 2;
       const canvasY = y + squareSize / 2;
 
@@ -644,10 +700,13 @@ describe('NeoChessBoard Core', () => {
     };
 
     beforeEach(() => {
-      overlay = (board as any).cOverlay as HTMLCanvasElement;
-      onPointerDown = (board as any)._onPointerDown as (event: PointerEvent) => void;
-      onPointerMove = (board as any)._onPointerMove as (event: PointerEvent) => void;
-      onPointerUp = (board as any)._onPointerUp as (event: PointerEvent) => void;
+      overlay = getPrivate<HTMLCanvasElement>(board, 'cOverlay');
+      const pointerDown = getPrivate<(event: PointerEvent) => void>(board, '_onPointerDown');
+      const pointerMove = getPrivate<(event: PointerEvent) => void>(board, '_onPointerMove');
+      const pointerUp = getPrivate<(event: PointerEvent) => void>(board, '_onPointerUp');
+      onPointerDown = pointerDown.bind(board);
+      onPointerMove = pointerMove.bind(board);
+      onPointerUp = pointerUp.bind(board);
       overlayRect = overlay.getBoundingClientRect();
     });
 
@@ -660,7 +719,7 @@ describe('NeoChessBoard Core', () => {
 
       const leftDown = createPointerEventForSquare(0, 'e2');
       onPointerDown(leftDown.event);
-      expect((board as any)._dragging).not.toBeNull();
+      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
 
       onPointerMove(createPointerEventForSquare(0, 'e4').event);
 
@@ -668,10 +727,10 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(rightDown.event);
 
       expect(rightDown.preventDefault).toHaveBeenCalled();
-      expect((board as any)._dragging).toBeNull();
-      expect((board as any)._selected).toBeNull();
-      expect((board as any)._legalCached).toBeNull();
-      expect((board as any)._hoverSq).toBeNull();
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
+      expect(getPrivate<unknown>(board, '_legalCached')).toBeNull();
+      expect(getPrivate<unknown>(board, '_hoverSq')).toBeNull();
 
       onPointerUp(createPointerEventForSquare(2, 'e4').event);
 
@@ -693,8 +752,8 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(sourceClick.event);
       onPointerUp(sourceClick.event);
 
-      expect((board as any)._selected).toBe('e2');
-      expect((board as any)._dragging).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBe('e2');
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
 
       const destinationClick = createPointerEventForSquare(0, 'e4');
       onPointerDown(destinationClick.event);
@@ -704,8 +763,8 @@ describe('NeoChessBoard Core', () => {
         'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
       );
       expect(moveSpy).toHaveBeenCalledWith(expect.objectContaining({ from: 'e2', to: 'e4' }));
-      expect((board as any)._selected).toBeNull();
-      expect((board as any)._legalCached).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
+      expect(getPrivate<unknown>(board, '_legalCached')).toBeNull();
     });
 
     it('keeps the current selection when clicking an opposing piece for a capture with premoves enabled', () => {
@@ -717,21 +776,22 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(selectSource.event);
       onPointerUp(selectSource.event);
 
-      expect((board as any)._selected).toBe('e4');
-      expect((board as any)._dragging).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
 
       const targetClick = createPointerEventForSquare(0, 'f5');
       onPointerDown(targetClick.event);
 
-      expect((board as any)._selected).toBe('e4');
-      expect((board as any)._dragging).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
 
       onPointerUp(targetClick.event);
 
       expect(moveSpy).toHaveBeenCalledWith(expect.objectContaining({ from: 'e4', to: 'f5' }));
-      expect((board as any)._pieceAt('f5')).toBe('P');
-      expect((board as any)._pieceAt('e4')).toBeNull();
-      expect((board as any)._selected).toBeNull();
+      const pieceAt = getPrivate<(square: Square) => string | null>(board, '_pieceAt').bind(board);
+      expect(pieceAt('f5')).toBe('P');
+      expect(pieceAt('e4')).toBeNull();
+      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
     });
 
     it('still allows selecting a friendly piece after selecting an opposing one first', () => {
@@ -741,13 +801,13 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(enemyClick.event);
       onPointerUp(enemyClick.event);
 
-      expect((board as any)._selected).toBe('f2');
+      expect(getPrivate<unknown>(board, '_selected')).toBe('f2');
 
       const friendlyClick = createPointerEventForSquare(0, 'e4');
       onPointerDown(friendlyClick.event);
       onPointerUp(friendlyClick.event);
 
-      expect((board as any)._selected).toBe('e4');
+      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
     });
   });
 
