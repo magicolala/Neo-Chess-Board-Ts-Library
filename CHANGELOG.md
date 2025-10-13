@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2025-10-14
 
 ### Added
 
@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-flip option to keep the active side at the bottom of the board
 - Square coordinates now remain anchored to the bottom and left edges regardless of orientation
 - Configurable move sounds per side to allow different audio for white and black moves
+
+## [Unreleased]
+
+### Changed
 
 ## [0.1.0] - 2024-12-31
 
