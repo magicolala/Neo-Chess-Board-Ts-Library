@@ -1,4 +1,4 @@
-import { Chess, SQUARES, type Color } from 'chess.js';
+import { Chess, SQUARES, type Color, type Move as ChessMove, type VerboseMove } from 'chess.js';
 import type { RulesAdapter, Move } from './types';
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
@@ -87,8 +87,8 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir tous les coups légaux depuis une case
    */
   movesFrom(square: string): Move[] {
-    const moves = this.chess.moves({ square: square as any, verbose: true });
-    return (moves as any[]).map((move) => ({
+    const moves = this.chess.moves({ square: square as any, verbose: true }) as VerboseMove[];
+    return moves.map((move) => ({
       from: move.from,
       to: move.to,
       promotion: move.promotion === 'k' ? undefined : move.promotion,
@@ -102,8 +102,8 @@ export class ChessJsRules implements RulesAdapter {
    * Obtenir tous les coups légaux
    */
   getAllMoves(): Move[] {
-    const moves = this.chess.moves({ verbose: true });
-    return (moves as any[]).map((move) => ({
+    const moves = this.chess.moves({ verbose: true }) as VerboseMove[];
+    return moves.map((move) => ({
       from: move.from,
       to: move.to,
       promotion: move.promotion === 'k' ? undefined : move.promotion,
@@ -204,7 +204,7 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Obtenir l'historique détaillé des coups
    */
-  getHistory(): any[] {
+  getHistory(): ChessMove[] {
     return this.chess.history({ verbose: true });
   }
 
@@ -342,8 +342,8 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Obtenir des informations sur le dernier coup joué
    */
-  getLastMove(): any | null {
-    const history = this.chess.history({ verbose: true });
+  getLastMove(): ChessMove | null {
+    const history = this.chess.history({ verbose: true }) as ChessMove[];
     return history.length > 0 ? history[history.length - 1] : null;
   }
 

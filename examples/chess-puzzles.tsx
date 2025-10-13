@@ -96,7 +96,7 @@ function usePuzzleGame() {
   const checkMove = useCallback(
     (move: Move) => {
       const expectedMove = currentPuzzle.solution[solutionIndex];
-      const moveNotation = move.san || `${move.from}-${move.to}`;
+      const moveNotation = move.san || `${move.from}${move.to}`;
 
       setAttempts((prev) => prev + 1);
 

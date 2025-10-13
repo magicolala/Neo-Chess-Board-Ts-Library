@@ -231,7 +231,7 @@ export const App: React.FC = () => {
       }
     }
 
-    const verboseHistory = chessRules.getHistory().map((move: any) => ({
+    const verboseHistory = chessRules.getHistory().map((move) => ({
       from: move.from,
       to: move.to,
       promotion: move.promotion,
