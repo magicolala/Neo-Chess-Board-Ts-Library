@@ -474,7 +474,7 @@ interface NeoChessBoardProps {
 #### Usage
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function App() {
   const handleMove = (move) => {
@@ -724,7 +724,7 @@ Get the opposite color.
 ### Using Themes
 
 ```typescript path=null start=null
-import { registerTheme, THEMES } from 'neochessboard';
+import { registerTheme, THEMES } from '@magicolala/neo-chess-board';
 
 // Use a built-in preset by name
 board.setTheme('classic');

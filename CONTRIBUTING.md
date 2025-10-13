@@ -9,8 +9,8 @@ We welcome contributions from everyone, whether you're fixing bugs, adding featu
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/yourusername/neochessboard.git
-   cd neochessboard
+   git clone https://github.com/magicolala/Neo-Chess-Board-Ts-Library.git
+   cd Neo-Chess-Board-Ts-Library
    ```
 3. **Install dependencies**:
    ```bash
@@ -31,7 +31,7 @@ We welcome contributions from everyone, whether you're fixing bugs, adding featu
 ### Project Structure
 
 ```
-neochessboard/
+Neo-Chess-Board-Ts-Library/
 ├── src/                 # Core library source code
 │   ├── core/           # Main chess board logic
 │   ├── events/         # Event handling system

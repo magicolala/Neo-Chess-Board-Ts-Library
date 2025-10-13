@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v0.1.0-blue?style=for-the-badge&logo=chess&logoColor=white)
+![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v1.0.0-blue?style=for-the-badge&logo=chess&logoColor=white)
 
-[![npm version](https://img.shields.io/npm/v/neochessboard?style=flat-square)](https://www.npmjs.com/package/neochessboard)
+[![GitHub Package](https://img.shields.io/static/v1?label=GitHub%20Packages&message=v1.0.0&color=0A66C2&style=flat-square)](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/pkgs/npm/neo-chess-board)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -61,18 +61,18 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 ### Installation
 
 ```bash
-npm install neochessboard
+npm install @magicolala/neo-chess-board
 # or
-yarn add neochessboard
+yarn add @magicolala/neo-chess-board
 # or
-pnpm add neochessboard
+pnpm add @magicolala/neo-chess-board
 ```
 
 ### React Usage
 
 ```tsx
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 function ChessApp() {
   const [fen, setFen] = useState();
@@ -93,7 +93,7 @@ function ChessApp() {
 ### Vanilla JavaScript
 
 ```javascript
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(document.getElementById('board'), {
   theme: 'classic',
@@ -128,7 +128,7 @@ To define your own presets, call `registerTheme('sunset', customTheme)` once dur
 Prefer wooden Staunton pieces, minimalist line art, or even emoji? Pass a `pieceSet` option to the board (or React component) and supply the sprites you want to use. Each entry can be an imported image/URL, an `HTMLCanvasElement`, or any other [`CanvasImageSource`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage#parameters) instance.
 
 ```tsx
-import type { PieceSet } from 'neochessboard';
+import type { PieceSet } from '@magicolala/neo-chess-board';
 import whiteKing from './pieces/wK.svg';
 import blackKing from './pieces/bK.svg';
 import whitePawn from './pieces/wP.png';
@@ -174,7 +174,7 @@ Looking for a faster way to design palettes? The project ships with an interacti
 Once exported you can register the theme in your app:
 
 ```ts
-import { registerTheme } from 'neochessboard';
+import { registerTheme } from '@magicolala/neo-chess-board';
 
 const aurora = {
   light: '#F5F3FF',
@@ -247,7 +247,7 @@ the user has selected a piece or `cancel()` to abort. While the chooser is open 
 `board.previewPromotionPiece(piece)` and inspect the pending request via `board.getPendingPromotion()`.
 
 ```ts
-import { NeoChessBoard, createPromotionDialogExtension } from 'neochessboard';
+import { NeoChessBoard, createPromotionDialogExtension } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(document.getElementById('board')!, {
   onPromotionRequired(request) {
@@ -267,7 +267,7 @@ const currentFEN = board.getPosition();
 #### PGN Recording & Annotations
 
 ```typescript
-import { PgnNotation } from 'neochessboard';
+import { PgnNotation } from '@magicolala/neo-chess-board';
 
 const pgn = new PgnNotation();
 
@@ -309,7 +309,7 @@ pgn.downloadPgn('annotated_game.pgn');
 
 ```tsx
 import React, { useState, useMemo } from 'react';
-import { NeoChessBoard, PGNRecorder } from 'neochessboard';
+import { NeoChessBoard, PGNRecorder } from '@magicolala/neo-chess-board';
 
 function ChessGame() {
   const [fen, setFen] = useState();
@@ -357,7 +357,7 @@ function ChessGame() {
 ### Custom Themes
 
 ```typescript
-import { NeoChessBoard, THEMES, registerTheme } from 'neochessboard';
+import { NeoChessBoard, THEMES, registerTheme } from '@magicolala/neo-chess-board';
 
 // Extend an existing preset
 const customTheme = {
@@ -382,7 +382,7 @@ board.setTheme('sunset');
 
 ```typescript
 import { Chess } from 'chess.js';
-import { NeoChessBoard, ChessJsRules } from 'neochessboard';
+import { NeoChessBoard, ChessJsRules } from '@magicolala/neo-chess-board';
 
 const game = new Chess();
 const rules = new ChessJsRules();
@@ -418,7 +418,7 @@ console.log(pgnWithAnnotations);
 ## 🏗️ Architecture
 
 ```
-neochessboard/
+Neo-Chess-Board-Ts-Library/
 ├── 🎯 Core Engine
 │   ├── EventBus          # Type-safe event system
 │   ├── LightRules        # Built-in chess rules
@@ -531,7 +531,7 @@ and keyboard users can follow along without relying on the canvas.
 ### Usage
 
 ```ts
-import { NeoChessBoard, createAccessibilityExtension } from 'neochessboard';
+import { NeoChessBoard, createAccessibilityExtension } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(document.getElementById('board')!, {
   extensions: [
