@@ -32,6 +32,10 @@ import type {
   PieceSprite,
   PieceSpriteSource,
   PieceSpriteImage,
+  BoardEventMap,
+  Extension,
+  ExtensionConfig,
+  ExtensionContext,
 } from './types';
 
 interface BoardState {
@@ -43,12 +47,6 @@ interface BoardState {
   fullmove: number;
 }
 
-interface BoardEvents {
-  move: { from: Square; to: Square; fen: string };
-  illegal: { from: Square; to: Square; reason: string };
-  update: { fen: string };
-}
-
 interface ResolvedPieceSprite {
   image: PieceSpriteImage;
   scale: number;
@@ -56,11 +54,21 @@ interface ResolvedPieceSprite {
   offsetY: number;
 }
 
+interface ExtensionState {
+  id: string;
+  config: ExtensionConfig<any>;
+  context: ExtensionContext<any>;
+  instance: Extension<any>;
+  disposers: Array<() => void>;
+  initialized: boolean;
+  destroyed: boolean;
+}
+
 export class NeoChessBoard {
   /**
    * Event bus for emitting and listening to board events.
    */
-  public bus = new EventBus<BoardEvents>();
+  public bus = new EventBus<BoardEventMap>();
   /**
    * The root HTML element where the board is rendered.
    */
@@ -199,6 +207,10 @@ export class NeoChessBoard {
    */
   private _pieceSetRaw?: PieceSet;
 
+  private extensionStates: ExtensionState[] = [];
+
+  private readonly initialOptions: BoardOptions;
+
   // Audio elements
   /**
    * Audio element for playing move sounds.
@@ -260,6 +272,7 @@ export class NeoChessBoard {
    */
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
+    this.initialOptions = { ...options };
     const initialTheme = options.theme ?? ('classic' as ThemeName);
     this.theme = resolveTheme(initialTheme);
     this.orientation = options.orientation || 'white';
@@ -289,6 +302,8 @@ export class NeoChessBoard {
     }
     this.state = parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(true);
+
+    this._initializeExtensions(options.extensions);
 
     // Build DOM and setup
     this._buildDOM();
@@ -385,8 +400,20 @@ export class NeoChessBoard {
    * @param handler The callback function to execute when the event is emitted.
    * @returns A function to unsubscribe the event handler.
    */
-  public on<K extends keyof BoardEvents>(event: K, handler: (payload: BoardEvents[K]) => void) {
+  public on<K extends keyof BoardEventMap>(event: K, handler: (payload: BoardEventMap[K]) => void) {
     return this.bus.on(event, handler);
+  }
+
+  public registerExtensionPoint<K extends keyof BoardEventMap>(
+    extensionId: string,
+    event: K,
+    handler: (payload: BoardEventMap[K]) => void,
+  ) {
+    const state = this.extensionStates.find((item) => item.id === extensionId);
+    if (!state) {
+      throw new Error(`No extension with id "${extensionId}" is registered on this board.`);
+    }
+    return this._registerExtensionHandler(state, event, handler);
   }
 
   /**
@@ -394,6 +421,7 @@ export class NeoChessBoard {
    */
   public destroy() {
     this._removeEvents();
+    this._disposeExtensions();
     this.root.innerHTML = '';
   }
 
@@ -495,7 +523,9 @@ export class NeoChessBoard {
     } else {
       this._animateTo(this.state, old);
     }
-    this.bus.emit('update', { fen: this.getPosition() });
+    const updatePayload = { fen: this.getPosition() } as BoardEventMap['update'];
+    this.bus.emit('update', updatePayload);
+    this._notifyExtensionEvent('onUpdate', updatePayload);
   }
 
   // ---- DOM & render ----
@@ -536,6 +566,8 @@ export class NeoChessBoard {
       style.textContent = `.ncb-root{display:block;max-width:100%;aspect-ratio:auto 606/606;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);} canvas{image-rendering:optimizeQuality;aspect-ratio:auto 606/606;}`;
       document.head.appendChild(style);
     }
+
+    this._invokeExtensionHook('onInit');
   }
   /**
    * Resizes the board canvases based on the root element's dimensions and device pixel ratio.
@@ -580,9 +612,11 @@ export class NeoChessBoard {
    * This method should be called whenever the board state or visual settings change.
    */
   renderAll() {
+    this._invokeExtensionHook('onBeforeRender');
     this._drawBoard();
     this._drawPieces();
     this._drawOverlay();
+    this._invokeExtensionHook('onAfterRender');
   }
 
   /**
@@ -968,7 +1002,9 @@ export class NeoChessBoard {
       this._playMoveSound();
 
       this._animateTo(next, old);
-      this.bus.emit('move', { from, to, fen });
+      const movePayload = { from, to, fen } as BoardEventMap['move'];
+      this.bus.emit('move', movePayload);
+      this._notifyExtensionEvent('onMove', movePayload);
 
       setTimeout(() => {
         this._executePremoveIfValid();
@@ -981,7 +1017,13 @@ export class NeoChessBoard {
     this._legalCached = null;
     this._hoverSq = null;
     this.renderAll();
-    this.bus.emit('illegal', { from, to, reason: (legal as any)?.reason || 'illegal' });
+    const illegalPayload = {
+      from,
+      to,
+      reason: (legal as any)?.reason || 'illegal',
+    } as BoardEventMap['illegal'];
+    this.bus.emit('illegal', illegalPayload);
+    this._notifyExtensionEvent('onIllegalMove', illegalPayload);
     return true;
   }
 
@@ -1599,7 +1641,13 @@ export class NeoChessBoard {
         this._animateTo(newState, oldState);
 
         // Emit the move event
-        this.bus.emit('move', { from: premove.from, to: premove.to, fen: newFen });
+        const premovePayload = {
+          from: premove.from,
+          to: premove.to,
+          fen: newFen,
+        } as BoardEventMap['move'];
+        this.bus.emit('move', premovePayload);
+        this._notifyExtensionEvent('onMove', premovePayload);
       }, 150); // Slightly longer delay to let the opponent's move animation complete
     } else {
       // The premove is not legal, clear it silently
@@ -1607,6 +1655,123 @@ export class NeoChessBoard {
       this._premove = null; // Compatibility with old premove system
       this.renderAll();
     }
+  }
+
+  private _initializeExtensions(configs: ExtensionConfig[] | undefined) {
+    this.extensionStates = [];
+    if (!configs || configs.length === 0) {
+      return;
+    }
+
+    configs.forEach((config, index) => {
+      const id = config.id ?? `extension-${index + 1}`;
+      const state: ExtensionState = {
+        id,
+        config,
+        context: undefined as unknown as ExtensionContext<any>,
+        instance: {},
+        disposers: [],
+        initialized: false,
+        destroyed: false,
+      };
+      this.extensionStates.push(state);
+      const options = (config.options ?? {}) as unknown;
+      state.context = this._createExtensionContext(state, options);
+      try {
+        const instance = config.create(state.context);
+        state.instance = (instance ?? {}) as Extension<any>;
+      } catch (error) {
+        console.error(`[NeoChessBoard] Failed to create extension "${id}".`, error);
+        state.instance = {} as Extension<any>;
+      }
+    });
+  }
+
+  private _createExtensionContext<TOptions>(
+    state: ExtensionState,
+    options: TOptions,
+  ): ExtensionContext<TOptions> {
+    return {
+      id: state.id,
+      board: this,
+      bus: this.bus,
+      options,
+      initialOptions: this.initialOptions,
+      registerExtensionPoint: (event, handler) =>
+        this._registerExtensionHandler(state, event, handler),
+    };
+  }
+
+  private _registerExtensionHandler<K extends keyof BoardEventMap>(
+    state: ExtensionState,
+    event: K,
+    handler: (payload: BoardEventMap[K]) => void,
+  ) {
+    const off = this.bus.on(event, handler);
+    state.disposers.push(off);
+    return () => {
+      off();
+      state.disposers = state.disposers.filter((candidate) => candidate !== off);
+    };
+  }
+
+  private _callExtensionHook(state: ExtensionState, hook: keyof Extension<any>, ...args: any[]) {
+    const fn = state.instance[hook];
+    if (typeof fn !== 'function') {
+      return;
+    }
+    try {
+      (fn as any).call(state.instance, state.context, ...args);
+    } catch (error) {
+      console.error(`Extension "${state.id}" hook ${String(hook)} failed.`, error);
+    }
+  }
+
+  private _invokeExtensionHook(hook: 'onInit' | 'onBeforeRender' | 'onAfterRender') {
+    for (const state of this.extensionStates) {
+      if (state.destroyed) continue;
+      if (hook === 'onInit') {
+        if (state.initialized) {
+          continue;
+        }
+        state.initialized = true;
+      }
+      this._callExtensionHook(state, hook);
+    }
+  }
+
+  private _notifyExtensionEvent(
+    hook: 'onMove' | 'onIllegalMove' | 'onUpdate',
+    payload: BoardEventMap[keyof BoardEventMap],
+  ) {
+    for (const state of this.extensionStates) {
+      if (state.destroyed) continue;
+      this._callExtensionHook(state, hook, payload);
+    }
+  }
+
+  private _runExtensionDisposers(state: ExtensionState) {
+    while (state.disposers.length) {
+      const disposer = state.disposers.pop();
+      if (!disposer) continue;
+      try {
+        disposer();
+      } catch (error) {
+        console.error(`Extension "${state.id}" cleanup failed.`, error);
+      }
+    }
+  }
+
+  private _disposeExtensions() {
+    for (const state of this.extensionStates) {
+      if (state.destroyed) {
+        continue;
+      }
+      state.destroyed = true;
+      this._callExtensionHook(state, 'onDestroy');
+      this._runExtensionDisposers(state);
+    }
+    this.extensionStates = [];
   }
 
   // ---- New feature methods ----

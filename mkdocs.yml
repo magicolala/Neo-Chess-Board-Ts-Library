@@ -38,6 +38,7 @@ nav:
   - Examples: examples.md
   - PGN Features: pgn-features.md
   - Themes: themes.md
+  - Extensions: extensions.md
   - Clean Code: clean-code.md
 
 markdown_extensions:

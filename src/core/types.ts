@@ -1,4 +1,6 @@
 import type { ThemeName } from './themes';
+import type { NeoChessBoard } from './NeoChessBoard';
+import type { EventBus } from './EventBus';
 
 export type Square =
   `${'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'}${'1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}`;
@@ -43,6 +45,12 @@ export interface DrawingState {
   arrows: Arrow[];
   highlights: SquareHighlight[];
   premove?: Premove;
+}
+
+export interface BoardEventMap {
+  move: { from: Square; to: Square; fen: string };
+  illegal: { from: Square; to: Square; reason: string };
+  update: { fen: string };
 }
 
 export interface RulesAdapter {
@@ -126,6 +134,35 @@ export interface BoardOptions {
   autoFlip?: boolean;
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
+  extensions?: ExtensionConfig[];
+}
+
+export interface ExtensionContext<TOptions = unknown> {
+  readonly id: string;
+  readonly board: NeoChessBoard;
+  readonly bus: EventBus<BoardEventMap>;
+  readonly options: TOptions;
+  readonly initialOptions: Readonly<BoardOptions>;
+  registerExtensionPoint<K extends keyof BoardEventMap>(
+    event: K,
+    handler: (payload: BoardEventMap[K]) => void,
+  ): () => void;
+}
+
+export interface Extension<TOptions = unknown> {
+  onInit?(context: ExtensionContext<TOptions>): void;
+  onBeforeRender?(context: ExtensionContext<TOptions>): void;
+  onAfterRender?(context: ExtensionContext<TOptions>): void;
+  onMove?(context: ExtensionContext<TOptions>, payload: BoardEventMap['move']): void;
+  onIllegalMove?(context: ExtensionContext<TOptions>, payload: BoardEventMap['illegal']): void;
+  onUpdate?(context: ExtensionContext<TOptions>, payload: BoardEventMap['update']): void;
+  onDestroy?(context: ExtensionContext<TOptions>): void;
+}
+
+export interface ExtensionConfig<TOptions = unknown> {
+  id?: string;
+  options?: TOptions;
+  create(context: ExtensionContext<TOptions>): Extension<TOptions> | void;
 }
 
 export interface PgnMoveAnnotations {
