@@ -788,8 +788,7 @@ describe('NeoChessBoard Core', () => {
         expect.arrayContaining([expect.objectContaining({ square: 'h7' })]),
       );
 
-      const piece = (board as any)._pieceAt('e2');
-      (board as any)._attemptMove('e2', 'e4', piece);
+      board.attemptMove('e2', 'e4');
 
       expect(
         board.drawingManager.getArrows().some((entry) => entry.from === 'e2' && entry.to === 'e4'),

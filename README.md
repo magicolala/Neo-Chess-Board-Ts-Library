@@ -454,7 +454,17 @@ class NeoChessBoard {
 
   // Position Management
   getPosition(): string;
+  getCurrentFEN(): string; // Alias for current position
   setPosition(fen: string, immediate?: boolean): void;
+  getMoveHistory(): string[]; // SAN strings when supported by the rules adapter
+  submitMove(notation: string): boolean; // Coordinate notation helper (e.g. "e2e4")
+
+  // Board Introspection
+  getRootElement(): HTMLElement;
+  getOrientation(): 'white' | 'black';
+  getTurn(): 'w' | 'b';
+  getPieceAt(square: Square): string | null;
+  attemptMove(from: Square, to: Square, options?: { promotion?: Move['promotion'] }): boolean;
 
   // Event System
   on<T>(event: string, handler: (data: T) => void): () => void;
@@ -467,6 +477,46 @@ class NeoChessBoard {
   destroy(): void;
 }
 ```
+
+## ♿ Accessibility
+
+The library ships with an optional `AccessibilityExtension` that mirrors the board state in accessible formats so screen-reader
+and keyboard users can follow along without relying on the canvas.
+
+### What it provides
+
+- A live-updating table that exposes every square as a focusable control with `aria-label`s describing the occupying piece.
+- A synchronized braille/text representation of the position and a FEN readout that both update after every move or FEN change.
+- A move history list sourced from `board.getMoveHistory()` so textual updates stay in sync with piece animations.
+- An optional move form that accepts coordinate notation (for example, `e2e4`) and forwards it through `board.submitMove()`.
+- Keyboard navigation with the arrow keys and <kbd>Enter</kbd>/<kbd>Space</kbd> for picking origin and destination squares. When
+  `enableKeyboard` is disabled, focus falls back to the canvas interactions.
+
+### Usage
+
+```ts
+import { NeoChessBoard, createAccessibilityExtension } from 'neochessboard';
+
+const board = new NeoChessBoard(document.getElementById('board')!, {
+  extensions: [
+    createAccessibilityExtension({
+      regionLabel: 'Accessible chessboard controls',
+      enableKeyboard: true,
+    }),
+  ],
+});
+
+// Text-only integrations can drive the position without the mouse.
+board.submitMove('e2e4');
+console.log(board.getCurrentFEN());
+console.log(board.getMoveHistory());
+```
+
+#### Configuration
+
+- `container`: supply a custom element to host the controls; otherwise the extension appends itself beneath the board.
+- `enableKeyboard`: toggle the arrow-key/Enter navigation helpers (defaults to `true`).
+- `regionLabel`, `boardLabel`, `moveInputLabel`, `livePoliteness`: customize the ARIA copy announced to assistive tech.
 
 ## 🧪 Testing
 

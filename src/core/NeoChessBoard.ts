@@ -325,6 +325,75 @@ export class NeoChessBoard {
   }
 
   /**
+   * Returns the root element that contains the canvases and extensions.
+   */
+  public getRootElement(): HTMLElement {
+    return this.root;
+  }
+
+  /**
+   * Returns the board orientation.
+   */
+  public getOrientation(): 'white' | 'black' {
+    return this.orientation;
+  }
+
+  /**
+   * Returns the current side to move.
+   */
+  public getTurn(): 'w' | 'b' {
+    return this.state.turn;
+  }
+
+  /**
+   * Returns the piece occupying the provided square if any.
+   */
+  public getPieceAt(square: Square): string | null {
+    return this._pieceAt(square) ?? null;
+  }
+
+  /**
+   * Returns the current position as FEN (alias for getPosition for clarity).
+   */
+  public getCurrentFEN(): string {
+    return this.rules.getFEN();
+  }
+
+  /**
+   * Returns the move history provided by the active rules adapter.
+   */
+  public getMoveHistory(): string[] {
+    if (typeof this.rules.history === 'function') {
+      return this.rules.history();
+    }
+    return [];
+  }
+
+  /**
+   * Attempts to play a move described in coordinate notation (e.g. "e2e4" or "e7 e5").
+   * @param notation Coordinate move notation string.
+   * @returns True when the move was accepted (executed immediately or stored as premove).
+   */
+  public submitMove(notation: string): boolean {
+    const cleaned = notation.trim();
+    if (!cleaned) {
+      return false;
+    }
+
+    const match = cleaned.match(
+      /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/,
+    );
+    if (!match) {
+      return false;
+    }
+
+    const from = match[1] as Square;
+    const to = match[2] as Square;
+    const promotion = (match[3]?.toLowerCase() as Move['promotion']) ?? undefined;
+    return this.attemptMove(from, to, { promotion });
+  }
+
+  /**
    * Sets the position of the board using a FEN string.
    * @param fen The FEN string to set the board to.
    * @param immediate If true, the board will update immediately without animation.
@@ -956,10 +1025,18 @@ export class NeoChessBoard {
       return;
     }
 
-    this._attemptMove(from, target, piece);
+    this.attemptMove(from, target);
   }
 
-  private _attemptMove(from: Square, to: Square, piece: string): boolean {
+  public attemptMove(
+    from: Square,
+    to: Square,
+    options: { promotion?: Move['promotion'] } = {},
+  ): boolean {
+    const piece = this._pieceAt(from);
+    if (!piece) {
+      return false;
+    }
     const side = isWhitePiece(piece) ? 'w' : 'b';
 
     if (from === to) {
@@ -983,7 +1060,7 @@ export class NeoChessBoard {
       return true;
     }
 
-    const legal = this.rules.move({ from, to });
+    const legal = this.rules.move({ from, to, promotion: options.promotion });
     if (legal && (legal as any).ok) {
       const fen = this.rules.getFEN();
       const old = this.state;
@@ -1024,7 +1101,7 @@ export class NeoChessBoard {
     } as BoardEventMap['illegal'];
     this.bus.emit('illegal', illegalPayload);
     this._notifyExtensionEvent('onIllegalMove', illegalPayload);
-    return true;
+    return false;
   }
 
   // ---- interaction ----
@@ -1185,7 +1262,6 @@ export class NeoChessBoard {
 
       const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
       const from = this._dragging.from;
-      const piece = this._dragging.piece;
 
       this._dragging = null;
       this._hoverSq = null;
@@ -1202,7 +1278,7 @@ export class NeoChessBoard {
         return;
       }
 
-      this._attemptMove(from, drop, piece);
+      this.attemptMove(from, drop);
     };
 
     // Keyboard event handler

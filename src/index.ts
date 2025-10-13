@@ -9,3 +9,4 @@ export * from './core/PGN';
 export * from './core/utils';
 export * from './core/NeoChessBoard';
 export * from './extensions/ArrowHighlightExtension';
+export * from './core/extensions/AccessibilityExtension';
