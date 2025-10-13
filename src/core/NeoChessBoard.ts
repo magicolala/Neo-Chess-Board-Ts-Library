@@ -1095,9 +1095,9 @@ export class NeoChessBoard {
     return sq(ff, rr);
   }
 
-  private _pieceAt(square: Square): string | undefined {
+  private _pieceAt(square: Square): string | null {
     const { f, r } = sqToFR(square);
-    return this.state.board[r][f] ?? undefined;
+    return this.state.board[r][f] ?? null;
   }
 
   // ============================================================================
@@ -1815,10 +1815,16 @@ export class NeoChessBoard {
     if (!defaultUrl && !whiteUrl && !blackUrl) return;
 
     if (whiteUrl) {
-      this.moveSounds.white = this._createAudioElement(whiteUrl);
+      const whiteSound = this._createAudioElement(whiteUrl);
+      if (whiteSound) {
+        this.moveSounds.white = whiteSound;
+      }
     }
     if (blackUrl) {
-      this.moveSounds.black = this._createAudioElement(blackUrl);
+      const blackSound = this._createAudioElement(blackUrl);
+      if (blackSound) {
+        this.moveSounds.black = blackSound;
+      }
     }
     if (defaultUrl) {
       this.moveSound = this._createAudioElement(defaultUrl);
@@ -1868,9 +1874,12 @@ export class NeoChessBoard {
   // ============================================================================
 
   private _shouldClearPieceSet(pieceSet?: PieceSet | null): boolean {
+    const hasExistingPieces =
+      Boolean(this._pieceSetRaw) || Object.keys(this.customPieceSprites).length > 0;
+
     return (
       (!pieceSet || !pieceSet.pieces || Object.keys(pieceSet.pieces).length === 0) &&
-      (this._pieceSetRaw || Object.keys(this.customPieceSprites).length > 0)
+      hasExistingPieces
     );
   }
 
