@@ -11,18 +11,22 @@ Ce projet profite d'une base de code compacte pour garantir des performances et 
 ## Principes à respecter
 
 ### Supprimer le code mort dès qu'il apparaît
+
 - Retirer les fichiers de sauvegarde, les fonctions et les constantes non référencées dès qu'elles deviennent inutiles.
 - Préférer des fonctions utilitaires réellement partagées plutôt que de dupliquer des fragments dans plusieurs modules.
 
 ### Garder des imports explicites
+
 - Importer uniquement les symboles nécessaires.
 - Utiliser des imports de types (`import type { ... }`) pour éviter un code embarqué inutile lors du bundling.
 
 ### Stabiliser l'API publique
+
 - Éviter les ré-exportations circulaires qui compliquent la résolution des modules.
 - Centraliser les exports dans `src/index.ts` et vérifier qu'ils reflètent l'API réellement supportée.
 
 ### Documenter les intentions
+
 - Ajouter des commentaires courts et ciblés seulement lorsqu'une implémentation est complexe ou liée à un contexte métier.
 - Mettre à jour la documentation (comme ce guide) lorsqu'un changement de structure impacte les contributions futures.
 

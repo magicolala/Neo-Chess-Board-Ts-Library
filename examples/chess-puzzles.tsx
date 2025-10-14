@@ -270,7 +270,7 @@ export function ChessPuzzleApp() {
           {/* Chess board */}
           <div>
             <NeoChessBoard
-              position={puzzle.currentPuzzle.fen}
+              fen={puzzle.currentPuzzle.fen}
               theme={puzzle.currentPuzzle.theme}
               orientation="white"
               showCoordinates={true}
@@ -737,12 +737,7 @@ export function PuzzleCreator() {
         {/* Board preview */}
         <div>
           <h3>Puzzle Preview</h3>
-          <NeoChessBoard
-            position={customPuzzle.fen}
-            theme="light"
-            orientation="white"
-            draggable={false}
-          />
+          <NeoChessBoard fen={customPuzzle.fen} theme="light" orientation="white" />
         </div>
 
         {/* Puzzle form */}

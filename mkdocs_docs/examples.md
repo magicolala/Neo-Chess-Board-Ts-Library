@@ -1,8 +1,11 @@
 # Usage Examples
+
 This document provides comprehensive examples for using Neo Chess Board in various scenarios.
 
 ## 🔗 Live Example Pages
+
 Experience the library directly in your browser with these hosted demos:
+
 - 🌐 [Vanilla JS Starter](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html) – Standalone HTML setup featuring theme switching, move history, and PGN export helpers.
 - ♞ [Chess.js Integration](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Demonstrates the ChessJsRules adapter synchronized with the chess.js engine.
 - 📈 [PGN + Evaluation HUD](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Import annotated games, auto-sync the orientation, and follow the evaluation bar.
@@ -13,6 +16,7 @@ Experience the library directly in your browser with these hosted demos:
 ## 🚀 Quick Start Examples
 
 ### Basic Vanilla JavaScript Setup
+
 ```typescript
 import { NeoChessBoard } from '@magicolala/neo-chess-board';
 // Get canvas element
@@ -28,6 +32,7 @@ board.loadPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
 ```
 
 ### Basic React Setup
+
 ```typescript
 import React, { useRef, useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -73,6 +78,7 @@ function ChessGame() {
 ## 🎮 Interactive Examples
 
 ### Game with Move History
+
 ```typescript
 import React, { useCallback, useMemo, useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -162,6 +168,7 @@ function ChessGameWithHistory() {
 ```
 
 ### Puzzle Mode
+
 ```typescript
 import React, { useEffect, useRef, useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -256,6 +263,7 @@ function ChessPuzzle() {
 ```
 
 ### Multi-Board Analysis
+
 ```typescript
 import React, { useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -306,6 +314,7 @@ function MultiboardAnalysis() {
 ## 🎯 Advanced Usage
 
 ### Custom Event Handling
+
 ```typescript
 import { NeoChessBoard, ChessJsRules } from '@magicolala/neo-chess-board';
 
@@ -381,6 +390,7 @@ function endGame(result: string) {
 ---
 
 ### PGN Import/Export
+
 ```typescript
 import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
@@ -473,6 +483,7 @@ function downloadPGN(content: string, filename: string) {
 ---
 
 ### Theme Switcher Component
+
 ```typescript
 import React, { useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -511,6 +522,7 @@ function ThemeSwitcher() {
 ## 🏆 Complete Game Implementation
 
 ### Full Featured Chess Game
+
 ```typescript
 import React, { useMemo, useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -715,6 +727,7 @@ function FullChessGame() {
 ---
 
 ### Position Setup Tool
+
 ```typescript
 import React, { useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
