@@ -161,6 +161,70 @@ export function useNeoChessBoard({
     board.setAutoFlip(autoFlip);
   }, []);
 
+  const applyAnimationDuration = useCallback((board: Chessboard, duration: number | undefined) => {
+    if (typeof duration === 'undefined') {
+      return;
+    }
+    board.setAnimationDuration(duration);
+  }, []);
+
+  const applyShowAnimations = useCallback(
+    (board: Chessboard, show: BoardOptions['showAnimations']) => {
+      if (typeof show === 'undefined') {
+        return;
+      }
+      board.setShowAnimations(show);
+    },
+    [],
+  );
+
+  const applyDraggingEnabled = useCallback(
+    (board: Chessboard, allow: BoardOptions['allowDragging']) => {
+      if (typeof allow === 'undefined') {
+        return;
+      }
+      board.setDraggingEnabled(allow);
+    },
+    [],
+  );
+
+  const applyAllowDragOffBoard = useCallback(
+    (board: Chessboard, allow: BoardOptions['allowDragOffBoard']) => {
+      if (typeof allow === 'undefined') {
+        return;
+      }
+      board.setAllowDragOffBoard(allow);
+    },
+    [],
+  );
+
+  const applyAutoScroll = useCallback(
+    (board: Chessboard, allow: BoardOptions['allowAutoScroll']) => {
+      if (typeof allow === 'undefined') {
+        return;
+      }
+      board.setAutoScrollEnabled(allow);
+    },
+    [],
+  );
+
+  const applyCanDragPiece = useCallback(
+    (board: Chessboard, evaluator: BoardOptions['canDragPiece']) => {
+      board.setCanDragPiece(evaluator);
+    },
+    [],
+  );
+
+  const applyDragActivationDistance = useCallback(
+    (board: Chessboard, distance: BoardOptions['dragActivationDistance']) => {
+      if (typeof distance === 'undefined') {
+        return;
+      }
+      board.setDragActivationDistance(distance);
+    },
+    [],
+  );
+
   const applyOrientation = useCallback(
     (board: Chessboard, orientation: BoardOptions['orientation']) => {
       if (!orientation) {
@@ -224,6 +288,14 @@ export function useNeoChessBoard({
     soundEnabled,
     soundUrls,
     autoFlip,
+    allowAutoScroll,
+    allowDragging,
+    allowDragOffBoard,
+    canDragPiece,
+    dragActivationDistance,
+    showAnimations,
+    animationMs,
+    animationDurationInMs,
     orientation,
     showArrows,
     showHighlights,
@@ -246,6 +318,56 @@ export function useNeoChessBoard({
   );
   useBoardOption(boardRef, isReady, soundUrls, hasSoundUrls, applySoundUrls);
   useBoardOption(boardRef, isReady, autoFlip, typeof autoFlip !== 'undefined', applyAutoFlip);
+  const hasAnimationMs = Object.prototype.hasOwnProperty.call(resolvedOptions, 'animationMs');
+  const hasAnimationDuration = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'animationDurationInMs',
+  );
+  const animationDuration = hasAnimationDuration ? animationDurationInMs : animationMs;
+  useBoardOption(
+    boardRef,
+    isReady,
+    animationDuration,
+    hasAnimationDuration || hasAnimationMs,
+    applyAnimationDuration,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    showAnimations,
+    typeof showAnimations !== 'undefined',
+    applyShowAnimations,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    allowDragging,
+    typeof allowDragging !== 'undefined',
+    applyDraggingEnabled,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    allowDragOffBoard,
+    typeof allowDragOffBoard !== 'undefined',
+    applyAllowDragOffBoard,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    allowAutoScroll,
+    typeof allowAutoScroll !== 'undefined',
+    applyAutoScroll,
+  );
+  const hasCanDragPiece = Object.prototype.hasOwnProperty.call(resolvedOptions, 'canDragPiece');
+  useBoardOption(boardRef, isReady, canDragPiece, hasCanDragPiece, applyCanDragPiece);
+  useBoardOption(
+    boardRef,
+    isReady,
+    dragActivationDistance,
+    typeof dragActivationDistance !== 'undefined',
+    applyDragActivationDistance,
+  );
   useBoardOption(
     boardRef,
     isReady,

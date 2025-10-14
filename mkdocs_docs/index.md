@@ -162,8 +162,15 @@ interface NeoChessProps {
   orientation?: 'white' | 'black'; // Board orientation
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
-  animationMs?: number; // Animation duration
+  animationMs?: number; // Animation duration (legacy alias)
+  animationDurationInMs?: number; // Preferred animation duration alias
+  showAnimations?: boolean; // Toggle move animations
   highlightLegal?: boolean; // Highlight legal moves
+  allowDragging?: boolean; // Enable pointer dragging
+  dragActivationDistance?: number; // Pixels required before a drag starts
+  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
+  allowAutoScroll?: boolean; // Auto-scroll parent containers near edges
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Filter draggable pieces
   onMove?: (move) => void; // Move event handler
   onIllegal?: (attempt) => void; // Illegal move handler
   style?: React.CSSProperties; // CSS styling
@@ -385,7 +392,14 @@ interface NeoChessProps {
   // Interaction
   interactive?: boolean; // Enable piece dragging
   highlightLegal?: boolean; // Show legal move dots
-  animationMs?: number; // Move animation speed
+  animationMs?: number; // Move animation speed (legacy alias)
+  animationDurationInMs?: number; // Preferred animation duration alias
+  showAnimations?: boolean; // Toggle move animations
+  allowDragging?: boolean; // Enable pointer dragging interactions
+  dragActivationDistance?: number; // Minimum pointer travel before dragging starts
+  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
+  allowAutoScroll?: boolean; // Auto-scroll scrollable ancestors near edges
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Control drag eligibility
 
   // Event Handlers
   onMove?: (move: MoveEvent) => void;

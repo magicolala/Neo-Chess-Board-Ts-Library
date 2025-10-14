@@ -21,6 +21,13 @@ const mockBoard = {
   setAllowPremoves: jest.fn(),
   setHighlightLegal: jest.fn(),
   setShowSquareNames: jest.fn(),
+  setAnimationDuration: jest.fn(),
+  setShowAnimations: jest.fn(),
+  setDraggingEnabled: jest.fn(),
+  setAllowDragOffBoard: jest.fn(),
+  setAutoScrollEnabled: jest.fn(),
+  setCanDragPiece: jest.fn(),
+  setDragActivationDistance: jest.fn(),
   setFEN: jest.fn((fen: string) => {
     // Mock setFEN to update currentFen
     currentFen = fen;
@@ -201,6 +208,8 @@ describe('NeoChessBoard React Component', () => {
 
   describe('Dynamic options updates', () => {
     it('should forward option changes to the board instance', () => {
+      const canDragPiece = jest.fn();
+      const nextCanDragPiece = jest.fn();
       const { rerender } = render(
         <NeoChessBoard
           soundEnabled={false}
@@ -211,6 +220,13 @@ describe('NeoChessBoard React Component', () => {
           highlightLegal={false}
           showSquareNames={false}
           autoFlip={false}
+          allowAutoScroll={false}
+          allowDragging={false}
+          allowDragOffBoard={false}
+          showAnimations={false}
+          dragActivationDistance={10}
+          animationDurationInMs={200}
+          canDragPiece={canDragPiece}
         />,
       );
 
@@ -223,6 +239,13 @@ describe('NeoChessBoard React Component', () => {
         mockBoard.setAllowPremoves,
         mockBoard.setHighlightLegal,
         mockBoard.setShowSquareNames,
+        mockBoard.setAutoScrollEnabled,
+        mockBoard.setDraggingEnabled,
+        mockBoard.setAllowDragOffBoard,
+        mockBoard.setShowAnimations,
+        mockBoard.setDragActivationDistance,
+        mockBoard.setAnimationDuration,
+        mockBoard.setCanDragPiece,
       ].forEach((fn) => fn.mockClear());
 
       rerender(
@@ -235,6 +258,13 @@ describe('NeoChessBoard React Component', () => {
           highlightLegal
           showSquareNames
           autoFlip
+          allowAutoScroll
+          allowDragging
+          allowDragOffBoard
+          showAnimations
+          dragActivationDistance={4}
+          animationDurationInMs={350}
+          canDragPiece={nextCanDragPiece}
         />,
       );
 
@@ -246,6 +276,13 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.setAllowPremoves).toHaveBeenCalledWith(true);
       expect(mockBoard.setHighlightLegal).toHaveBeenCalledWith(true);
       expect(mockBoard.setShowSquareNames).toHaveBeenCalledWith(true);
+      expect(mockBoard.setAutoScrollEnabled).toHaveBeenCalledWith(true);
+      expect(mockBoard.setDraggingEnabled).toHaveBeenCalledWith(true);
+      expect(mockBoard.setAllowDragOffBoard).toHaveBeenCalledWith(true);
+      expect(mockBoard.setShowAnimations).toHaveBeenCalledWith(true);
+      expect(mockBoard.setDragActivationDistance).toHaveBeenCalledWith(4);
+      expect(mockBoard.setAnimationDuration).toHaveBeenCalledWith(350);
+      expect(mockBoard.setCanDragPiece).toHaveBeenCalledWith(nextCanDragPiece);
     });
 
     it('should call applyTheme when theme prop is a custom object', () => {

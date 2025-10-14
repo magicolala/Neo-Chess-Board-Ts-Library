@@ -214,8 +214,15 @@ interface NeoChessProps {
   autoFlip?: boolean; // Follow the side to move automatically
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
-  animationMs?: number; // Animation duration
+  animationMs?: number; // Animation duration (legacy alias)
+  animationDurationInMs?: number; // Preferred animation duration alias
+  showAnimations?: boolean; // Toggle move animation rendering
   highlightLegal?: boolean; // Highlight legal moves
+  allowDragging?: boolean; // Enable pointer dragging on the board
+  dragActivationDistance?: number; // Pixels required before starting a drag
+  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
+  allowAutoScroll?: boolean; // Auto-scroll container when dragging near edges
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Filter draggable pieces
   onMove?: (move) => void; // Move event handler
   onIllegal?: (attempt) => void; // Illegal move handler
   onPromotionRequired?: (request) => void; // Optional promotion resolver
@@ -477,7 +484,14 @@ interface NeoChessProps {
   // Interaction
   interactive?: boolean; // Enable piece dragging
   highlightLegal?: boolean; // Show legal move dots
-  animationMs?: number; // Move animation speed
+  animationMs?: number; // Move animation speed (legacy alias)
+  animationDurationInMs?: number; // Preferred animation duration alias
+  showAnimations?: boolean; // Toggle move animations on/off
+  allowDragging?: boolean; // Enable pointer dragging interactions
+  dragActivationDistance?: number; // Minimum pointer travel before dragging starts
+  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
+  allowAutoScroll?: boolean; // Auto-scroll scrollable ancestors during drag
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Control drag eligibility
 
   // Event Handlers
   onMove?: (move: MoveEvent) => void;
