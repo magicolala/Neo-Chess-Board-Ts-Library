@@ -1,15 +1,5 @@
 # 🏁 Neo Chess Board
 
-<div align="center">
-
-**A modern, lightweight, and beautiful chess board library built with Canvas and TypeScript**
-
-_Perfect for creating chess applications with Chessbook-like feel and performance_
-
-[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/)
-
-</div>
-
 ---
 
 ## ✨ Features
