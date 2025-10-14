@@ -103,11 +103,10 @@ Inspect the currently pending promotion request, if any.
 
 The board emits events through the EventBus system:
 
-- `move` - When a move is made
-- `check` - When a king is in check
-- `checkmate` - When checkmate occurs
-- `stalemate` - When stalemate occurs
-- `promotion` - Fired with a `PromotionRequest` when a pawn reaches the back rank and a piece choice is required
+- `move` – Fired every time a legal move is executed. The payload contains the `from` and `to` squares as well as the resulting FEN string.
+- `illegal` – Triggered when a move attempt is rejected. The payload exposes the attempted squares together with a `reason` string.
+- `update` – Emitted whenever the board state changes (for example after a move, a FEN load, or a rewind) with the latest FEN.
+- `promotion` – Fired with a `PromotionRequest` whenever a pawn reaches the back rank and the board needs a promotion choice.
 
 ### EventBus
 
@@ -455,42 +454,71 @@ React wrapper component for the core chess board.
 #### Props
 
 ```typescript
-interface NeoChessBoardProps {
-  position?: string; // FEN string
-  orientation?: 'white' | 'black';
-  theme?: ThemeName | Theme;
-  draggable?: boolean;
-  showCoordinates?: boolean;
-  onMove?: (move: Move) => void;
-  onCheck?: () => void;
-  onCheckmate?: () => void;
-  onStalemate?: () => void;
-  onPromotionRequired?: (request: PromotionRequest) => void;
+interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'> {
+  fen?: string;
   className?: string;
   style?: React.CSSProperties;
+  onMove?: (event: { from: Square; to: Square; fen: string }) => void;
+  onIllegal?: (event: { from: Square; to: Square; reason: string }) => void;
+  onUpdate?: (event: { fen: string }) => void;
 }
 ```
+
+The component accepts every interactive option defined on [`BoardOptions`](#boardoptions) — such as `interactive`, `theme`, `allowPremoves`, `showHighlights`, `showArrows`, `soundEnabled`, or `autoFlip` — in addition to the props above. Use a [`ref`](https://react.dev/reference/react/forwardRef) to access the imperative helpers exposed through `NeoChessRef` (`getBoard`, `addArrow`, `clearHighlights`, ...).
 
 #### Usage
 
 ```typescript path=null start=null
-import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import React, { useMemo, useRef, useState } from 'react';
+import { NeoChessBoard, type NeoChessRef } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules, START_FEN } from '@magicolala/neo-chess-board';
+
+const INITIAL_FEN = START_FEN; // 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 function App() {
-  const handleMove = (move) => {
-    console.log('Move made:', move);
+  const [fen, setFen] = useState(INITIAL_FEN);
+  const [status, setStatus] = useState<'playing' | 'check' | 'checkmate' | 'stalemate'>('playing');
+  const boardRef = useRef<NeoChessRef>(null);
+  const chessRules = useMemo(() => new ChessJsRules(INITIAL_FEN), []);
+
+  const syncStatus = (nextFen: string) => {
+    chessRules.setFEN(nextFen);
+    if (chessRules.isCheckmate()) {
+      setStatus('checkmate');
+    } else if (chessRules.isStalemate()) {
+      setStatus('stalemate');
+    } else if (chessRules.inCheck()) {
+      setStatus('check');
+    } else {
+      setStatus('playing');
+    }
   };
 
   return (
     <NeoChessBoard
-      theme="dark"
-      orientation="white"
-      draggable={true}
-      onMove={handleMove}
+      ref={boardRef}
+      fen={fen}
+      theme="neo"
+      interactive
+      allowPremoves
+      showCoordinates
+      onMove={(event) => {
+        setFen(event.fen);
+        syncStatus(event.fen);
+      }}
+      onIllegal={(event) => {
+        console.warn('Illegal move', event.reason);
+      }}
+      onUpdate={(event) => {
+        setFen(event.fen);
+        syncStatus(event.fen);
+      }}
     />
   );
 }
 ```
+
+Because the board itself only emits the `move`, `illegal`, `update`, and `promotion` events, combine it with `ChessJsRules` (or another rules adapter) if you need richer game-state insights such as detecting checks or stalemates.
 
 ## Type Definitions
 
