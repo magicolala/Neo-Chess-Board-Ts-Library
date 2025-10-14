@@ -43,7 +43,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - ⚛️ React hooks ready
 - 📋 Advanced PGN Management (import/export with annotations)
 - 🎨 Customizable themes
-- 🧪 100% tested
+- 🧪 Jest setup for automated testing
 
 🎪 **Advanced Features**
 
@@ -439,23 +439,15 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board ships with **320 Jest tests across 17 suites**, covering the core engine, React bindings, and the live demo.
-Explore the `tests/README.md` file for the full test map and `tests/RESULTS.md` for the latest run summary.
+Neo Chess Board ships with a Jest-based test environment that covers the core engine, React bindings, and demo scenarios. The suite lives under [`tests/`](tests/), and [`tests/README.md`](tests/README.md) describes the folder structure together with guidance for adding additional cases. Running the suite locally will also refresh helper artifacts such as `tests/RESULTS.md` and the coverage output.
 
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
+npm test              # Run the full suite once
+npm run test:watch    # Re-run affected tests on file changes
+npm run test:coverage # Produce an updated coverage summary + HTML report
 ```
 
-**Coverage**: 95%+ across all modules
-
-- ✅ Chess rules validation (LightRules & ChessJsRules)
-- ✅ React component lifecycle & event hooks
-- ✅ Auto-flip orientation and coordinate layout
-- ✅ PGN import/export with advanced annotations
-- ✅ Theme and sprite pipelines
-- ✅ Canvas rendering overlays (arrows, highlights, premoves)
+> ℹ️ Coverage numbers depend on your latest local execution. After running the commands above you can open `coverage/lcov-report/index.html` for detailed metrics or commit an updated summary to `tests/RESULTS.md` if you capture a new campaign.
 
 ## 🚀 Performance
 
