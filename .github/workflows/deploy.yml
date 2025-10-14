@@ -80,7 +80,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install Python dependencies
-        run: pip install mkdocs mkdocs-material
+        run: pip install mkdocs mkdocs-material mkdocs-include-markdown-plugin
 
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
@@ -155,7 +155,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install Python dependencies
-        run: pip install mkdocs mkdocs-material
+        run: pip install mkdocs mkdocs-material mkdocs-include-markdown-plugin
 
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
