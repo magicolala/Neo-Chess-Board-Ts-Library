@@ -157,6 +157,26 @@ describe('NeoChessBoard Core', () => {
       expect(fen).toBeDefined();
       expect(typeof fen).toBe('string');
     });
+
+    it('applies animationDurationInMs when provided', () => {
+      board.destroy();
+      board = new NeoChessBoard(container, { animationDurationInMs: 150 });
+
+      expect(getPrivate<number>(board, 'animationMs')).toBe(150);
+    });
+
+    it('configures pointer bindings based on allowDragging option', () => {
+      board.destroy();
+      board = new NeoChessBoard(container, { allowDragging: false });
+
+      expect(getPrivate<boolean>(board, '_globalPointerEventsAttached')).toBe(false);
+      expect(getPrivate<boolean>(board, '_localPointerEventsAttached')).toBe(true);
+
+      board.setDraggingEnabled(true);
+
+      expect(getPrivate<boolean>(board, '_globalPointerEventsAttached')).toBe(true);
+      expect(getPrivate<boolean>(board, '_localPointerEventsAttached')).toBe(false);
+    });
   });
 
   describe('FEN handling', () => {
@@ -673,7 +693,11 @@ describe('NeoChessBoard Core', () => {
     let onPointerUp: (event: PointerEvent) => void;
     let overlayRect: DOMRect;
 
-    const createPointerEventForSquare = (button: number, squareName: string) => {
+    const createPointerEventForSquare = (
+      button: number,
+      squareName: string,
+      offset: { dx?: number; dy?: number } = {},
+    ) => {
       const toCoordinates = getPrivate<(square: Square) => { x: number; y: number }>(
         board,
         '_sqToXY',
@@ -685,8 +709,10 @@ describe('NeoChessBoard Core', () => {
 
       const baseEvent = {
         button,
-        clientX: overlayRect.left + (canvasX * overlayRect.width) / overlay.width,
-        clientY: overlayRect.top + (canvasY * overlayRect.height) / overlay.height,
+        clientX:
+          overlayRect.left + (canvasX * overlayRect.width) / overlay.width + (offset.dx ?? 0),
+        clientY:
+          overlayRect.top + (canvasY * overlayRect.height) / overlay.height + (offset.dy ?? 0),
         preventDefault: jest.fn(),
         shiftKey: false,
         ctrlKey: false,
@@ -808,6 +834,172 @@ describe('NeoChessBoard Core', () => {
       onPointerUp(friendlyClick.event);
 
       expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
+    });
+
+    it('defers dragging until movement passes dragActivationDistance', () => {
+      board.setDragActivationDistance(50);
+
+      const down = createPointerEventForSquare(0, 'e2');
+      onPointerDown(down.event);
+
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getPrivate<unknown>(board, '_pendingDrag')).not.toBeNull();
+
+      const smallMove = createPointerEventForSquare(0, 'e2', { dx: 10 });
+      onPointerMove(smallMove.event);
+
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+
+      const largeMove = createPointerEventForSquare(0, 'e2', { dx: 80 });
+      onPointerMove(largeMove.event);
+
+      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
+
+      onPointerUp(largeMove.event);
+      board.setDragActivationDistance(0);
+    });
+
+    it('respects the canDragPiece evaluator when starting a drag', () => {
+      board.setCanDragPiece(({ square }) => square !== 'e2');
+
+      const disallowed = createPointerEventForSquare(0, 'e2');
+      onPointerDown(disallowed.event);
+
+      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
+      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+
+      const allowed = createPointerEventForSquare(0, 'd2');
+      onPointerDown(allowed.event);
+
+      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
+
+      onPointerUp(allowed.event);
+      board.setCanDragPiece(undefined);
+    });
+
+    it('drops on the last in-bounds square when allowDragOffBoard is false', () => {
+      board.setAllowDragOffBoard(false);
+      const startFen = board.getPosition();
+
+      const start = createPointerEventForSquare(0, 'e2');
+      onPointerDown(start.event);
+
+      const mid = createPointerEventForSquare(0, 'e4');
+      onPointerMove(mid.event);
+
+      const outsideEvent = {
+        button: 0,
+        clientX: overlayRect.left - 20,
+        clientY: overlayRect.top - 20,
+        preventDefault: jest.fn(),
+        shiftKey: false,
+        ctrlKey: false,
+        altKey: false,
+      } as unknown as PointerEvent;
+
+      onPointerUp(outsideEvent);
+
+      expect(board.getPosition()).toBe(
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+      );
+
+      board.setFEN(startFen, true);
+      board.setAllowDragOffBoard(true);
+    });
+
+    it('cancels the move when dropping outside with allowDragOffBoard enabled', () => {
+      const startFen = board.getPosition();
+
+      const start = createPointerEventForSquare(0, 'e2');
+      onPointerDown(start.event);
+
+      const mid = createPointerEventForSquare(0, 'e4');
+      onPointerMove(mid.event);
+
+      const outsideEvent = {
+        button: 0,
+        clientX: overlayRect.left - 20,
+        clientY: overlayRect.top - 20,
+        preventDefault: jest.fn(),
+        shiftKey: false,
+        ctrlKey: false,
+        altKey: false,
+      } as unknown as PointerEvent;
+
+      onPointerUp(outsideEvent);
+
+      expect(board.getPosition()).toBe(startFen);
+    });
+
+    it('auto-scrolls the parent container when allowAutoScroll is enabled', () => {
+      const scrollContainer = document.createElement('div');
+      scrollContainer.style.overflow = 'auto';
+      scrollContainer.style.width = '200px';
+      scrollContainer.style.height = '200px';
+      Object.defineProperty(scrollContainer, 'scrollWidth', { value: 1000, configurable: true });
+      Object.defineProperty(scrollContainer, 'scrollHeight', { value: 1000, configurable: true });
+      Object.defineProperty(scrollContainer, 'clientWidth', { value: 200, configurable: true });
+      Object.defineProperty(scrollContainer, 'clientHeight', { value: 200, configurable: true });
+      scrollContainer.getBoundingClientRect = jest.fn(() => ({
+        width: 200,
+        height: 200,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 200,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }));
+
+      const scrollBy = jest.fn();
+      scrollContainer.scrollBy = scrollBy as unknown as typeof scrollContainer.scrollBy;
+
+      scrollContainer.appendChild(container);
+      document.body.appendChild(scrollContainer);
+
+      board.destroy();
+      board = new NeoChessBoard(container, { allowAutoScroll: true });
+
+      overlay = getPrivate<HTMLCanvasElement>(board, 'cOverlay');
+      const pointerDown = getPrivate<(event: PointerEvent) => void>(board, '_onPointerDown');
+      const pointerMove = getPrivate<(event: PointerEvent) => void>(board, '_onPointerMove');
+      const pointerUp = getPrivate<(event: PointerEvent) => void>(board, '_onPointerUp');
+      onPointerDown = pointerDown.bind(board);
+      onPointerMove = pointerMove.bind(board);
+      onPointerUp = pointerUp.bind(board);
+      overlayRect = overlay.getBoundingClientRect();
+
+      const down = createPointerEventForSquare(0, 'e2');
+      onPointerDown(down.event);
+
+      const nearEdge = createPointerEventForSquare(0, 'a2');
+      onPointerMove(nearEdge.event);
+
+      expect(scrollBy).toHaveBeenCalled();
+
+      onPointerUp(nearEdge.event);
+      scrollContainer.removeChild(container);
+      document.body.removeChild(scrollContainer);
+    });
+  });
+
+  describe('Animation behaviour', () => {
+    it('skips requestAnimationFrame when showAnimations is disabled', () => {
+      const rafSpy = jest.spyOn(globalThis, 'requestAnimationFrame');
+      const renderSpy = jest.spyOn(board, 'renderAll');
+
+      board.setShowAnimations(false);
+      board.setFEN('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
+
+      expect(rafSpy).not.toHaveBeenCalled();
+      expect(renderSpy).toHaveBeenCalled();
+
+      board.setShowAnimations(true);
+      board.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', true);
+
+      rafSpy.mockRestore();
+      renderSpy.mockRestore();
     });
   });
 

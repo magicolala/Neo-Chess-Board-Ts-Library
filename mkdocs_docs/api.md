@@ -533,9 +533,16 @@ interface BoardOptions {
   pieceSet?: PieceSet;
   showCoordinates?: boolean;
   animationMs?: number;
+  animationDurationInMs?: number;
+  showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
   rulesAdapter?: RulesAdapter;
+  allowAutoScroll?: boolean;
+  allowDragging?: boolean;
+  allowDragOffBoard?: boolean;
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean;
+  dragActivationDistance?: number;
   allowPremoves?: boolean;
   showArrows?: boolean;
   showHighlights?: boolean;

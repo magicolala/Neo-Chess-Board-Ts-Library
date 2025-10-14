@@ -156,7 +156,13 @@ export class NeoChessBoard {
   private soundEnabled: boolean;
   private showSquareNames: boolean;
   private autoFlip: boolean;
+  private allowAutoScroll: boolean;
+  private allowDragging: boolean;
+  private allowDragOffBoard: boolean;
   private animationMs: number;
+  private showAnimations: boolean;
+  private canDragPiece?: BoardOptions['canDragPiece'];
+  private dragActivationDistance: number;
 
   // ---- Managers ----
   public drawingManager!: DrawingManager;
@@ -174,12 +180,23 @@ export class NeoChessBoard {
   private _legalCached: Move[] | null = null;
   private _dragging: DraggingState | null = null;
   private _hoverSq: Square | null = null;
+  private _pendingDrag: {
+    from: Square;
+    piece: string;
+    startClientX: number;
+    startClientY: number;
+    startX: number;
+    startY: number;
+  } | null = null;
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
   private _customHighlights: { squares: Square[] } | null = null;
   private _drawingArrow: { from: Square } | null = null;
 
   // ---- Animation ----
   private _raf = 0;
+
+  // ---- Auto-scroll ----
+  private _scrollContainer: HTMLElement | null = null;
 
   // ---- Piece Sprites ----
   private customPieceSprites: Partial<Record<Piece, ResolvedPieceSprite>> = {};
@@ -202,6 +219,9 @@ export class NeoChessBoard {
   private _onKeyDown?: (e: KeyboardEvent) => void;
   private _onContextMenu?: (e: Event) => void;
   private _ro?: ResizeObserver;
+  private _pointerDownAttached = false;
+  private _globalPointerEventsAttached = false;
+  private _localPointerEventsAttached = false;
 
   // ============================================================================
   // Constructor
@@ -214,7 +234,16 @@ export class NeoChessBoard {
     // Initialize visual configuration
     this.theme = resolveTheme(options.theme ?? 'classic');
     this.orientation = options.orientation || 'white';
-    this.animationMs = options.animationMs || DEFAULT_ANIMATION_MS;
+    const resolvedAnimationDuration =
+      typeof options.animationDurationInMs === 'number'
+        ? options.animationDurationInMs
+        : options.animationMs;
+    const sanitizedAnimationDuration =
+      typeof resolvedAnimationDuration === 'number' && Number.isFinite(resolvedAnimationDuration)
+        ? Math.max(0, resolvedAnimationDuration)
+        : undefined;
+    this.animationMs = sanitizedAnimationDuration ?? DEFAULT_ANIMATION_MS;
+    this.showAnimations = options.showAnimations !== false;
 
     // Initialize feature flags
     this.interactive = options.interactive !== false;
@@ -227,6 +256,16 @@ export class NeoChessBoard {
     this.soundEnabled = options.soundEnabled !== false;
     this.showSquareNames = options.showSquareNames || false;
     this.autoFlip = options.autoFlip ?? false;
+    this.allowAutoScroll = options.allowAutoScroll === true;
+    this.allowDragging = options.allowDragging !== false;
+    this.allowDragOffBoard = options.allowDragOffBoard !== false;
+    this.canDragPiece = options.canDragPiece;
+    const activationDistance =
+      typeof options.dragActivationDistance === 'number' &&
+      Number.isFinite(options.dragActivationDistance)
+        ? options.dragActivationDistance
+        : 0;
+    this.dragActivationDistance = Math.max(0, activationDistance);
 
     // Initialize sound configuration
     this.soundUrl = options.soundUrl;
@@ -473,6 +512,58 @@ export class NeoChessBoard {
     if (autoFlip) {
       this._syncOrientationFromTurn(!this.drawingManager);
     }
+  }
+
+  public setAnimationDuration(duration: number | undefined): void {
+    if (typeof duration !== 'number' || !Number.isFinite(duration)) {
+      return;
+    }
+    this.animationMs = Math.max(0, duration);
+  }
+
+  public setShowAnimations(show: boolean): void {
+    this.showAnimations = show;
+    if (!show) {
+      this._clearAnimation();
+      this.renderAll();
+    }
+  }
+
+  public setDraggingEnabled(enabled: boolean): void {
+    if (this.allowDragging === enabled) {
+      return;
+    }
+
+    this.allowDragging = enabled;
+    if (!enabled) {
+      this._clearInteractionState();
+      this.renderAll();
+    }
+    this._updatePointerEventBindings();
+  }
+
+  public setAllowDragOffBoard(allow: boolean): void {
+    this.allowDragOffBoard = allow;
+  }
+
+  public setAutoScrollEnabled(allow: boolean): void {
+    this.allowAutoScroll = allow;
+    if (!allow) {
+      this._scrollContainer = null;
+    } else if (this._dragging) {
+      this._ensureScrollContainer();
+    }
+  }
+
+  public setCanDragPiece(evaluator: BoardOptions['canDragPiece']): void {
+    this.canDragPiece = evaluator;
+  }
+
+  public setDragActivationDistance(distance: number): void {
+    if (typeof distance !== 'number' || !Number.isFinite(distance)) {
+      return;
+    }
+    this.dragActivationDistance = Math.max(0, distance);
   }
 
   public setShowArrows(show: boolean): void {
@@ -1125,12 +1216,7 @@ export class NeoChessBoard {
 
     const onMove = (e: PointerEvent) => {
       const pt = this._getPointerPosition(e);
-      if (!pt) {
-        this._updateCursor('default');
-        return;
-      }
-
-      this._handleMouseMove(pt);
+      this._handleMouseMove(e, pt);
     };
 
     const onUp = (e: PointerEvent) => {
@@ -1168,30 +1254,81 @@ export class NeoChessBoard {
     this._onKeyDown = onKeyDown;
     this._onContextMenu = onContextMenu;
 
-    this.cOverlay.addEventListener('pointerdown', onDown);
     this.cOverlay.addEventListener('contextmenu', onContextMenu);
-    globalThis.addEventListener('pointermove', onMove);
-    globalThis.addEventListener('pointerup', onUp);
     globalThis.addEventListener('keydown', onKeyDown);
+
+    this._updatePointerEventBindings();
   }
 
   private _removeEvents(): void {
-    if (this._onPointerDown) {
+    if (this._pointerDownAttached && this._onPointerDown) {
       this.cOverlay.removeEventListener('pointerdown', this._onPointerDown);
+      this._pointerDownAttached = false;
     }
     if (this._onContextMenu) {
       this.cOverlay.removeEventListener('contextmenu', this._onContextMenu);
     }
-    if (this._onPointerMove) {
-      globalThis.removeEventListener('pointermove', this._onPointerMove);
-    }
-    if (this._onPointerUp) {
-      globalThis.removeEventListener('pointerup', this._onPointerUp);
-    }
+    this._unbindGlobalPointerEvents();
+    this._unbindLocalPointerEvents();
     if (this._onKeyDown) {
       globalThis.removeEventListener('keydown', this._onKeyDown);
     }
     this._ro?.disconnect();
+  }
+
+  private _updatePointerEventBindings(): void {
+    if (!this._onPointerDown || !this._onPointerMove || !this._onPointerUp) {
+      return;
+    }
+
+    if (!this._pointerDownAttached) {
+      this.cOverlay.addEventListener('pointerdown', this._onPointerDown);
+      this._pointerDownAttached = true;
+    }
+
+    if (this.allowDragging) {
+      this._unbindLocalPointerEvents();
+      this._bindGlobalPointerEvents();
+    } else {
+      this._unbindGlobalPointerEvents();
+      this._bindLocalPointerEvents();
+    }
+  }
+
+  private _bindGlobalPointerEvents(): void {
+    if (this._globalPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
+      return;
+    }
+    globalThis.addEventListener('pointermove', this._onPointerMove);
+    globalThis.addEventListener('pointerup', this._onPointerUp);
+    this._globalPointerEventsAttached = true;
+  }
+
+  private _unbindGlobalPointerEvents(): void {
+    if (!this._globalPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
+      return;
+    }
+    globalThis.removeEventListener('pointermove', this._onPointerMove);
+    globalThis.removeEventListener('pointerup', this._onPointerUp);
+    this._globalPointerEventsAttached = false;
+  }
+
+  private _bindLocalPointerEvents(): void {
+    if (this._localPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
+      return;
+    }
+    this.cOverlay.addEventListener('pointermove', this._onPointerMove);
+    this.cOverlay.addEventListener('pointerup', this._onPointerUp);
+    this._localPointerEventsAttached = true;
+  }
+
+  private _unbindLocalPointerEvents(): void {
+    if (!this._localPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
+      return;
+    }
+    this.cOverlay.removeEventListener('pointermove', this._onPointerMove);
+    this.cOverlay.removeEventListener('pointerup', this._onPointerUp);
+    this._localPointerEventsAttached = false;
   }
 
   private _handleLeftMouseDown(e: PointerEvent): void {
@@ -1207,6 +1344,10 @@ export class NeoChessBoard {
       return;
     }
 
+    if (this.canDragPiece && !this.canDragPiece({ square: from, piece, board: this })) {
+      return;
+    }
+
     if (!this._shouldSelectOnPointerDown(from, piece)) {
       this._hoverSq = from;
       this.renderAll();
@@ -1214,9 +1355,25 @@ export class NeoChessBoard {
     }
 
     this._setSelection(from, piece);
-    this._dragging = { from, piece, x: pt.x, y: pt.y };
     this._hoverSq = from;
     this.renderAll();
+
+    if (!this.allowDragging) {
+      return;
+    }
+
+    this._pendingDrag = {
+      from,
+      piece,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startX: pt.x,
+      startY: pt.y,
+    };
+
+    if (this.dragActivationDistance <= 0) {
+      this._activatePendingDrag(pt);
+    }
   }
 
   private _handleLeftMouseUp(e: PointerEvent): void {
@@ -1224,6 +1381,7 @@ export class NeoChessBoard {
 
     if (this.drawingManager?.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
       this.renderAll();
+      this._pendingDrag = null;
       return;
     }
 
@@ -1232,10 +1390,18 @@ export class NeoChessBoard {
         const square = this._xyToSquare(pt.x, pt.y);
         this._handleClickMove(square);
       }
+      this._pendingDrag = null;
       return;
     }
 
-    this._handleDragEnd(pt);
+    const dropPoint =
+      pt ??
+      (!this.allowDragOffBoard && this._dragging
+        ? { x: this._dragging.x, y: this._dragging.y }
+        : null);
+
+    this._handleDragEnd(dropPoint);
+    this._pendingDrag = null;
   }
 
   private _handleRightMouseDown(e: PointerEvent): void {
@@ -1271,21 +1437,135 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
-  private _handleMouseMove(pt: Point): void {
-    if (this.drawingManager?.handleMouseMove(pt.x, pt.y)) {
+  private _handleMouseMove(e: PointerEvent, pt: Point | null): void {
+    if (this._pendingDrag && this.allowDragging) {
+      const distance = Math.hypot(
+        e.clientX - this._pendingDrag.startClientX,
+        e.clientY - this._pendingDrag.startClientY,
+      );
+
+      if (distance >= this.dragActivationDistance) {
+        const activationPoint = pt ?? {
+          x: this._pendingDrag.startX,
+          y: this._pendingDrag.startY,
+        };
+        this._activatePendingDrag(activationPoint);
+      }
+    }
+
+    if (pt && this.drawingManager?.handleMouseMove(pt.x, pt.y)) {
       this.renderAll();
     }
 
-    if (this._dragging) {
+    if (this._dragging && pt) {
       this._dragging.x = pt.x;
       this._dragging.y = pt.y;
       this._hoverSq = this._xyToSquare(pt.x, pt.y);
+      this._autoScrollDuringDrag(e);
       this._drawPieces();
       this._drawOverlay();
-    } else if (this.interactive) {
+    } else if (this._dragging && !pt) {
+      this._autoScrollDuringDrag(e);
+    } else if (pt && this.interactive) {
       const sq = this._xyToSquare(pt.x, pt.y);
       const piece = this._pieceAt(sq);
       this._updateCursor(piece ? 'pointer' : 'default');
+    } else if (!pt) {
+      this._updateCursor('default');
+    }
+  }
+
+  private _activatePendingDrag(pt: Point): void {
+    if (!this._pendingDrag) {
+      return;
+    }
+
+    const { from, piece } = this._pendingDrag;
+    this._dragging = { from, piece, x: pt.x, y: pt.y };
+    this._pendingDrag = null;
+    this._hoverSq = this._xyToSquare(pt.x, pt.y);
+
+    if (this.allowAutoScroll) {
+      this._ensureScrollContainer();
+    }
+
+    this._drawPieces();
+    this._drawOverlay();
+  }
+
+  private _ensureScrollContainer(): void {
+    if (!this.allowAutoScroll) {
+      this._scrollContainer = null;
+      return;
+    }
+
+    if (this._scrollContainer && this._scrollContainer.isConnected) {
+      return;
+    }
+
+    let element: HTMLElement | null = this.root;
+    while (element) {
+      const style = globalThis.getComputedStyle?.(element);
+      if (style && /(auto|scroll)/.test(`${style.overflow}${style.overflowX}${style.overflowY}`)) {
+        this._scrollContainer = element;
+        return;
+      }
+      element = element.parentElement;
+    }
+
+    this._scrollContainer = null;
+  }
+
+  private _autoScrollDuringDrag(e: PointerEvent): void {
+    if (!this.allowAutoScroll || !this._dragging) {
+      return;
+    }
+
+    this._ensureScrollContainer();
+    const container = this._scrollContainer;
+    if (!container) {
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const threshold = 32;
+    const maxStep = 24;
+
+    const horizontalScrollable = container.scrollWidth > container.clientWidth;
+    const verticalScrollable = container.scrollHeight > container.clientHeight;
+
+    let deltaX = 0;
+    let deltaY = 0;
+
+    if (horizontalScrollable) {
+      const distanceLeft = e.clientX - rect.left;
+      const distanceRight = rect.right - e.clientX;
+      if (distanceLeft < threshold) {
+        deltaX = -Math.min(maxStep, threshold - distanceLeft);
+      } else if (distanceRight < threshold) {
+        deltaX = Math.min(maxStep, threshold - distanceRight);
+      }
+    }
+
+    if (verticalScrollable) {
+      const distanceTop = e.clientY - rect.top;
+      const distanceBottom = rect.bottom - e.clientY;
+      if (distanceTop < threshold) {
+        deltaY = -Math.min(maxStep, threshold - distanceTop);
+      } else if (distanceBottom < threshold) {
+        deltaY = Math.min(maxStep, threshold - distanceBottom);
+      }
+    }
+
+    if (!deltaX && !deltaY) {
+      return;
+    }
+
+    if (typeof container.scrollBy === 'function') {
+      container.scrollBy({ left: deltaX, top: deltaY, behavior: 'auto' });
+    } else {
+      container.scrollLeft += deltaX;
+      container.scrollTop += deltaY;
     }
   }
 
@@ -1321,11 +1601,18 @@ export class NeoChessBoard {
 
   private _getPointerPosition(e: PointerEvent): Point | null {
     const rect = this.cOverlay.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (this.cOverlay.width / rect.width);
-    const y = (e.clientY - rect.top) * (this.cOverlay.height / rect.height);
+    const scaleX = rect.width ? this.cOverlay.width / rect.width : 1;
+    const scaleY = rect.height ? this.cOverlay.height / rect.height : 1;
+    let x = (e.clientX - rect.left) * scaleX;
+    let y = (e.clientY - rect.top) * scaleY;
 
-    if (x < 0 || y < 0 || x > this.cOverlay.width || y > this.cOverlay.height) {
-      return null;
+    if (!this.allowDragOffBoard) {
+      if (x < 0 || y < 0 || x > this.cOverlay.width || y > this.cOverlay.height) {
+        return null;
+      }
+    } else {
+      x = clamp(x, 0, this.cOverlay.width);
+      y = clamp(y, 0, this.cOverlay.height);
     }
 
     return { x, y };
@@ -1684,6 +1971,11 @@ export class NeoChessBoard {
 
   private _animateTo(target: BoardState, start: BoardState): void {
     this._clearAnimation();
+
+    if (!this.showAnimations || this.animationMs <= 0) {
+      this.renderAll();
+      return;
+    }
 
     const startTime = performance.now();
     const moving = this._identifyMovingPieces(start, target);
@@ -2210,6 +2502,7 @@ export class NeoChessBoard {
     this._legalCached = null;
     this._dragging = null;
     this._hoverSq = null;
+    this._pendingDrag = null;
   }
 
   private _clearSelectionState(): void {
