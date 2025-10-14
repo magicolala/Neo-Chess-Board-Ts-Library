@@ -58,6 +58,16 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 
 ### Installation
 
+Configure npm to use the GitHub Packages registry for the `@magicolala` scope before installing. Generate a GitHub Personal Access Token with the `read:packages` permission and add it to your `.npmrc`:
+
+```ini
+# .npmrc
+@magicolala:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Replace `${GITHUB_TOKEN}` with your token or an environment variable. Then install the package:
+
 ```bash
 npm install @magicolala/neo-chess-board
 # or
@@ -70,7 +80,7 @@ pnpm add @magicolala/neo-chess-board
 
 ```tsx
 import React, { useState } from 'react';
-import { NeoChessBoard } from '@magicolala/neo-chess-board';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessApp() {
   const [fen, setFen] = useState();
@@ -243,7 +253,8 @@ pgn.downloadPgn('annotated_game.pgn');
 
 ```tsx
 import React, { useState, useMemo } from 'react';
-import { NeoChessBoard, PGNRecorder } from '@magicolala/neo-chess-board';
+import { PGNRecorder } from '@magicolala/neo-chess-board';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessGame() {
   const [fen, setFen] = useState();
