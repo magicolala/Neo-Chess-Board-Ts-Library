@@ -143,7 +143,7 @@ board.setTheme('sunset');
 ### React component
 
 ```tsx
-import { NeoChessBoard } from '@magicolala/neo-chess-board';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 const customTheme = {
   light: '#F5F3FF',
