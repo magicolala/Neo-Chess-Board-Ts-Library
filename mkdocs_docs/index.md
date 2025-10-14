@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v0.1.0-blue?style=for-the-badge&logo=chess&logoColor=white)
+![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v1.0.0-blue?style=for-the-badge&logo=chess&logoColor=white)
 
-[![npm version](https://img.shields.io/npm/v/neochessboard?style=flat-square)](https://www.npmjs.com/package/neochessboard)
+[![GitHub Package](https://img.shields.io/static/v1?label=GitHub%20Packages&message=v1.0.0&color=0A66C2&style=flat-square)](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/pkgs/npm/neo-chess-board)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -43,7 +43,7 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 - ⚛️ React hooks ready
 - 📋 Advanced PGN Management (import/export with annotations)
 - 🎨 Customizable themes
-- 🧪 100% tested
+- 🧪 Jest setup for automated testing
 
 🎪 **Advanced Features**
 
@@ -58,19 +58,29 @@ _Perfect for creating chess applications with Chessbook-like feel and performanc
 
 ### Installation
 
+Configure npm to use the GitHub Packages registry for the `@magicolala` scope before installing. Generate a GitHub Personal Access Token with the `read:packages` permission and add it to your `.npmrc`:
+
+```ini
+# .npmrc
+@magicolala:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Replace `${GITHUB_TOKEN}` with your token or an environment variable. Then install the package:
+
 ```bash
-npm install neochessboard
+npm install @magicolala/neo-chess-board
 # or
-yarn add neochessboard
+yarn add @magicolala/neo-chess-board
 # or
-pnpm add neochessboard
+pnpm add @magicolala/neo-chess-board
 ```
 
 ### React Usage
 
 ```tsx
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessApp() {
   const [fen, setFen] = useState();
@@ -91,7 +101,7 @@ function ChessApp() {
 ### Vanilla JavaScript
 
 ```javascript
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(document.getElementById('board'), {
   theme: 'classic',
@@ -138,7 +148,7 @@ Designing colors manually can be slow. Visit the interactive [Theme Creator](htt
 You can then register the exported object in your project:
 
 ```ts
-import { registerTheme } from 'neochessboard';
+import { registerTheme } from '@magicolala/neo-chess-board';
 
 const aurora = {
   light: '#F5F3FF',
@@ -201,7 +211,7 @@ const currentFEN = board.getPosition();
 #### PGN Recording & Annotations
 
 ```typescript
-import { PgnNotation } from 'neochessboard';
+import { PgnNotation } from '@magicolala/neo-chess-board';
 
 const pgn = new PgnNotation();
 
@@ -243,7 +253,8 @@ pgn.downloadPgn('annotated_game.pgn');
 
 ```tsx
 import React, { useState, useMemo } from 'react';
-import { NeoChessBoard, PGNRecorder } from 'neochessboard';
+import { PGNRecorder } from '@magicolala/neo-chess-board';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessGame() {
   const [fen, setFen] = useState();
@@ -291,7 +302,7 @@ function ChessGame() {
 ### Custom Themes
 
 ```typescript
-import { NeoChessBoard, THEMES, registerTheme } from 'neochessboard';
+import { NeoChessBoard, THEMES, registerTheme } from '@magicolala/neo-chess-board';
 
 // Extend existing theme
 const customTheme = {
@@ -315,7 +326,7 @@ board.setTheme('sunset');
 
 ```typescript
 import { Chess } from 'chess.js';
-import { NeoChessBoard, ChessJsRules } from 'neochessboard';
+import { NeoChessBoard, ChessJsRules } from '@magicolala/neo-chess-board';
 
 const game = new Chess();
 const rules = new ChessJsRules();
@@ -344,7 +355,7 @@ console.log(pgnWithAnnotations);
 ## 🏗️ Architecture
 
 ```
-neochessboard/
+Neo-Chess-Board-Ts-Library/
 ├── 🎯 Core Engine
 │   ├── EventBus          # Type-safe event system
 │   ├── LightRules        # Built-in chess rules
@@ -428,23 +439,15 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board ships with **320 Jest tests across 17 suites**, covering the core engine, React bindings, and the live demo.
-Explore the `tests/README.md` file for the full test map and `tests/RESULTS.md` for the latest run summary.
+Neo Chess Board ships with a Jest-based test environment that covers the core engine, React bindings, and demo scenarios. The suite lives under [`tests/`](tests/), and [`tests/README.md`](tests/README.md) describes the folder structure together with guidance for adding additional cases. Running the suite locally will also refresh helper artifacts such as `tests/RESULTS.md` and the coverage output.
 
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
+npm test              # Run the full suite once
+npm run test:watch    # Re-run affected tests on file changes
+npm run test:coverage # Produce an updated coverage summary + HTML report
 ```
 
-**Coverage**: 95%+ across all modules
-
-- ✅ Chess rules validation (LightRules & ChessJsRules)
-- ✅ React component lifecycle & event hooks
-- ✅ Auto-flip orientation and coordinate layout
-- ✅ PGN import/export with advanced annotations
-- ✅ Theme and sprite pipelines
-- ✅ Canvas rendering overlays (arrows, highlights, premoves)
+> ℹ️ Coverage numbers depend on your latest local execution. After running the commands above you can open `coverage/lcov-report/index.html` for detailed metrics or commit an updated summary to `tests/RESULTS.md` if you capture a new campaign.
 
 ## 🚀 Performance
 
@@ -467,9 +470,9 @@ Check out these live examples powered by Neo Chess Board:
 
 We love contributions! See [CONTRIBUTING.md](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/CONTRIBUTING.md) for details.
 
-- 🐛 [Report bugs](https://github.com/yourusername/neochessboard/issues)
-- 💡 [Request features](https://github.com/yourusername/neochessboard/issues)
-- 🔧 [Submit PRs](https://github.com/yourusername/neochessboard/pulls)
+- 🐛 [Report bugs](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues)
+- 💡 [Request features](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues)
+- 🔧 [Submit PRs](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/pulls)
 
 ## 📄 License
 

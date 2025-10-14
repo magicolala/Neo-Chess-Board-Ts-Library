@@ -16,7 +16,7 @@ Experience the library directly in your browser with these hosted demos:
 ### Basic Vanilla JavaScript Setup
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 // Get canvas element
 const canvas = document.getElementById('chess-board') as HTMLCanvasElement;
@@ -36,29 +36,40 @@ board.loadPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
 ### Basic React Setup
 
 ```typescript path=null start=null
-import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import React, { useRef, useState } from 'react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules, START_FEN } from '@magicolala/neo-chess-board';
+
+const INITIAL_FEN = START_FEN;
 
 function ChessGame() {
-  const [position, setPosition] = useState('start');
-  const [moves, setMoves] = useState([]);
+  const [fen, setFen] = useState(INITIAL_FEN);
+  const [moves, setMoves] = useState<string[]>([]);
+  const rules = useRef(new ChessJsRules(INITIAL_FEN));
 
-  const handleMove = (move) => {
-    setMoves(prev => [...prev, move]);
-    console.log(`Move ${moves.length + 1}: ${move.san}`);
+  const addMove = (event: { from: string; to: string; fen: string }) => {
+    rules.current.setFEN(event.fen);
+    setFen(event.fen);
+    setMoves((previous) => [...previous, `${event.from}→${event.to}`]);
   };
 
   return (
     <div>
       <NeoChessBoard
-        position={position}
-        onMove={handleMove}
-        theme="dark"
-        draggable={true}
+        fen={fen}
+        theme="neo"
+        interactive
+        showCoordinates
+        onMove={addMove}
+        onUpdate={(event) => {
+          rules.current.setFEN(event.fen);
+          setFen(event.fen);
+        }}
+        onIllegal={(event) => {
+          console.warn('Illegal move blocked:', event.reason);
+        }}
       />
-      <div>
-        <p>Moves: {moves.length}</p>
-      </div>
+      <p>Moves played: {moves.length}</p>
     </div>
   );
 }
@@ -69,46 +80,69 @@ function ChessGame() {
 ### Game with Move History
 
 ```typescript path=null start=null
-import React, { useState, useCallback } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules, START_FEN } from '@magicolala/neo-chess-board';
+import type { Move as ChessMove } from 'chess.js';
 
 interface GameMove {
-  move: Move;
   fen: string;
+  lan: string;
   san: string;
 }
 
 function ChessGameWithHistory() {
   const [gameHistory, setGameHistory] = useState<GameMove[]>([]);
-  const [currentPosition, setCurrentPosition] = useState('start');
+  const [currentFen, setCurrentFen] = useState(START_FEN);
+  const rules = useMemo(() => new ChessJsRules(START_FEN), []);
 
-  const handleMove = useCallback((move: Move) => {
-    const newGameMove: GameMove = {
-      move,
-      fen: move.fen || currentPosition,
-      san: move.san || `${move.from}-${move.to}`
-    };
+  const handleMove = useCallback((event: { from: string; to: string; fen: string }) => {
+    rules.setFEN(event.fen);
+    const verboseHistory = rules
+      .getChessInstance()
+      .history({ verbose: true }) as ChessMove[];
+    const last = verboseHistory.at(-1);
 
-    setGameHistory(prev => [...prev, newGameMove]);
-    setCurrentPosition(newGameMove.fen);
-  }, [currentPosition]);
+    setGameHistory((previous) => [
+      ...previous,
+      {
+        fen: event.fen,
+        lan: `${event.from}-${event.to}`,
+        san: last?.san ?? `${event.from}-${event.to}`,
+      },
+    ]);
+    setCurrentFen(event.fen);
+  }, [rules]);
 
-  const goToMove = (moveIndex: number) => {
-    if (moveIndex < 0) {
-      setCurrentPosition('start');
-    } else {
-      setCurrentPosition(gameHistory[moveIndex].fen);
-    }
-  };
+  const goToMove = useCallback(
+    (moveIndex: number) => {
+      if (moveIndex < 0) {
+        setCurrentFen(START_FEN);
+        rules.setFEN(START_FEN);
+        return;
+      }
+
+      const snapshot = gameHistory[moveIndex];
+      if (snapshot) {
+        setCurrentFen(snapshot.fen);
+        rules.setFEN(snapshot.fen);
+      }
+    },
+    [gameHistory, rules],
+  );
 
   return (
     <div style={{ display: 'flex', gap: '20px' }}>
       <div>
         <NeoChessBoard
-          position={currentPosition}
+          fen={currentFen}
           onMove={handleMove}
+          onUpdate={(event) => {
+            setCurrentFen(event.fen);
+            rules.setFEN(event.fen);
+          }}
           theme="wood"
-          showCoordinates={true}
+          showCoordinates
         />
       </div>
 
@@ -118,13 +152,13 @@ function ChessGameWithHistory() {
         <div style={{ maxHeight: '300px', overflow: 'auto' }}>
           {gameHistory.map((gameMove, index) => (
             <div
-              key={index}
+              key={gameMove.lan + index}
               onClick={() => goToMove(index)}
               style={{
                 padding: '4px 8px',
                 cursor: 'pointer',
                 backgroundColor: '#f5f5f5',
-                marginBottom: '2px'
+                marginBottom: '2px',
               }}
             >
               {Math.floor(index / 2) + 1}
@@ -141,58 +175,63 @@ function ChessGameWithHistory() {
 ### Puzzle Mode
 
 ```typescript path=null start=null
-import React, { useState, useEffect } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules } from '@magicolala/neo-chess-board';
+import type { Move as ChessMove } from 'chess.js';
 
 interface ChessPuzzle {
   fen: string;
-  solution: string[];
+  solution: string[]; // SAN moves
   description: string;
 }
 
 const puzzles: ChessPuzzle[] = [
   {
     fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
-    solution: ['Ng5', 'd6', 'Nf7'],
-    description: 'White to play and win material'
+    solution: ['Ng5', 'd6', 'Nf7#'],
+    description: 'White to play and win material',
   },
-  // Add more puzzles...
 ];
 
 function ChessPuzzle() {
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
   const [solutionIndex, setSolutionIndex] = useState(0);
-  const [solved, setSolved] = useState(false);
-  const [hint, setHint] = useState('');
+  const [hint, setHint] = useState('Select the best move.');
+  const [boardFen, setBoardFen] = useState(puzzles[0].fen);
+  const rules = useRef(new ChessJsRules(puzzles[0].fen));
 
   const puzzle = puzzles[currentPuzzle];
 
-  const handleMove = (move: Move) => {
-    const expectedMove = puzzle.solution[solutionIndex];
+  useEffect(() => {
+    rules.current = new ChessJsRules(puzzle.fen);
+    setSolutionIndex(0);
+    setHint('Select the best move.');
+    setBoardFen(puzzle.fen);
+  }, [puzzle]);
 
-    if (move.san === expectedMove) {
-      setSolutionIndex(prev => prev + 1);
+  const handleMove = (event: { from: string; to: string; fen: string }) => {
+    rules.current.setFEN(event.fen);
+    const verboseHistory = rules
+      .current
+      .getChessInstance()
+      .history({ verbose: true }) as ChessMove[];
+    const lastSan = verboseHistory.at(-1)?.san ?? `${event.from}-${event.to}`;
+    const expectedSan = puzzle.solution[solutionIndex];
 
-      if (solutionIndex + 1 >= puzzle.solution.length) {
-        setSolved(true);
+    if (lastSan === expectedSan) {
+      if (solutionIndex + 1 === puzzle.solution.length) {
         setHint('Puzzle solved! 🎉');
       } else {
-        setHint(`Correct! Next move: ${solutionIndex + 1}/${puzzle.solution.length}`);
+        setHint(`Correct! Next move ${solutionIndex + 1}/${puzzle.solution.length}`);
       }
+      setSolutionIndex((value) => value + 1);
+      setBoardFen(event.fen);
     } else {
-      setHint('Try again! That\'s not the best move.');
+      setHint(`Try again — expected ${expectedSan}.`);
+      setBoardFen(puzzle.fen);
+      rules.current.setFEN(puzzle.fen);
     }
-  };
-
-  const resetPuzzle = () => {
-    setSolutionIndex(0);
-    setSolved(false);
-    setHint('');
-  };
-
-  const nextPuzzle = () => {
-    setCurrentPuzzle(prev => (prev + 1) % puzzles.length);
-    resetPuzzle();
   };
 
   return (
@@ -201,16 +240,32 @@ function ChessPuzzle() {
       <p>{puzzle.description}</p>
 
       <NeoChessBoard
-        position={puzzle.fen}
-        onMove={handleMove}
+        fen={boardFen}
         theme="glass"
-        orientation="white"
+        allowPremoves={false}
+        onMove={handleMove}
+        onUpdate={(event) => {
+          rules.current.setFEN(event.fen);
+          setBoardFen(event.fen);
+        }}
       />
 
       <div style={{ marginTop: '10px' }}>
         <p>{hint}</p>
-        <button onClick={resetPuzzle}>Reset</button>
-        <button onClick={nextPuzzle} disabled={!solved}>
+        <button
+          onClick={() => {
+            rules.current.setFEN(puzzle.fen);
+            setBoardFen(puzzle.fen);
+            setSolutionIndex(0);
+            setHint('Select the best move.');
+          }}
+        >
+          Reset
+        </button>
+        <button
+          onClick={() => setCurrentPuzzle((value) => (value + 1) % puzzles.length)}
+          style={{ marginLeft: '8px' }}
+        >
           Next Puzzle
         </button>
       </div>
@@ -223,43 +278,42 @@ function ChessPuzzle() {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 function MultiboardAnalysis() {
-  const [mainPosition, setMainPosition] = useState('start');
-  const [variations, setVariations] = useState([
+  const [mainFen, setMainFen] = useState(START_FEN);
+  const [variations, setVariations] = useState<string[]>([
     'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
-    'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2'
+    'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
   ]);
 
   return (
     <div>
       <h2>Position Analysis</h2>
 
-      {/* Main board */}
       <div style={{ marginBottom: '20px' }}>
         <h3>Main Line</h3>
         <NeoChessBoard
-          position={mainPosition}
+          fen={mainFen}
           theme="light"
-          showCoordinates={true}
-          onMove={(move) => {
-            // Update main position and create new variation
-            setMainPosition(move.fen);
+          showCoordinates
+          onMove={(event) => {
+            setMainFen(event.fen);
           }}
         />
       </div>
 
-      {/* Variation boards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
         {variations.map((variation, index) => (
-          <div key={index}>
+          <div key={variation + index}>
             <h4>Variation {index + 1}</h4>
             <NeoChessBoard
-              position={variation}
+              fen={variation}
               theme="dark"
-              draggable={false}
-              style={{ width: '300px', height: '300px' }}
+              interactive={false}
+              style={{ width: '300px', maxWidth: '100%' }}
             />
           </div>
         ))}
@@ -274,69 +328,82 @@ function MultiboardAnalysis() {
 ### Custom Event Handling
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard, ChessJsRules } from '@magicolala/neo-chess-board';
 
 const canvas = document.getElementById('board') as HTMLCanvasElement;
-const board = new NeoChessBoard(canvas);
+const board = new NeoChessBoard(canvas, { interactive: true });
+const rules = new ChessJsRules();
 
-// Listen to all available events
 board.on('move', (move) => {
-  console.log('Move made:', move);
-  updateMoveList(move);
+  rules.setFEN(move.fen);
+  updateMoveList(move.from, move.to, move.fen);
+
+  if (rules.isCheckmate()) {
+    endGame(rules.turn() === 'w' ? '0-1' : '1-0');
+  } else if (rules.isStalemate()) {
+    endGame('1/2-1/2');
+  } else if (rules.inCheck()) {
+    showCheckWarning(rules.turn() === 'w' ? 'black' : 'white');
+  }
 });
 
-board.on('check', (color) => {
-  console.log(`${color} king is in check!`);
-  showCheckWarning(color);
+board.on('illegal', (event) => {
+  console.warn(`Illegal move ${event.from}→${event.to}: ${event.reason}`);
+  showIllegalMoveWarning(event.reason);
 });
 
-board.on('checkmate', (color) => {
-  console.log(`Checkmate! ${color} loses.`);
-  endGame(color === 'white' ? 'Black wins' : 'White wins');
-});
-
-board.on('stalemate', () => {
-  console.log('Stalemate - Draw!');
-  endGame('Draw by stalemate');
+board.on('update', (event) => {
+  rules.setFEN(event.fen);
+  updateStatusBanner(event.fen);
 });
 
 board.on('promotion', (request) => {
-  console.log(`Pawn promotion at ${request.to} for ${request.color}`);
   showPromotionDialog(request);
 });
 
-// Or plug in the built-in overlay
-const boardWithDialog = new NeoChessBoard(canvas, {
-  extensions: [createPromotionDialogExtension()],
-});
-
-board.on('pieceSelect', (square, piece) => {
-  console.log(`Selected ${piece.color} ${piece.type} at ${square}`);
-});
-
-board.on('illegalMove', (from, to) => {
-  console.log(`Illegal move attempted: ${from} to ${to}`);
-  showIllegalMoveWarning();
-});
-
-function updateMoveList(move) {
+function updateMoveList(from: string, to: string, fen: string) {
   const movesList = document.getElementById('moves-list');
   const moveElement = document.createElement('div');
-  moveElement.textContent = `${move.san} (${move.from}-${move.to})`;
-  movesList.appendChild(moveElement);
+  moveElement.textContent = `${from}→${to} (${fen})`;
+  movesList?.appendChild(moveElement);
 }
 
-function showCheckWarning(color) {
-  const warning = document.getElementById('game-status');
-  warning.textContent = `${color} king is in check!`;
-  warning.className = 'check-warning';
+function showIllegalMoveWarning(reason: string) {
+  const banner = document.getElementById('game-status');
+  if (banner) {
+    banner.textContent = `Illegal move: ${reason}`;
+    banner.className = 'illegal-warning';
+  }
+}
+
+function showCheckWarning(color: string) {
+  const banner = document.getElementById('game-status');
+  if (banner) {
+    banner.textContent = `${color} is in check!`;
+    banner.className = 'check-warning';
+  }
+}
+
+function updateStatusBanner(fen: string) {
+  const banner = document.getElementById('fen-status');
+  if (banner) {
+    banner.textContent = fen;
+  }
+}
+
+function endGame(result: string) {
+  const banner = document.getElementById('game-status');
+  if (banner) {
+    banner.textContent = `Game over: ${result}`;
+    banner.className = 'game-over';
+  }
 }
 ```
 
 ### PGN Import/Export
 
 ```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
 class PGNManager {
   private board: NeoChessBoard;
@@ -439,7 +506,7 @@ function downloadPGN(content: string, filename: string) {
 
 ```typescript path=null start=null
 import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 const availableThemes = ['light', 'dark', 'wood', 'glass', 'neon', 'retro'];
 
@@ -477,180 +544,199 @@ function ThemeSwitcher() {
 ### Full Featured Chess Game
 
 ```typescript path=null start=null
-import React, { useState, useCallback, useEffect } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
+import React, { useMemo, useState } from 'react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules, START_FEN } from '@magicolala/neo-chess-board';
+import type { Move as ChessMove } from 'chess.js';
+
+type GameStatus = 'playing' | 'check' | 'checkmate' | 'stalemate';
 
 interface GameState {
-  position: string;
-  moves: Move[];
-  status: 'playing' | 'check' | 'checkmate' | 'stalemate' | 'draw';
-  winner?: 'white' | 'black' | 'draw';
+  fen: string;
+  moves: string[];
+  status: GameStatus;
   currentPlayer: 'white' | 'black';
+  winner?: 'white' | 'black' | 'draw';
+  result?: '1-0' | '0-1' | '1/2-1/2';
 }
+
+const THEMES = ['light', 'dark', 'wood', 'glass', 'neon', 'retro'] as const;
 
 function FullChessGame() {
   const [gameState, setGameState] = useState<GameState>({
-    position: 'start',
+    fen: START_FEN,
     moves: [],
     status: 'playing',
-    currentPlayer: 'white'
+    currentPlayer: 'white',
   });
-
-  const [selectedTheme, setSelectedTheme] = useState('light');
+  const [selectedTheme, setSelectedTheme] = useState<(typeof THEMES)[number]>('light');
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   const [showCoordinates, setShowCoordinates] = useState(true);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const rules = useMemo(() => new ChessJsRules(START_FEN), []);
 
-  const handleMove = useCallback((move: Move) => {
-    setGameState(prev => ({
-      ...prev,
-      moves: [...prev.moves, move],
-      position: move.fen,
-      currentPlayer: prev.currentPlayer === 'white' ? 'black' : 'white'
+  const evaluateBoard = (fen: string) => {
+    rules.setFEN(fen);
+    if (rules.isCheckmate()) {
+      const winner = rules.turn() === 'w' ? 'black' : 'white';
+      return { status: 'checkmate' as const, winner, result: winner === 'white' ? '1-0' : '0-1' };
+    }
+    if (rules.isStalemate()) {
+      return { status: 'stalemate' as const, winner: 'draw' as const, result: '1/2-1/2' as const };
+    }
+    if (rules.inCheck()) {
+      return { status: 'check' as const, winner: undefined, result: undefined };
+    }
+    return { status: 'playing' as const, winner: undefined, result: undefined };
+  };
+
+  const applyFen = (fen: string, san?: string) => {
+    const { status, winner, result } = evaluateBoard(fen);
+    const nextPlayer = rules.turn() === 'w' ? 'white' : 'black';
+
+    setGameState((previous) => ({
+      fen,
+      moves: san ? [...previous.moves, san] : previous.moves,
+      status,
+      winner,
+      result,
+      currentPlayer: nextPlayer,
     }));
-  }, []);
+  };
 
-  const handleCheck = useCallback(() => {
-    setGameState(prev => ({ ...prev, status: 'check' }));
-  }, []);
+  const handleMove = (event: { from: string; to: string; fen: string }) => {
+    rules.setFEN(event.fen);
+    const history = rules
+      .getChessInstance()
+      .history({ verbose: true }) as ChessMove[];
+    const san = history.at(-1)?.san ?? `${event.from}-${event.to}`;
 
-  const handleCheckmate = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'checkmate',
-      winner: prev.currentPlayer === 'white' ? 'black' : 'white'
-    }));
-  }, []);
+    setLastError(null);
+    applyFen(event.fen, san);
+  };
 
-  const handleStalemate = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'stalemate',
-      winner: 'draw'
-    }));
-  }, []);
+  const handleUpdate = (event: { fen: string }) => {
+    applyFen(event.fen);
+  };
 
   const resetGame = () => {
+    rules.setFEN(START_FEN);
+    setLastError(null);
     setGameState({
-      position: 'start',
+      fen: START_FEN,
       moves: [],
       status: 'playing',
-      currentPlayer: 'white'
+      currentPlayer: 'white',
     });
+    setOrientation('white');
   };
 
   const exportPGN = () => {
-    // Implementation for PGN export
-    const headers = {
-      Event: 'Neo Chess Board Game',
-      Site: 'Demo Application',
-      Date: new Date().toISOString().split('T')[0],
-      White: 'Player 1',
-      Black: 'Player 2',
-      Result: gameState.winner === 'draw' ? '1/2-1/2' :
-              gameState.winner === 'white' ? '1-0' : '0-1'
-    };
-
-    // Generate PGN from moves
-    const pgnMoves = gameState.moves.map(move => move.san).join(' ');
-    console.log('PGN Export:', headers, pgnMoves);
+    console.log(rules.getChessInstance().pgn());
   };
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       <h1>Neo Chess Board - Full Game</h1>
 
-      {/* Game Controls */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <div>
           <label>Theme: </label>
-          <select value={selectedTheme} onChange={(e) => setSelectedTheme(e.target.value)}>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="wood">Wood</option>
-            <option value="glass">Glass</option>
-            <option value="neon">Neon</option>
-            <option value="retro">Retro</option>
+          <select
+            value={selectedTheme}
+            onChange={(event) => setSelectedTheme(event.target.value as (typeof THEMES)[number])}
+          >
+            {THEMES.map((theme) => (
+              <option key={theme} value={theme}>
+                {theme.charAt(0).toUpperCase() + theme.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
 
         <div>
           <label>Orientation: </label>
-          <select value={orientation} onChange={(e) => setOrientation(e.target.value as 'white' | 'black')}>
+          <select value={orientation} onChange={(event) => setOrientation(event.target.value as 'white' | 'black')}>
             <option value="white">White</option>
             <option value="black">Black</option>
           </select>
         </div>
 
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={showCoordinates}
-              onChange={(e) => setShowCoordinates(e.target.checked)}
-            />
-            Show Coordinates
-          </label>
-        </div>
+        <label>
+          <input
+            type="checkbox"
+            checked={showCoordinates}
+            onChange={(event) => setShowCoordinates(event.target.checked)}
+          />
+          Show Coordinates
+        </label>
+
+        <button onClick={() => setOrientation((value) => (value === 'white' ? 'black' : 'white'))}>
+          Flip Board
+        </button>
       </div>
 
-      {/* Main Game Area */}
       <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-
-        {/* Chess Board */}
         <div>
           <NeoChessBoard
-            position={gameState.position}
+            fen={gameState.fen}
             theme={selectedTheme}
             orientation={orientation}
             showCoordinates={showCoordinates}
+            allowPremoves
             onMove={handleMove}
-            onCheck={handleCheck}
-            onCheckmate={handleCheckmate}
-            onStalemate={handleStalemate}
+            onUpdate={handleUpdate}
+            onIllegal={(event) => setLastError(event.reason)}
             style={{ maxWidth: '500px' }}
           />
         </div>
 
-        {/* Game Info Panel */}
         <div style={{ minWidth: '300px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
           <h3>Game Information</h3>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div style={{ marginBottom: '12px' }}>
             <strong>Status:</strong>
-            <span style={{
-              marginLeft: '10px',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              backgroundColor: gameState.status === 'check' ? '#ffe6e6' :
-                              gameState.status === 'checkmate' ? '#ffcccc' :
-                              gameState.status === 'stalemate' ? '#e6f3ff' : '#e6ffe6'
-            }}>
+            <span
+              style={{
+                marginLeft: '10px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                backgroundColor:
+                  gameState.status === 'check'
+                    ? '#ffe6e6'
+                    : gameState.status === 'checkmate'
+                      ? '#ffcccc'
+                      : gameState.status === 'stalemate'
+                        ? '#e6f3ff'
+                        : '#e6ffe6',
+              }}
+            >
               {gameState.status.charAt(0).toUpperCase() + gameState.status.slice(1)}
             </span>
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div style={{ marginBottom: '12px' }}>
             <strong>Current Player:</strong>
-            <span style={{ marginLeft: '10px', textTransform: 'capitalize' }}>
-              {gameState.currentPlayer}
-            </span>
+            <span style={{ marginLeft: '10px', textTransform: 'capitalize' }}>{gameState.currentPlayer}</span>
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div style={{ marginBottom: '12px' }}>
             <strong>Moves:</strong> {gameState.moves.length}
           </div>
 
           {gameState.winner && (
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Winner:</strong>
-              <span style={{ marginLeft: '10px', fontWeight: 'bold' }}>
-                {gameState.winner === 'draw' ? 'Draw' :
-                 gameState.winner.charAt(0).toUpperCase() + gameState.winner.slice(1)}
+            <div style={{ marginBottom: '12px' }}>
+              <strong>Result:</strong>
+              <span style={{ marginLeft: '10px' }}>
+                {gameState.winner === 'draw' ? 'Draw' : `${gameState.winner} wins`} ({gameState.result})
               </span>
             </div>
           )}
 
-          {/* Game Controls */}
+          {lastError && (
+            <div style={{ marginBottom: '12px', color: '#b91c1c' }}>Illegal move: {lastError}</div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
             <button onClick={resetGame} style={{ padding: '8px 16px' }}>
               New Game
@@ -658,532 +744,21 @@ function FullChessGame() {
             <button onClick={exportPGN} style={{ padding: '8px 16px' }}>
               Export PGN
             </button>
-            <button
-              onClick={() => setOrientation(orientation === 'white' ? 'black' : 'white')}
-              style={{ padding: '8px 16px' }}
-            >
-              Flip Board
-            </button>
-          </div>
-
-          {/* Move History */}
-          <div style={{ marginTop: '20px' }}>
-            <h4>Move History</h4>
-            <div style={{
-              maxHeight: '200px',
-              overflow: 'auto',
-              backgroundColor: 'white',
-              padding: '10px',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
-              {gameState.moves.length === 0 ? (
-                <em>No moves yet</em>
-              ) : (
-                gameState.moves.map((move, index) => (
-                  <div key={index} style={{ marginBottom: '2px' }}>
-                    {Math.floor(index / 2) + 1}
-                    {index % 2 === 0 ? '.' : '...'} {move.san}
-                  </div>
-                ))
-              )}
-            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-```
 
-### Position Setup Tool
-
-```typescript path=null start=null
-import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
-
-function PositionEditor() {
-  const [editMode, setEditMode] = useState(false);
-  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
-  const [currentFEN, setCurrentFEN] = useState('start');
-
-  const pieces = [
-    { type: 'king', color: 'white' },
-    { type: 'queen', color: 'white' },
-    { type: 'rook', color: 'white' },
-    { type: 'bishop', color: 'white' },
-    { type: 'knight', color: 'white' },
-    { type: 'pawn', color: 'white' },
-    { type: 'king', color: 'black' },
-    { type: 'queen', color: 'black' },
-    { type: 'rook', color: 'black' },
-    { type: 'bishop', color: 'black' },
-    { type: 'knight', color: 'black' },
-    { type: 'pawn', color: 'black' },
-  ];
-
-  const handleSquareClick = (square: Square) => {
-    if (editMode && selectedPiece) {
-      // Place selected piece on clicked square
-      // Implementation depends on board API
-      console.log(`Placing ${selectedPiece.color} ${selectedPiece.type} on ${square}`);
-    }
-  };
-
-  return (
-    <div>
-      <h2>Position Editor</h2>
-
-      <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setEditMode(!editMode)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: editMode ? '#ff6b6b' : '#4ecdc4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          {editMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
-        </button>
-      </div>
-
-      {editMode && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Select Piece to Place:</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', maxWidth: '400px' }}>
-            {pieces.map((piece, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedPiece(piece)}
-                style={{
-                  padding: '10px',
-                  backgroundColor: selectedPiece === piece ? '#007bff' : '#f8f9fa',
-                  color: selectedPiece === piece ? 'white' : 'black',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  textTransform: 'capitalize'
-                }}
-              >
-                {piece.color} {piece.type}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div>
-          <NeoChessBoard
-            position={currentFEN}
-            draggable={!editMode}
-            onSquareClick={editMode ? handleSquareClick : undefined}
-          />
-        </div>
-
-        <div style={{ minWidth: '300px' }}>
-          <h3>FEN String</h3>
-          <textarea
-            value={currentFEN}
-            onChange={(e) => setCurrentFEN(e.target.value)}
-            style={{
-              width: '100%',
-              height: '100px',
-              fontFamily: 'monospace',
-              fontSize: '12px'
-            }}
-          />
-
-          <div style={{ marginTop: '10px' }}>
-            <button onClick={() => setCurrentFEN('start')}>
-              Reset to Start
-            </button>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(currentFEN);
-                alert('FEN copied to clipboard!');
-              }}
-              style={{ marginLeft: '10px' }}
-            >
-              Copy FEN
-            </button>
-          </div>
-        </div>
+      <div style={{ marginTop: '24px' }}>
+        <h3>Move List</h3>
+        <ol>
+          {gameState.moves.map((san, index) => (
+            <li key={`${san}-${index}`}>{san}</li>
+          ))}
+        </ol>
       </div>
     </div>
   );
 }
 ```
-
-## 🎲 Game Variants
-
-### King of the Hill
-
-```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
-
-class KingOfTheHillGame {
-  private board: NeoChessBoard;
-  private centerSquares = ['d4', 'd5', 'e4', 'e5'];
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.board = new NeoChessBoard(canvas, {
-      theme: 'neon',
-      highlightLegalMoves: true,
-    });
-
-    this.board.on('move', this.checkWinCondition.bind(this));
-  }
-
-  private checkWinCondition(move: Move) {
-    // Check if a king reached the center
-    if (move.piece.type === 'king' && this.centerSquares.includes(move.to)) {
-      const winner = move.piece.color;
-      alert(`${winner} wins by reaching the center!`);
-      this.board.emit('gameEnd', { winner, reason: 'king-of-the-hill' });
-    }
-  }
-
-  highlightCenter() {
-    // Highlight the center squares
-    this.centerSquares.forEach((square) => {
-      this.board.highlightSquare(square, 'rgba(255, 215, 0, 0.6)');
-    });
-  }
-}
-```
-
-### Chess960 (Fischer Random)
-
-```typescript path=null start=null
-function generateChess960Position(): string {
-  // Generate random starting position for Chess960
-  const backrank = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
-
-  // Fisher-Yates shuffle with Chess960 constraints
-  // (bishops on opposite colors, king between rooks)
-
-  // Simplified version - in real implementation, ensure valid Chess960 rules
-  for (let i = backrank.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [backrank[i], backrank[j]] = [backrank[j], backrank[i]];
-  }
-
-  const chess960FEN = backrank.join('').toUpperCase() + '/pppppppp/8/8/8/8/PPPPPPPP/' + backrank.join('') + ' w KQkq - 0 1';
-
-  return chess960FEN;
-}
-
-function Chess960Game() {
-  const [position, setPosition] = useState(() => generateChess960Position());
-
-  const newRandomGame = () => {
-    setPosition(generateChess960Position());
-  };
-
-  return (
-    <div>
-      <h2>Chess960 (Fischer Random)</h2>
-      <button onClick={newRandomGame} style={{ marginBottom: '20px' }}>
-        New Random Position
-      </button>
-
-      <NeoChessBoard
-        position={position}
-        theme="retro"
-        onMove={(move) => console.log('Chess960 move:', move)}
-      />
-    </div>
-  );
-}
-```
-
-## 🎯 Integration Examples
-
-### With Chess Engine
-
-```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
-// Assuming integration with a chess engine like Stockfish
-
-class EngineGame {
-  private board: NeoChessBoard;
-  private engine: ChessEngine;
-  private playerColor: 'white' | 'black' = 'white';
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.board = new NeoChessBoard(canvas);
-    this.engine = new ChessEngine(); // Your engine implementation
-
-    this.board.on('move', this.handlePlayerMove.bind(this));
-  }
-
-  private async handlePlayerMove(move: Move) {
-    if (move.piece.color !== this.playerColor) return;
-
-    // Get engine response
-    const engineMove = await this.engine.getBestMove(move.fen, 1000); // 1 second think time
-
-    setTimeout(() => {
-      this.board.makeMove(engineMove.from, engineMove.to);
-    }, 500); // Delay for realistic feel
-  }
-
-  setPlayerColor(color: 'white' | 'black') {
-    this.playerColor = color;
-    this.board.setOrientation(color);
-
-    if (color === 'black') {
-      // Engine plays first move as white
-      this.makeEngineMove();
-    }
-  }
-
-  private async makeEngineMove() {
-    const engineMove = await this.engine.getBestMove(this.board.getFEN(), 1000);
-    this.board.makeMove(engineMove.from, engineMove.to);
-  }
-}
-```
-
-### Real-time Multiplayer
-
-```typescript path=null start=null
-import { NeoChessBoard } from 'neochessboard';
-import { io, Socket } from 'socket.io-client';
-
-class MultiplayerGame {
-  private board: NeoChessBoard;
-  private socket: Socket;
-  private gameId: string;
-  private playerColor: 'white' | 'black';
-
-  constructor(canvas: HTMLCanvasElement, gameId: string) {
-    this.board = new NeoChessBoard(canvas);
-    this.gameId = gameId;
-    this.socket = io('ws://your-server.com');
-
-    this.setupSocketEvents();
-    this.setupBoardEvents();
-  }
-
-  private setupSocketEvents() {
-    this.socket.on('gameJoined', ({ color, position }) => {
-      this.playerColor = color;
-      this.board.setOrientation(color);
-      this.board.loadPosition(position);
-    });
-
-    this.socket.on('moveReceived', ({ move }) => {
-      this.board.makeMove(move.from, move.to);
-    });
-
-    this.socket.on('gameEnded', ({ winner, reason }) => {
-      alert(`Game ended: ${winner} wins by ${reason}`);
-    });
-  }
-
-  private setupBoardEvents() {
-    this.board.on('move', (move) => {
-      // Only send moves for the current player
-      if (move.piece.color === this.playerColor) {
-        this.socket.emit('makeMove', {
-          gameId: this.gameId,
-          move: {
-            from: move.from,
-            to: move.to,
-            promotion: move.promotion,
-          },
-        });
-      }
-    });
-  }
-
-  joinGame(gameId: string) {
-    this.socket.emit('joinGame', { gameId });
-  }
-}
-
-// Usage
-const canvas = document.getElementById('board') as HTMLCanvasElement;
-const game = new MultiplayerGame(canvas, 'game-123');
-game.joinGame('game-123');
-```
-
-## 🧩 Utility Functions
-
-### Position Analysis
-
-```typescript path=null start=null
-import { LightRules } from 'neochessboard';
-
-function analyzePosition(fen: string) {
-  const rules = new LightRules(fen);
-
-  const analysis = {
-    material: calculateMaterial(fen),
-    kingSafety: assessKingSafety(rules),
-    centerControl: evaluateCenterControl(fen),
-    development: checkDevelopment(fen)
-  };
-
-  return analysis;
-}
-
-function calculateMaterial(fen: string): { white: number; black: number } {
-  const pieceValues = {
-    'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9,
-    'P': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9
-  };
-
-  const position = fen.split(' ')[0];
-  let whiteMaterial = 0, blackMaterial = 0;
-
-  for (const char of position) {
-    if (pieceValues[char]) {
-      if (char === char.toUpperCase()) {
-        whiteMaterial += pieceValues[char];
-      } else {
-        blackMaterial += pieceValues[char];
-      }
-    }
-  }
-
-  return { white: whiteMaterial, black: blackMaterial };
-}
-
-// Usage in React component
-function PositionAnalysis({ position }: { position: string }) {
-  const [analysis, setAnalysis] = useState(null);
-
-  useEffect(() => {
-    const result = analyzePosition(position);
-    setAnalysis(result);
-  }, [position]);
-
-  return (
-    <div>
-      {analysis && (
-        <div>
-          <h3>Position Analysis</h3>
-          <p>Material: White {analysis.material.white} - Black {analysis.material.black}</p>
-          {/* Display other analysis results */}
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-## 📱 Mobile Optimization
-
-### Touch-Friendly Interface
-
-```typescript path=null start=null
-import React, { useState } from 'react';
-import { NeoChessBoard } from 'neochessboard/react';
-
-function MobileChessBoard() {
-  const [orientation, setOrientation] = useState<'white' | 'black'>('white');
-
-  return (
-    <div style={{
-      padding: '10px',
-      maxWidth: '100vw',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
-    }}>
-      <h2 style={{ fontSize: '1.5em', margin: '10px 0' }}>Neo Chess</h2>
-
-      {/* Mobile controls */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        marginBottom: '15px',
-        fontSize: '14px'
-      }}>
-        <button
-          onClick={() => setOrientation(orientation === 'white' ? 'black' : 'white')}
-          style={{
-            padding: '10px 15px',
-            fontSize: '16px',
-            touchAction: 'manipulation'
-          }}
-        >
-          Flip
-        </button>
-      </div>
-
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        aspectRatio: '1 / 1'
-      }}>
-        <NeoChessBoard
-          orientation={orientation}
-          theme="dark"
-          showCoordinates={false}
-          style={{
-            width: '100%',
-            height: '100%',
-            touchAction: 'none' // Prevent scroll during drag
-          }}
-          onMove={(move) => {
-            // Haptic feedback on mobile
-            if ('vibrate' in navigator) {
-              navigator.vibrate(50);
-            }
-            console.log('Mobile move:', move);
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-```
-
-## 📊 Analytics Integration
-
-### Game Statistics
-
-```typescript path=null start=null
-class GameAnalytics {
-  private moves: Move[] = [];
-  private startTime: number = Date.now();
-
-  recordMove(move: Move) {
-    this.moves.push({
-      ...move,
-      timestamp: Date.now(),
-      timeElapsed: Date.now() - this.startTime,
-    });
-  }
-
-  getStatistics() {
-    return {
-      totalMoves: this.moves.length,
-      gameDuration: Date.now() - this.startTime,
-      averageThinkTime: this.calculateAverageThinkTime(),
-      capturedPieces: this.moves.filter((m) => m.captured).length,
-      checksGiven: this.moves.filter((m) => m.check).length,
-    };
-  }
-
-  private calculateAverageThinkTime(): number {
-    if (this.moves.length < 2) return 0;
-
-    let totalTime = 0;
-    for (let i = 1; i < this.moves.length; i++) {
-      totalTime += this.moves[i].timestamp - this.moves[i - 1].timestamp;
-    }
-
-    return totalTime / (this.moves.length - 1);
-  }
-}
-```
-
----
 
 For more examples, check out the complete demo application in the `demo/` directory and explore the test files in `tests/` for additional usage patterns!

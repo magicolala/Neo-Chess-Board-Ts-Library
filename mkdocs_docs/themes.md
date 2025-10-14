@@ -5,7 +5,7 @@ Neo Chess Board ships with a lightweight theming system focused on color palette
 ## 🎨 Theme structure
 
 ```ts
-import type { Theme } from 'neochessboard';
+import type { Theme } from '@magicolala/neo-chess-board';
 
 interface Theme {
   light: string;           // Light squares
@@ -38,7 +38,7 @@ All properties accept any valid CSS color string. `pieceStroke` and `pieceHighli
 Import the catalog through `THEMES`:
 
 ```ts
-import { THEMES } from 'neochessboard';
+import { THEMES } from '@magicolala/neo-chess-board';
 
 const { classic, midnight } = THEMES;
 ```
@@ -60,7 +60,7 @@ Instead of tweaking JSON by hand, try the hosted [Theme Creator](https://magicol
 Exported themes can be registered right away:
 
 ```ts
-import { registerTheme } from 'neochessboard';
+import { registerTheme } from '@magicolala/neo-chess-board';
 
 const aurora = {
   light: '#F5F3FF',
@@ -76,7 +76,7 @@ The builder persists saved palettes in `localStorage`, so you can iterate across
 ## 🧪 Creating a custom theme
 
 ```ts
-import { THEMES } from 'neochessboard';
+import { THEMES } from '@magicolala/neo-chess-board';
 
 const sunsetTheme = {
   ...THEMES.midnight,
@@ -95,7 +95,7 @@ You can pass the theme object directly when creating a board or when calling `se
 Use `registerTheme` to store a theme under a name so it can be referenced later:
 
 ```ts
-import { registerTheme, THEMES } from 'neochessboard';
+import { registerTheme, THEMES } from '@magicolala/neo-chess-board';
 
 registerTheme('sunset', {
   ...THEMES.classic,
@@ -110,7 +110,7 @@ Registration normalizes the theme and inserts it in the `THEMES` map. Missing op
 If you need the final normalized object without registering it, call `resolveTheme`:
 
 ```ts
-import { resolveTheme, THEMES } from 'neochessboard';
+import { resolveTheme, THEMES } from '@magicolala/neo-chess-board';
 
 const normalized = resolveTheme({
   ...THEMES.midnight,
@@ -123,7 +123,7 @@ const normalized = resolveTheme({
 ### Vanilla JavaScript
 
 ```ts
-import { NeoChessBoard, THEMES } from 'neochessboard';
+import { NeoChessBoard, THEMES } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(container, {
   theme: THEMES.classic,        // built-in object
@@ -143,7 +143,7 @@ board.setTheme('sunset');
 ### React component
 
 ```tsx
-import { NeoChessBoard } from 'neochessboard';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 const customTheme = {
   light: '#F5F3FF',
@@ -199,7 +199,7 @@ board.applyTheme(restored);
 ## ✅ Testing your theme
 
 ```ts
-import { resolveTheme } from 'neochessboard';
+import { resolveTheme } from '@magicolala/neo-chess-board';
 
 describe('sunset theme', () => {
   it('serializes correctly', () => {

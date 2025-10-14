@@ -69,12 +69,20 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
    import { NeoChessBoard } from '../src/react/NeoChessBoard';
 
    // To this:
-   import { NeoChessBoard } from 'neochessboard/react';
+   import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
    ```
 
-3. Install Neo Chess Board in your project:
+3. Configure GitHub Packages access and install Neo Chess Board in your project:
+   ```ini
+   # .npmrc
+   @magicolala:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+   ```
+
+   Set `${GITHUB_TOKEN}` to a GitHub Personal Access Token that grants `read:packages` access.
+
    ```bash
-   npm install neochessboard
+   npm install @magicolala/neo-chess-board
    ```
 
 ## 🎯 Example Features Demonstrated
@@ -86,7 +94,7 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 - ✅ FEN position loading
 - ✅ Theme switching
 - ✅ Board orientation flipping
-- ✅ Event handling (move, check, checkmate, etc.)
+- ✅ Event handling (move, illegal, update, promotion) with Chess.js adapters for checks and mates
 
 ### Advanced Features
 
@@ -162,18 +170,29 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
 ### Custom Event Handlers
 
 ```typescript
-board.on('move', (move) => {
-  // Custom move handling
-  analytics.trackMove(move);
-  updateGameState(move);
-  checkWinCondition();
+import { ChessJsRules } from '@magicolala/neo-chess-board';
+
+const rules = new ChessJsRules();
+
+board.on('move', (event) => {
+  rules.setFEN(event.fen);
+  analytics.trackMove(event);
+  updateGameState(event.fen);
+
+  if (rules.isCheckmate()) {
+    endGame(rules.turn() === 'w' ? '0-1' : '1-0');
+  } else if (rules.inCheck()) {
+    playSound('check');
+  }
 });
 
-board.on('check', (color) => {
-  // Custom check handling
-  playSound('check');
-  showNotification(`${color} king is in check!`);
+board.on('illegal', (event) => {
+  playSound('error');
+  showNotification(`Illegal move: ${event.reason}`);
 });
+
+board.on('update', (event) => rules.setFEN(event.fen));
+board.on('promotion', (request) => showPromotionDialog(request));
 ```
 
 ### Theme Customization
@@ -208,21 +227,23 @@ board.setTheme(customTheme);
 ```typescript
 // Redux action creators
 const gameActions = {
-  makeMove: (move) => ({ type: 'MAKE_MOVE', payload: move }),
+  makeMove: (event) => ({ type: 'MAKE_MOVE', payload: event }),
+  syncFen: (fen) => ({ type: 'SYNC_FEN', payload: fen }),
   setTheme: (theme) => ({ type: 'SET_THEME', payload: theme }),
   resetGame: () => ({ type: 'RESET_GAME' })
 };
 
 // Component integration
 const ChessGame = () => {
-  const { position, theme } = useSelector(state => state.chess);
+  const { fen, theme } = useSelector(state => state.chess);
   const dispatch = useDispatch();
 
   return (
     <NeoChessBoard
-      position={position}
+      fen={fen}
       theme={theme}
-      onMove={(move) => dispatch(gameActions.makeMove(move))}
+      onMove={(event) => dispatch(gameActions.makeMove(event))}
+      onUpdate={(event) => dispatch(gameActions.syncFen(event.fen))}
     />
   );
 };
@@ -234,13 +255,13 @@ const ChessGame = () => {
 // React Hook Form integration
 const { control, watch, setValue } = useForm({
   defaultValues: {
-    position: 'start',
+    fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     theme: 'light',
     orientation: 'white'
   }
 });
 
-const position = watch('position');
+const fen = watch('fen');
 
 return (
   <Controller
@@ -248,9 +269,9 @@ return (
     control={control}
     render={({ field }) => (
       <NeoChessBoard
-        position={position}
+        fen={fen}
         theme={field.value}
-        onMove={(move) => setValue('position', move.fen)}
+        onUpdate={(event) => setValue('fen', event.fen)}
       />
     )}
   />
@@ -324,7 +345,10 @@ const GameAnalyzer = ({ moves }) => {
 
   return (
     <div>
-      <NeoChessBoard position={moves[currentIndex]?.fen} />
+      <NeoChessBoard
+        fen={moves[currentIndex]?.fen}
+        onUpdate={() => {}}
+      />
       <VirtualizedMoveList
         moves={visibleMoves}
         onMoveSelect={setCurrentIndex}
@@ -353,7 +377,7 @@ useEffect(() => {
 
 ```typescript
 import { render, fireEvent } from '@testing-library/react';
-import { NeoChessBoard } from 'neochessboard/react';
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 test('handles move events correctly', () => {
   const handleMove = jest.fn();
@@ -375,9 +399,9 @@ test('handles move events correctly', () => {
 
 For live, interactive examples, visit:
 
-- **CodeSandbox**: [Try Neo Chess Board](https://codesandbox.io/s/neochessboard-demo)
-- **StackBlitz**: [Edit in StackBlitz](https://stackblitz.com/github/yourusername/neochessboard)
-- **Demo Site**: [Live Demo](https://yourusername.github.io/neochessboard)
+- **CodeSandbox**: [Try Neo Chess Board](https://codesandbox.io/s/github/magicolala/Neo-Chess-Board-Ts-Library)
+- **StackBlitz**: [Edit in StackBlitz](https://stackblitz.com/github/magicolala/Neo-Chess-Board-Ts-Library)
+- **Demo Site**: [Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/)
 
 ## 🤝 Contributing Examples
 

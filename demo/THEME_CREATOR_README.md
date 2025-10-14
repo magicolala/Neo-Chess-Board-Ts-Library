@@ -54,7 +54,7 @@ Then open `http://localhost:5174/theme-creator.html` in your browser.
 Themes created with this tool can be used directly in your Neo Chess Board implementation:
 
 ```typescript
-import { registerTheme } from 'neochessboard';
+import { registerTheme } from '@magicolala/neo-chess-board';
 
 const myTheme = {
   light: '#EBEDF0',
