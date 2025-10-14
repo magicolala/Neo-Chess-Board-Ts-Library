@@ -72,7 +72,15 @@ This directory contains comprehensive examples demonstrating how to use Neo Ches
    import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
    ```
 
-3. Install Neo Chess Board in your project:
+3. Configure GitHub Packages access and install Neo Chess Board in your project:
+   ```ini
+   # .npmrc
+   @magicolala:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+   ```
+
+   Set `${GITHUB_TOKEN}` to a GitHub Personal Access Token that grants `read:packages` access.
+
    ```bash
    npm install @magicolala/neo-chess-board
    ```

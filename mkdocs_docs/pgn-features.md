@@ -242,6 +242,14 @@ if (chessRules.loadPgn(immortalGame)) {
 
 ### 🚀 **Intégration dans vos Projets**
 
+Configure GitHub Packages authentication before installing:
+
+```ini
+# .npmrc
+@magicolala:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
 ```bash
 npm install @magicolala/neo-chess-board
 ```
