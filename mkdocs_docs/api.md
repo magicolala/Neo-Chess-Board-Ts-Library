@@ -483,7 +483,6 @@ function App() {
 
   const syncStatus = (nextFen: string) => {
     chessRules.setFEN(nextFen);
-
     if (chessRules.isCheckmate()) {
       setStatus('checkmate');
     } else if (chessRules.isStalemate()) {
