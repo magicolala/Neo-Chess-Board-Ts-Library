@@ -203,9 +203,51 @@ export interface PieceSet {
   defaultScale?: number;
 }
 
+export type InlineStyle = Record<string, string | number>;
+
+export type CanvasFill = string | CanvasGradient | CanvasPattern;
+
+export interface SquareStyleOptions {
+  fill?: CanvasFill;
+  stroke?: CanvasFill;
+  strokeWidth?: number;
+}
+
+export interface NotationStyleOptions {
+  color?: string;
+  fontFamily?: string;
+  fontSize?: number | string;
+  fontStyle?: string;
+  fontWeight?: string | number;
+  textTransform?: 'uppercase' | 'lowercase' | 'none';
+  padding?: number;
+  opacity?: number;
+}
+
+export interface SquareRendererParams {
+  square: Square;
+  isLight: boolean;
+  element: HTMLDivElement;
+  board: NeoChessBoard;
+}
+
+export type SquareRenderer = (params: SquareRendererParams) => void;
+
+export interface PieceRendererParams {
+  square: Square;
+  piece: Piece;
+  element: HTMLDivElement;
+  board: NeoChessBoard;
+}
+
+export type PieceRenderer = (params: PieceRendererParams) => void;
+
+export type PieceRendererMap = Partial<Record<Piece, PieceRenderer>>;
+
 export interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
+  boardOrientation?: 'white' | 'black';
   interactive?: boolean;
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
@@ -240,6 +282,19 @@ export interface BoardOptions {
   arrowOptions?: ArrowStyleOptions;
   onArrowsChange?: (arrows: Arrow[]) => void;
   clearArrowsOnClick?: boolean;
+  id?: string;
+  boardStyle?: InlineStyle;
+  squareStyle?: SquareStyleOptions;
+  lightSquareStyle?: SquareStyleOptions;
+  darkSquareStyle?: SquareStyleOptions;
+  squareStyles?: Partial<Record<Square, SquareStyleOptions>>;
+  lightSquareNotationStyle?: NotationStyleOptions;
+  darkSquareNotationStyle?: NotationStyleOptions;
+  alphaNotationStyle?: NotationStyleOptions;
+  numericNotationStyle?: NotationStyleOptions;
+  showNotation?: boolean;
+  squareRenderer?: SquareRenderer;
+  pieces?: PieceRendererMap;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

@@ -220,6 +220,38 @@ const customTheme = {
 board.setTheme(customTheme);
 ```
 
+### Advanced Board Customization
+
+```tsx
+import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+
+function CustomBoard() {
+  return (
+    <NeoChessBoard
+      boardStyle={{ borderRadius: '0px', boxShadow: 'none' }}
+      showNotation={false}
+      lightSquareStyle={{ fill: '#fefae0' }}
+      darkSquareStyle={{ fill: '#606c38', stroke: '#283618', strokeWidth: 2 }}
+      squareRenderer={({ square, element }) => {
+        element.textContent = square === 'e4' ? '★' : '';
+      }}
+      pieces={{
+        P: ({ element }) => {
+          element.innerHTML = '';
+          element.className = 'custom-piece';
+          element.textContent = '♙';
+        },
+        p: ({ element }) => {
+          element.innerHTML = '';
+          element.className = 'custom-piece';
+          element.textContent = '♟';
+        },
+      }}
+    />
+  );
+}
+```
+
 ## 🎮 Integration Patterns
 
 ### With State Management (Redux/Zustand)

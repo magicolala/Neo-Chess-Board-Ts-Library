@@ -40,6 +40,12 @@ import type {
   RulesMoveResponse,
   PgnMoveAnnotations,
   ArrowStyleOptions,
+  InlineStyle,
+  SquareStyleOptions,
+  NotationStyleOptions,
+  SquareRenderer,
+  PieceRendererMap,
+  PieceRenderer,
 } from './types';
 
 // ============================================================================
@@ -140,6 +146,24 @@ export class NeoChessBoard {
   private ctxB!: CanvasRenderingContext2D;
   private ctxP!: CanvasRenderingContext2D;
   private ctxO!: CanvasRenderingContext2D;
+  private domOverlay?: HTMLDivElement;
+  private squareLayer?: HTMLDivElement;
+  private pieceLayer?: HTMLDivElement;
+  private boardInlineStyle?: InlineStyle;
+  private appliedBoardStyleKeys = new Set<string>();
+  private baseSquareStyle?: SquareStyleOptions;
+  private lightSquareStyleOptions?: SquareStyleOptions;
+  private darkSquareStyleOptions?: SquareStyleOptions;
+  private squareStylesMap?: Partial<Record<Square, SquareStyleOptions>>;
+  private lightNotationStyle?: NotationStyleOptions;
+  private darkNotationStyle?: NotationStyleOptions;
+  private alphaNotationStyle?: NotationStyleOptions;
+  private numericNotationStyle?: NotationStyleOptions;
+  private customSquareRenderer?: SquareRenderer;
+  private customPieceRenderers?: PieceRendererMap;
+  private squareElements = new Map<Square, HTMLDivElement>();
+  private pieceElements = new Map<Square, HTMLDivElement>();
+  private boardId?: string;
 
   // ---- Rules & State ----
   private rules: RulesAdapter;
@@ -250,7 +274,43 @@ export class NeoChessBoard {
 
     // Initialize visual configuration
     this.theme = resolveTheme(options.theme ?? 'classic');
-    this.orientation = options.orientation || 'white';
+    const desiredOrientation = options.boardOrientation ?? options.orientation;
+    this.orientation = desiredOrientation ?? 'white';
+    this.boardId = options.id ?? undefined;
+    this.boardInlineStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
+    this.baseSquareStyle = options.squareStyle ? { ...options.squareStyle } : undefined;
+    this.lightSquareStyleOptions = options.lightSquareStyle
+      ? { ...options.lightSquareStyle }
+      : undefined;
+    this.darkSquareStyleOptions = options.darkSquareStyle
+      ? { ...options.darkSquareStyle }
+      : undefined;
+    if (options.squareStyles) {
+      this.squareStylesMap = Object.entries(options.squareStyles).reduce<
+        Partial<Record<Square, SquareStyleOptions>>
+      >((acc, [sqKey, style]) => {
+        if (style) {
+          acc[sqKey as Square] = { ...style };
+        }
+        return acc;
+      }, {});
+    } else {
+      this.squareStylesMap = undefined;
+    }
+    this.lightNotationStyle = options.lightSquareNotationStyle
+      ? { ...options.lightSquareNotationStyle }
+      : undefined;
+    this.darkNotationStyle = options.darkSquareNotationStyle
+      ? { ...options.darkSquareNotationStyle }
+      : undefined;
+    this.alphaNotationStyle = options.alphaNotationStyle
+      ? { ...options.alphaNotationStyle }
+      : undefined;
+    this.numericNotationStyle = options.numericNotationStyle
+      ? { ...options.numericNotationStyle }
+      : undefined;
+    this.customSquareRenderer = options.squareRenderer;
+    this.customPieceRenderers = options.pieces ? { ...options.pieces } : undefined;
     const resolvedAnimationDuration =
       typeof options.animationDurationInMs === 'number'
         ? options.animationDurationInMs
@@ -273,7 +333,8 @@ export class NeoChessBoard {
     this.allowDrawingArrows = options.allowDrawingArrows !== false;
     this.clearArrowsOnClick = options.clearArrowsOnClick === true;
     this.soundEnabled = options.soundEnabled !== false;
-    this.showSquareNames = options.showSquareNames || false;
+    const showNotationOption = options.showNotation ?? options.showSquareNames;
+    this.showSquareNames = Boolean(showNotationOption);
     this.autoFlip = options.autoFlip ?? false;
     this.allowAutoScroll = options.allowAutoScroll === true;
     this.allowDragging = options.allowDragging !== false;
@@ -588,6 +649,95 @@ export class NeoChessBoard {
     this.dragActivationDistance = Math.max(0, distance);
   }
 
+  public setBoardStyle(style?: InlineStyle): void {
+    this.boardInlineStyle = style ? { ...style } : undefined;
+    this._applyBoardStyle();
+  }
+
+  public setBoardId(id?: string): void {
+    this.boardId = id ?? undefined;
+    if (id && id.length > 0) {
+      this.root.id = id;
+    } else {
+      this.root.removeAttribute('id');
+    }
+  }
+
+  public setSquareStyle(style?: SquareStyleOptions): void {
+    this.baseSquareStyle = style ? { ...style } : undefined;
+    this.renderAll();
+  }
+
+  public setLightSquareStyle(style?: SquareStyleOptions): void {
+    this.lightSquareStyleOptions = style ? { ...style } : undefined;
+    this.renderAll();
+  }
+
+  public setDarkSquareStyle(style?: SquareStyleOptions): void {
+    this.darkSquareStyleOptions = style ? { ...style } : undefined;
+    this.renderAll();
+  }
+
+  public setSquareStyles(styles?: Partial<Record<Square, SquareStyleOptions>>): void {
+    if (styles) {
+      this.squareStylesMap = Object.entries(styles).reduce<
+        Partial<Record<Square, SquareStyleOptions>>
+      >((acc, [key, value]) => {
+        if (value) {
+          acc[key as Square] = { ...value };
+        }
+        return acc;
+      }, {});
+    } else {
+      this.squareStylesMap = undefined;
+    }
+    this.renderAll();
+  }
+
+  public setLightSquareNotationStyle(style?: NotationStyleOptions): void {
+    this.lightNotationStyle = style ? { ...style } : undefined;
+    this._applyNotationStyles();
+    this.renderAll();
+  }
+
+  public setDarkSquareNotationStyle(style?: NotationStyleOptions): void {
+    this.darkNotationStyle = style ? { ...style } : undefined;
+    this._applyNotationStyles();
+    this.renderAll();
+  }
+
+  public setAlphaNotationStyle(style?: NotationStyleOptions): void {
+    this.alphaNotationStyle = style ? { ...style } : undefined;
+    this._applyNotationStyles();
+    this.renderAll();
+  }
+
+  public setNumericNotationStyle(style?: NotationStyleOptions): void {
+    this.numericNotationStyle = style ? { ...style } : undefined;
+    this._applyNotationStyles();
+    this.renderAll();
+  }
+
+  public setShowNotation(show: boolean): void {
+    this.setShowSquareNames(show);
+  }
+
+  public setSquareRenderer(renderer?: SquareRenderer): void {
+    this.customSquareRenderer = renderer;
+    if (!renderer) {
+      this._clearSquareOverlay();
+    }
+    this.renderAll();
+  }
+
+  public setPieceRenderers(renderers?: PieceRendererMap): void {
+    this.customPieceRenderers = renderers ? { ...renderers } : undefined;
+    if (!this.customPieceRenderers) {
+      this._clearDomPieces();
+    }
+    this.renderAll();
+  }
+
   public setShowArrows(show: boolean): void {
     this.showArrows = show;
     this.renderAll();
@@ -829,6 +979,12 @@ export class NeoChessBoard {
     this._removeEvents();
     this._disposeExtensions();
     this.root.innerHTML = '';
+    this.domOverlay = undefined;
+    this.squareLayer = undefined;
+    this.pieceLayer = undefined;
+    this.squareElements.clear();
+    this.pieceElements.clear();
+    this.appliedBoardStyleKeys.clear();
   }
 
   // ============================================================================
@@ -838,6 +994,7 @@ export class NeoChessBoard {
   private _buildDOM(): void {
     this._setupRootElement();
     this._createCanvases();
+    this._createDomLayers();
     this._initializeContexts();
     this._initializeDrawingManager();
     this._rasterize();
@@ -850,6 +1007,10 @@ export class NeoChessBoard {
     this.root.classList.add('ncb-root');
     this.root.style.position = 'relative';
     this.root.style.userSelect = 'none';
+    if (this.boardId) {
+      this.root.id = this.boardId;
+    }
+    this._applyBoardStyle();
   }
 
   private _createCanvases(): void {
@@ -859,6 +1020,114 @@ export class NeoChessBoard {
 
     [this.cBoard, this.cPieces, this.cOverlay].forEach((canvas) => {
       this.root.appendChild(canvas);
+    });
+  }
+
+  private _createDomLayers(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    if (this.domOverlay) {
+      this.domOverlay.remove();
+      this.domOverlay = undefined;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.classList.add('ncb-dom-overlay');
+    Object.assign(overlay.style, {
+      position: 'absolute',
+      left: '0',
+      top: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+    });
+
+    const squareLayer = document.createElement('div');
+    squareLayer.classList.add('ncb-square-overlay');
+    Object.assign(squareLayer.style, {
+      position: 'absolute',
+      left: '0',
+      top: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+    });
+    overlay.appendChild(squareLayer);
+
+    const pieceLayer = document.createElement('div');
+    pieceLayer.classList.add('ncb-piece-overlay');
+    Object.assign(pieceLayer.style, {
+      position: 'absolute',
+      left: '0',
+      top: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+    });
+    overlay.appendChild(pieceLayer);
+
+    this.root.appendChild(overlay);
+
+    this.domOverlay = overlay;
+    this.squareLayer = squareLayer;
+    this.pieceLayer = pieceLayer;
+    this.squareElements.clear();
+    this.pieceElements.clear();
+  }
+
+  private _applyBoardStyle(): void {
+    if (!this.root) {
+      return;
+    }
+
+    const style = this.boardInlineStyle;
+    const nextKeys = new Set<string>(style ? Object.keys(style) : []);
+
+    for (const key of this.appliedBoardStyleKeys) {
+      if (!nextKeys.has(key)) {
+        this._setRootStyleValue(key, '');
+      }
+    }
+
+    this.appliedBoardStyleKeys.clear();
+
+    if (!style) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(style)) {
+      const normalized = this._normalizeStyleValue(value);
+      this._setRootStyleValue(key, normalized);
+      this.appliedBoardStyleKeys.add(key);
+    }
+  }
+
+  private _setRootStyleValue(key: string, value: string): void {
+    if (key.includes('-')) {
+      this.root.style.setProperty(key, value);
+    } else {
+      (this.root.style as unknown as Record<string, string>)[key] = value;
+    }
+  }
+
+  private _normalizeStyleValue(value: string | number): string {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? `${value}` : '';
+    }
+    return value;
+  }
+
+  private _applyNotationStyles(): void {
+    if (!this.drawingManager) {
+      return;
+    }
+    this.drawingManager.setNotationStyles({
+      light: this.lightNotationStyle ?? null,
+      dark: this.darkNotationStyle ?? null,
+      alpha: this.alphaNotationStyle ?? null,
+      numeric: this.numericNotationStyle ?? null,
     });
   }
 
@@ -887,9 +1156,14 @@ export class NeoChessBoard {
       arrowOptions: this.arrowOptions,
       clearArrowsOnClick: this.clearArrowsOnClick,
       onArrowsChange: this.drawingManagerArrowsChangeHandler,
+      lightSquareNotationStyle: this.lightNotationStyle,
+      darkSquareNotationStyle: this.darkNotationStyle,
+      alphaNotationStyle: this.alphaNotationStyle,
+      numericNotationStyle: this.numericNotationStyle,
     });
     this.drawingManager.setOrientation(this.orientation);
     this.drawingManager.setShowSquareNames(this.showSquareNames);
+    this._applyNotationStyles();
     if (this.controlledArrows) {
       this.drawingManager.setArrows(this.controlledArrows);
     }
@@ -983,11 +1257,26 @@ export class NeoChessBoard {
 
     for (let r = 0; r < BOARD_RANKS; r++) {
       for (let f = 0; f < BOARD_FILES; f++) {
+        const square = sq(f, r);
         const { x, y } = this._calculateSquarePosition(f, r);
-        ctx.fillStyle = (r + f) % 2 === 0 ? light : dark;
-        ctx.fillRect(x, y, s, s);
+        const isLight = (r + f) % 2 === 0;
+        const style = this._resolveSquareStyle(square, isLight);
+        const fill = style.fill ?? (isLight ? light : dark);
+        if (fill) {
+          ctx.fillStyle = fill as CanvasGradient | CanvasPattern | string;
+          ctx.fillRect(x, y, s, s);
+        }
+        if (style.stroke) {
+          const strokeWidth = style.strokeWidth ?? 1;
+          ctx.lineWidth = strokeWidth;
+          ctx.strokeStyle = style.stroke as CanvasGradient | CanvasPattern | string;
+          const inset = strokeWidth / 2;
+          ctx.strokeRect(x + inset, y + inset, s - strokeWidth, s - strokeWidth);
+        }
       }
     }
+
+    this._renderSquareOverlays();
   }
 
   private _drawPieces(): void {
@@ -998,6 +1287,13 @@ export class NeoChessBoard {
     ctx.clearRect(0, 0, W, H);
 
     const draggingSq = this._dragging?.from;
+    const activeDomPieces = new Set<Square>();
+    const hasCustomPieces =
+      this.customPieceRenderers && Object.keys(this.customPieceRenderers).length > 0;
+
+    if (!hasCustomPieces) {
+      this._clearDomPieces();
+    }
 
     for (let r = 0; r < BOARD_RANKS; r++) {
       for (let f = 0; f < BOARD_FILES; f++) {
@@ -1005,11 +1301,30 @@ export class NeoChessBoard {
         if (!piece) continue;
 
         const square = sq(f, r);
-        if (draggingSq === square) continue;
+        const renderer = this._getCustomPieceRenderer(piece);
+
+        if (renderer) {
+          if (draggingSq === square) {
+            this._removeDomPiece(square);
+            continue;
+          }
+          this._renderDomPiece(square, piece as Piece, renderer, activeDomPieces);
+          continue;
+        }
+
+        this._removeDomPiece(square);
+
+        if (draggingSq === square) {
+          continue;
+        }
 
         const { x, y } = this._sqToXY(square);
         this._drawPieceSprite(piece, x, y, 1);
       }
+    }
+
+    if (hasCustomPieces) {
+      this._cleanupDomPieces(activeDomPieces);
     }
 
     if (this._dragging) {
@@ -1022,6 +1337,165 @@ export class NeoChessBoard {
 
     const { piece, x, y } = this._dragging;
     this._drawPieceSprite(piece, x - this.square / 2, y - this.square / 2, DRAG_SCALE);
+  }
+
+  private _getCustomPieceRenderer(piece: string): PieceRenderer | undefined {
+    if (!this.customPieceRenderers) {
+      return undefined;
+    }
+    return this.customPieceRenderers[piece as Piece];
+  }
+
+  private _renderDomPiece(
+    square: Square,
+    piece: Piece,
+    renderer: PieceRenderer,
+    active: Set<Square>,
+  ): void {
+    if (!this.pieceLayer) {
+      return;
+    }
+    const element = this._ensurePieceElement(square);
+    element.dataset.square = square;
+    element.dataset.piece = piece;
+    this._positionPieceElement(element, square);
+    renderer({ square, piece, element, board: this });
+    active.add(square);
+  }
+
+  private _ensurePieceElement(square: Square): HTMLDivElement {
+    let element = this.pieceElements.get(square);
+    if (element) {
+      return element;
+    }
+
+    const doc = this.root.ownerDocument ?? document;
+    element = doc.createElement('div');
+    element.dataset.square = square;
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.pointerEvents = 'none';
+    element.style.willChange = 'transform';
+    this.pieceLayer?.appendChild(element);
+    this.pieceElements.set(square, element);
+    return element;
+  }
+
+  private _positionPieceElement(element: HTMLDivElement, square: Square): void {
+    const size = this.dpr ? this.square / this.dpr : this.square;
+    const { x, y } = this._sqToXY(square);
+    const cssX = this.dpr ? x / this.dpr : x;
+    const cssY = this.dpr ? y / this.dpr : y;
+    element.style.width = `${size}px`;
+    element.style.height = `${size}px`;
+    element.style.transform = `translate(${cssX}px, ${cssY}px)`;
+  }
+
+  private _cleanupDomPieces(active: Set<Square>): void {
+    for (const [square, element] of this.pieceElements.entries()) {
+      if (active.has(square)) {
+        continue;
+      }
+      element.remove();
+      this.pieceElements.delete(square);
+    }
+  }
+
+  private _removeDomPiece(square: Square): void {
+    const element = this.pieceElements.get(square);
+    if (!element) {
+      return;
+    }
+    element.remove();
+    this.pieceElements.delete(square);
+  }
+
+  private _clearDomPieces(): void {
+    for (const element of this.pieceElements.values()) {
+      element.remove();
+    }
+    this.pieceElements.clear();
+  }
+
+  private _resolveSquareStyle(square: Square, isLight: boolean): SquareStyleOptions {
+    const layers: SquareStyleOptions[] = [];
+    if (this.baseSquareStyle) {
+      layers.push(this.baseSquareStyle);
+    }
+    const colorStyle = isLight ? this.lightSquareStyleOptions : this.darkSquareStyleOptions;
+    if (colorStyle) {
+      layers.push(colorStyle);
+    }
+    const squareSpecific = this.squareStylesMap?.[square];
+    if (squareSpecific) {
+      layers.push(squareSpecific);
+    }
+
+    if (layers.length === 0) {
+      return {};
+    }
+
+    return layers.reduce<SquareStyleOptions>((acc, style) => ({ ...acc, ...style }), {});
+  }
+
+  private _renderSquareOverlays(): void {
+    if (!this.squareLayer) {
+      return;
+    }
+    if (!this.customSquareRenderer) {
+      this._clearSquareOverlay();
+      return;
+    }
+
+    const renderer = this.customSquareRenderer;
+
+    for (let r = 0; r < BOARD_RANKS; r++) {
+      for (let f = 0; f < BOARD_FILES; f++) {
+        const square = sq(f, r);
+        const element = this._ensureSquareElement(square);
+        this._positionSquareElement(element, square);
+        const isLight = (r + f) % 2 === 0;
+        renderer({ square, isLight, element, board: this });
+      }
+    }
+  }
+
+  private _ensureSquareElement(square: Square): HTMLDivElement {
+    let element = this.squareElements.get(square);
+    if (element) {
+      return element;
+    }
+
+    const doc = this.root.ownerDocument ?? document;
+    element = doc.createElement('div');
+    element.dataset.square = square;
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.pointerEvents = 'none';
+    element.style.willChange = 'transform';
+    this.squareLayer?.appendChild(element);
+    this.squareElements.set(square, element);
+    return element;
+  }
+
+  private _positionSquareElement(element: HTMLDivElement, square: Square): void {
+    const size = this.dpr ? this.square / this.dpr : this.square;
+    const { x, y } = this._sqToXY(square);
+    const cssX = this.dpr ? x / this.dpr : x;
+    const cssY = this.dpr ? y / this.dpr : y;
+    element.style.width = `${size}px`;
+    element.style.height = `${size}px`;
+    element.style.transform = `translate(${cssX}px, ${cssY}px)`;
+  }
+
+  private _clearSquareOverlay(): void {
+    if (!this.squareLayer) {
+      return;
+    }
+    this.squareLayer.innerHTML = '';
+    this.squareElements.clear();
   }
 
   private _drawPieceSprite(piece: string, x: number, y: number, scale = 1): void {
