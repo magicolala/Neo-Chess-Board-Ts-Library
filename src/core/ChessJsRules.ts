@@ -6,7 +6,7 @@ import type { PgnMetadata } from './PgnNotation';
 type ChessSquare = (typeof SQUARES)[number];
 
 /**
- * Adapter de règles utilisant chess.js pour une validation complète des coups
+ * Rules adapter built on chess.js to provide full move validation
  */
 export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
@@ -39,14 +39,14 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir la position actuelle au format FEN
+   * Get the current position in FEN format
    */
   getFEN(): string {
     return this.chess.fen();
   }
 
   /**
-   * Définir une position FEN
+   * Set a position from a FEN string
    */
   setFEN(fen: string): void {
     try {
@@ -68,7 +68,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Jouer un coup
+   * Play a move
    */
   move(moveData: { from: string; to: string; promotion?: string }): RulesMoveResponse {
     try {
@@ -92,7 +92,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir tous les coups légaux depuis une case
+   * Get every legal move from a square
    */
   movesFrom(square: string): Move[] {
     const moves = this.chess.moves({
@@ -110,7 +110,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir tous les coups légaux
+   * Get every legal move in the current position
    */
   getAllMoves(): Move[] {
     const moves = this.chess.moves({ verbose: true }) as ChessMove[];
@@ -125,11 +125,11 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Vérifier si un coup est légal
+   * Check if a move is legal
    */
   isLegalMove(from: string, to: string, promotion?: string): boolean {
     try {
-      // Créer une copie pour tester le coup sans affecter l'état
+      // Create a copy to test the move without altering the actual game state
       const testChess = new Chess(this.chess.fen());
       const move = testChess.move({
         from,
@@ -143,35 +143,35 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Vérifier si le roi est en échec
+   * Check whether the side to move is in check
    */
   inCheck(): boolean {
     return this.chess.inCheck();
   }
 
   /**
-   * Vérifier si c'est échec et mat
+   * Check whether the position is checkmate
    */
   isCheckmate(): boolean {
     return this.chess.isCheckmate();
   }
 
   /**
-   * Vérifier si c'est pat (stalemate)
+   * Check whether the position is stalemate
    */
   isStalemate(): boolean {
     return this.chess.isStalemate();
   }
 
   /**
-   * Vérifier si la partie est terminée
+   * Determine whether the game has ended
    */
   isGameOver(): boolean {
     return this.chess.isGameOver();
   }
 
   /**
-   * Obtenir le résultat de la partie
+   * Get the result of the game
    */
   getGameResult(): '1-0' | '0-1' | '1/2-1/2' | '*' {
     if (this.chess.isCheckmate()) {
@@ -183,14 +183,14 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir le joueur au trait
+   * Get the player to move
    */
   turn(): 'w' | 'b' {
     return this.chess.turn();
   }
 
   /**
-   * Obtenir la pièce sur une case
+   * Get the piece on a square
    */
   get(square: string): { type: string; color: string } | null {
     const piece = this.chess.get(square as ChessSquare);
@@ -198,7 +198,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Annuler le dernier coup
+   * Undo the last move
    */
   undo(): boolean {
     const move = this.chess.undo();
@@ -206,31 +206,31 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir l'historique des coups
+   * Get the list of moves played
    */
   history(): string[] {
     return this.chess.history();
   }
 
   /**
-   * Obtenir l'historique détaillé des coups
+   * Get the detailed move history
    */
   getHistory(): ChessMove[] {
     return this.chess.history({ verbose: true });
   }
 
   /**
-   * Remettre à la position initiale
+   * Reset the game to the initial position
    */
   reset(): void {
     this.chess.reset();
   }
 
   /**
-   * Obtenir les cases attaquées par le joueur actuel
+   * Get the squares attacked by the side to move
    *
-   * Utilise la détection native de chess.js pour identifier toutes les cases
-   * actuellement contrôlées par le joueur au trait.
+   * Uses the native chess.js detection to identify every square currently
+   * controlled by the active player.
    */
   getAttackedSquares(): string[] {
     const attackingColor: Color = this.chess.turn();
@@ -241,11 +241,11 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Vérifier si une case est attaquée
+   * Check whether a square is attacked
    *
-   * @param square Case à vérifier (notation algébrique, insensible à la casse)
-   * @param by Couleur optionnelle pour vérifier une couleur spécifique
-   * @throws {Error} si la case ou la couleur fournie est invalide
+   * @param square Square to inspect (algebraic notation, case insensitive)
+   * @param by Optional color to check a specific side
+   * @throws {Error} if the square or color value is invalid
    */
   isSquareAttacked(square: string, by?: 'w' | 'b'): boolean {
     if (typeof square !== 'string') {
@@ -270,7 +270,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir les cases du roi en échec (pour le surlignage)
+   * Get the king squares that are in check (for highlighting)
    */
   getCheckSquares(): string[] {
     if (!this.chess.inCheck()) return [];
@@ -280,7 +280,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir la position du roi d'une couleur
+   * Locate the king square for a color
    */
   private getKingSquare(color: 'w' | 'b'): string | null {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -299,7 +299,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Vérifier si le roque est possible
+   * Check if castling is allowed
    */
   canCastle(side: 'k' | 'q', color?: 'w' | 'b'): boolean {
     const currentColor = color || this.chess.turn();
@@ -313,14 +313,14 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir le nombre de coups depuis le début
+   * Get the current move number
    */
   moveNumber(): number {
     return this.chess.moveNumber();
   }
 
   /**
-   * Obtenir le nombre de demi-coups depuis la dernière prise ou mouvement de pion
+   * Get the halfmove clock since the last capture or pawn move
    */
   halfMoves(): number {
     const fenParts = this.getFenParts();
@@ -331,14 +331,14 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Créer une copie de l'état actuel
+   * Create a copy of the current state
    */
   clone(): ChessJsRules {
     return new ChessJsRules(this.chess.fen());
   }
 
   /**
-   * Valider un FEN
+   * Validate a FEN string
    */
   static isValidFEN(fen: string): boolean {
     try {
@@ -351,7 +351,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir des informations sur le dernier coup joué
+   * Get information about the last move played
    */
   getLastMove(): ChessMove | null {
     const history = this.chess.history({ verbose: true }) as ChessMove[];
@@ -359,21 +359,21 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Générer le FEN à partir d'une position donnée
+   * Generate the FEN string for the current position
    */
   generateFEN(): string {
     return this.chess.fen();
   }
 
   /**
-   * Définir les métadonnées PGN pour la partie actuelle
+   * Set PGN metadata for the current game
    */
   setPgnMetadata(metadata: Partial<PgnMetadata>): void {
     this.pgnNotation.setMetadata(metadata);
   }
 
   /**
-   * Exporter la partie actuelle au format PGN
+   * Export the current game as PGN
    */
   toPgn(includeHeaders: boolean = true): string {
     this.pgnNotation.importFromChessJs(this.chess);
@@ -381,7 +381,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Télécharger la partie actuelle sous forme de fichier PGN (navigateur uniquement)
+   * Download the current game as a PGN file (browser only)
    */
   downloadPgn(filename?: string): void {
     this.pgnNotation.importFromChessJs(this.chess);
@@ -389,14 +389,14 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir l'instance PgnNotation pour une manipulation avancée
+   * Get the PgnNotation instance for advanced manipulation
    */
   getPgnNotation(): PgnNotation {
     return this.pgnNotation;
   }
 
   /**
-   * Charger une partie à partir d'une chaîne PGN
+   * Load a game from a PGN string
    */
   loadPgn(pgn: string): boolean {
     try {
@@ -409,7 +409,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir la notation PGN du dernier coup joué
+   * Get the PGN notation for the most recent move
    */
   getLastMoveNotation(): string | null {
     const history = this.chess.history();
@@ -417,7 +417,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
-   * Obtenir toute l'historique des coups en notation PGN
+   * Retrieve the entire move history in PGN notation
    */
   getPgnMoves(): string[] {
     return this.chess.history();

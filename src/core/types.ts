@@ -30,7 +30,7 @@ export interface PromotionRequest {
   cancel: () => void;
 }
 
-// Nouveaux types pour les fonctionnalités avancées
+// New types for advanced features
 export interface Arrow {
   from: Square;
   to: Square;
@@ -260,7 +260,7 @@ export interface BoardOptions {
   fen?: string;
   position?: string;
   rulesAdapter?: RulesAdapter;
-  // Nouvelles options
+  // Additional options
   allowAutoScroll?: boolean;
   allowDragging?: boolean;
   allowDragOffBoard?: boolean;
