@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
-import type { BoardOptions, Square } from '../core/types';
+import type { BoardEventMap, BoardOptions } from '../core/types';
 import type { NeoChessRef } from './NeoChessBoard';
 
 export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
@@ -9,9 +9,18 @@ export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
 export interface UseNeoChessBoardOptions {
   fen?: string;
   options?: UpdatableBoardOptions;
-  onMove?: (event: { from: Square; to: Square; fen: string }) => void;
-  onIllegal?: (event: { from: Square; to: Square; reason: string }) => void;
-  onUpdate?: (event: { fen: string }) => void;
+  onMove?: (event: BoardEventMap['move']) => void;
+  onIllegal?: (event: BoardEventMap['illegal']) => void;
+  onUpdate?: (event: BoardEventMap['update']) => void;
+  onSquareClick?: (event: BoardEventMap['squareClick']) => void;
+  onSquareMouseDown?: (event: BoardEventMap['squareMouseDown']) => void;
+  onSquareMouseUp?: (event: BoardEventMap['squareMouseUp']) => void;
+  onSquareRightClick?: (event: BoardEventMap['squareRightClick']) => void;
+  onSquareMouseOver?: (event: BoardEventMap['squareMouseOver']) => void;
+  onSquareMouseOut?: (event: BoardEventMap['squareMouseOut']) => void;
+  onPieceClick?: (event: BoardEventMap['pieceClick']) => void;
+  onPieceDrag?: (event: BoardEventMap['pieceDrag']) => void;
+  onPieceDrop?: (event: BoardEventMap['pieceDrop']) => void;
 }
 
 export interface UseNeoChessBoardResult {
@@ -58,6 +67,15 @@ export function useNeoChessBoard({
   onMove,
   onIllegal,
   onUpdate,
+  onSquareClick,
+  onSquareMouseDown,
+  onSquareMouseUp,
+  onSquareRightClick,
+  onSquareMouseOver,
+  onSquareMouseOut,
+  onPieceClick,
+  onPieceDrag,
+  onPieceDrop,
 }: UseNeoChessBoardOptions): UseNeoChessBoardResult {
   const resolvedOptions = options ?? {};
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -66,7 +84,20 @@ export function useNeoChessBoard({
 
   const fenRef = useLatestRef(fen);
   const optionsRef = useLatestRef(resolvedOptions);
-  const handlersRef = useLatestRef({ onMove, onIllegal, onUpdate });
+  const handlersRef = useLatestRef({
+    onMove,
+    onIllegal,
+    onUpdate,
+    onSquareClick,
+    onSquareMouseDown,
+    onSquareMouseUp,
+    onSquareRightClick,
+    onSquareMouseOver,
+    onSquareMouseOut,
+    onPieceClick,
+    onPieceDrag,
+    onPieceDrop,
+  });
 
   useEffect(() => {
     const element = containerRef.current;
@@ -98,14 +129,25 @@ export function useNeoChessBoard({
       return;
     }
 
-    const offMove = board.on('move', (event) => handlersRef.current.onMove?.(event));
-    const offIllegal = board.on('illegal', (event) => handlersRef.current.onIllegal?.(event));
-    const offUpdate = board.on('update', (event) => handlersRef.current.onUpdate?.(event));
+    const unsubscribers = [
+      board.on('move', (event) => handlersRef.current.onMove?.(event)),
+      board.on('illegal', (event) => handlersRef.current.onIllegal?.(event)),
+      board.on('update', (event) => handlersRef.current.onUpdate?.(event)),
+      board.on('squareClick', (event) => handlersRef.current.onSquareClick?.(event)),
+      board.on('squareMouseDown', (event) => handlersRef.current.onSquareMouseDown?.(event)),
+      board.on('squareMouseUp', (event) => handlersRef.current.onSquareMouseUp?.(event)),
+      board.on('squareRightClick', (event) => handlersRef.current.onSquareRightClick?.(event)),
+      board.on('squareMouseOver', (event) => handlersRef.current.onSquareMouseOver?.(event)),
+      board.on('squareMouseOut', (event) => handlersRef.current.onSquareMouseOut?.(event)),
+      board.on('pieceClick', (event) => handlersRef.current.onPieceClick?.(event)),
+      board.on('pieceDrag', (event) => handlersRef.current.onPieceDrag?.(event)),
+      board.on('pieceDrop', (event) => handlersRef.current.onPieceDrop?.(event)),
+    ];
 
     return () => {
-      offMove?.();
-      offIllegal?.();
-      offUpdate?.();
+      for (const off of unsubscribers) {
+        off?.();
+      }
     };
   }, [handlersRef, isReady]);
 

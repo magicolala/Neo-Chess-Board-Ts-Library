@@ -278,6 +278,33 @@ return (
 );
 ```
 
+### Pointer & Drag Events
+
+```tsx
+import { useState } from 'react';
+
+const InteractiveBoard = () => {
+  const [lastEvent, setLastEvent] = useState('No interaction yet');
+
+  return (
+    <>
+      <NeoChessBoard
+        onSquareClick={({ square }) => setLastEvent(`Square clicked: ${square}`)}
+        onSquareMouseOver={({ square }) => setLastEvent(`Hovering: ${square}`)}
+        onSquareMouseOut={({ square }) => setLastEvent(`Leaving: ${square}`)}
+        onPieceDrag={({ from, over }) =>
+          setLastEvent(`Dragging ${from} → ${over ?? 'off board'}`)
+        }
+        onPieceDrop={({ from, drop }) =>
+          setLastEvent(`Dropped ${from} → ${drop ?? 'off board'}`)
+        }
+      />
+      <p>{lastEvent}</p>
+    </>
+  );
+};
+```
+
 ## 📱 Mobile Examples
 
 ### Touch Optimization
