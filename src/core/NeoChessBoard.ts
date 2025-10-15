@@ -2541,10 +2541,17 @@ export class NeoChessBoard {
   private _isPromotionMove(piece: string, to: Square, side: 'w' | 'b'): boolean {
     if (piece.toLowerCase() !== 'p') return false;
 
-    const targetRank = Number(to[1]);
-    if (Number.isNaN(targetRank)) return false;
+    if (this.ranksCount <= 0) return false;
 
-    return (side === 'w' && targetRank === 8) || (side === 'b' && targetRank === 1);
+    let rankIndex: number;
+    try {
+      ({ r: rankIndex } = this._squareToIndices(to));
+    } catch {
+      return false;
+    }
+
+    const promotionRankIndex = side === 'w' ? this.ranksCount - 1 : 0;
+    return rankIndex === promotionRankIndex;
   }
 
   private _beginPromotionRequest(

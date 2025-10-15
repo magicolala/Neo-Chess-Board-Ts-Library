@@ -1,6 +1,15 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
-import type { Arrow, SquareHighlight, PromotionRequest, Square } from '../../src/core/types';
+import type {
+  Arrow,
+  SquareHighlight,
+  PromotionRequest,
+  Square,
+  RulesAdapter,
+  RulesMoveResponse,
+  Move,
+} from '../../src/core/types';
+import { generateFileLabels, generateRankLabels, parseFEN, sqToFR } from '../../src/core/utils';
 
 type MockCanvasElement = HTMLCanvasElement & {
   getContext: jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
@@ -31,6 +40,101 @@ type AudioMock = {
 };
 
 type AudioConstructor = new (src?: string) => HTMLAudioElement;
+
+class FlexibleGeometryRulesAdapter implements RulesAdapter {
+  private fen: string;
+  private board: (string | null)[][];
+  private turnColor: 'w' | 'b' = 'w';
+  private readonly fileLabels: readonly string[];
+  private readonly rankLabels: readonly string[];
+
+  constructor(
+    private readonly files: number,
+    private readonly ranks: number,
+  ) {
+    this.fileLabels = generateFileLabels(files);
+    this.rankLabels = generateRankLabels(ranks);
+    this.board = Array.from({ length: ranks }, () => Array(files).fill(null));
+    this.fen = this._buildFen();
+  }
+
+  setFEN(fen: string): void {
+    const parsed = parseFEN(fen, { files: this.files, ranks: this.ranks });
+    this.board = parsed.board.map((row) => [...row]);
+    this.turnColor = parsed.turn;
+    this.fen = this._buildFen();
+  }
+
+  getFEN(): string {
+    return this.fen;
+  }
+
+  turn(): 'w' | 'b' {
+    return this.turnColor;
+  }
+
+  movesFrom(_square: Square): Move[] {
+    return [];
+  }
+
+  move({
+    from,
+    to,
+    promotion,
+  }: {
+    from: Square;
+    to: Square;
+    promotion?: Move['promotion'];
+  }): RulesMoveResponse {
+    const fromIndices = sqToFR(from, this.fileLabels, this.rankLabels);
+    const toIndices = sqToFR(to, this.fileLabels, this.rankLabels);
+
+    const piece = this.board[fromIndices.r]?.[fromIndices.f];
+    if (!piece) {
+      return { ok: false, reason: 'no-piece' };
+    }
+
+    const isWhite = piece === piece.toUpperCase();
+    const promotedPiece = promotion
+      ? isWhite
+        ? promotion.toUpperCase()
+        : promotion.toLowerCase()
+      : piece;
+
+    this.board[fromIndices.r][fromIndices.f] = null;
+    this.board[toIndices.r][toIndices.f] = promotedPiece;
+
+    this.turnColor = this.turnColor === 'w' ? 'b' : 'w';
+    this.fen = this._buildFen();
+
+    return { ok: true, fen: this.fen };
+  }
+
+  private _buildFen(): string {
+    const rows: string[] = [];
+    for (let r = this.ranks - 1; r >= 0; r--) {
+      let empty = 0;
+      let row = '';
+      for (let f = 0; f < this.files; f++) {
+        const piece = this.board[r][f];
+        if (!piece) {
+          empty++;
+          continue;
+        }
+        if (empty > 0) {
+          row += empty.toString();
+          empty = 0;
+        }
+        row += piece;
+      }
+      if (empty > 0) {
+        row += empty.toString();
+      }
+      rows.push(row || '0');
+    }
+    return `${rows.join('/') || '0'} ${this.turnColor} - - 0 1`;
+  }
+}
 
 let originalCreateElement: typeof document.createElement;
 let headAppendChildSpy: jest.SpyInstance<Node, [node: Node]> | undefined;
@@ -1256,6 +1360,45 @@ describe('NeoChessBoard Core', () => {
       expect(moveListener).toHaveBeenCalledWith(
         expect.objectContaining({ from: 'e7', to: 'e8', fen: expect.any(String) }),
       );
+    });
+
+    it('detects promotions on larger boards with multi-digit ranks', () => {
+      board.destroy();
+
+      let captured: PromotionRequest | null = null;
+      const customRules = new FlexibleGeometryRulesAdapter(10, 10);
+      const setupFen = '10/10/10/10/10/10/10/10/10/10 w - - 0 1';
+      const promotionBoard = new NeoChessBoard(container, {
+        chessboardRows: 10,
+        chessboardColumns: 10,
+        rulesAdapter: customRules,
+        fen: setupFen,
+        onPromotionRequired: (request) => {
+          captured = request;
+        },
+      });
+
+      board = promotionBoard;
+      promotionBoard.setFEN('10/P9/10/10/10/10/10/10/10/10 w - - 0 1', true);
+
+      const result = promotionBoard.attemptMove('a9', 'a10');
+
+      expect(result).toBe(true);
+      expect(captured).not.toBeNull();
+      if (!captured) {
+        throw new Error('Promotion request was not captured');
+      }
+
+      const request = captured as PromotionRequest;
+      expect(request.mode).toBe('move');
+      expect(promotionBoard.isPromotionPending()).toBe(true);
+      expect(promotionBoard.getPieceAt('a9')).toBe('P');
+      expect(promotionBoard.getPieceAt('a10')).toBeNull();
+
+      request.resolve('q');
+
+      expect(promotionBoard.isPromotionPending()).toBe(false);
+      expect(promotionBoard.getPieceAt('a10')).toBe('Q');
     });
 
     it('stores the promotion choice for premoves', () => {
