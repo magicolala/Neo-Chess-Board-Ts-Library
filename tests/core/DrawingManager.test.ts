@@ -70,6 +70,8 @@ describe('DrawingManager', () => {
     mockCanvas.getContext.mockReturnValue(mockContext);
     mockCanvas.width = 400;
     mockCanvas.height = 400;
+    mockContext.fillStyle = '#000000';
+    mockContext.font = '10px sans-serif';
 
     // Create new instance for each test
     drawingManager = new DrawingManager(mockCanvas);
@@ -96,6 +98,38 @@ describe('DrawingManager', () => {
       // updateDimensions calls getContext internally but doesn't use the result
       // The method updates internal squareSize based on canvas dimensions
       expect(drawingManager).toBeDefined();
+    });
+  });
+
+  it('applies custom notation styles when rendering square names', () => {
+    let fontValue = '10px sans-serif';
+    const fontAssignments: string[] = [];
+    Object.defineProperty(mockContext, 'font', {
+      configurable: true,
+      get: () => fontValue,
+      set: (value: string) => {
+        fontValue = value;
+        fontAssignments.push(value);
+      },
+    });
+
+    const styledManager = new DrawingManager(mockCanvas, {
+      lightSquareNotationStyle: { color: '#ff0000', fontFamily: 'Courier', fontSize: 18 },
+      darkSquareNotationStyle: { color: '#00ff00' },
+      alphaNotationStyle: { padding: 5 },
+      numericNotationStyle: { padding: 7 },
+    });
+
+    styledManager.renderSquareNames('white', 0, 1);
+
+    expect(fontAssignments.some((value) => value.includes('Courier'))).toBe(true);
+    expect(mockContext.fillStyle).toBe('#00ff00');
+    expect(mockContext.fillText).toHaveBeenCalled();
+
+    Object.defineProperty(mockContext, 'font', {
+      value: fontValue,
+      writable: true,
+      configurable: true,
     });
   });
 

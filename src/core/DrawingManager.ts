@@ -8,6 +8,7 @@ import type {
   Color,
   PromotionPiece,
   ArrowStyleOptions,
+  NotationStyleOptions,
 } from './types';
 import { FILES, RANKS } from './utils';
 
@@ -26,6 +27,17 @@ interface DrawingManagerConfig {
   arrowOptions?: ArrowStyleOptions;
   clearArrowsOnClick?: boolean;
   onArrowsChange?: (arrows: Arrow[]) => void;
+  lightSquareNotationStyle?: NotationStyleOptions;
+  darkSquareNotationStyle?: NotationStyleOptions;
+  alphaNotationStyle?: NotationStyleOptions;
+  numericNotationStyle?: NotationStyleOptions;
+}
+
+interface NotationStyles {
+  light?: NotationStyleOptions | null;
+  dark?: NotationStyleOptions | null;
+  alpha?: NotationStyleOptions | null;
+  numeric?: NotationStyleOptions | null;
 }
 
 const DEFAULT_ARROW_STYLE = {
@@ -92,6 +104,10 @@ export class DrawingManager {
   private arrowOptions: ArrowStyleOptions = {};
   private arrowsChangeCallback?: (arrows: Arrow[]) => void;
   private suppressArrowsChange = false;
+  private lightNotationStyle?: NotationStyleOptions;
+  private darkNotationStyle?: NotationStyleOptions;
+  private alphaNotationStyle?: NotationStyleOptions;
+  private numericNotationStyle?: NotationStyleOptions;
 
   /**
    * Tracks the current user interaction state
@@ -112,7 +128,28 @@ export class DrawingManager {
     if (config.onArrowsChange) {
       this.arrowsChangeCallback = config.onArrowsChange;
     }
+    this.setNotationStyles({
+      light: config.lightSquareNotationStyle ?? undefined,
+      dark: config.darkSquareNotationStyle ?? undefined,
+      alpha: config.alphaNotationStyle ?? undefined,
+      numeric: config.numericNotationStyle ?? undefined,
+    });
     this.updateDimensions();
+  }
+
+  public setNotationStyles(styles: NotationStyles): void {
+    if (Object.prototype.hasOwnProperty.call(styles, 'light')) {
+      this.lightNotationStyle = styles.light ? { ...styles.light } : undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(styles, 'dark')) {
+      this.darkNotationStyle = styles.dark ? { ...styles.dark } : undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(styles, 'alpha')) {
+      this.alphaNotationStyle = styles.alpha ? { ...styles.alpha } : undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(styles, 'numeric')) {
+      this.numericNotationStyle = styles.numeric ? { ...styles.numeric } : undefined;
+    }
   }
 
   public updateDimensions(): void {
@@ -434,14 +471,6 @@ export class DrawingManager {
 
     const squareSize = this.squareSize / dpr;
     const boardHeight = this.canvas.height / dpr;
-    const fontSize = Math.max(10, squareSize * 0.18);
-    const filePadding = squareSize * 0.12;
-    const rankPadding = squareSize * 0.12;
-
-    ctx.font = `500 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
-
-    const lightSquareColor = 'rgba(240, 217, 181, 0.7)';
-    const darkSquareColor = 'rgba(181, 136, 99, 0.7)';
 
     const bottomRankIndex = orientation === 'white' ? 0 : 7;
     const leftFileIndex = orientation === 'white' ? 0 : 7;
@@ -452,11 +481,20 @@ export class DrawingManager {
     for (let column = 0; column < 8; column++) {
       const boardFileIndex = orientation === 'white' ? column : 7 - column;
       const char = String.fromCharCode(97 + boardFileIndex);
-      const x = column * squareSize + filePadding;
-      const y = boardHeight - filePadding;
       const isLightSquare = (boardFileIndex + bottomRankIndex) % 2 === 0;
-      ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-      ctx.fillText(char, x, y);
+      const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
+        squareSize,
+        this.alphaNotationStyle,
+        isLightSquare ? this.lightNotationStyle : this.darkNotationStyle,
+        isLightSquare,
+      );
+      ctx.font = font;
+      ctx.globalAlpha = opacity;
+      const x = column * squareSize + padding;
+      const y = boardHeight - padding;
+      ctx.fillStyle = color;
+      ctx.fillText(this.applyTextTransform(char, textTransform), x, y);
+      ctx.globalAlpha = 1;
     }
 
     // Draw rank numbers along the left edge
@@ -464,14 +502,70 @@ export class DrawingManager {
     for (let row = 0; row < 8; row++) {
       const boardRankIndex = orientation === 'white' ? row : 7 - row;
       const label = (boardRankIndex + 1).toString();
-      const x = rankPadding;
-      const y = boardHeight - (row + 0.5) * squareSize;
       const isLightSquare = (leftFileIndex + boardRankIndex) % 2 === 0;
-      ctx.fillStyle = isLightSquare ? lightSquareColor : darkSquareColor;
-      ctx.fillText(label, x, y);
+      const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
+        squareSize,
+        this.numericNotationStyle,
+        isLightSquare ? this.lightNotationStyle : this.darkNotationStyle,
+        isLightSquare,
+      );
+      ctx.font = font;
+      ctx.globalAlpha = opacity;
+      const x = padding;
+      const y = boardHeight - (row + 0.5) * squareSize;
+      ctx.fillStyle = color;
+      ctx.fillText(this.applyTextTransform(label, textTransform), x, y);
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();
+  }
+
+  private resolveNotationStyle(
+    squareSize: number,
+    axisStyle: NotationStyleOptions | undefined,
+    squareStyle: NotationStyleOptions | undefined,
+    isLight: boolean,
+  ): {
+    color: string;
+    font: string;
+    padding: number;
+    opacity: number;
+    textTransform: 'uppercase' | 'lowercase' | 'none';
+  } {
+    const DEFAULT_LIGHT_COLOR = 'rgba(240, 217, 181, 0.7)';
+    const DEFAULT_DARK_COLOR = 'rgba(181, 136, 99, 0.7)';
+    const merged: NotationStyleOptions = { ...axisStyle, ...squareStyle };
+    const fontSizeValue = merged.fontSize ?? Math.max(10, squareSize * 0.18);
+    const fontSize =
+      typeof fontSizeValue === 'number'
+        ? `${fontSizeValue}px`
+        : fontSizeValue || `${Math.max(10, squareSize * 0.18)}px`;
+    const fontFamily = merged.fontFamily ?? "'Segoe UI', Arial, sans-serif";
+    const fontStyle = merged.fontStyle ? `${merged.fontStyle.trim()} ` : '';
+    const fontWeight = merged.fontWeight ?? 500;
+    const padding = merged.padding ?? squareSize * 0.12;
+    const opacity = typeof merged.opacity === 'number' ? merged.opacity : 1;
+    const color = merged.color ?? (isLight ? DEFAULT_LIGHT_COLOR : DEFAULT_DARK_COLOR);
+    const textTransform = merged.textTransform ?? 'none';
+
+    return {
+      color,
+      font: `${fontStyle}${fontWeight} ${fontSize} ${fontFamily}`,
+      padding,
+      opacity,
+      textTransform,
+    };
+  }
+
+  private applyTextTransform(value: string, transform: 'uppercase' | 'lowercase' | 'none'): string {
+    if (transform === 'uppercase') {
+      return value.toUpperCase();
+    }
+    if (transform === 'lowercase') {
+      return value.toLowerCase();
+    }
+    return value;
   }
 
   public drawArrows(ctx: CanvasRenderingContext2D): void {

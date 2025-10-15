@@ -66,6 +66,7 @@ const createMockElement = (tag: string): HTMLElement => {
       closePath: jest.fn(),
       fill: jest.fn(),
       stroke: jest.fn(),
+      strokeRect: jest.fn(),
       drawImage: jest.fn(),
       fillText: jest.fn(),
       measureText: jest.fn(() => ({ width: 0 })),
@@ -213,6 +214,84 @@ describe('NeoChessBoard Core', () => {
       board.setFEN(testFEN);
 
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ fen: expect.any(String) }));
+    });
+  });
+
+  describe('Customization', () => {
+    it('applies custom square styles during rendering', () => {
+      board.setLightSquareStyle({ fill: '#ffcc00' });
+      board.setDarkSquareStyle({ fill: '#0033ff', stroke: '#111111', strokeWidth: 2 });
+
+      const ctx = getPrivate<CanvasRenderingContext2D>(board, 'ctxB');
+      const appliedFills: Array<string | CanvasGradient | CanvasPattern> = [];
+      const originalFillRect = ctx.fillRect;
+      ctx.fillRect = jest.fn((...args: Parameters<typeof originalFillRect>) => {
+        appliedFills.push(ctx.fillStyle);
+        return originalFillRect.apply(ctx, args);
+      });
+
+      board.renderAll();
+
+      expect(appliedFills).toContain('#0033ff');
+      expect(appliedFills).toContain('#ffcc00');
+      expect(ctx.strokeRect).toHaveBeenCalled();
+    });
+
+    it('applies boardStyle to the root element', () => {
+      board.setBoardStyle({ borderRadius: '4px' });
+      expect(container.style.borderRadius).toBe('4px');
+      board.setBoardStyle(undefined);
+      expect(container.style.borderRadius).toBe('');
+    });
+
+    it('respects the showNotation alias', () => {
+      const notationBoard = new NeoChessBoard(container, { showNotation: true });
+      expect(getPrivate<boolean>(notationBoard, 'showSquareNames')).toBe(true);
+      notationBoard.setShowNotation(false);
+      expect(getPrivate<boolean>(notationBoard, 'showSquareNames')).toBe(false);
+      notationBoard.destroy();
+    });
+
+    it('renders custom square overlays when a squareRenderer is provided', () => {
+      board.destroy();
+      const overlayBoard = new NeoChessBoard(container, {
+        squareRenderer: ({ element }) => {
+          element.textContent = 'X';
+        },
+      });
+      overlayBoard.renderAll();
+
+      const overlays = Array.from(container.querySelectorAll('.ncb-square-overlay'));
+      const overlay = overlays[overlays.length - 1];
+      expect(overlay).toBeTruthy();
+      expect(overlay!.children.length).toBe(64);
+      expect((overlay!.children[0] as HTMLElement).textContent).toBe('X');
+      overlayBoard.destroy();
+    });
+
+    it('renders custom piece overlays when pieces renderers are provided', () => {
+      board.destroy();
+      const piecesBoard = new NeoChessBoard(container, {
+        pieces: {
+          P: ({ element }) => {
+            element.textContent = 'W';
+          },
+          p: ({ element }) => {
+            element.textContent = 'B';
+          },
+        },
+      });
+      piecesBoard.renderAll();
+
+      const overlays = Array.from(container.querySelectorAll('.ncb-piece-overlay'));
+      const overlay = overlays[overlays.length - 1];
+      expect(overlay).toBeTruthy();
+      expect(overlay!.children.length).toBeGreaterThan(0);
+
+      piecesBoard.setPieceRenderers(undefined);
+      piecesBoard.renderAll();
+      expect(overlay!.children.length).toBe(0);
+      piecesBoard.destroy();
     });
   });
 

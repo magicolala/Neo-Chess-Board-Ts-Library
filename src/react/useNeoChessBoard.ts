@@ -302,6 +302,88 @@ export function useNeoChessBoard({
     [],
   );
 
+  const applyBoardStyle = useCallback((board: Chessboard, style: BoardOptions['boardStyle']) => {
+    board.setBoardStyle(style);
+  }, []);
+
+  const applyBoardId = useCallback((board: Chessboard, id: BoardOptions['id']) => {
+    board.setBoardId(id);
+  }, []);
+
+  const applySquareStyle = useCallback((board: Chessboard, style: BoardOptions['squareStyle']) => {
+    board.setSquareStyle(style);
+  }, []);
+
+  const applyLightSquareStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['lightSquareStyle']) => {
+      board.setLightSquareStyle(style);
+    },
+    [],
+  );
+
+  const applyDarkSquareStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['darkSquareStyle']) => {
+      board.setDarkSquareStyle(style);
+    },
+    [],
+  );
+
+  const applySquareStyles = useCallback(
+    (board: Chessboard, styles: BoardOptions['squareStyles']) => {
+      board.setSquareStyles(styles);
+    },
+    [],
+  );
+
+  const applyLightNotationStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['lightSquareNotationStyle']) => {
+      board.setLightSquareNotationStyle(style);
+    },
+    [],
+  );
+
+  const applyDarkNotationStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['darkSquareNotationStyle']) => {
+      board.setDarkSquareNotationStyle(style);
+    },
+    [],
+  );
+
+  const applyAlphaNotationStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['alphaNotationStyle']) => {
+      board.setAlphaNotationStyle(style);
+    },
+    [],
+  );
+
+  const applyNumericNotationStyle = useCallback(
+    (board: Chessboard, style: BoardOptions['numericNotationStyle']) => {
+      board.setNumericNotationStyle(style);
+    },
+    [],
+  );
+
+  const applyShowNotation = useCallback((board: Chessboard, show: BoardOptions['showNotation']) => {
+    if (typeof show === 'undefined') {
+      return;
+    }
+    board.setShowNotation(show);
+  }, []);
+
+  const applySquareRenderer = useCallback(
+    (board: Chessboard, renderer: BoardOptions['squareRenderer']) => {
+      board.setSquareRenderer(renderer);
+    },
+    [],
+  );
+
+  const applyPieceRenderers = useCallback(
+    (board: Chessboard, renderers: BoardOptions['pieces']) => {
+      board.setPieceRenderers(renderers);
+    },
+    [],
+  );
+
   const applyOrientation = useCallback(
     (board: Chessboard, orientation: BoardOptions['orientation']) => {
       if (!orientation) {
@@ -379,11 +461,24 @@ export function useNeoChessBoard({
     allowPremoves,
     highlightLegal,
     showSquareNames,
+    showNotation,
     allowDrawingArrows,
     clearArrowsOnClick,
     arrowOptions,
     arrows,
     onArrowsChange,
+    boardStyle,
+    id,
+    squareStyle,
+    lightSquareStyle,
+    darkSquareStyle,
+    squareStyles,
+    lightSquareNotationStyle,
+    darkSquareNotationStyle,
+    alphaNotationStyle,
+    numericNotationStyle,
+    squareRenderer,
+    pieces,
   } = resolvedOptions;
 
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
@@ -391,6 +486,37 @@ export function useNeoChessBoard({
   const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
   const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
   const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
+  const hasBoardStyle = Object.prototype.hasOwnProperty.call(resolvedOptions, 'boardStyle');
+  const hasBoardId = Object.prototype.hasOwnProperty.call(resolvedOptions, 'id');
+  const hasSquareStyle = Object.prototype.hasOwnProperty.call(resolvedOptions, 'squareStyle');
+  const hasLightSquareStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'lightSquareStyle',
+  );
+  const hasDarkSquareStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'darkSquareStyle',
+  );
+  const hasSquareStyles = Object.prototype.hasOwnProperty.call(resolvedOptions, 'squareStyles');
+  const hasLightNotationStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'lightSquareNotationStyle',
+  );
+  const hasDarkNotationStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'darkSquareNotationStyle',
+  );
+  const hasAlphaNotationStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'alphaNotationStyle',
+  );
+  const hasNumericNotationStyle = Object.prototype.hasOwnProperty.call(
+    resolvedOptions,
+    'numericNotationStyle',
+  );
+  const hasShowNotation = Object.prototype.hasOwnProperty.call(resolvedOptions, 'showNotation');
+  const hasSquareRenderer = Object.prototype.hasOwnProperty.call(resolvedOptions, 'squareRenderer');
+  const hasPieces = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieces');
 
   useBoardOption(boardRef, isReady, theme, typeof theme !== 'undefined', applyTheme);
   useBoardOption(boardRef, isReady, pieceSet, hasPieceSet, applyPieceSet);
@@ -503,9 +629,46 @@ export function useNeoChessBoard({
     typeof showSquareNames !== 'undefined',
     applyShowSquareNames,
   );
+  useBoardOption(boardRef, isReady, showNotation, hasShowNotation, applyShowNotation);
+  useBoardOption(boardRef, isReady, boardStyle, hasBoardStyle, applyBoardStyle);
+  useBoardOption(boardRef, isReady, id, hasBoardId, applyBoardId);
+  useBoardOption(boardRef, isReady, squareStyle, hasSquareStyle, applySquareStyle);
+  useBoardOption(boardRef, isReady, lightSquareStyle, hasLightSquareStyle, applyLightSquareStyle);
+  useBoardOption(boardRef, isReady, darkSquareStyle, hasDarkSquareStyle, applyDarkSquareStyle);
+  useBoardOption(boardRef, isReady, squareStyles, hasSquareStyles, applySquareStyles);
+  useBoardOption(
+    boardRef,
+    isReady,
+    lightSquareNotationStyle,
+    hasLightNotationStyle,
+    applyLightNotationStyle,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    darkSquareNotationStyle,
+    hasDarkNotationStyle,
+    applyDarkNotationStyle,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    alphaNotationStyle,
+    hasAlphaNotationStyle,
+    applyAlphaNotationStyle,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    numericNotationStyle,
+    hasNumericNotationStyle,
+    applyNumericNotationStyle,
+  );
   useBoardOption(boardRef, isReady, arrowOptions, hasArrowOptions, applyArrowOptions);
   useBoardOption(boardRef, isReady, arrows, hasArrows, applyArrows);
   useBoardOption(boardRef, isReady, onArrowsChange, hasOnArrowsChange, applyOnArrowsChange);
+  useBoardOption(boardRef, isReady, squareRenderer, hasSquareRenderer, applySquareRenderer);
+  useBoardOption(boardRef, isReady, pieces, hasPieces, applyPieceRenderers);
 
   const getBoard = useCallback(() => boardRef.current, [boardRef]);
 
