@@ -180,6 +180,25 @@ describe('NeoChessBoard Core', () => {
     });
   });
 
+  describe('Board geometry configuration', () => {
+    it('applies custom column and row counts', () => {
+      const customContainer = document.createElement('div') as HTMLDivElement;
+      const customBoard = new NeoChessBoard(customContainer, {
+        chessboardColumns: 10,
+        chessboardRows: 6,
+      });
+
+      const filesCount = getPrivate<number>(customBoard, 'filesCount');
+      const ranksCount = getPrivate<number>(customBoard, 'ranksCount');
+
+      expect(filesCount).toBe(10);
+      expect(ranksCount).toBe(6);
+      expect(customBoard.getRootElement().style.aspectRatio).toBe('10 / 6');
+
+      customBoard.destroy();
+    });
+  });
+
   describe('FEN handling', () => {
     it('should set and get FEN position', () => {
       const testFEN = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 4 4';

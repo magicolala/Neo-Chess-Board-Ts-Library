@@ -528,6 +528,9 @@ Because the board itself only emits the `move`, `illegal`, `update`, and `promot
 interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
+  boardOrientation?: 'white' | 'black';
+  chessboardRows?: number;
+  chessboardColumns?: number;
   interactive?: boolean;
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
@@ -537,6 +540,7 @@ interface BoardOptions {
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
+  position?: string;
   rulesAdapter?: RulesAdapter;
   allowAutoScroll?: boolean;
   allowDragging?: boolean;

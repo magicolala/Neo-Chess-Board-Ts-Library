@@ -9,6 +9,8 @@ import {
   easeOutCubic,
   START_FEN,
   type ParsedFENState,
+  generateFileLabels,
+  generateRankLabels,
 } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
@@ -56,8 +58,8 @@ const DEFAULT_BOARD_SIZE = 480;
 const DEFAULT_ANIMATION_MS = 300;
 const DEFAULT_AUDIO_VOLUME = 0.3;
 const SPRITE_SIZE = 128;
-const BOARD_RANKS = 8;
-const BOARD_FILES = 8;
+const DEFAULT_BOARD_RANKS = 8;
+const DEFAULT_BOARD_FILES = 8;
 const DRAG_SCALE = 1.05;
 const LEGAL_MOVE_DOT_RADIUS = 0.12;
 const ARROW_HEAD_SIZE_FACTOR = 0.25;
@@ -176,6 +178,10 @@ export class NeoChessBoard {
   private sizePx = DEFAULT_BOARD_SIZE;
   private square = 60;
   private dpr = 1;
+  private filesCount = DEFAULT_BOARD_FILES;
+  private ranksCount = DEFAULT_BOARD_RANKS;
+  private fileLabels = generateFileLabels(DEFAULT_BOARD_FILES);
+  private rankLabels = generateRankLabels(DEFAULT_BOARD_RANKS);
 
   // ---- Feature Flags ----
   private interactive: boolean;
@@ -276,6 +282,10 @@ export class NeoChessBoard {
     this.theme = resolveTheme(options.theme ?? 'classic');
     const desiredOrientation = options.boardOrientation ?? options.orientation;
     this.orientation = desiredOrientation ?? 'white';
+    this._setBoardGeometry(
+      options.chessboardColumns ?? DEFAULT_BOARD_FILES,
+      options.chessboardRows ?? DEFAULT_BOARD_RANKS,
+    );
     this.boardId = options.id ?? undefined;
     this.boardInlineStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
     this.baseSquareStyle = options.squareStyle ? { ...options.squareStyle } : undefined;
@@ -358,10 +368,11 @@ export class NeoChessBoard {
 
     // Initialize rules and state
     this.rules = options.rulesAdapter || new ChessJsRules();
-    if (options.fen) {
-      this.rules.setFEN(options.fen);
+    const initialFen = options.fen ?? options.position;
+    if (initialFen) {
+      this.rules.setFEN(initialFen);
     }
-    this.state = parseFEN(this.rules.getFEN());
+    this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(true);
 
     // Initialize extensions
@@ -438,7 +449,7 @@ export class NeoChessBoard {
     const oldTurn = this.state.turn;
 
     this.rules.setFEN(fen);
-    this.state = parseFEN(this.rules.getFEN());
+    this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(false);
     this._lastMove = null;
 
@@ -1007,6 +1018,7 @@ export class NeoChessBoard {
     this.root.classList.add('ncb-root');
     this.root.style.position = 'relative';
     this.root.style.userSelect = 'none';
+    this.root.style.aspectRatio = `${this.filesCount} / ${this.ranksCount}`;
     if (this.boardId) {
       this.root.id = this.boardId;
     }
@@ -1139,7 +1151,6 @@ export class NeoChessBoard {
       top: '0',
       width: '100%',
       height: '100%',
-      aspectRatio: '606 / 606',
     });
     return canvas;
   }
@@ -1160,6 +1171,10 @@ export class NeoChessBoard {
       darkSquareNotationStyle: this.darkNotationStyle,
       alphaNotationStyle: this.alphaNotationStyle,
       numericNotationStyle: this.numericNotationStyle,
+      boardFiles: this.filesCount,
+      boardRanks: this.ranksCount,
+      fileLabels: this.fileLabels,
+      rankLabels: this.rankLabels,
     });
     this.drawingManager.setOrientation(this.orientation);
     this.drawingManager.setShowSquareNames(this.showSquareNames);
@@ -1204,39 +1219,89 @@ export class NeoChessBoard {
   // Private - Dimension Management
   // ============================================================================
 
-  private _calculateBoardDimensions(): { size: number; dpr: number; square: number } {
-    const rect = this.root.getBoundingClientRect();
-    const size = Math.min(rect.width, rect.height) || DEFAULT_BOARD_SIZE;
-    const dpr = globalThis.devicePixelRatio || 1;
-    const square = (size * dpr) / BOARD_FILES;
-
-    return { size, dpr, square };
+  private _setBoardGeometry(files: number, ranks: number): void {
+    const sanitizedFiles = Math.max(
+      1,
+      Math.floor(Number.isFinite(files) ? files : DEFAULT_BOARD_FILES),
+    );
+    const sanitizedRanks = Math.max(
+      1,
+      Math.floor(Number.isFinite(ranks) ? ranks : DEFAULT_BOARD_RANKS),
+    );
+    this.filesCount = sanitizedFiles;
+    this.ranksCount = sanitizedRanks;
+    this.fileLabels = generateFileLabels(this.filesCount);
+    this.rankLabels = generateRankLabels(this.ranksCount);
   }
 
-  private _updateCanvasDimensions(dimensions: { size: number; dpr: number }): void {
-    const { size, dpr } = dimensions;
-    const width = Math.round(size * dpr);
-    const height = Math.round(size * dpr);
+  private _parseFEN(fen: string): ParsedFENState {
+    return parseFEN(fen, { files: this.filesCount, ranks: this.ranksCount });
+  }
 
+  private _indicesToSquare(file: number, rank: number): Square {
+    return sq(file, rank, this.fileLabels, this.rankLabels);
+  }
+
+  private _squareToIndices(square: Square): { f: number; r: number } {
+    return sqToFR(square, this.fileLabels, this.rankLabels);
+  }
+
+  private _calculateBoardDimensions(): {
+    cssWidth: number;
+    cssHeight: number;
+    pixelWidth: number;
+    pixelHeight: number;
+    dpr: number;
+    square: number;
+  } {
+    const rect = this.root.getBoundingClientRect();
+    const availableWidth = rect.width || DEFAULT_BOARD_SIZE;
+    const availableHeight = rect.height || DEFAULT_BOARD_SIZE;
+    const aspectRatio = this.filesCount / this.ranksCount;
+
+    let cssWidth = availableWidth;
+    let cssHeight = cssWidth / aspectRatio;
+
+    if (cssHeight > availableHeight) {
+      cssHeight = availableHeight;
+      cssWidth = cssHeight * aspectRatio;
+    }
+
+    const dpr = globalThis.devicePixelRatio || 1;
+    const pixelWidth = Math.max(1, Math.round(cssWidth * dpr));
+    const pixelHeight = Math.max(1, Math.round(cssHeight * dpr));
+    const square = pixelWidth / this.filesCount;
+
+    return { cssWidth, cssHeight, pixelWidth, pixelHeight, dpr, square };
+  }
+
+  private _updateCanvasDimensions(dimensions: { pixelWidth: number; pixelHeight: number }): void {
+    const { pixelWidth, pixelHeight } = dimensions;
     [this.cBoard, this.cPieces, this.cOverlay].forEach((canvas) => {
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
     });
   }
 
   private _updateInternalDimensions(dimensions: {
-    size: number;
+    cssWidth: number;
+    cssHeight: number;
     dpr: number;
     square: number;
   }): void {
-    this.sizePx = dimensions.size;
+    this.sizePx = Math.max(dimensions.cssWidth, dimensions.cssHeight);
     this.dpr = dimensions.dpr;
     this.square = dimensions.square;
   }
 
   private _notifyDrawingManagerResize(): void {
     if (this.drawingManager) {
-      this.drawingManager.updateDimensions();
+      this.drawingManager.updateDimensions({
+        files: this.filesCount,
+        ranks: this.ranksCount,
+        fileLabels: this.fileLabels,
+        rankLabels: this.rankLabels,
+      });
     }
   }
 
@@ -1255,9 +1320,9 @@ export class NeoChessBoard {
     ctx.fillStyle = boardBorder;
     ctx.fillRect(0, 0, W, H);
 
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
-        const square = sq(f, r);
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
+        const square = this._indicesToSquare(f, r);
         const { x, y } = this._calculateSquarePosition(f, r);
         const isLight = (r + f) % 2 === 0;
         const style = this._resolveSquareStyle(square, isLight);
@@ -1295,12 +1360,12 @@ export class NeoChessBoard {
       this._clearDomPieces();
     }
 
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
         const piece = this.state.board[r][f];
         if (!piece) continue;
 
-        const square = sq(f, r);
+        const square = this._indicesToSquare(f, r);
         const renderer = this._getCustomPieceRenderer(piece);
 
         if (renderer) {
@@ -1450,9 +1515,9 @@ export class NeoChessBoard {
 
     const renderer = this.customSquareRenderer;
 
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
-        const square = sq(f, r);
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
+        const square = this._indicesToSquare(f, r);
         const element = this._ensureSquareElement(square);
         this._positionSquareElement(element, square);
         const isLight = (r + f) % 2 === 0;
@@ -1694,27 +1759,31 @@ export class NeoChessBoard {
   // ============================================================================
 
   private _sqToXY(square: Square): Point {
-    const { f, r } = sqToFR(square);
+    const { f, r } = this._squareToIndices(square);
     return this._calculateSquarePosition(f, r);
   }
 
   private _calculateSquarePosition(file: number, rank: number): Point {
-    const ff = this.orientation === 'white' ? file : 7 - file;
-    const rr = this.orientation === 'white' ? 7 - rank : rank;
+    const maxFile = this.filesCount - 1;
+    const maxRank = this.ranksCount - 1;
+    const ff = this.orientation === 'white' ? file : maxFile - file;
+    const rr = this.orientation === 'white' ? maxRank - rank : rank;
     return { x: ff * this.square, y: rr * this.square };
   }
 
   private _xyToSquare(x: number, y: number): Square {
-    const f = clamp(Math.floor(x / this.square), 0, 7);
-    const r = clamp(Math.floor(y / this.square), 0, 7);
-    const ff = this.orientation === 'white' ? f : 7 - f;
-    const rr = this.orientation === 'white' ? 7 - r : r;
-    return sq(ff, rr);
+    const maxFile = this.filesCount - 1;
+    const maxRank = this.ranksCount - 1;
+    const f = clamp(Math.floor(x / this.square), 0, maxFile);
+    const r = clamp(Math.floor(y / this.square), 0, maxRank);
+    const ff = this.orientation === 'white' ? f : maxFile - f;
+    const rr = this.orientation === 'white' ? maxRank - r : r;
+    return this._indicesToSquare(ff, rr);
   }
 
   private _pieceAt(square: Square): string | null {
-    const { f, r } = sqToFR(square);
-    return this.state.board[r][f] ?? null;
+    const { f, r } = this._squareToIndices(square);
+    return this.state.board[r]?.[f] ?? null;
   }
 
   // ============================================================================
@@ -2286,7 +2355,7 @@ export class NeoChessBoard {
     if (!cleaned) return null;
 
     const match = cleaned.match(
-      /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/,
+      /^([a-zA-Z]+\d+)\s*(?:-|\s)?\s*([a-zA-Z]+\d+)(?:\s*(?:=)?\s*([qrbnQRBN]))?$/,
     );
     if (!match) return null;
 
@@ -2394,7 +2463,7 @@ export class NeoChessBoard {
   private _processMoveSuccess(from: Square, to: Square): void {
     const fen = this.rules.getFEN();
     const oldState = this.state;
-    const newState = parseFEN(fen);
+    const newState = this._parseFEN(fen);
 
     this.state = newState;
     this._syncOrientationFromTurn(false);
@@ -2592,7 +2661,7 @@ export class NeoChessBoard {
 
   private _executePremove(premove: Premove): void {
     const newFen = this.rules.getFEN();
-    const newState = parseFEN(newFen);
+    const newState = this._parseFEN(newFen);
     const oldState = this.state;
 
     this.state = newState;
@@ -2653,8 +2722,8 @@ export class NeoChessBoard {
   private _identifyMovingPieces(start: BoardState, target: BoardState): Map<string, string> {
     const moving = new Map<string, string>();
 
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
         const startPiece = start.board[r][f];
         const targetPiece = target.board[r][f];
 
@@ -2667,7 +2736,10 @@ export class NeoChessBoard {
             start.board,
           );
           if (destination) {
-            moving.set(sq(f, r), sq(destination.f, destination.r));
+            moving.set(
+              this._indicesToSquare(f, r),
+              this._indicesToSquare(destination.f, destination.r),
+            );
           }
         }
       }
@@ -2684,12 +2756,12 @@ export class NeoChessBoard {
     const ctx = this.ctxP;
     ctx.clearRect(0, 0, this.cPieces.width, this.cPieces.height);
 
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
         const targetPiece = target.board[r][f];
         if (!targetPiece) continue;
 
-        const toSq = sq(f, r);
+        const toSq = this._indicesToSquare(f, r);
         const fromKey = this._findMovingPieceSource(moving, toSq);
 
         if (fromKey) {
@@ -2730,8 +2802,8 @@ export class NeoChessBoard {
     f0: number,
     start: (string | null)[][],
   ): { r: number; f: number } | null {
-    for (let r = 0; r < BOARD_RANKS; r++) {
-      for (let f = 0; f < BOARD_FILES; f++) {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
         if (board[r][f] === piece && start[r][f] !== piece) {
           return { r, f };
         }
@@ -3069,7 +3141,7 @@ export class NeoChessBoard {
   }
 
   private _updateStateAfterPgnLoad(): void {
-    this.state = parseFEN(this.rules.getFEN());
+    this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(false);
     this.renderAll();
   }

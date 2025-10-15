@@ -1,16 +1,46 @@
 import type { Square, Color } from './types';
 
-export const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
-export const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
+const DEFAULT_LABEL_COUNT = 26;
+
+function toFileLabel(index: number): string {
+  if (index < 0) {
+    throw new RangeError(`File index must be non-negative. Received: ${index}`);
+  }
+
+  let label = '';
+  let current = index;
+
+  do {
+    const remainder = current % 26;
+    label = String.fromCharCode(97 + remainder) + label;
+    current = Math.floor(current / 26) - 1;
+  } while (current >= 0);
+
+  return label;
+}
+
+export function generateFileLabels(count: number): string[] {
+  const safeCount = Math.max(0, Math.floor(count));
+  const labels: string[] = [];
+  for (let i = 0; i < safeCount; i++) {
+    labels.push(toFileLabel(i));
+  }
+  return labels;
+}
+
+export function generateRankLabels(count: number): string[] {
+  const safeCount = Math.max(0, Math.floor(count));
+  return Array.from({ length: safeCount }, (_, index) => String(index + 1));
+}
+
+export const FILES = Object.freeze(generateFileLabels(DEFAULT_LABEL_COUNT));
+export const RANKS = Object.freeze(generateRankLabels(DEFAULT_LABEL_COUNT));
 
 export const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 export function isWhitePiece(piece: string): boolean {
   return piece === piece.toUpperCase();
 }
-
-type FileChar = (typeof FILES)[number];
-type RankChar = (typeof RANKS)[number];
 
 export interface ParsedFENState {
   board: (string | null)[][];
@@ -21,34 +51,68 @@ export interface ParsedFENState {
   fullmove: number;
 }
 
-export function sq(file: number, rank: number): Square {
-  return (FILES[file] + RANKS[rank]) as Square;
+export function sq(
+  file: number,
+  rank: number,
+  files: readonly string[] = FILES,
+  ranks: readonly string[] = RANKS,
+): Square {
+  const fileLabel = files[file];
+  const rankLabel = ranks[rank];
+  if (typeof fileLabel === 'undefined' || typeof rankLabel === 'undefined') {
+    throw new RangeError(`Invalid square indices f=${file} r=${rank}`);
+  }
+  return `${fileLabel}${rankLabel}` as Square;
 }
 
-export function sqToFR(square: Square): { f: number; r: number } {
-  const file = square[0] as FileChar;
-  const rank = square[1] as RankChar;
-  return {
-    f: FILES.indexOf(file),
-    r: RANKS.indexOf(rank),
-  };
+export function sqToFR(
+  square: Square,
+  files: readonly string[] = FILES,
+  ranks: readonly string[] = RANKS,
+): { f: number; r: number } {
+  const normalized = square.toString().trim();
+  const fileMatch = normalized.match(/^[a-zA-Z]+/);
+  const rankPart = normalized.slice(fileMatch?.[0]?.length ?? 0);
+  const filePart = (fileMatch?.[0] ?? '').toLowerCase();
+
+  const f = files.findIndex((label) => label.toLowerCase() === filePart);
+  const r = ranks.findIndex((label) => label === rankPart);
+
+  if (f === -1 || r === -1) {
+    throw new RangeError(`Invalid square notation: ${square}`);
+  }
+
+  return { f, r };
 }
 
-export function parseFEN(fen: string): ParsedFENState {
+export function parseFEN(
+  fen: string,
+  dimensions: { files?: number; ranks?: number } = {},
+): ParsedFENState {
   const parts = fen.split(' ');
-  const board: (string | null)[][] = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null));
+  const files = Math.max(1, Math.floor(dimensions.files ?? 8));
+  const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
+  const board: (string | null)[][] = Array.from({ length: ranks }, () => Array(files).fill(null));
 
   const rows = parts[0].split('/');
-  for (let r = 0; r < 8; r++) {
+  const rowCount = Math.min(rows.length, ranks);
+  for (let r = 0; r < rowCount; r++) {
     const row = rows[r];
     let f = 0;
-    for (const char of row) {
+    for (let i = 0; i < row.length && f < files; i++) {
+      const char = row[i];
       if (/\d/.test(char)) {
-        f += parseInt(char);
+        let digits = char;
+        while (i + 1 < row.length && /\d/.test(row[i + 1])) {
+          digits += row[i + 1];
+          i++;
+        }
+        f += parseInt(digits, 10);
       } else {
-        board[7 - r][f] = char;
+        const targetRank = ranks - 1 - r;
+        if (f < files) {
+          board[targetRank][f] = char;
+        }
         f++;
       }
     }
