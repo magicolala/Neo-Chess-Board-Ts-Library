@@ -173,6 +173,46 @@ describe('DrawingManager', () => {
       const arrows2 = drawingManager.getArrows();
       expect(arrows2[0].knightMove).toBe(false);
     });
+
+    it('should apply default arrow styles from arrowOptions', () => {
+      drawingManager.setArrowOptions({ color: '#abcdef', width: 5, opacity: 0.4 });
+      drawingManager.addArrow('a2', 'a4');
+
+      const [arrow] = drawingManager.getArrows();
+      expect(arrow.color).toBe('#abcdef');
+      expect(arrow.width).toBe(5);
+      expect(arrow.opacity).toBe(0.4);
+    });
+
+    it('should notify when arrows change', () => {
+      const onChange = jest.fn();
+      drawingManager.setOnArrowsChange(onChange);
+
+      drawingManager.addArrow('c2', 'c4');
+      expect(onChange).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ from: 'c2', to: 'c4' })]),
+      );
+
+      onChange.mockClear();
+      drawingManager.clearArrows();
+      expect(onChange).toHaveBeenCalledWith([]);
+    });
+
+    it('should respect allowDrawingArrows during interactions', () => {
+      drawingManager.setAllowDrawingArrows(false);
+
+      expect(drawingManager.handleRightMouseDown(0, 0)).toBe(false);
+      expect(drawingManager.handleRightMouseUp(0, 0)).toBe(false);
+      expect(drawingManager.getArrows()).toHaveLength(0);
+    });
+
+    it('should clear arrows on left click when enabled', () => {
+      drawingManager.addArrow('e2', 'e4');
+      drawingManager.setClearArrowsOnClick(true);
+
+      expect(drawingManager.handleLeftClick()).toBe(true);
+      expect(drawingManager.getArrows()).toHaveLength(0);
+    });
   });
 
   describe('Highlight Management', () => {

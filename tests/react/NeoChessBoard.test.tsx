@@ -2,7 +2,7 @@ import React from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 import type { NeoChessProps, NeoChessRef } from '../../src/react/NeoChessBoard';
-import type { Theme, BoardEventMap } from '../../src/core/types';
+import type { Theme, BoardEventMap, Arrow } from '../../src/core/types';
 
 // Mock the core NeoChessBoard class
 let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
@@ -21,6 +21,11 @@ const mockBoard = {
   setAllowPremoves: jest.fn(),
   setHighlightLegal: jest.fn(),
   setShowSquareNames: jest.fn(),
+  setAllowDrawingArrows: jest.fn(),
+  setClearArrowsOnClick: jest.fn(),
+  setArrowOptions: jest.fn(),
+  setArrows: jest.fn(),
+  setOnArrowsChange: jest.fn(),
   setAnimationDuration: jest.fn(),
   setShowAnimations: jest.fn(),
   setDraggingEnabled: jest.fn(),
@@ -343,6 +348,10 @@ describe('NeoChessBoard React Component', () => {
     it('should forward option changes to the board instance', () => {
       const canDragPiece = jest.fn();
       const nextCanDragPiece = jest.fn();
+      const arrowsChange = jest.fn();
+      const nextArrowsChange = jest.fn();
+      const initialArrows: Arrow[] = [{ from: 'a2', to: 'a4', color: '#fff' }];
+      const nextArrows: Arrow[] = [{ from: 'b2', to: 'b4', color: '#000' }];
       const { rerender } = render(
         <NeoChessBoard
           soundEnabled={false}
@@ -360,6 +369,11 @@ describe('NeoChessBoard React Component', () => {
           dragActivationDistance={10}
           animationDurationInMs={200}
           canDragPiece={canDragPiece}
+          allowDrawingArrows={false}
+          clearArrowsOnClick={false}
+          arrowOptions={{ width: 3 }}
+          arrows={initialArrows}
+          onArrowsChange={arrowsChange}
         />,
       );
 
@@ -379,6 +393,11 @@ describe('NeoChessBoard React Component', () => {
         mockBoard.setDragActivationDistance,
         mockBoard.setAnimationDuration,
         mockBoard.setCanDragPiece,
+        mockBoard.setAllowDrawingArrows,
+        mockBoard.setClearArrowsOnClick,
+        mockBoard.setArrowOptions,
+        mockBoard.setArrows,
+        mockBoard.setOnArrowsChange,
       ].forEach((fn) => fn.mockClear());
 
       rerender(
@@ -398,6 +417,11 @@ describe('NeoChessBoard React Component', () => {
           dragActivationDistance={4}
           animationDurationInMs={350}
           canDragPiece={nextCanDragPiece}
+          allowDrawingArrows
+          clearArrowsOnClick
+          arrowOptions={{ width: 5, opacity: 0.7 }}
+          arrows={nextArrows}
+          onArrowsChange={nextArrowsChange}
         />,
       );
 
@@ -416,6 +440,11 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.setDragActivationDistance).toHaveBeenCalledWith(4);
       expect(mockBoard.setAnimationDuration).toHaveBeenCalledWith(350);
       expect(mockBoard.setCanDragPiece).toHaveBeenCalledWith(nextCanDragPiece);
+      expect(mockBoard.setAllowDrawingArrows).toHaveBeenCalledWith(true);
+      expect(mockBoard.setClearArrowsOnClick).toHaveBeenCalledWith(true);
+      expect(mockBoard.setArrowOptions).toHaveBeenCalledWith({ width: 5, opacity: 0.7 });
+      expect(mockBoard.setArrows).toHaveBeenCalledWith(nextArrows);
+      expect(mockBoard.setOnArrowsChange).toHaveBeenCalledWith(nextArrowsChange);
     });
 
     it('should call applyTheme when theme prop is a custom object', () => {

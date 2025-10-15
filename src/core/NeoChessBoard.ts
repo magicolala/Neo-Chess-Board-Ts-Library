@@ -39,6 +39,7 @@ import type {
   PromotionPiece,
   RulesMoveResponse,
   PgnMoveAnnotations,
+  ArrowStyleOptions,
 } from './types';
 
 // ============================================================================
@@ -160,6 +161,8 @@ export class NeoChessBoard {
   private showArrows: boolean;
   private showHighlights: boolean;
   private rightClickHighlights: boolean;
+  private allowDrawingArrows: boolean;
+  private clearArrowsOnClick: boolean;
   private soundEnabled: boolean;
   private showSquareNames: boolean;
   private autoFlip: boolean;
@@ -170,6 +173,12 @@ export class NeoChessBoard {
   private showAnimations: boolean;
   private canDragPiece?: BoardOptions['canDragPiece'];
   private dragActivationDistance: number;
+  private arrowOptions?: ArrowStyleOptions;
+  private onArrowsChange?: BoardOptions['onArrowsChange'];
+  private controlledArrows?: Arrow[];
+  private readonly drawingManagerArrowsChangeHandler = (arrows: Arrow[]): void => {
+    this.onArrowsChange?.(arrows);
+  };
 
   // ---- Managers ----
   public drawingManager!: DrawingManager;
@@ -261,6 +270,8 @@ export class NeoChessBoard {
     this.showArrows = options.showArrows !== false;
     this.showHighlights = options.showHighlights !== false;
     this.rightClickHighlights = options.rightClickHighlights !== false;
+    this.allowDrawingArrows = options.allowDrawingArrows !== false;
+    this.clearArrowsOnClick = options.clearArrowsOnClick === true;
     this.soundEnabled = options.soundEnabled !== false;
     this.showSquareNames = options.showSquareNames || false;
     this.autoFlip = options.autoFlip ?? false;
@@ -274,6 +285,9 @@ export class NeoChessBoard {
         ? options.dragActivationDistance
         : 0;
     this.dragActivationDistance = Math.max(0, activationDistance);
+    this.arrowOptions = options.arrowOptions;
+    this.onArrowsChange = options.onArrowsChange;
+    this.controlledArrows = options.arrows;
 
     // Initialize sound configuration
     this.soundUrl = options.soundUrl;
@@ -605,6 +619,35 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
+  public setAllowDrawingArrows(allow: boolean): void {
+    this.allowDrawingArrows = allow;
+    this.drawingManager?.setAllowDrawingArrows(allow);
+  }
+
+  public setClearArrowsOnClick(clear: boolean): void {
+    this.clearArrowsOnClick = clear;
+    this.drawingManager?.setClearArrowsOnClick(clear);
+  }
+
+  public setArrowOptions(options?: ArrowStyleOptions): void {
+    this.arrowOptions = options;
+    this.drawingManager?.setArrowOptions(options);
+    this.renderAll();
+  }
+
+  public setArrows(arrows: Arrow[] | undefined): void {
+    this.controlledArrows = arrows;
+    if (!this.drawingManager || typeof arrows === 'undefined') {
+      return;
+    }
+    this.drawingManager.setArrows(arrows);
+    this.renderAll();
+  }
+
+  public setOnArrowsChange(handler?: BoardOptions['onArrowsChange']): void {
+    this.onArrowsChange = handler;
+  }
+
   // ============================================================================
   // Public API - Drawing Management
   // ============================================================================
@@ -839,9 +882,17 @@ export class NeoChessBoard {
   }
 
   private _initializeDrawingManager(): void {
-    this.drawingManager = new DrawingManager(this.cOverlay);
+    this.drawingManager = new DrawingManager(this.cOverlay, {
+      allowDrawingArrows: this.allowDrawingArrows,
+      arrowOptions: this.arrowOptions,
+      clearArrowsOnClick: this.clearArrowsOnClick,
+      onArrowsChange: this.drawingManagerArrowsChangeHandler,
+    });
     this.drawingManager.setOrientation(this.orientation);
     this.drawingManager.setShowSquareNames(this.showSquareNames);
+    if (this.controlledArrows) {
+      this.drawingManager.setArrows(this.controlledArrows);
+    }
   }
 
   private _setupResizeObserver(): void {
@@ -1485,6 +1536,9 @@ export class NeoChessBoard {
     }
 
     if (!this._dragging) {
+      if (this.drawingManager?.handleLeftClick()) {
+        this.renderAll();
+      }
       if (square && e.button === 0) {
         this._emitSquarePointerEvent('squareClick', square, e);
         const clickedPiece = this._pieceAt(square);

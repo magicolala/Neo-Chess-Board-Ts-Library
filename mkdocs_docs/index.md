@@ -170,6 +170,11 @@ interface NeoChessProps {
   dragActivationDistance?: number; // Pixels required before a drag starts
   allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
   allowAutoScroll?: boolean; // Auto-scroll parent containers near edges
+  allowDrawingArrows?: boolean; // Enable right-click arrow drawing
+  clearArrowsOnClick?: boolean; // Clear arrows with a left click
+  arrowOptions?: { color?: string; width?: number; opacity?: number }; // Default arrow styling
+  arrows?: Arrow[]; // Controlled arrow collection
+  onArrowsChange?: (arrows: Arrow[]) => void; // Called when arrows change
   canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Filter draggable pieces
   onMove?: (move) => void; // Move event handler
   onIllegal?: (attempt) => void; // Illegal move handler
@@ -399,6 +404,11 @@ interface NeoChessProps {
   dragActivationDistance?: number; // Minimum pointer travel before dragging starts
   allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
   allowAutoScroll?: boolean; // Auto-scroll scrollable ancestors near edges
+  allowDrawingArrows?: boolean; // Enable right-click arrow drawing
+  clearArrowsOnClick?: boolean; // Clear arrows on left click
+  arrowOptions?: { color?: string; width?: number; opacity?: number }; // Default arrow styling
+  arrows?: Arrow[]; // Controlled arrows collection
+  onArrowsChange?: (arrows: Arrow[]) => void; // Change callback for arrows
   canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Control drag eligibility
 
   // Event Handlers

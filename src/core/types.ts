@@ -41,6 +41,12 @@ export interface Arrow {
   knightMove?: boolean;
 }
 
+export interface ArrowStyleOptions {
+  color?: string;
+  width?: number;
+  opacity?: number;
+}
+
 export type HighlightType = 'green' | 'red' | 'blue' | 'yellow' | 'orange' | 'purple' | 'circle';
 
 export interface SquareHighlight {
@@ -229,6 +235,11 @@ export interface BoardOptions {
   soundUrls?: Partial<Record<'white' | 'black', string>>;
   extensions?: ExtensionConfig[];
   onPromotionRequired?: (request: PromotionRequest) => void | Promise<void>;
+  allowDrawingArrows?: boolean;
+  arrows?: Arrow[];
+  arrowOptions?: ArrowStyleOptions;
+  onArrowsChange?: (arrows: Arrow[]) => void;
+  clearArrowsOnClick?: boolean;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

@@ -541,6 +541,11 @@ interface BoardOptions {
   allowAutoScroll?: boolean;
   allowDragging?: boolean;
   allowDragOffBoard?: boolean;
+  allowDrawingArrows?: boolean;
+  arrows?: Arrow[];
+  arrowOptions?: { color?: string; width?: number; opacity?: number };
+  onArrowsChange?: (arrows: Arrow[]) => void;
+  clearArrowsOnClick?: boolean;
   canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean;
   dragActivationDistance?: number;
   allowPremoves?: boolean;

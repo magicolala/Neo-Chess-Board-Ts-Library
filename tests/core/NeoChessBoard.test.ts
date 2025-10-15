@@ -616,6 +616,64 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockRestore();
     });
 
+    it('should forward arrow options and control flags to the drawing manager', () => {
+      const arrowOptions = { width: 6, opacity: 0.5 };
+      const setArrowOptionsSpy = jest.spyOn(board.drawingManager, 'setArrowOptions');
+      const setAllowDrawingSpy = jest.spyOn(board.drawingManager, 'setAllowDrawingArrows');
+      const setClearOnClickSpy = jest.spyOn(board.drawingManager, 'setClearArrowsOnClick');
+      const renderSpy = jest.spyOn(board, 'renderAll');
+
+      renderSpy.mockClear();
+      board.setArrowOptions(arrowOptions);
+      expect(setArrowOptionsSpy).toHaveBeenCalledWith(arrowOptions);
+      expect(renderSpy).toHaveBeenCalled();
+
+      board.setAllowDrawingArrows(false);
+      expect(setAllowDrawingSpy).toHaveBeenCalledWith(false);
+
+      board.setClearArrowsOnClick(true);
+      expect(setClearOnClickSpy).toHaveBeenCalledWith(true);
+
+      setClearOnClickSpy.mockRestore();
+      setAllowDrawingSpy.mockRestore();
+      setArrowOptionsSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should synchronise controlled arrows', () => {
+      const renderSpy = jest.spyOn(board, 'renderAll');
+      const setArrowsSpy = jest.spyOn(board.drawingManager, 'setArrows');
+      const arrows: Arrow[] = [{ from: 'a2', to: 'a4', color: '#fff' }];
+
+      renderSpy.mockClear();
+      board.setArrows(arrows);
+
+      expect(setArrowsSpy).toHaveBeenCalledWith(arrows);
+      expect(renderSpy).toHaveBeenCalled();
+
+      renderSpy.mockClear();
+      board.setArrows(undefined);
+      expect(setArrowsSpy).toHaveBeenCalledTimes(1);
+      expect(renderSpy).not.toHaveBeenCalled();
+
+      setArrowsSpy.mockRestore();
+      renderSpy.mockRestore();
+    });
+
+    it('should invoke onArrowsChange callbacks when drawings change', () => {
+      const callback = jest.fn();
+      board.setOnArrowsChange(callback);
+
+      board.addArrow({ from: 'a2', to: 'a4' });
+      expect(callback).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ from: 'a2', to: 'a4' })]),
+      );
+
+      callback.mockClear();
+      board.clearArrows();
+      expect(callback).toHaveBeenCalledWith([]);
+    });
+
     it('should add highlights using both signature styles', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
       const simpleHighlightSpy = jest.spyOn(board.drawingManager, 'addHighlight');
