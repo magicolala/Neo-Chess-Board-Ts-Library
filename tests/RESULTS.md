@@ -1,77 +1,44 @@
-# Résultats des Tests - Neo Chess Board
+# Test Results - Neo Chess Board
 
-## Résumé
+## Summary
 
-Suite de tests complète pour la bibliothèque Neo Chess Board TypeScript/React.
+Complete test suite for the Neo Chess Board TypeScript/React library.
 
-**Total des tests implémentés : 320 tests (17 suites)**
+**Total tests executed: 320 tests (17 suites)**
 
-- ✅ **Tests réussis : 320**
-- ❌ **Tests échoués : 0**
-- ⏱️ **Durée d'exécution : ~17 secondes sur une machine de CI standard**
+- ✅ **Passed tests: 320**
+- ❌ **Failed tests: 0**
+- ⏱️ **Execution time: ~17 seconds on a standard CI machine**
 
-## Tests par module
+## Tests by module
 
-### ✅ Modules Core (13 suites)
+### ✅ Core modules (13 suites)
 
-- **NeoChessBoard** : orientation manuelle & auto-flip, gestion des sons, callbacks d'événements et intégration `DrawingManager`.
-- **DrawingManager** : rendu pixel-perfect des flèches, cercles, surbrillances, pré-mouvements et coordonnées toujours placées en bas/gauche.
-- **LightRules** : logique de coups légaux, promotions, roques, répétitions et détection d'échecs.
-- **ChessJsRules** : compatibilité complète avec Chess.js (FEN valides/invalides, synchronisation du tour de jeu).
-- **PGN & PgnNotation** : génération, parsing et annotations avancées (NAG, commentaires, glyphes symboliques).
-- **PgnAnnotationParser / PgnNotationAnnotations** : validation des symboles, commentaires et variations imbriquées.
-- **Premoves** : cycle complet d'enregistrement/exécution et annulation des pré-mouvements.
-- **Themes & FlatSprites** : rendu haute résolution des palettes et sprites de pièces.
-- **Utils** : helpers FEN/PGN, conversions de cases, easing animations.
+- **NeoChessBoard**: Manual orientation & auto-flip, sound management, event callbacks, and `DrawingManager` integration.
+- **DrawingManager**: Pixel-perfect rendering for arrows, circles, highlights, premoves, and coordinates that always stay bottom/left.
+- **LightRules**: Legal move logic, promotions, castling, repetition detection, and check detection.
+- **ChessJsRules**: Full compatibility with Chess.js (valid/invalid FEN, synchronized side to move).
+- **PGN & PgnNotation**: Generation, parsing, and advanced annotations (NAG, comments, symbolic glyphs).
+- **PgnAnnotationParser / PgnNotationAnnotations**: Validation for symbols, comments, and nested variations.
+- **Premoves**: End-to-end storage, execution, and cancellation of programmed moves.
+- **Themes & FlatSprites**: High-resolution palette rendering and responsive piece sprites.
+- **Utils**: FEN/PGN helpers, square conversions, easing utilities.
 
-### 🔗 Tests d'intégration
+### 🔗 Integration tests
 
-- **PgnChessJsIntegration** : round-trip Chess.js ↔ PGN ↔ Chess.js avec contrôle des métadonnées et de la légalité des coups.
+- **PgnChessJsIntegration**: Chess.js ↔ PGN ↔ Chess.js round-trip with metadata validation and legal move checks.
 
-### ⚛️ Composants React & Demo
+### ⚛️ React components & demo
 
-- **React `<NeoChessBoard />`** : props contrôlées, auto-flip, hooks d'événements, rendu SSR-friendly.
-- **Demo App** : scénarios utilisateur (toggle auto-flip, switch de thèmes, coordonnées verrouillées bas/gauche).
+- **React `<NeoChessBoard />`**: Controlled props, auto-flip, event hooks, SSR-friendly rendering.
+- **Demo App**: User scenarios (auto-flip toggle, theme switches, locked coordinates).
 
-### 📦 API Publique
+### 📦 Public API
 
-- **exports.test.ts** : s'assure que tous les exports documentés restent disponibles et typés.
+- **exports.test.ts**: Ensures documented exports stay available and properly typed.
 
-## Configuration de test
+## Test configuration
 
-✅ **Jest configuré** avec :
-
-- Support TypeScript (`ts-jest`, `babel-jest`),
-- Environnement `jsdom` pour les tests React,
-- Résolution ESM/CJS transparente,
-- Scripts npm prêts pour CI/CD.
-
-✅ **Mocks complets** :
-
-- Canvas 2D (`getContext`, `drawImage`, `measureText`, `toDataURL`),
-- `ResizeObserver`, `IntersectionObserver`, `OffscreenCanvas`,
-- `URL.createObjectURL` / `URL.revokeObjectURL`,
-- Gestion de `devicePixelRatio` et timers globaux.
-
-## Commandes disponibles
-
-```bash
-npm test               # Lance tous les tests
-npm run test:watch     # Mode watch
-npm run test:coverage  # Rapport de couverture
-npm run test:ci        # Configuration CI
-```
-
-## Points d'amélioration
-
-1. Ajouter des tests visuels sur les nouvelles options de DrawingManager (transparence personnalisée, sélections multiples).
-2. Étendre les scénarios React aux intégrations avec des frameworks externes (Next.js, Remix).
-3. Automatiser la génération de snapshots PGN/FEN pour documenter les régressions.
-4. Mesurer les performances du rendu Canvas sur des configurations mobiles.
-
-## Qualité du code
-
-- ✅ Architecture modulaire et découplée.
-- ✅ Couverture fonctionnelle étendue (moteur, UI, intégration).
-- ✅ Mocks exhaustifs pour les APIs navigateur.
-- ✅ Tests déterministes et reproductibles.
+- Jest runs with a custom `setup.ts` that handles Canvas, ResizeObserver, and DOM APIs.
+- Coverage is collected via `npm run test:coverage` and published to `coverage/lcov-report` locally.
+- Visual regression helpers live in `tests/demo` and can be reused for manual QA.

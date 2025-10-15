@@ -875,4 +875,4 @@ See the `examples/` directory and the demo application for comprehensive usage e
 
 ---
 
-For more detailed examples and guides, see the main [README.md](../README.md) and [examples documentation](./EXAMPLES.md).
+For more detailed examples and guides, see the main [README.md](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/README.md) and the [examples documentation](examples.md).

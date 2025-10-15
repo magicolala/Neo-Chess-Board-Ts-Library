@@ -450,7 +450,7 @@ class NeoChessBoard {
 
 ## 🧪 Testing
 
-Neo Chess Board ships with a Jest-based test environment that covers the core engine, React bindings, and demo scenarios. The suite lives under [`tests/`](tests/), and [`tests/README.md`](tests/README.md) describes the folder structure together with guidance for adding additional cases. Running the suite locally will also refresh helper artifacts such as `tests/RESULTS.md` and the coverage output.
+Neo Chess Board ships with a Jest-based test environment that covers the core engine, React bindings, and demo scenarios. The suite lives under [`tests/`](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/tree/main/tests), and [`tests/README.md`](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/tests/README.md) describes the folder structure together with guidance for adding additional cases. Running the suite locally will also refresh helper artifacts such as [`tests/RESULTS.md`](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/tests/RESULTS.md) and the coverage output.
 
 ```bash
 npm test              # Run the full suite once
@@ -458,7 +458,7 @@ npm run test:watch    # Re-run affected tests on file changes
 npm run test:coverage # Produce an updated coverage summary + HTML report
 ```
 
-> ℹ️ Coverage numbers depend on your latest local execution. After running the commands above you can open `coverage/lcov-report/index.html` for detailed metrics or commit an updated summary to `tests/RESULTS.md` if you capture a new campaign.
+> ℹ️ Coverage numbers depend on your latest local execution. After running the commands above you can open `coverage/lcov-report/index.html` for detailed metrics or commit an updated summary to [`tests/RESULTS.md`](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/blob/main/tests/RESULTS.md) if you capture a new campaign.
 
 ## 🚀 Performance
 

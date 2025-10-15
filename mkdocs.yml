@@ -6,6 +6,7 @@ edit_uri: blob/main/mkdocs_docs/
 
 theme:
   name: material
+  language: en
   features:
     - navigation.tabs
     - navigation.sections
@@ -42,7 +43,23 @@ nav:
 
 plugins:
   - search
-  # Permet d'inclure des morceaux du README si tu utilises la directive {% include-markdown %}
+  - i18n:
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: fr
+          name: Français
+          build: true
+          nav_translations:
+            Home: Accueil
+            API Reference: API
+            Examples: Exemples
+            PGN Features: Fonctionnalités PGN
+            Themes: Thèmes
+            Extensions: Extensions
+            Clean Code: Code propre
   - include-markdown:
       rewrite_relative_urls: true
       comments: true
