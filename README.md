@@ -180,7 +180,7 @@ Looking for a faster way to design palettes? The project ships with an interacti
 
 ### 🧪 Demo Playground Highlights
 
-- The demo PGN textarea now accepts pasted games (including comments such as `[%eval 0.45]`). Hit **Charger** to load the position, annotations and metadata in one go.
+- The demo PGN textarea now accepts pasted games (including comments such as `[%eval 0.45]`). Hit **Load** to import the position, annotations, and metadata in one go.
 - A vertical evaluation bar displays the last imported score, stays aligned with the current board orientation and refreshes as you replay moves or navigate through the game.
 
 Once exported you can register the theme in your app:
@@ -432,12 +432,12 @@ const pgnWithAnnotations = rules.toPgn(true);
 console.log(pgnWithAnnotations);
 ```
 
-#### Détection des cases attaquées
+#### Attacked Square Detection
 
-`ChessJsRules` s'appuie directement sur `chess.js` pour analyser le contrôle des cases :
+`ChessJsRules` builds on top of `chess.js` to analyze board control:
 
-- `getAttackedSquares()` retourne toutes les cases actuellement menacées par le joueur au trait, idéal pour mettre à jour un surlignage dynamique.
-- `isSquareAttacked(square, by?)` vérifie si une case donnée est attaquée par la couleur spécifiée (ou par le joueur au trait par défaut). La méthode valide la case fournie (notation algébrique) et accepte des entrées insensibles à la casse.
+- `getAttackedSquares()` returns every square currently threatened by the player to move—perfect for powering dynamic highlights.
+- `isSquareAttacked(square, by?)` checks whether a specific square is attacked by the provided color (or the side to move by default). The method validates algebraic notation input and accepts case-insensitive values.
 
 ## 🏗️ Architecture
 
