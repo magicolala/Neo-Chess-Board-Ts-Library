@@ -222,6 +222,11 @@ interface NeoChessProps {
   dragActivationDistance?: number; // Pixels required before starting a drag
   allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
   allowAutoScroll?: boolean; // Auto-scroll container when dragging near edges
+  allowDrawingArrows?: boolean; // Enable right-click arrow drawing
+  clearArrowsOnClick?: boolean; // Clear existing arrows on left click
+  arrowOptions?: { color?: string; width?: number; opacity?: number }; // Default arrow styling
+  arrows?: Arrow[]; // Controlled arrows state
+  onArrowsChange?: (arrows: Arrow[]) => void; // Callback when arrows change
   canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Filter draggable pieces
   onMove?: (move) => void; // Move event handler
   onIllegal?: (attempt) => void; // Illegal move handler

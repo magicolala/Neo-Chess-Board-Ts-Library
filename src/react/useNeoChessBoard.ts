@@ -250,6 +250,41 @@ export function useNeoChessBoard({
     [],
   );
 
+  const applyAllowDrawingArrows = useCallback(
+    (board: Chessboard, allow: BoardOptions['allowDrawingArrows']) => {
+      if (typeof allow === 'undefined') {
+        return;
+      }
+      board.setAllowDrawingArrows(allow);
+    },
+    [],
+  );
+
+  const applyClearArrowsOnClick = useCallback(
+    (board: Chessboard, clear: BoardOptions['clearArrowsOnClick']) => {
+      if (typeof clear === 'undefined') {
+        return;
+      }
+      board.setClearArrowsOnClick(clear);
+    },
+    [],
+  );
+  const applyArrowOptions = useCallback(
+    (board: Chessboard, options: BoardOptions['arrowOptions']) => {
+      board.setArrowOptions(options);
+    },
+    [],
+  );
+  const applyArrows = useCallback((board: Chessboard, arrows: BoardOptions['arrows']) => {
+    board.setArrows(arrows);
+  }, []);
+  const applyOnArrowsChange = useCallback(
+    (board: Chessboard, handler: BoardOptions['onArrowsChange']) => {
+      board.setOnArrowsChange(handler);
+    },
+    [],
+  );
+
   const applyCanDragPiece = useCallback(
     (board: Chessboard, evaluator: BoardOptions['canDragPiece']) => {
       board.setCanDragPiece(evaluator);
@@ -344,10 +379,18 @@ export function useNeoChessBoard({
     allowPremoves,
     highlightLegal,
     showSquareNames,
+    allowDrawingArrows,
+    clearArrowsOnClick,
+    arrowOptions,
+    arrows,
+    onArrowsChange,
   } = resolvedOptions;
 
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
   const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
+  const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
+  const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
+  const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
 
   useBoardOption(boardRef, isReady, theme, typeof theme !== 'undefined', applyTheme);
   useBoardOption(boardRef, isReady, pieceSet, hasPieceSet, applyPieceSet);
@@ -401,6 +444,20 @@ export function useNeoChessBoard({
     typeof allowAutoScroll !== 'undefined',
     applyAutoScroll,
   );
+  useBoardOption(
+    boardRef,
+    isReady,
+    allowDrawingArrows,
+    typeof allowDrawingArrows !== 'undefined',
+    applyAllowDrawingArrows,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    clearArrowsOnClick,
+    typeof clearArrowsOnClick !== 'undefined',
+    applyClearArrowsOnClick,
+  );
   const hasCanDragPiece = Object.prototype.hasOwnProperty.call(resolvedOptions, 'canDragPiece');
   useBoardOption(boardRef, isReady, canDragPiece, hasCanDragPiece, applyCanDragPiece);
   useBoardOption(
@@ -446,6 +503,9 @@ export function useNeoChessBoard({
     typeof showSquareNames !== 'undefined',
     applyShowSquareNames,
   );
+  useBoardOption(boardRef, isReady, arrowOptions, hasArrowOptions, applyArrowOptions);
+  useBoardOption(boardRef, isReady, arrows, hasArrows, applyArrows);
+  useBoardOption(boardRef, isReady, onArrowsChange, hasOnArrowsChange, applyOnArrowsChange);
 
   const getBoard = useCallback(() => boardRef.current, [boardRef]);
 

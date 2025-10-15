@@ -7,6 +7,7 @@ import type {
   Premove,
   Color,
   PromotionPiece,
+  ArrowStyleOptions,
 } from './types';
 import { FILES, RANKS } from './utils';
 
@@ -19,6 +20,13 @@ type DrawingStateInternal = Omit<DrawingState, 'arrows'> & { arrows: NormalizedA
 type DrawingAction =
   | { type: 'none' }
   | ({ type: 'drawing_arrow'; startSquare: Square } & ModifierState);
+
+interface DrawingManagerConfig {
+  allowDrawingArrows?: boolean;
+  arrowOptions?: ArrowStyleOptions;
+  clearArrowsOnClick?: boolean;
+  onArrowsChange?: (arrows: Arrow[]) => void;
+}
 
 const DEFAULT_ARROW_STYLE = {
   color: 'rgba(34, 197, 94, 0.6)',
@@ -79,14 +87,31 @@ export class DrawingManager {
   private squareSize = 60;
   private orientation: 'white' | 'black' = 'white';
   private showSquareNames = false;
+  private allowDrawingArrows = true;
+  private clearArrowsOnClick = false;
+  private arrowOptions: ArrowStyleOptions = {};
+  private arrowsChangeCallback?: (arrows: Arrow[]) => void;
+  private suppressArrowsChange = false;
 
   /**
    * Tracks the current user interaction state
    */
   private currentAction: DrawingAction = { type: 'none' };
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, config: DrawingManagerConfig = {}) {
     this.canvas = canvas;
+    if (config.arrowOptions) {
+      this.arrowOptions = { ...config.arrowOptions };
+    }
+    if (typeof config.allowDrawingArrows !== 'undefined') {
+      this.allowDrawingArrows = config.allowDrawingArrows;
+    }
+    if (typeof config.clearArrowsOnClick !== 'undefined') {
+      this.clearArrowsOnClick = config.clearArrowsOnClick;
+    }
+    if (config.onArrowsChange) {
+      this.arrowsChangeCallback = config.onArrowsChange;
+    }
     this.updateDimensions();
   }
 
@@ -104,13 +129,60 @@ export class DrawingManager {
     this.showSquareNames = show;
   }
 
+  public setAllowDrawingArrows(allow: boolean): void {
+    if (this.allowDrawingArrows === allow) {
+      return;
+    }
+    this.allowDrawingArrows = allow;
+    if (!allow) {
+      this.cancelCurrentAction();
+    }
+  }
+
+  public setClearArrowsOnClick(clear: boolean): void {
+    this.clearArrowsOnClick = clear;
+  }
+
+  public setArrowOptions(options?: ArrowStyleOptions): void {
+    this.arrowOptions = options ? { ...options } : {};
+  }
+
+  public setOnArrowsChange(callback?: (arrows: Arrow[]) => void): void {
+    this.arrowsChangeCallback = callback;
+  }
+
+  public setArrows(arrows: Arrow[]): void {
+    this.withSuppressedArrowsChange(() => {
+      this.state.arrows = arrows.map((arrow) => this.normalizeArrow(arrow));
+    });
+  }
+
+  private withSuppressedArrowsChange(callback: () => void): void {
+    const previousState = this.suppressArrowsChange;
+    this.suppressArrowsChange = true;
+    try {
+      callback();
+    } finally {
+      this.suppressArrowsChange = previousState;
+    }
+  }
+
+  private notifyArrowsChange(): void {
+    if (this.suppressArrowsChange) {
+      return;
+    }
+    if (this.arrowsChangeCallback) {
+      this.arrowsChangeCallback(this.getArrows());
+    }
+  }
+
   // Arrow management
   public addArrow(
     fromOrArrow: Square | ArrowInput,
     to?: Square,
-    color: string = DEFAULT_ARROW_STYLE.color,
-    width: number = DEFAULT_ARROW_STYLE.width,
-    opacity: number = DEFAULT_ARROW_STYLE.opacity,
+    color?: string,
+    width?: number,
+    opacity?: number,
   ): void {
     const arrow =
       typeof fromOrArrow === 'object'
@@ -130,16 +202,28 @@ export class DrawingManager {
         ...this.state.arrows[existingIndex],
         ...arrow,
       };
+      this.notifyArrowsChange();
       return;
     }
 
     this.state.arrows.push(arrow);
+    this.notifyArrowsChange();
   }
 
   private normalizeArrow(arrow: ArrowInput): NormalizedArrow {
-    const color = arrow.color ?? DEFAULT_ARROW_STYLE.color;
-    const width = arrow.width ?? DEFAULT_ARROW_STYLE.width;
-    const opacity = arrow.opacity ?? DEFAULT_ARROW_STYLE.opacity;
+    const color = arrow.color ?? this.arrowOptions.color ?? DEFAULT_ARROW_STYLE.color;
+    const width =
+      typeof arrow.width === 'number'
+        ? arrow.width
+        : typeof this.arrowOptions.width === 'number'
+          ? this.arrowOptions.width
+          : DEFAULT_ARROW_STYLE.width;
+    const opacity =
+      typeof arrow.opacity === 'number'
+        ? arrow.opacity
+        : typeof this.arrowOptions.opacity === 'number'
+          ? this.arrowOptions.opacity
+          : DEFAULT_ARROW_STYLE.opacity;
     const knightMove = arrow.knightMove ?? this.isKnightMove(arrow.from, arrow.to);
 
     return {
@@ -162,11 +246,16 @@ export class DrawingManager {
     const index = this.findArrowIndex(from, to);
     if (index >= 0) {
       this.state.arrows.splice(index, 1);
+      this.notifyArrowsChange();
     }
   }
 
   public clearArrows(): void {
+    if (this.state.arrows.length === 0) {
+      return;
+    }
     this.state.arrows = [];
+    this.notifyArrowsChange();
   }
 
   public getArrows(): Arrow[] {
@@ -630,7 +719,7 @@ export class DrawingManager {
   private resolveArrowColor(modifiers: ModifierState): string {
     const modifier = this.getActiveModifier(modifiers);
     if (!modifier) {
-      return ARROW_COLOR_BY_MODIFIER.default;
+      return this.arrowOptions.color ?? ARROW_COLOR_BY_MODIFIER.default;
     }
 
     return ARROW_COLOR_BY_MODIFIER[modifier];
@@ -739,20 +828,22 @@ export class DrawingManager {
   }
 
   public setDrawingState(state: Partial<DrawingState>): void {
-    if (state.arrows !== undefined) {
-      this.state.arrows = state.arrows.map((arrow) => this.normalizeArrow(arrow));
-    }
-    if (state.highlights !== undefined) {
-      this.state.highlights = state.highlights.map((highlight) => ({ ...highlight }));
-    }
-    if (state.premove !== undefined) {
-      this.state.premove = state.premove ? { ...state.premove } : undefined;
-    }
-    if (state.promotionPreview !== undefined) {
-      this.state.promotionPreview = state.promotionPreview
-        ? { ...state.promotionPreview }
-        : undefined;
-    }
+    this.withSuppressedArrowsChange(() => {
+      if (state.arrows !== undefined) {
+        this.state.arrows = state.arrows.map((arrow) => this.normalizeArrow(arrow));
+      }
+      if (state.highlights !== undefined) {
+        this.state.highlights = state.highlights.map((highlight) => ({ ...highlight }));
+      }
+      if (state.premove !== undefined) {
+        this.state.premove = state.premove ? { ...state.premove } : undefined;
+      }
+      if (state.promotionPreview !== undefined) {
+        this.state.promotionPreview = state.promotionPreview
+          ? { ...state.promotionPreview }
+          : undefined;
+      }
+    });
   }
 
   // Utilities for interactions
@@ -868,6 +959,15 @@ export class DrawingManager {
     return false;
   }
 
+  public handleLeftClick(): boolean {
+    if (!this.clearArrowsOnClick || this.state.arrows.length === 0) {
+      return false;
+    }
+
+    this.clearArrows();
+    return true;
+  }
+
   public handleRightMouseDown(
     x: number,
     y: number,
@@ -875,6 +975,10 @@ export class DrawingManager {
     ctrlKey: boolean = false,
     altKey: boolean = false,
   ): boolean {
+    if (!this.allowDrawingArrows) {
+      return false;
+    }
+
     const square = this.coordsToSquare(x, y);
 
     // Start drawing an arrow on right-click with modifiers
@@ -894,6 +998,11 @@ export class DrawingManager {
   }
 
   public handleRightMouseUp(x: number, y: number): boolean {
+    if (!this.allowDrawingArrows) {
+      this.cancelCurrentAction();
+      return false;
+    }
+
     if (this.currentAction.type !== 'drawing_arrow') {
       this.cancelCurrentAction();
       return false;
@@ -1055,9 +1164,13 @@ export class DrawingManager {
    * Clear all drawings (arrows, highlights, premoves)
    */
   public clearAllDrawings(): void {
+    const hadArrows = this.state.arrows.length > 0;
     this.state.arrows = [];
     this.state.highlights = [];
     this.state.premove = undefined;
     this.state.promotionPreview = undefined;
+    if (hadArrows) {
+      this.notifyArrowsChange();
+    }
   }
 }
