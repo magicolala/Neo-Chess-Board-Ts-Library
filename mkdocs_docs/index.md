@@ -158,8 +158,12 @@ The Theme Creator keeps saved palettes in `localStorage`, so you can revisit and
 ```tsx
 interface NeoChessProps {
   fen?: string; // Chess position in FEN notation
+  position?: string; // Alias for FEN when integrating with other APIs
   theme?: ThemeName | Theme; // Built-in theme name or custom object
   orientation?: 'white' | 'black'; // Board orientation
+  boardOrientation?: 'white' | 'black'; // Orientation alias
+  chessboardRows?: number; // Number of ranks to render
+  chessboardColumns?: number; // Number of files to render
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
   animationMs?: number; // Animation duration (legacy alias)

@@ -127,8 +127,12 @@ function handleRendererResult(
 }
 
 export interface NeoChessProps
-  extends Omit<BoardOptions, 'fen' | 'rulesAdapter' | 'squareRenderer' | 'pieces' | 'boardStyle'> {
+  extends Omit<
+    BoardOptions,
+    'fen' | 'position' | 'rulesAdapter' | 'squareRenderer' | 'pieces' | 'boardStyle'
+  > {
   fen?: string;
+  position?: string;
   className?: string;
   style?: CSSProperties;
   boardStyle?: CSSProperties | BoardOptions['boardStyle'];
@@ -164,6 +168,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
   (
     {
       fen,
+      position,
       className,
       style,
       boardStyle: boardStyleProp,
@@ -252,6 +257,9 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       if (typeof boardOrientation !== 'undefined') {
         typedOptions.orientation = boardOrientation;
       }
+      if (typeof position !== 'undefined') {
+        typedOptions.position = position;
+      }
       typedOptions.boardStyle = normalizedBoardStyle;
       typedOptions.squareRenderer = normalizedSquareRenderer;
       typedOptions.pieces = normalizedPieceRenderers;
@@ -261,20 +269,44 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       size,
       elementId,
       boardOrientation,
+      position,
       normalizedBoardStyle,
       normalizedSquareRenderer,
       normalizedPieceRenderers,
     ]);
 
     const computedStyle = useMemo<CSSProperties | undefined>(() => {
-      let merged: CSSProperties | undefined;
+      const columnCountRaw = options.chessboardColumns ?? restOptions.chessboardColumns;
+      const rowCountRaw = options.chessboardRows ?? restOptions.chessboardRows;
+      const columnCount = Math.max(
+        1,
+        Math.floor(
+          typeof columnCountRaw === 'number' && Number.isFinite(columnCountRaw)
+            ? columnCountRaw
+            : typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw)
+              ? rowCountRaw
+              : 8,
+        ),
+      );
+      const rowCount = Math.max(
+        1,
+        Math.floor(
+          typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw)
+            ? rowCountRaw
+            : columnCount,
+        ),
+      );
+      const aspectRatioValue = `${columnCount} / ${rowCount}`;
+
+      let merged: CSSProperties | undefined = { aspectRatio: aspectRatioValue };
       if (typeof size === 'number' && !Number.isNaN(size) && size > 0) {
         const roundedSize = Math.round(size);
+        const heightLimit = Math.round((roundedSize * rowCount) / columnCount);
         merged = {
           width: '100%',
           maxWidth: `${roundedSize}px`,
-          maxHeight: `${roundedSize}px`,
-          aspectRatio: '1 / 1',
+          maxHeight: `${heightLimit}px`,
+          aspectRatio: aspectRatioValue,
         };
       }
       if (style) {
@@ -284,10 +316,21 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         merged = merged ? { ...merged, ...boardCssStyle } : { ...boardCssStyle };
       }
       return merged;
-    }, [size, style, boardCssStyle]);
+    }, [
+      size,
+      style,
+      boardCssStyle,
+      options.chessboardColumns,
+      options.chessboardRows,
+      restOptions.chessboardColumns,
+      restOptions.chessboardRows,
+    ]);
+
+    const resolvedFen = fen ?? position;
 
     const { containerRef, isReady, api } = useNeoChessBoard({
-      fen,
+      fen: resolvedFen,
+      position,
       options,
       onMove,
       onIllegal,

@@ -10,7 +10,7 @@ import type {
   ArrowStyleOptions,
   NotationStyleOptions,
 } from './types';
-import { FILES, RANKS } from './utils';
+import { FILES, RANKS, clamp, generateFileLabels, generateRankLabels, sq, sqToFR } from './utils';
 
 type ModifierKey = 'shiftKey' | 'ctrlKey' | 'altKey';
 type ModifierState = Partial<Record<ModifierKey, boolean>>;
@@ -31,6 +31,10 @@ interface DrawingManagerConfig {
   darkSquareNotationStyle?: NotationStyleOptions;
   alphaNotationStyle?: NotationStyleOptions;
   numericNotationStyle?: NotationStyleOptions;
+  boardFiles?: number;
+  boardRanks?: number;
+  fileLabels?: string[];
+  rankLabels?: string[];
 }
 
 interface NotationStyles {
@@ -38,6 +42,13 @@ interface NotationStyles {
   dark?: NotationStyleOptions | null;
   alpha?: NotationStyleOptions | null;
   numeric?: NotationStyleOptions | null;
+}
+
+interface BoardGeometryConfig {
+  files: number;
+  ranks: number;
+  fileLabels: string[];
+  rankLabels: string[];
 }
 
 const DEFAULT_ARROW_STYLE = {
@@ -108,6 +119,10 @@ export class DrawingManager {
   private darkNotationStyle?: NotationStyleOptions;
   private alphaNotationStyle?: NotationStyleOptions;
   private numericNotationStyle?: NotationStyleOptions;
+  private filesCount = 8;
+  private ranksCount = 8;
+  private fileLabels = generateFileLabels(8);
+  private rankLabels = generateRankLabels(8);
 
   /**
    * Tracks the current user interaction state
@@ -134,7 +149,35 @@ export class DrawingManager {
       alpha: config.alphaNotationStyle ?? undefined,
       numeric: config.numericNotationStyle ?? undefined,
     });
-    this.updateDimensions();
+    this.updateDimensions({
+      files: config.boardFiles ?? this.filesCount,
+      ranks: config.boardRanks ?? this.ranksCount,
+      fileLabels: config.fileLabels ?? this.fileLabels,
+      rankLabels: config.rankLabels ?? this.rankLabels,
+    });
+  }
+
+  private setBoardGeometry({ files, ranks, fileLabels, rankLabels }: BoardGeometryConfig): void {
+    const sanitizedFiles = Math.max(1, Math.floor(files));
+    const sanitizedRanks = Math.max(1, Math.floor(ranks));
+    this.filesCount = sanitizedFiles;
+    this.ranksCount = sanitizedRanks;
+    this.fileLabels =
+      fileLabels.length >= sanitizedFiles
+        ? fileLabels.slice(0, sanitizedFiles)
+        : generateFileLabels(sanitizedFiles);
+    this.rankLabels =
+      rankLabels.length >= sanitizedRanks
+        ? rankLabels.slice(0, sanitizedRanks)
+        : generateRankLabels(sanitizedRanks);
+  }
+
+  private squareFromIndices(file: number, rank: number): Square {
+    return sq(file, rank, this.fileLabels, this.rankLabels);
+  }
+
+  private indicesFromSquare(square: Square): { f: number; r: number } {
+    return sqToFR(square, this.fileLabels, this.rankLabels);
   }
 
   public setNotationStyles(styles: NotationStyles): void {
@@ -152,10 +195,16 @@ export class DrawingManager {
     }
   }
 
-  public updateDimensions(): void {
-    // Use the real canvas size in pixels, not the DOM size
-    const boardSize = Math.min(this.canvas.width, this.canvas.height);
-    this.squareSize = boardSize / 8;
+  public updateDimensions(geometry?: BoardGeometryConfig): void {
+    if (geometry) {
+      this.setBoardGeometry(geometry);
+    }
+    if (!this.filesCount || !this.ranksCount) {
+      return;
+    }
+    const squareWidth = this.canvas.width / this.filesCount;
+    const squareHeight = this.canvas.height / this.ranksCount;
+    this.squareSize = Math.min(squareWidth, squareHeight);
   }
 
   public setOrientation(orientation: 'white' | 'black'): void {
@@ -352,17 +401,11 @@ export class DrawingManager {
    * @returns An object with x and y coordinates
    */
   private getSquareCoordinates(square: string): { x: number; y: number } {
-    const file = square[0].toLowerCase();
-    const rank = parseInt(square[1], 10);
-
-    let fileIndex = file.charCodeAt(0) - 'a'.charCodeAt(0);
-    let rankIndex = 8 - rank;
-
-    // Adjust for board orientation
-    if (this.orientation === 'black') {
-      fileIndex = 7 - fileIndex;
-      rankIndex = 7 - rankIndex;
-    }
+    const { f, r } = this.indicesFromSquare(square as Square);
+    const maxFile = this.filesCount - 1;
+    const maxRank = this.ranksCount - 1;
+    const fileIndex = this.orientation === 'white' ? f : maxFile - f;
+    const rankIndex = this.orientation === 'white' ? maxRank - r : r;
 
     return {
       x: fileIndex * this.squareSize,
@@ -416,43 +459,26 @@ export class DrawingManager {
 
   // Coordinate utilities
   public squareToCoords(square: Square): [number, number] {
-    const file = square.charCodeAt(0) - 97; // 'a' = 0, 'b' = 1, etc.
-    const rank = parseInt(square[1]) - 1; // '1' = 0, '2' = 1, etc.
-
-    if (this.orientation === 'white') {
-      return [file * this.squareSize, (7 - rank) * this.squareSize];
-    } else {
-      return [(7 - file) * this.squareSize, rank * this.squareSize];
-    }
+    const { x, y } = this.getSquareCoordinates(square);
+    return [x, y];
   }
 
   public coordsToSquare(x: number, y: number): Square {
-    const file = Math.floor(x / this.squareSize);
-    const rank = Math.floor(y / this.squareSize);
+    const maxFile = this.filesCount - 1;
+    const maxRank = this.ranksCount - 1;
+    const file = clamp(Math.floor(x / this.squareSize), 0, maxFile);
+    const rank = clamp(Math.floor(y / this.squareSize), 0, maxRank);
 
-    let actualFile: number;
-    let actualRank: number;
+    const boardFile = this.orientation === 'white' ? file : maxFile - file;
+    const boardRank = this.orientation === 'white' ? maxRank - rank : rank;
 
-    if (this.orientation === 'white') {
-      actualFile = file;
-      actualRank = 7 - rank;
-    } else {
-      actualFile = 7 - file;
-      actualRank = rank;
-    }
-
-    const fileChar = String.fromCharCode(97 + actualFile); // 0 = 'a', 1 = 'b', etc.
-    const rankChar = (actualRank + 1).toString();
-
-    return `${fileChar}${rankChar}` as Square;
+    return this.squareFromIndices(boardFile, boardRank);
   }
 
   // Knight move detection
   private isKnightMove(from: Square, to: Square): boolean {
-    const fromFile = from.charCodeAt(0) - 97; // 'a' = 0, 'b' = 1, etc.
-    const fromRank = parseInt(from[1]) - 1; // '1' = 0, '2' = 1, etc.
-    const toFile = to.charCodeAt(0) - 97;
-    const toRank = parseInt(to[1]) - 1;
+    const { f: fromFile, r: fromRank } = this.indicesFromSquare(from);
+    const { f: toFile, r: toRank } = this.indicesFromSquare(to);
 
     const dx = Math.abs(toFile - fromFile);
     const dy = Math.abs(toRank - fromRank);
@@ -472,15 +498,20 @@ export class DrawingManager {
     const squareSize = this.squareSize / dpr;
     const boardHeight = this.canvas.height / dpr;
 
-    const bottomRankIndex = orientation === 'white' ? 0 : 7;
-    const leftFileIndex = orientation === 'white' ? 0 : 7;
+    const bottomRankIndex = orientation === 'white' ? 0 : this.ranksCount - 1;
+    const leftFileIndex = orientation === 'white' ? 0 : this.filesCount - 1;
 
     // Draw file letters along the bottom edge
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    for (let column = 0; column < 8; column++) {
-      const boardFileIndex = orientation === 'white' ? column : 7 - column;
-      const char = String.fromCharCode(97 + boardFileIndex);
+    for (let column = 0; column < this.filesCount; column++) {
+      const boardFileIndex = orientation === 'white' ? column : this.filesCount - 1 - column;
+      const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
+      const char =
+        this.fileLabels[boardFileIndex] ??
+        FILES[boardFileIndex] ??
+        fallbackFileLabels[fallbackFileLabels.length - 1] ??
+        '';
       const isLightSquare = (boardFileIndex + bottomRankIndex) % 2 === 0;
       const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
         squareSize,
@@ -499,9 +530,14 @@ export class DrawingManager {
 
     // Draw rank numbers along the left edge
     ctx.textBaseline = 'middle';
-    for (let row = 0; row < 8; row++) {
-      const boardRankIndex = orientation === 'white' ? row : 7 - row;
-      const label = (boardRankIndex + 1).toString();
+    for (let row = 0; row < this.ranksCount; row++) {
+      const boardRankIndex = orientation === 'white' ? row : this.ranksCount - 1 - row;
+      const fallbackRankLabels = generateRankLabels(boardRankIndex + 1);
+      const label =
+        this.rankLabels[boardRankIndex] ??
+        RANKS[boardRankIndex] ??
+        fallbackRankLabels[fallbackRankLabels.length - 1] ??
+        String(boardRankIndex + 1);
       const isLightSquare = (leftFileIndex + boardRankIndex) % 2 === 0;
       const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
         squareSize,
@@ -1194,15 +1230,21 @@ export class DrawingManager {
     ctx.font = `${Math.floor(this.squareSize * 0.18)}px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto`;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
 
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
         const square = this.coordsToSquare(f * this.squareSize, r * this.squareSize);
         const [x, y] = this.squareToCoords(square);
 
         // Draw file names (a, b, c...)
-        if (r === (this.orientation === 'white' ? 7 : 0)) {
+        if (r === (this.orientation === 'white' ? this.ranksCount - 1 : 0)) {
           // Bottom rank for white, top rank for black
-          const file = this.orientation === 'white' ? FILES[f] : FILES[7 - f];
+          const boardFileIndex = this.orientation === 'white' ? f : this.filesCount - 1 - f;
+          const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
+          const file =
+            this.fileLabels[boardFileIndex] ??
+            FILES[boardFileIndex] ??
+            fallbackFileLabels[fallbackFileLabels.length - 1] ??
+            '';
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
           ctx.textBaseline = 'bottom';
           ctx.fillText(
@@ -1216,9 +1258,15 @@ export class DrawingManager {
         }
 
         // Draw rank names (1, 2, 3...)
-        if (f === (this.orientation === 'white' ? 0 : 7)) {
+        if (f === (this.orientation === 'white' ? 0 : this.filesCount - 1)) {
           // Left file for white, right file for black
-          const rank = RANKS[7 - r];
+          const boardRankIndex = this.orientation === 'white' ? this.ranksCount - 1 - r : r;
+          const fallbackRankLabels = generateRankLabels(boardRankIndex + 1);
+          const rank =
+            this.rankLabels[boardRankIndex] ??
+            RANKS[boardRankIndex] ??
+            fallbackRankLabels[fallbackRankLabels.length - 1] ??
+            String(boardRankIndex + 1);
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
           ctx.textBaseline = this.orientation === 'white' ? 'top' : 'bottom';
           ctx.fillText(

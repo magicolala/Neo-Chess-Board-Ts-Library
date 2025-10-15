@@ -94,6 +94,16 @@ describe('NeoChessBoard React Component', () => {
       expect(element.style.width).toBe('400px');
       expect(element.style.height).toBe('400px');
     });
+
+    it('applies aspect ratio for non-square boards', () => {
+      const { container } = render(
+        <NeoChessBoard chessboardColumns={10} chessboardRows={8} size={400} />,
+      );
+
+      const element = container.firstChild as HTMLElement;
+      expect(element.style.aspectRatio).toBe('10 / 8');
+      expect(element.style.maxHeight).toBe('320px');
+    });
   });
 
   describe('Board initialization', () => {
@@ -137,6 +147,21 @@ describe('NeoChessBoard React Component', () => {
       unmount();
 
       expect(mockBoard.destroy).toHaveBeenCalled();
+    });
+
+    it('maps position alias to fen and position options', () => {
+      const { NeoChessBoard: MockedBoard } = require('../../src/core/NeoChessBoard');
+
+      const fenString = '8/8/8/8/8/8/8/8 w - - 0 1';
+      render(<NeoChessBoard position={fenString} />);
+
+      expect(MockedBoard).toHaveBeenCalledWith(
+        expect.any(HTMLDivElement),
+        expect.objectContaining({
+          position: fenString,
+          fen: fenString,
+        }),
+      );
     });
   });
 
@@ -356,6 +381,21 @@ describe('NeoChessBoard React Component', () => {
       rerender(<NeoChessBoard fen={testFEN} />);
 
       expect(mockBoard.setFEN).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('Position alias updates', () => {
+    it('updates the board when the position prop changes', async () => {
+      const initialFen = '8/8/8/8/8/8/8/8 w - - 0 1';
+      const nextFen = 'k7/8/8/8/8/8/8/K7 w - - 0 1';
+
+      const { rerender } = render(<NeoChessBoard position={initialFen} />);
+
+      rerender(<NeoChessBoard position={nextFen} />);
+
+      await waitFor(() => {
+        expect(mockBoard.setFEN).toHaveBeenCalledWith(nextFen);
+      });
     });
   });
 

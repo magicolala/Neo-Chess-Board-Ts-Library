@@ -3,8 +3,7 @@ import type { NeoChessBoard } from './NeoChessBoard';
 import type { EventBus } from './EventBus';
 import type { PgnNotation } from './PgnNotation';
 
-export type Square =
-  `${'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'}${'1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}`;
+export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';
 export type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
 
@@ -248,6 +247,8 @@ export interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
   boardOrientation?: 'white' | 'black';
+  chessboardRows?: number;
+  chessboardColumns?: number;
   interactive?: boolean;
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
@@ -257,6 +258,7 @@ export interface BoardOptions {
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
+  position?: string;
   rulesAdapter?: RulesAdapter;
   // Nouvelles options
   allowAutoScroll?: boolean;

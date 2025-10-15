@@ -8,6 +8,7 @@ export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
 
 export interface UseNeoChessBoardOptions {
   fen?: string;
+  position?: string;
   options?: UpdatableBoardOptions;
   onMove?: (event: BoardEventMap['move']) => void;
   onIllegal?: (event: BoardEventMap['illegal']) => void;
@@ -63,6 +64,7 @@ function useBoardOption<T>(
 
 export function useNeoChessBoard({
   fen,
+  position,
   options,
   onMove,
   onIllegal,
@@ -83,6 +85,7 @@ export function useNeoChessBoard({
   const [isReady, setIsReady] = useState(false);
 
   const fenRef = useLatestRef(fen);
+  const positionRef = useLatestRef(position);
   const optionsRef = useLatestRef(resolvedOptions);
   const handlersRef = useLatestRef({
     onMove,
@@ -105,9 +108,11 @@ export function useNeoChessBoard({
       return;
     }
 
+    const initialFen = fenRef.current ?? positionRef.current ?? optionsRef.current.position;
     const board = new Chessboard(element, {
       ...optionsRef.current,
-      fen: fenRef.current,
+      fen: initialFen,
+      position: positionRef.current ?? optionsRef.current.position,
     });
     boardRef.current = board;
     setIsReady(true);
@@ -117,7 +122,7 @@ export function useNeoChessBoard({
       boardRef.current = null;
       setIsReady(false);
     };
-  }, [containerRef, optionsRef, fenRef]);
+  }, [containerRef, optionsRef, fenRef, positionRef]);
 
   useEffect(() => {
     if (!isReady) {
@@ -152,7 +157,9 @@ export function useNeoChessBoard({
   }, [handlersRef, isReady]);
 
   useEffect(() => {
-    if (!isReady || typeof fen === 'undefined') {
+    const resolvedFen = typeof fen !== 'undefined' ? fen : position;
+
+    if (!isReady || typeof resolvedFen === 'undefined') {
       return;
     }
 
@@ -161,10 +168,10 @@ export function useNeoChessBoard({
       return;
     }
 
-    if (board.getPosition() !== fen) {
-      board.setFEN(fen);
+    if (board.getPosition() !== resolvedFen) {
+      board.setFEN(resolvedFen);
     }
-  }, [fen, isReady]);
+  }, [fen, position, isReady]);
 
   const applyTheme = useCallback((board: Chessboard, nextTheme: BoardOptions['theme']) => {
     if (!nextTheme) {
