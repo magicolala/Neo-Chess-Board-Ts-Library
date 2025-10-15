@@ -67,11 +67,52 @@ export interface DrawingState {
   };
 }
 
+export interface SquarePointerEventPayload {
+  square: Square;
+  piece: string | null;
+  event: PointerEvent;
+}
+
+export interface SquareTransitionEventPayload extends SquarePointerEventPayload {
+  relatedSquare: Square | null;
+}
+
+export interface PiecePointerEventPayload {
+  square: Square;
+  piece: string;
+  event: PointerEvent;
+}
+
+export interface PieceDragEventPayload {
+  from: Square;
+  piece: string;
+  over: Square | null;
+  position: { x: number; y: number } | null;
+  event: PointerEvent;
+}
+
+export interface PieceDropEventPayload {
+  from: Square;
+  piece: string;
+  drop: Square | null;
+  position: { x: number; y: number } | null;
+  event: PointerEvent;
+}
+
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
   promotion: PromotionRequest;
+  squareClick: SquarePointerEventPayload;
+  squareMouseDown: SquarePointerEventPayload;
+  squareMouseUp: SquarePointerEventPayload;
+  squareRightClick: SquarePointerEventPayload;
+  squareMouseOver: SquareTransitionEventPayload;
+  squareMouseOut: SquareTransitionEventPayload;
+  pieceClick: PiecePointerEventPayload;
+  pieceDrag: PieceDragEventPayload;
+  pieceDrop: PieceDropEventPayload;
   [event: string]: unknown;
 }
 

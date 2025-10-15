@@ -85,6 +85,13 @@ interface ResolvedPieceSprite {
   offsetY: number;
 }
 
+type SquarePointerEventName =
+  | 'squareClick'
+  | 'squareMouseDown'
+  | 'squareMouseUp'
+  | 'squareRightClick';
+type SquareTransitionEventName = 'squareMouseOver' | 'squareMouseOut';
+
 interface ExtensionState {
   id: string;
   config: ExtensionConfig<unknown>;
@@ -180,6 +187,7 @@ export class NeoChessBoard {
   private _legalCached: Move[] | null = null;
   private _dragging: DraggingState | null = null;
   private _hoverSq: Square | null = null;
+  private _pointerSquare: Square | null = null;
   private _pendingDrag: {
     from: Square;
     piece: string;
@@ -1331,13 +1339,96 @@ export class NeoChessBoard {
     this._localPointerEventsAttached = false;
   }
 
+  private _emitSquarePointerEvent<K extends SquarePointerEventName>(
+    type: K,
+    square: Square,
+    event: PointerEvent,
+  ): void {
+    const piece = this._pieceAt(square) ?? null;
+    const payload: BoardEventMap[K] = { square, piece, event } as BoardEventMap[K];
+    this.bus.emit(type, payload);
+  }
+
+  private _emitSquareTransitionEvent<K extends SquareTransitionEventName>(
+    type: K,
+    square: Square,
+    relatedSquare: Square | null,
+    event: PointerEvent,
+  ): void {
+    const piece = this._pieceAt(square) ?? null;
+    const payload: BoardEventMap[K] = {
+      square,
+      piece,
+      relatedSquare,
+      event,
+    } as BoardEventMap[K];
+    this.bus.emit(type, payload);
+  }
+
+  private _updatePointerSquare(square: Square | null, event: PointerEvent): void {
+    if (square === this._pointerSquare) {
+      return;
+    }
+
+    const previous = this._pointerSquare;
+    if (previous) {
+      this._emitSquareTransitionEvent('squareMouseOut', previous, square, event);
+    }
+
+    this._pointerSquare = square;
+
+    if (square) {
+      this._emitSquareTransitionEvent('squareMouseOver', square, previous, event);
+    }
+  }
+
+  private _emitPieceDragEvent(
+    event: PointerEvent,
+    from: Square,
+    piece: string,
+    over: Square | null,
+    pt: Point | null,
+  ): void {
+    this.bus.emit('pieceDrag', {
+      from,
+      piece,
+      over,
+      position: pt ? { x: pt.x, y: pt.y } : null,
+      event,
+    });
+  }
+
+  private _emitPieceDropEvent(
+    event: PointerEvent,
+    from: Square,
+    piece: string,
+    drop: Square | null,
+    pt: Point | null,
+  ): void {
+    this.bus.emit('pieceDrop', {
+      from,
+      piece,
+      drop,
+      position: pt ? { x: pt.x, y: pt.y } : null,
+      event,
+    });
+  }
+
   private _handleLeftMouseDown(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
-    if (!pt) return;
+    if (!pt) {
+      this._updatePointerSquare(null, e);
+      return;
+    }
 
     const from = this._xyToSquare(pt.x, pt.y);
+    this._updatePointerSquare(from, e);
+    this._emitSquarePointerEvent('squareMouseDown', from, e);
+
     const piece = this._pieceAt(from);
-    if (!piece) return;
+    if (!piece) {
+      return;
+    }
 
     const side = isWhitePiece(piece) ? 'w' : 'b';
     if (side !== this.state.turn && !this.allowPremoves) {
@@ -1372,12 +1463,20 @@ export class NeoChessBoard {
     };
 
     if (this.dragActivationDistance <= 0) {
-      this._activatePendingDrag(pt);
+      this._activatePendingDrag(pt, e);
     }
   }
 
   private _handleLeftMouseUp(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
+
+    const square = pt ? this._xyToSquare(pt.x, pt.y) : null;
+    if (square) {
+      this._updatePointerSquare(square, e);
+      this._emitSquarePointerEvent('squareMouseUp', square, e);
+    } else {
+      this._updatePointerSquare(null, e);
+    }
 
     if (this.drawingManager?.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
       this.renderAll();
@@ -1386,9 +1485,15 @@ export class NeoChessBoard {
     }
 
     if (!this._dragging) {
-      if (this.interactive && e.button === 0 && pt) {
-        const square = this._xyToSquare(pt.x, pt.y);
-        this._handleClickMove(square);
+      if (square && e.button === 0) {
+        this._emitSquarePointerEvent('squareClick', square, e);
+        const clickedPiece = this._pieceAt(square);
+        if (clickedPiece) {
+          this.bus.emit('pieceClick', { square, piece: clickedPiece, event: e });
+        }
+        if (this.interactive) {
+          this._handleClickMove(square);
+        }
       }
       this._pendingDrag = null;
       return;
@@ -1400,12 +1505,19 @@ export class NeoChessBoard {
         ? { x: this._dragging.x, y: this._dragging.y }
         : null);
 
-    this._handleDragEnd(dropPoint);
+    this._handleDragEnd(e, dropPoint);
     this._pendingDrag = null;
   }
 
   private _handleRightMouseDown(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
+    if (pt) {
+      const square = this._xyToSquare(pt.x, pt.y);
+      this._updatePointerSquare(square, e);
+      this._emitSquarePointerEvent('squareRightClick', square, e);
+    } else {
+      this._updatePointerSquare(null, e);
+    }
     if (
       pt &&
       this.drawingManager?.handleRightMouseDown(pt.x, pt.y, e.shiftKey, e.ctrlKey, e.altKey)
@@ -1438,6 +1550,11 @@ export class NeoChessBoard {
   }
 
   private _handleMouseMove(e: PointerEvent, pt: Point | null): void {
+    const square = pt ? this._xyToSquare(pt.x, pt.y) : null;
+    if (square || this._pointerSquare) {
+      this._updatePointerSquare(square, e);
+    }
+
     if (this._pendingDrag && this.allowDragging) {
       const distance = Math.hypot(
         e.clientX - this._pendingDrag.startClientX,
@@ -1449,7 +1566,7 @@ export class NeoChessBoard {
           x: this._pendingDrag.startX,
           y: this._pendingDrag.startY,
         };
-        this._activatePendingDrag(activationPoint);
+        this._activatePendingDrag(activationPoint, e);
       }
     }
 
@@ -1460,22 +1577,23 @@ export class NeoChessBoard {
     if (this._dragging && pt) {
       this._dragging.x = pt.x;
       this._dragging.y = pt.y;
-      this._hoverSq = this._xyToSquare(pt.x, pt.y);
+      this._hoverSq = square;
       this._autoScrollDuringDrag(e);
       this._drawPieces();
       this._drawOverlay();
+      this._emitPieceDragEvent(e, this._dragging.from, this._dragging.piece, square, pt);
     } else if (this._dragging && !pt) {
       this._autoScrollDuringDrag(e);
+      this._emitPieceDragEvent(e, this._dragging.from, this._dragging.piece, null, null);
     } else if (pt && this.interactive) {
-      const sq = this._xyToSquare(pt.x, pt.y);
-      const piece = this._pieceAt(sq);
+      const piece = square ? this._pieceAt(square) : null;
       this._updateCursor(piece ? 'pointer' : 'default');
     } else if (!pt) {
       this._updateCursor('default');
     }
   }
 
-  private _activatePendingDrag(pt: Point): void {
+  private _activatePendingDrag(pt: Point, event: PointerEvent): void {
     if (!this._pendingDrag) {
       return;
     }
@@ -1491,6 +1609,7 @@ export class NeoChessBoard {
 
     this._drawPieces();
     this._drawOverlay();
+    this._emitPieceDragEvent(event, from, piece, this._hoverSq, pt);
   }
 
   private _ensureScrollContainer(): void {
@@ -1577,9 +1696,15 @@ export class NeoChessBoard {
     this.renderAll();
   }
 
-  private _handleDragEnd(pt: Point | null): void {
+  private _handleDragEnd(e: PointerEvent, pt: Point | null): void {
+    if (!this._dragging) {
+      return;
+    }
+
+    const dragging = this._dragging;
     const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
-    const from = this._dragging!.from;
+
+    this._emitPieceDropEvent(e, dragging.from, dragging.piece, drop, pt);
 
     this._dragging = null;
     this._hoverSq = null;
@@ -1591,12 +1716,12 @@ export class NeoChessBoard {
       return;
     }
 
-    if (drop === from) {
+    if (drop === dragging.from) {
       this.renderAll();
       return;
     }
 
-    this.attemptMove(from, drop);
+    this.attemptMove(dragging.from, drop);
   }
 
   private _getPointerPosition(e: PointerEvent): Point | null {

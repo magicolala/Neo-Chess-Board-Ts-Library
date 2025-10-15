@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
-import type { NeoChessRef } from '../../src/react/NeoChessBoard';
+import type { NeoChessProps, NeoChessRef } from '../../src/react/NeoChessBoard';
 import type { Theme, BoardEventMap } from '../../src/core/types';
 
 // Mock the core NeoChessBoard class
@@ -38,6 +38,11 @@ const mockBoard = {
   clearHighlights: jest.fn(),
 };
 
+const createPointerEvent = () =>
+  typeof globalThis.PointerEvent === 'function'
+    ? new globalThis.PointerEvent('pointerdown')
+    : ({ type: 'pointerdown' } as unknown as PointerEvent);
+
 jest.mock('../../src/core/NeoChessBoard', () => ({
   NeoChessBoard: jest.fn().mockImplementation(() => mockBoard),
 }));
@@ -46,6 +51,7 @@ describe('NeoChessBoard React Component', () => {
   afterEach(() => {
     cleanup();
     jest.clearAllMocks();
+    mockBoard.on.mockImplementation(() => jest.fn());
     currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Reset FEN after each test
   });
 
@@ -139,6 +145,25 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.on).toHaveBeenCalledWith('update', expect.any(Function));
     });
 
+    it.each([
+      ['squareClick', 'onSquareClick'],
+      ['squareMouseDown', 'onSquareMouseDown'],
+      ['squareMouseUp', 'onSquareMouseUp'],
+      ['squareRightClick', 'onSquareRightClick'],
+      ['squareMouseOver', 'onSquareMouseOver'],
+      ['squareMouseOut', 'onSquareMouseOut'],
+      ['pieceClick', 'onPieceClick'],
+      ['pieceDrag', 'onPieceDrag'],
+      ['pieceDrop', 'onPieceDrop'],
+    ])('should register %s event handler', (eventName, propName) => {
+      const handler = jest.fn();
+      const props = { [propName]: handler } as unknown as NeoChessProps;
+
+      render(<NeoChessBoard {...props} />);
+
+      expect(mockBoard.on).toHaveBeenCalledWith(eventName, expect.any(Function));
+    });
+
     it('should call move handler when board emits move event', () => {
       const onMove = jest.fn();
       let moveCallback: ((payload: BoardEventMap['move']) => void) | undefined;
@@ -162,13 +187,121 @@ describe('NeoChessBoard React Component', () => {
       const unsubscribe = jest.fn();
       mockBoard.on.mockReturnValue(unsubscribe);
 
-      const { unmount } = render(
-        <NeoChessBoard onMove={jest.fn()} onIllegal={jest.fn()} onUpdate={jest.fn()} />,
-      );
+      const { unmount } = render(<NeoChessBoard />);
 
       unmount();
 
-      expect(unsubscribe).toHaveBeenCalledTimes(3); // One for each event
+      expect(unsubscribe).toHaveBeenCalledTimes(12); // All registered events
+    });
+
+    it.each([
+      [
+        'squareClick',
+        'onSquareClick',
+        (): BoardEventMap['squareClick'] => ({
+          square: 'e4',
+          piece: 'P',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'squareMouseDown',
+        'onSquareMouseDown',
+        (): BoardEventMap['squareMouseDown'] => ({
+          square: 'e2',
+          piece: null,
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'squareMouseUp',
+        'onSquareMouseUp',
+        (): BoardEventMap['squareMouseUp'] => ({
+          square: 'd4',
+          piece: 'n',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'squareRightClick',
+        'onSquareRightClick',
+        (): BoardEventMap['squareRightClick'] => ({
+          square: 'h7',
+          piece: 'p',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'squareMouseOver',
+        'onSquareMouseOver',
+        (): BoardEventMap['squareMouseOver'] => ({
+          square: 'c3',
+          piece: null,
+          relatedSquare: 'c2',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'squareMouseOut',
+        'onSquareMouseOut',
+        (): BoardEventMap['squareMouseOut'] => ({
+          square: 'b5',
+          piece: 'q',
+          relatedSquare: 'b6',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'pieceClick',
+        'onPieceClick',
+        (): BoardEventMap['pieceClick'] => ({
+          square: 'a1',
+          piece: 'R',
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'pieceDrag',
+        'onPieceDrag',
+        (): BoardEventMap['pieceDrag'] => ({
+          from: 'g1',
+          piece: 'N',
+          over: 'e2',
+          position: { x: 42, y: 84 },
+          event: createPointerEvent(),
+        }),
+      ],
+      [
+        'pieceDrop',
+        'onPieceDrop',
+        (): BoardEventMap['pieceDrop'] => ({
+          from: 'g1',
+          piece: 'N',
+          drop: 'e2',
+          position: { x: 42, y: 84 },
+          event: createPointerEvent(),
+        }),
+      ],
+    ])('should forward %s payloads to provided handler', (eventName, propName, payloadFactory) => {
+      const handler = jest.fn();
+      let captured: ((payload: unknown) => void) | undefined;
+
+      (mockBoard.on as jest.Mock).mockImplementation((type: string, callback: Function) => {
+        if (type === eventName) {
+          captured = callback as (payload: unknown) => void;
+        }
+        return jest.fn();
+      });
+
+      const props = { [propName]: handler } as unknown as NeoChessProps;
+      render(<NeoChessBoard {...props} />);
+
+      expect(mockBoard.on).toHaveBeenCalledWith(eventName, expect.any(Function));
+
+      const payload = payloadFactory();
+      captured?.(payload);
+
+      expect(handler).toHaveBeenCalledWith(payload);
     });
   });
 

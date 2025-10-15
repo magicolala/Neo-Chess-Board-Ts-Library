@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
-import type { BoardOptions, Square } from '../core/types';
+import type { BoardEventMap, BoardOptions, Square } from '../core/types';
 import { useNeoChessBoard } from './useNeoChessBoard';
 import type { UpdatableBoardOptions } from './useNeoChessBoard';
 
@@ -9,9 +9,18 @@ export interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'
   fen?: string;
   className?: string;
   style?: CSSProperties;
-  onMove?: (e: { from: Square; to: Square; fen: string }) => void;
-  onIllegal?: (e: { from: Square; to: Square; reason: string }) => void;
-  onUpdate?: (e: { fen: string }) => void;
+  onMove?: (e: BoardEventMap['move']) => void;
+  onIllegal?: (e: BoardEventMap['illegal']) => void;
+  onUpdate?: (e: BoardEventMap['update']) => void;
+  onSquareClick?: (e: BoardEventMap['squareClick']) => void;
+  onSquareMouseDown?: (e: BoardEventMap['squareMouseDown']) => void;
+  onSquareMouseUp?: (e: BoardEventMap['squareMouseUp']) => void;
+  onSquareRightClick?: (e: BoardEventMap['squareRightClick']) => void;
+  onSquareMouseOver?: (e: BoardEventMap['squareMouseOver']) => void;
+  onSquareMouseOut?: (e: BoardEventMap['squareMouseOut']) => void;
+  onPieceClick?: (e: BoardEventMap['pieceClick']) => void;
+  onPieceDrag?: (e: BoardEventMap['pieceDrag']) => void;
+  onPieceDrop?: (e: BoardEventMap['pieceDrop']) => void;
 }
 
 export interface NeoChessRef {
@@ -26,7 +35,28 @@ export interface NeoChessRef {
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
-  ({ fen, className, style, onMove, onIllegal, onUpdate, size, ...restOptions }, ref) => {
+  (
+    {
+      fen,
+      className,
+      style,
+      onMove,
+      onIllegal,
+      onUpdate,
+      onSquareClick,
+      onSquareMouseDown,
+      onSquareMouseUp,
+      onSquareRightClick,
+      onSquareMouseOver,
+      onSquareMouseOut,
+      onPieceClick,
+      onPieceDrag,
+      onPieceDrop,
+      size,
+      ...restOptions
+    },
+    ref,
+  ) => {
     const options = useMemo<UpdatableBoardOptions>(() => {
       const typedOptions = restOptions as UpdatableBoardOptions;
       if (typeof size === 'number') {
@@ -57,6 +87,15 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onMove,
       onIllegal,
       onUpdate,
+      onSquareClick,
+      onSquareMouseDown,
+      onSquareMouseUp,
+      onSquareRightClick,
+      onSquareMouseOver,
+      onSquareMouseOut,
+      onPieceClick,
+      onPieceDrag,
+      onPieceDrop,
     });
 
     useImperativeHandle(ref, () => api, [api]);
