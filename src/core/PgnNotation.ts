@@ -391,8 +391,7 @@ export class PgnNotation {
    * Parse a PGN string with comments containing visual annotations
    */
   loadPgnWithAnnotations(pgnString: string): void {
-    // Implementation simplifiée - dans une vraie implémentation,
-    // il faudrait parser complètement le PGN avec toutes ses variations
+    // Simplified implementation - a full-featured version would parse PGN with every variation
     const lines = pgnString.split('\n');
     let inMoves = false;
     let movesText = '';
