@@ -153,6 +153,12 @@ export interface RulesAdapter {
   turn(): Color;
   movesFrom(square: Square): Move[];
   /**
+   * Indicates whether the adapter supports SAN/LAN string move submissions.
+   * Adapters should opt in explicitly to avoid accidental invocation with
+   * unsupported argument shapes.
+   */
+  supportsSanMoves?: boolean;
+  /**
    * Execute a move. When a string is provided it should be interpreted as SAN/LAN notation.
    */
   move(m: {

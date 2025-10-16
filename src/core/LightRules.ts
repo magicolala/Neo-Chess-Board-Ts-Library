@@ -26,6 +26,7 @@ function boardToFEN(state: ParsedFENState) {
 
 export class LightRules implements RulesAdapter {
   private state = parseFEN(START_FEN);
+  public readonly supportsSanMoves = false;
   reset() {
     this.state = parseFEN(START_FEN);
   }

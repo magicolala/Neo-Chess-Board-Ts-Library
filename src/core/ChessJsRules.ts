@@ -11,6 +11,7 @@ type ChessSquare = (typeof SQUARES)[number];
 export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
   private pgnNotation: PgnNotation;
+  public readonly supportsSanMoves = true;
 
   private normalizePromotion(symbol: ChessMove['promotion']): Move['promotion'] {
     return symbol === 'q' || symbol === 'r' || symbol === 'b' || symbol === 'n'
