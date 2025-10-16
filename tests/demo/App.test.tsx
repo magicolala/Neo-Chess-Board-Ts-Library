@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../demo/App';
+import { translations } from '../../demo/i18n/translations';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
 
 type VerboseMove = { from: string; to: string; promotion?: string };
@@ -119,6 +120,8 @@ jest.mock('../../src/react/NeoChessBoard', () => ({
 const mockWriteText = jest.fn(() => Promise.resolve());
 
 describe('App Component', () => {
+  const enTranslations = translations.en;
+
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
@@ -142,21 +145,25 @@ describe('App Component', () => {
     it('should display theme selector buttons', () => {
       render(<App />);
 
-      expect(screen.getByText('Midnight')).toBeInTheDocument();
-      expect(screen.getByText('Classic')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: enTranslations['app.themes.midnight'] }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: enTranslations['app.themes.classic'] }),
+      ).toBeInTheDocument();
     });
 
     it('should display PGN section', () => {
       render(<App />);
 
-      expect(screen.getByText('Copier')).toBeInTheDocument();
+      expect(screen.getByText(enTranslations['pgn.copy'])).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /pgn notation/i })).toBeInTheDocument();
     });
 
     it('should display FEN section', () => {
       render(<App />);
 
-      expect(screen.getByText('🎯 Position FEN')).toBeInTheDocument();
+      expect(screen.getByText(enTranslations['fen.title'])).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /fen/i })).toBeInTheDocument();
     });
   });
@@ -165,7 +172,10 @@ describe('App Component', () => {
     it('should start with midnight theme', () => {
       render(<App />);
 
-      expect(screen.getByText('midnight')).toBeInTheDocument();
+      const midnightButton = screen.getByRole('button', {
+        name: enTranslations['app.themes.midnight'],
+      });
+      expect(midnightButton).toHaveClass('active');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
 
@@ -173,9 +183,13 @@ describe('App Component', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      await user.click(screen.getByText('Classic'));
+      const classicButton = screen.getByRole('button', {
+        name: enTranslations['app.themes.classic'],
+      });
 
-      expect(screen.getByText('classic')).toBeInTheDocument();
+      await user.click(classicButton);
+
+      expect(classicButton).toHaveClass('active');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'classic');
     });
 
@@ -183,10 +197,17 @@ describe('App Component', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      await user.click(screen.getByText('Classic'));
-      await user.click(screen.getByText('Midnight'));
+      const classicButton = screen.getByRole('button', {
+        name: enTranslations['app.themes.classic'],
+      });
+      const midnightButton = screen.getByRole('button', {
+        name: enTranslations['app.themes.midnight'],
+      });
 
-      expect(screen.getByText('midnight')).toBeInTheDocument();
+      await user.click(classicButton);
+      await user.click(midnightButton);
+
+      expect(midnightButton).toHaveClass('active');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
   });
@@ -256,7 +277,7 @@ describe('App Component', () => {
       const samplePgn = '1. e4 e5';
       await user.type(pgnTextarea, samplePgn);
 
-      const loadButton = screen.getByRole('button', { name: 'Charger' });
+      const loadButton = screen.getByRole('button', { name: enTranslations['pgn.load'] });
       await user.click(loadButton);
 
       await waitFor(() => {
@@ -281,7 +302,7 @@ describe('App Component', () => {
         expect(pgnTextarea).toHaveValue('1. e4');
       });
 
-      const copyButton = screen.getByText('Copier');
+      const copyButton = screen.getByText(enTranslations['pgn.copy']);
       expect(copyButton).toBeInTheDocument();
       expect(copyButton).not.toHaveAttribute('disabled');
       expect(() => user.click(copyButton)).not.toThrow();
@@ -302,10 +323,10 @@ describe('App Component', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      await user.click(screen.getByText('Exporter'));
+      await user.click(screen.getByText(enTranslations['pgn.export']));
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const exportButton = screen.getByText('Exporter');
+      const exportButton = screen.getByText(enTranslations['pgn.export']);
       expect(exportButton).toBeInTheDocument();
       expect(exportButton).not.toHaveAttribute('disabled');
     });
@@ -351,7 +372,7 @@ describe('App Component', () => {
     it('should have correct button layout', () => {
       render(<App />);
 
-      const buttonContainer = screen.getByText('Copier').closest('.buttonGroup');
+      const buttonContainer = screen.getByText(enTranslations['pgn.copy']).closest('.buttonGroup');
       expect(buttonContainer).toBeInTheDocument();
     });
   });
@@ -380,7 +401,7 @@ describe('App Component', () => {
 
       render(<App />);
 
-      expect(() => user.click(screen.getByText('Copier'))).not.toThrow();
+      expect(() => user.click(screen.getByText(enTranslations['pgn.copy']))).not.toThrow();
     });
   });
 });
