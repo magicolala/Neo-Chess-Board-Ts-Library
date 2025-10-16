@@ -167,6 +167,7 @@ export interface RulesAdapter {
     promotion?: Move['promotion'];
   }): RulesMoveResponse | null | undefined;
   move(notation: string): RulesMoveResponse | null | undefined;
+  undo(): boolean;
   reset?(): void;
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here

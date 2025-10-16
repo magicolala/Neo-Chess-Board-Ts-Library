@@ -522,6 +522,39 @@ export class NeoChessBoard {
     return outcome !== false;
   }
 
+  public undoMove(immediate = false): boolean {
+    const previousState = this.state;
+    const undone = this.rules.undo();
+
+    if (!undone) {
+      return false;
+    }
+
+    this._cancelPendingPromotion();
+    this._pendingPromotion = null;
+    this.drawingManager?.clearPromotionPreview();
+
+    const fen = this.rules.getFEN();
+    const newState = this._parseFEN(fen);
+
+    this.state = newState;
+    this._syncOrientationFromTurn(false);
+    this._lastMove = null;
+    this._clearInteractionState();
+    this._premove = null;
+    this.drawingManager?.clearPremove();
+
+    if (immediate || !this.showAnimations || this.animationMs <= 0) {
+      this._clearAnimation();
+      this.renderAll();
+    } else {
+      this._animateTo(newState, previousState);
+    }
+
+    this._emitUpdateEvent();
+    return true;
+  }
+
   // ============================================================================
   // Public API - PGN Management
   // ============================================================================
