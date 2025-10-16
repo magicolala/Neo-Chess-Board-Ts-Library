@@ -36,6 +36,7 @@ nav:
   - Home: index.md
   - API Reference: api.md
   - Examples: examples.md
+  - Integration Guide: integration.md
   - PGN Features: pgn-features.md
   - Themes: themes.md
   - Extensions: extensions.md
@@ -56,6 +57,7 @@ plugins:
             Home: Accueil
             API Reference: API
             Examples: Exemples
+            Integration Guide: Intégration
             PGN Features: Fonctionnalités PGN
             Themes: Thèmes
             Extensions: Extensions
