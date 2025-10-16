@@ -146,6 +146,18 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     return true;
   }
 
+  isDraw(): boolean {
+    return false;
+  }
+
+  isInsufficientMaterial(): boolean {
+    return false;
+  }
+
+  isThreefoldRepetition(): boolean {
+    return false;
+  }
+
   private _buildFen(): string {
     const rows: string[] = [];
     for (let r = this.ranks - 1; r >= 0; r--) {
@@ -219,6 +231,18 @@ class CoordinateOnlyRulesAdapter implements RulesAdapter {
 
   undo(): boolean {
     return this.inner.undo();
+  }
+
+  isDraw(): boolean {
+    return this.inner.isDraw();
+  }
+
+  isInsufficientMaterial(): boolean {
+    return this.inner.isInsufficientMaterial();
+  }
+
+  isThreefoldRepetition(): boolean {
+    return this.inner.isThreefoldRepetition();
   }
 }
 

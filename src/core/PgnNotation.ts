@@ -186,6 +186,7 @@ export class PgnNotation {
       const turn = chess.turn();
       this.setResult((turn === 'w' ? '0-1' : '1-0') as '0-1' | '1-0');
     } else if (
+      chess.isDraw?.() ||
       chess.isStalemate() ||
       chess.isThreefoldRepetition() ||
       chess.isInsufficientMaterial()

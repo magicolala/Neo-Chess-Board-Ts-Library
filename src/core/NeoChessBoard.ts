@@ -423,6 +423,18 @@ export class NeoChessBoard {
     return [];
   }
 
+  public isDraw(): boolean {
+    return this.rules.isDraw();
+  }
+
+  public isInsufficientMaterial(): boolean {
+    return this.rules.isInsufficientMaterial();
+  }
+
+  public isThreefoldRepetition(): boolean {
+    return this.rules.isThreefoldRepetition();
+  }
+
   // ============================================================================
   // Public API - Position Management
   // ============================================================================

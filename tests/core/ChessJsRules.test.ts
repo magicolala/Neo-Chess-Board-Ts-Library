@@ -108,6 +108,33 @@ describe('ChessJsRules', () => {
       }
     });
 
+    test('should detect stalemate draws', () => {
+      rules.setFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1');
+
+      expect(rules.isStalemate()).toBe(true);
+      expect(rules.isDraw()).toBe(true);
+    });
+
+    test('should detect insufficient material draws', () => {
+      rules.setFEN('8/8/8/8/8/8/8/Kk6 w - - 0 1');
+
+      expect(rules.isInsufficientMaterial()).toBe(true);
+      expect(rules.isDraw()).toBe(true);
+    });
+
+    test('should detect threefold repetition draws', () => {
+      const cycleMoves = ['Nf3', 'Nf6', 'Ng1', 'Ng8'];
+      for (let i = 0; i < 3; i++) {
+        for (const move of cycleMoves) {
+          const result = rules.move(move);
+          expect(result?.ok).toBe(true);
+        }
+      }
+
+      expect(rules.isThreefoldRepetition()).toBe(true);
+      expect(rules.isDraw()).toBe(true);
+    });
+
     test('should get correct game result', () => {
       // Test ongoing game
       expect(rules.getGameResult()).toBe('*');
