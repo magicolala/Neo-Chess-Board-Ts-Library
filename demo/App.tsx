@@ -30,6 +30,13 @@ import {
 } from './components/Icons';
 import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
 import { useBoardSize } from './hooks/useBoardSize';
+import {
+  createTranslationValue,
+  type Language,
+  TranslationContext,
+  type TranslationKey,
+  useTranslation,
+} from './i18n/translations';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
   moveNumber: rules.moveNumber(),
@@ -51,39 +58,39 @@ const DEFAULT_BOARD_SIZE = 520;
 
 interface LiveExampleLink {
   href: string;
-  label: string;
-  description: string;
   icon: string;
+  labelKey: TranslationKey;
+  descriptionKey: TranslationKey;
 }
 
 const LIVE_EXAMPLES: LiveExampleLink[] = [
   {
     href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html',
-    label: 'Vanilla JS Starter',
-    description: 'Échiquier interactif autonome avec thèmes, historique et export PGN.',
     icon: '🌐',
+    labelKey: 'examples.live.vanilla.label',
+    descriptionKey: 'examples.live.vanilla.description',
   },
   {
     href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html',
-    label: 'Intégration Chess.js',
-    description: 'Synchronisation complète avec chess.js et mise à jour temps réel du statut.',
     icon: '♞',
+    labelKey: 'examples.live.chessJs.label',
+    descriptionKey: 'examples.live.chessJs.description',
   },
   {
     href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html',
-    label: 'PGN + Barre d’évaluation',
-    description: 'Import de parties annotées, orientation automatique et suivi des évaluations.',
     icon: '📈',
+    labelKey: 'examples.live.pgnEval.label',
+    descriptionKey: 'examples.live.pgnEval.description',
   },
   {
     href: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html',
-    label: 'Fonctionnalités avancées',
-    description: 'Modes puzzle, outils d’analyse et interactions clavier pour power-users.',
     icon: '⚡',
+    labelKey: 'examples.live.advanced.label',
+    descriptionKey: 'examples.live.advanced.description',
   },
 ];
 
-// Type pour les options de l'échiquier
+// Type definition for board options
 interface BoardFeatureOptions {
   showArrows: boolean;
   showHighlights: boolean;
@@ -96,7 +103,16 @@ interface BoardFeatureOptions {
   allowResize: boolean;
 }
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { translate, language, setLanguage } = useTranslation();
+  const whiteLabel = translate('common.white');
+  const blackLabel = translate('common.black');
+  const themeNames: Record<'midnight' | 'classic', string> = {
+    midnight: translate('app.themes.midnight'),
+    classic: translate('app.themes.classic'),
+  };
+  const whiteSideLabel = language === 'fr' ? `les ${whiteLabel}` : whiteLabel;
+  const blackSideLabel = language === 'fr' ? `les ${blackLabel}` : blackLabel;
   const chessRules = useMemo(() => new ChessJsRules(), []);
   const [fen, setFen] = useState<string | undefined>(undefined);
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
@@ -179,14 +195,23 @@ export const App: React.FC = () => {
     [getOrientationFromFen],
   );
 
-  const formatPlyDescriptor = useCallback((ply: number) => {
-    if (ply <= 0) {
-      return 'le début de partie';
-    }
-    const moveNumber = Math.ceil(ply / 2);
-    const isWhiteMove = ply % 2 === 1;
-    return `${moveNumber}${isWhiteMove ? '' : '...'} (${isWhiteMove ? 'Blancs' : 'Noirs'})`;
-  }, []);
+  const formatPlyDescriptor = useCallback(
+    (ply: number) => {
+      if (ply <= 0) {
+        return translate('evaluationBar.ply.start');
+      }
+      const moveNumber = Math.ceil(ply / 2);
+      const isWhiteMove = ply % 2 === 1;
+      const suffix = isWhiteMove ? '' : '...';
+      const color = isWhiteMove ? whiteLabel : blackLabel;
+      return translate('evaluationBar.ply.move', {
+        moveNumber: moveNumber.toString(),
+        suffix,
+        color,
+      });
+    },
+    [blackLabel, translate, whiteLabel],
+  );
 
   const updateEvaluationFromMap = useCallback(
     (ply: number, map?: Record<number, number | string>) => {
@@ -245,7 +270,7 @@ export const App: React.FC = () => {
         timelineRules = new ChessJsRules(fenFromMetadata);
         startingFenApplied = true;
       } catch (error) {
-        console.warn('Impossible de reconstruire la timeline PGN avec le FEN initial :', error);
+        console.warn('Unable to rebuild the PGN timeline with the initial FEN:', error);
         timelineRules = new ChessJsRules();
       }
     } else {
@@ -285,7 +310,7 @@ export const App: React.FC = () => {
         try {
           chessRules.setFEN(nextFen);
         } catch (error) {
-          console.error('Erreur lors de la synchronisation du FEN avec la navigation PGN:', error);
+          console.error('Error while syncing the FEN with PGN navigation:', error);
         }
         updateStatusSnapshot();
       }
@@ -307,17 +332,17 @@ export const App: React.FC = () => {
     ],
   );
 
-  // États de loading pour démonstration
+  // Loading states used for demonstration purposes
   const [isCopying, setIsCopying] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isThemeChanging, setIsThemeChanging] = useState(false);
 
-  // Simuler le chargement initial (désactivé pendant les tests)
+  // Simulate initial loading (disabled during tests)
   const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1500);
 
-  // Synchroniser la position FEN avec l'instance ChessJsRules uniquement pour les changements manuels de FEN
-  // (pas lors des coups joués sur l'échiquier)
+  // Synchronise the FEN position with the ChessJsRules instance only for manual FEN changes
+  // (not when moves are played on the board)
   const [isManualFenChange, setIsManualFenChange] = useState(false);
 
   useEffect(() => {
@@ -333,7 +358,7 @@ export const App: React.FC = () => {
         updateStatusSnapshot();
         setIsManualFenChange(false);
       } catch (error) {
-        console.error('FEN invalide:', error);
+        console.error('Invalid FEN:', error);
         setIsManualFenChange(false);
       }
     }
@@ -349,7 +374,7 @@ export const App: React.FC = () => {
   const handleLoadPgn = useCallback(async () => {
     const trimmed = pgnText.trim();
     if (!trimmed) {
-      setPgnError('Veuillez coller un PGN avant de le charger.');
+      setPgnError(translate('pgn.error.empty'));
       return;
     }
 
@@ -361,12 +386,12 @@ export const App: React.FC = () => {
       const boardResult = board?.loadPgnWithAnnotations(trimmed);
 
       if (!success) {
-        setPgnError('Impossible de charger le PGN fourni.');
+        setPgnError(translate('pgn.error.load'));
         return;
       }
 
       if (board && boardResult === false) {
-        console.warn('Le chargement des annotations PGN a échoué côté échiquier.');
+        console.warn('PGN annotations failed to load on the board side.');
       }
 
       const updatedFen = chessRules.getFEN();
@@ -376,23 +401,30 @@ export const App: React.FC = () => {
       updateStatusSnapshot();
       syncEvaluationsFromRules();
     } catch (error) {
-      console.error('Erreur lors du chargement du PGN:', error);
-      setPgnError('Une erreur est survenue pendant le chargement du PGN.');
+      console.error('Error while loading the PGN:', error);
+      setPgnError(translate('pgn.error.generic'));
     } finally {
       setIsPgnLoading(false);
     }
-  }, [chessRules, pgnText, syncOrientationWithFen, updateStatusSnapshot, syncEvaluationsFromRules]);
+  }, [
+    chessRules,
+    pgnText,
+    syncOrientationWithFen,
+    translate,
+    updateStatusSnapshot,
+    syncEvaluationsFromRules,
+  ]);
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(pgnText);
-      // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+      // Simulate a delay to display the loader (disabled during tests)
       if (process.env.NODE_ENV !== 'test') {
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
     } catch (error) {
-      console.error('Erreur lors de la copie:', error);
+      console.error('Error while copying to the clipboard:', error);
     } finally {
       setIsCopying(false);
     }
@@ -400,7 +432,7 @@ export const App: React.FC = () => {
 
   const handleReset = async () => {
     setIsResetting(true);
-    // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+    // Simulate a delay to display the loader (disabled during tests)
     if (process.env.NODE_ENV !== 'test') {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
@@ -419,7 +451,7 @@ export const App: React.FC = () => {
     setIsExporting(true);
     setPgnError(null);
     try {
-      // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+      // Simulate a delay to display the loader (disabled during tests)
       if (process.env.NODE_ENV !== 'test') {
         await new Promise((resolve) => setTimeout(resolve, 1200));
       }
@@ -430,7 +462,7 @@ export const App: React.FC = () => {
       });
       chessRules.downloadPgn();
     } catch (error) {
-      console.error("Erreur lors de l'export:", error);
+      console.error('Error during export:', error);
     } finally {
       setIsExporting(false);
     }
@@ -440,7 +472,7 @@ export const App: React.FC = () => {
     if (newTheme === theme) return;
 
     setIsThemeChanging(true);
-    // Simuler un délai pour montrer le loader (désactivé pendant les tests)
+    // Simulate a delay to display the loader (disabled during tests)
     if (process.env.NODE_ENV !== 'test') {
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
@@ -487,7 +519,7 @@ export const App: React.FC = () => {
     });
   }, [fen, chessRules, getOrientationFromFen]);
 
-  // Ajouter une flèche personnalisée
+  // Add a custom arrow
   const addRandomArrow = useCallback(() => {
     if (!boardRef.current) return;
 
@@ -503,7 +535,7 @@ export const App: React.FC = () => {
     const from = randomSquare();
     let to = randomSquare();
 
-    // S'assurer que les cases sont différentes
+    // Ensure the squares are different
     while (to === from) {
       to = randomSquare();
     }
@@ -518,7 +550,7 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Ajouter une surbrillance personnalisée
+  // Add a custom highlight
   const addRandomHighlight = useCallback(() => {
     if (!boardRef.current) return;
 
@@ -550,7 +582,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Effacer toutes les surbrillances et flèches
+  // Clear all highlights and arrows
   const clearAll = useCallback(() => {
     if (!boardRef.current) return;
     boardRef.current.clearArrows();
@@ -562,6 +594,14 @@ export const App: React.FC = () => {
     [currentEvaluation],
   );
   const halfMovesRemaining = Math.max(0, 100 - status.halfMoves);
+  const evaluationSummary = evaluationSnapshot.hasValue
+    ? currentPly > 0
+      ? translate('evaluation.lastScoreWithMove', {
+          score: evaluationSnapshot.label,
+          move: formatPlyDescriptor(currentPly),
+        })
+      : translate('evaluation.lastScore', { score: evaluationSnapshot.label })
+    : translate('evaluation.waitingData');
   const gameTagClass = status.isCheckmate
     ? `${styles.statusTag} ${styles.statusTagCritical}`
     : status.isStalemate || status.inCheck
@@ -570,14 +610,14 @@ export const App: React.FC = () => {
         ? `${styles.statusTag} ${styles.statusTagInfo}`
         : `${styles.statusTag} ${styles.statusTagSuccess}`;
   const gameTagLabel = status.isCheckmate
-    ? 'Échec et mat'
+    ? translate('status.tags.checkmate')
     : status.isStalemate
-      ? 'Pat'
+      ? translate('status.tags.stalemate')
       : status.inCheck
-        ? 'Échec en cours'
+        ? translate('status.tags.check')
         : status.isGameOver
-          ? 'Partie terminée'
-          : 'Partie en cours';
+          ? translate('status.tags.gameOver')
+          : translate('status.tags.inProgress');
   const fiftyTagClass =
     status.halfMoves >= 100
       ? `${styles.statusTag} ${styles.statusTagCritical}`
@@ -586,12 +626,12 @@ export const App: React.FC = () => {
         : `${styles.statusTag} ${styles.statusTagInfo}`;
   const fiftyTagLabel =
     status.halfMoves >= 100
-      ? 'Limite des 50 coups atteinte'
+      ? translate('status.tags.fiftyReached')
       : status.halfMoves >= 80
-        ? `${halfMovesRemaining} demi-coups avant la limite`
-        : `${halfMovesRemaining} demi-coups restants`;
+        ? translate('status.tags.fiftyWarning', { halfMoves: halfMovesRemaining })
+        : translate('status.tags.fiftyInfo', { halfMoves: halfMovesRemaining });
 
-  // Afficher l'écran de chargement initial
+  // Display the initial loading screen
   if (isInitialLoading) {
     return (
       <div className={styles.container}>
@@ -599,7 +639,7 @@ export const App: React.FC = () => {
           <header className={styles.header}>
             <div>
               <h1 className={styles.title}>NeoChessBoard</h1>
-              <span className={styles.themeInfo}>chargement...</span>
+              <span className={styles.themeInfo}>{translate('app.loading')}</span>
             </div>
             <div className={styles.themeButtons}>
               <SkeletonButtons count={2} />
@@ -609,7 +649,7 @@ export const App: React.FC = () => {
           <div className={styles.boardWrapper}>
             <div className={styles.boardLoading}>
               <DotLoader />
-              <div className={styles.loadingText}>Initialisation de l’échiquier...</div>
+              <div className={styles.loadingText}>{translate('app.initializing')}</div>
             </div>
           </div>
         </div>
@@ -617,7 +657,7 @@ export const App: React.FC = () => {
         <div className={styles.controlsSection}>
           <div className={styles.panel}>
             <div className={styles.panelHeader}>
-              <h3 className={styles.panelTitle}>📋 PGN Notation</h3>
+              <h3 className={styles.panelTitle}>{translate('pgn.title')}</h3>
             </div>
             <div className={styles.panelContent}>
               <SkeletonText lines={8} />
@@ -627,7 +667,7 @@ export const App: React.FC = () => {
 
           <div className={styles.panel}>
             <div className={styles.panelHeader}>
-              <h3 className={styles.panelTitle}>🎯 Position FEN</h3>
+              <h3 className={styles.panelTitle}>{translate('fen.title')}</h3>
             </div>
             <div className={styles.panelContent}>
               <SkeletonText lines={3} />
@@ -644,17 +684,31 @@ export const App: React.FC = () => {
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>NeoChessBoard</h1>
-            <span className={styles.themeInfo}>{theme}</span>
+            <span className={styles.themeInfo}>{themeNames[theme]}</span>
           </div>
           <div className={styles.themeButtons}>
-            {isThemeChanging && <LoadingOverlay text="Changement de thème..." />}
+            <div className={styles.languageControl}>
+              <label htmlFor="demo-language" className={styles.languageLabel}>
+                {translate('app.languageLabel')}
+              </label>
+              <select
+                id="demo-language"
+                className={styles.languageSelect}
+                value={language}
+                onChange={(event) => setLanguage(event.target.value as Language)}
+              >
+                <option value="en">{translate('app.languageEnglish')}</option>
+                <option value="fr">{translate('app.languageFrench')}</option>
+              </select>
+            </div>
+            {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
             <LoadingButton
               className={`${styles.themeButton} ${theme === 'midnight' ? styles.active : ''}`}
               onClick={() => handleThemeChange('midnight')}
               isLoading={isThemeChanging}
               disabled={isThemeChanging}
             >
-              Midnight
+              {translate('app.themes.midnight')}
             </LoadingButton>
             <LoadingButton
               className={`${styles.themeButton} ${theme === 'classic' ? styles.active : ''}`}
@@ -662,14 +716,14 @@ export const App: React.FC = () => {
               isLoading={isThemeChanging}
               disabled={isThemeChanging}
             >
-              Classic
+              {translate('app.themes.classic')}
             </LoadingButton>
             <a
               href="./theme-creator.html"
               className={`${styles.themeButton} ${styles.themeCreatorLink}`}
-              title="Créer un thème personnalisé"
+              title={translate('app.themeCreatorTitle')}
             >
-              🎨 Theme Creator
+              {translate('app.themeCreatorLinkText')}
             </a>
           </div>
         </header>
@@ -697,7 +751,7 @@ export const App: React.FC = () => {
               extensions={promotionExtensions}
               onPromotionRequired={handlePromotionRequest}
               onMove={({ from, to, fen: nextFen }) => {
-                // Jouer le mouvement dans notre instance ChessJsRules pour générer la notation PGN
+                // Play the move in our ChessJsRules instance to generate PGN notation
                 const result = chessRules.move({ from, to });
                 if (!result.ok) {
                   return;
@@ -742,12 +796,12 @@ export const App: React.FC = () => {
                   onDoubleClick={handleBoardResizeReset}
                   onKeyDown={handleBoardResizeKeyDown}
                   role="slider"
-                  aria-label="Redimensionner l’échiquier"
+                  aria-label={translate('board.resize.ariaLabel')}
                   aria-valuemin={minBoardSize}
                   aria-valuemax={maxBoardSize}
                   aria-valuenow={boardSize}
                   aria-valuetext={boardSizeLabel}
-                  title="Glisser pour redimensionner (double-clic pour réinitialiser)"
+                  title={translate('board.resize.tooltip')}
                 >
                   <span className={styles.boardResizeHandleGrip} aria-hidden="true" />
                 </button>
@@ -760,37 +814,37 @@ export const App: React.FC = () => {
       <div className={styles.controlsSection}>
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>📊 Statut de la partie</h3>
+            <h3 className={styles.panelTitle}>{translate('status.title')}</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.statusGrid}>
               <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Trait</span>
+                <span className={styles.statusLabel}>{translate('status.turn.label')}</span>
                 <span className={styles.statusValue}>
-                  {status.turn === 'w' ? 'Blancs' : 'Noirs'}
+                  {status.turn === 'w' ? whiteLabel : blackLabel}
                 </span>
-                <span className={styles.statusHint}>Coup n° {status.moveNumber}</span>
+                <span className={styles.statusHint}>
+                  {translate('status.turn.moveNumber', { moveNumber: status.moveNumber })}
+                </span>
               </div>
               <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Coups légaux</span>
+                <span className={styles.statusLabel}>{translate('status.legalMoves.label')}</span>
                 <span className={styles.statusValue}>{status.legalMoves}</span>
                 <span className={styles.statusHint}>
-                  Options disponibles pour {status.turn === 'w' ? 'les Blancs' : 'les Noirs'}
+                  {translate('status.legalMoves.hint', {
+                    color: status.turn === 'w' ? whiteSideLabel : blackSideLabel,
+                  })}
                 </span>
               </div>
               <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Demi-coups</span>
+                <span className={styles.statusLabel}>{translate('status.halfMoves.label')}</span>
                 <span className={styles.statusValue}>{status.halfMoves}</span>
-                <span className={styles.statusHint}>
-                  Depuis la dernière prise ou avancée de pion
-                </span>
+                <span className={styles.statusHint}>{translate('status.halfMoves.hint')}</span>
               </div>
               <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Reste avant 50 coups</span>
+                <span className={styles.statusLabel}>{translate('status.fifty.label')}</span>
                 <span className={styles.statusValue}>{halfMovesRemaining}</span>
-                <span className={styles.statusHint}>
-                  Demi-coups restants avant une nulle réclamable
-                </span>
+                <span className={styles.statusHint}>{translate('status.fifty.hint')}</span>
               </div>
             </div>
             <div className={styles.statusTags}>
@@ -802,7 +856,7 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>📈 Barre d’évaluation</h3>
+            <h3 className={styles.panelTitle}>{translate('evaluation.panelTitle')}</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.evaluationPanel}>
@@ -814,24 +868,19 @@ export const App: React.FC = () => {
                 />
               </div>
               <div className={styles.evaluationInfo}>
-                <h4 className={styles.evaluationInfoTitle}>Suivi des analyses</h4>
+                <h4 className={styles.evaluationInfoTitle}>
+                  {translate('evaluation.analysisTitle')}
+                </h4>
+                <p className={styles.evaluationInfoText}>{evaluationSummary}</p>
                 <p className={styles.evaluationInfoText}>
-                  {evaluationSnapshot.hasValue
-                    ? `Dernier score importé : ${evaluationSnapshot.label}${
-                        currentPly > 0 ? ` (après ${formatPlyDescriptor(currentPly)})` : ''
-                      }`
-                    : 'En attente de données provenant d’un PGN annoté.'}
-                </p>
-                <p className={styles.evaluationInfoText}>
-                  Collez un PGN contenant des commentaires <code>[%eval ...]</code> puis cliquez sur{' '}
-                  <strong>Charger</strong> pour synchroniser la position, l’orientation et les
-                  évaluations.
+                  {translate('evaluation.instructions.prefix')} <code>[%eval ...]</code>{' '}
+                  {translate('evaluation.instructions.middle')}{' '}
+                  <strong>{translate('pgn.load')}</strong>{' '}
+                  {translate('evaluation.instructions.suffix')}
                 </p>
                 <ul className={styles.evaluationInfoList}>
-                  <li>La barre reflète automatiquement la perspective actuellement affichée.</li>
-                  <li>
-                    Les évaluations sont mises à jour à chaque import et après chaque coup joué.
-                  </li>
+                  <li>{translate('evaluation.list.perspective')}</li>
+                  <li>{translate('evaluation.list.updates')}</li>
                 </ul>
               </div>
             </div>
@@ -840,7 +889,7 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>⚙️ Options de l’échiquier</h3>
+            <h3 className={styles.panelTitle}>{translate('options.title')}</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.optionGrid}>
@@ -854,9 +903,15 @@ export const App: React.FC = () => {
                   <ArrowsIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Flèches interactives</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.showArrows.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.showArrows ? 'Activées' : 'Masquées'}
+                    {translate(
+                      boardOptions.showArrows
+                        ? 'options.showArrows.enabled'
+                        : 'options.showArrows.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -871,9 +926,15 @@ export const App: React.FC = () => {
                   <HighlightIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Surbrillances</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.showHighlights.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.showHighlights ? 'Visibles' : 'Masquées'}
+                    {translate(
+                      boardOptions.showHighlights
+                        ? 'options.showHighlights.enabled'
+                        : 'options.showHighlights.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -888,9 +949,15 @@ export const App: React.FC = () => {
                   <PremovesIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Pré-mouvements</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.allowPremoves.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.allowPremoves ? 'Autorisés' : 'Bloqués'}
+                    {translate(
+                      boardOptions.allowPremoves
+                        ? 'options.allowPremoves.enabled'
+                        : 'options.allowPremoves.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -905,9 +972,15 @@ export const App: React.FC = () => {
                   <SquareNamesIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Coordonnées</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.showSquareNames.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.showSquareNames ? 'Affichées' : 'Masquées'}
+                    {translate(
+                      boardOptions.showSquareNames
+                        ? 'options.showSquareNames.enabled'
+                        : 'options.showSquareNames.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -922,9 +995,15 @@ export const App: React.FC = () => {
                   <SoundIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Effets sonores</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.soundEnabled.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.soundEnabled ? 'Actifs' : 'Coupés'}
+                    {translate(
+                      boardOptions.soundEnabled
+                        ? 'options.soundEnabled.enabled'
+                        : 'options.soundEnabled.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -939,9 +1018,15 @@ export const App: React.FC = () => {
                   <BoardSizeIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Coin redimensionnable</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.allowResize.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.allowResize ? 'Activé' : 'Désactivé'}
+                    {translate(
+                      boardOptions.allowResize
+                        ? 'options.allowResize.enabled'
+                        : 'options.allowResize.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -956,9 +1041,15 @@ export const App: React.FC = () => {
                   <LegalMovesIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Coups légaux</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.highlightLegal.title')}
+                  </span>
                   <span className={styles.optionHint}>
-                    {boardOptions.highlightLegal ? 'Signalés' : 'Masqués'}
+                    {translate(
+                      boardOptions.highlightLegal
+                        ? 'options.highlightLegal.enabled'
+                        : 'options.highlightLegal.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -973,9 +1064,13 @@ export const App: React.FC = () => {
                   <AutoFlipIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Auto-flip</span>
+                  <span className={styles.optionTitle}>{translate('options.autoFlip.title')}</span>
                   <span className={styles.optionHint}>
-                    {boardOptions.autoFlip ? 'Synchronisé' : 'Manuel'}
+                    {translate(
+                      boardOptions.autoFlip
+                        ? 'options.autoFlip.enabled'
+                        : 'options.autoFlip.disabled',
+                    )}
                   </span>
                 </span>
               </button>
@@ -986,20 +1081,22 @@ export const App: React.FC = () => {
                 onClick={toggleOrientation}
                 disabled={boardOptions.autoFlip}
                 title={
-                  boardOptions.autoFlip
-                    ? 'Désactivez l’auto-flip pour changer manuellement l’orientation'
-                    : undefined
+                  boardOptions.autoFlip ? translate('board.orientation.autoDisabled') : undefined
                 }
               >
                 <span className={styles.optionIcon}>
                   <OrientationIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Orientation</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.orientation.title')}
+                  </span>
                   <span className={styles.optionHint}>
                     {boardOptions.autoFlip
-                      ? 'Contrôlée automatiquement'
-                      : `Vue ${boardOptions.orientation === 'white' ? 'Blancs' : 'Noirs'}`}
+                      ? translate('options.orientation.auto')
+                      : translate('options.orientation.view', {
+                          color: boardOptions.orientation === 'white' ? whiteLabel : blackLabel,
+                        })}
                   </span>
                 </span>
               </button>
@@ -1009,8 +1106,8 @@ export const App: React.FC = () => {
                   <AddArrowIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Ajouter une flèche</span>
-                  <span className={styles.optionHint}>Placement aléatoire</span>
+                  <span className={styles.optionTitle}>{translate('options.addArrow.title')}</span>
+                  <span className={styles.optionHint}>{translate('options.addArrow.hint')}</span>
                 </span>
               </button>
 
@@ -1019,8 +1116,12 @@ export const App: React.FC = () => {
                   <AddHighlightIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Ajouter une zone</span>
-                  <span className={styles.optionHint}>Surbrillance aléatoire</span>
+                  <span className={styles.optionTitle}>
+                    {translate('options.addHighlight.title')}
+                  </span>
+                  <span className={styles.optionHint}>
+                    {translate('options.addHighlight.hint')}
+                  </span>
                 </span>
               </button>
 
@@ -1033,8 +1134,8 @@ export const App: React.FC = () => {
                   <TrashIcon />
                 </span>
                 <span className={styles.optionLabel}>
-                  <span className={styles.optionTitle}>Tout effacer</span>
-                  <span className={styles.optionHint}>Réinitialise annotations</span>
+                  <span className={styles.optionTitle}>{translate('options.clearAll.title')}</span>
+                  <span className={styles.optionHint}>{translate('options.clearAll.hint')}</span>
                 </span>
               </button>
             </div>
@@ -1043,7 +1144,7 @@ export const App: React.FC = () => {
 
         <div className={styles.panel} style={{ position: 'relative' }}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>📋 PGN Notation</h3>
+            <h3 className={styles.panelTitle}>{translate('pgn.title')}</h3>
           </div>
           <div className={styles.panelContent}>
             <textarea
@@ -1055,8 +1156,8 @@ export const App: React.FC = () => {
                   setPgnError(null);
                 }
               }}
-              aria-label="PGN notation"
-              placeholder="Collez un PGN (avec [%eval]) ou jouez pour générer la notation..."
+              aria-label={translate('pgn.title')}
+              placeholder={translate('pgn.placeholder')}
             />
             <div className={styles.buttonGroup}>
               <LoadingButton
@@ -1066,41 +1167,41 @@ export const App: React.FC = () => {
                 }}
                 isLoading={isPgnLoading}
               >
-                {isPgnLoading ? 'Chargement...' : 'Charger'}
+                {isPgnLoading ? translate('pgn.loading') : translate('pgn.load')}
               </LoadingButton>
               <LoadingButton
                 className={`${styles.button} ${styles.buttonSuccess} ${styles.buttonCopy}`}
                 onClick={handleCopyPGN}
                 isLoading={isCopying}
               >
-                {isCopying ? 'Copie...' : 'Copier'}
+                {isCopying ? translate('pgn.copying') : translate('pgn.copy')}
               </LoadingButton>
               <LoadingButton
                 className={`${styles.button} ${styles.buttonWarning} ${styles.buttonReset}`}
                 onClick={handleReset}
                 isLoading={isResetting}
               >
-                {isResetting ? 'Remise à zéro...' : 'Reset'}
+                {isResetting ? translate('pgn.resetting') : translate('pgn.reset')}
               </LoadingButton>
               <LoadingButton
                 className={`${styles.button} ${styles.buttonPrimary} ${styles.buttonExport}`}
                 onClick={handleExport}
                 isLoading={isExporting}
               >
-                {isExporting ? 'Export...' : 'Exporter'}
+                {isExporting ? translate('pgn.exporting') : translate('pgn.export')}
               </LoadingButton>
             </div>
             {pgnError ? <div className={styles.pgnError}>{pgnError}</div> : null}
             <p className={styles.pgnHelper}>
-              Astuce : importez un PGN contenant des commentaires <code>[%eval ...]</code> pour
-              alimenter la barre d’évaluation ou explorez les coups enregistrés.
+              <strong>{translate('pgn.helper.prefix')}</strong> {translate('pgn.helper.middle')}{' '}
+              <code>[%eval ...]</code> {translate('pgn.helper.suffix')}
             </p>
           </div>
         </div>
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>🎯 Position FEN</h3>
+            <h3 className={styles.panelTitle}>{translate('fen.title')}</h3>
           </div>
           <div className={styles.panelContent}>
             <textarea
@@ -1110,28 +1211,26 @@ export const App: React.FC = () => {
                 setFen(e.target.value);
                 setIsManualFenChange(true);
               }}
-              aria-label="FEN position"
-              placeholder="Saisissez une position FEN pour définir l’échiquier..."
+              aria-label={translate('fen.title')}
+              placeholder={translate('fen.placeholder')}
             />
           </div>
         </div>
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>⚡ Test des Premoves</h3>
+            <h3 className={styles.panelTitle}>{translate('premoves.title')}</h3>
           </div>
           <div className={styles.panelContent}>
             <div className={styles.infoBox}>
               <p>
-                <strong>Comment tester les premoves:</strong>
+                <strong>{translate('premoves.instructions')}</strong>
               </p>
               <ul>
-                <li>Utilisez les positions d’exemple ci-dessous</li>
-                <li>Essayez de déplacer une pièce qui n’est pas de votre tour</li>
-                <li>Le coup sera stocké comme « premove » (flèche orange pointillée)</li>
-                <li>
-                  Jouez un coup normal - le premove s’exécutera automatiquement s’il est légal
-                </li>
+                <li>{translate('premoves.step.examples')}</li>
+                <li>{translate('premoves.step.outOfTurn')}</li>
+                <li>{translate('premoves.step.stored')}</li>
+                <li>{translate('premoves.step.execute')}</li>
               </ul>
             </div>
             <div className={styles.buttonGroup}>
@@ -1142,7 +1241,7 @@ export const App: React.FC = () => {
                   setIsManualFenChange(true);
                 }}
               >
-                Position d’ouverture
+                {translate('premoves.sample.opening')}
               </button>
               <button
                 className={`${styles.button} ${styles.buttonPrimary}`}
@@ -1151,7 +1250,7 @@ export const App: React.FC = () => {
                   setIsManualFenChange(true);
                 }}
               >
-                Milieu de partie
+                {translate('premoves.sample.middleGame')}
               </button>
               <button
                 className={`${styles.button} ${styles.buttonPrimary}`}
@@ -1160,7 +1259,7 @@ export const App: React.FC = () => {
                   setIsManualFenChange(true);
                 }}
               >
-                Finale simple
+                {translate('premoves.sample.endgame')}
               </button>
             </div>
           </div>
@@ -1168,13 +1267,10 @@ export const App: React.FC = () => {
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>🧪 Exemples prêts à l’emploi</h3>
+            <h3 className={styles.panelTitle}>{translate('examples.title')}</h3>
           </div>
           <div className={styles.panelContent}>
-            <p className={styles.exampleIntro}>
-              Explorez les pages d’exemples hébergées pour voir NeoChessBoard en action dans
-              différents contextes.
-            </p>
+            <p className={styles.exampleIntro}>{translate('examples.intro')}</p>
             <div className={styles.exampleLinks}>
               {LIVE_EXAMPLES.map((example) => (
                 <a
@@ -1189,9 +1285,11 @@ export const App: React.FC = () => {
                       <span aria-hidden="true" className={styles.exampleLinkIcon}>
                         {example.icon}
                       </span>
-                      {example.label}
+                      {translate(example.labelKey)}
                     </span>
-                    <span className={styles.exampleLinkDescription}>{example.description}</span>
+                    <span className={styles.exampleLinkDescription}>
+                      {translate(example.descriptionKey)}
+                    </span>
                   </div>
                   <span aria-hidden="true" className={styles.exampleLinkArrow}>
                     ↗
@@ -1203,5 +1301,16 @@ export const App: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  const [language, setLanguage] = useState<Language>('en');
+  const translationValue = useMemo(() => createTranslationValue(language, setLanguage), [language]);
+
+  return (
+    <TranslationContext.Provider value={translationValue}>
+      <AppContent />
+    </TranslationContext.Provider>
   );
 };

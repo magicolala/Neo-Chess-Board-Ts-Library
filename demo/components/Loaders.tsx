@@ -1,12 +1,13 @@
 import React from 'react';
+import { useTranslation } from '../i18n/translations';
 import styles from '../App.module.css';
 
-// Loader simple en ligne
+// Inline loader indicator
 export const InlineLoader: React.FC<{ className?: string }> = ({ className = '' }) => (
   <span className={`${styles.loader} ${className}`} />
 );
 
-// Loader grand format
+// Large loader with optional text
 export const LargeLoader: React.FC<{ text?: string }> = ({ text }) => (
   <div style={{ textAlign: 'center' }}>
     <div className={`${styles.loader} ${styles.loaderLarge}`} />
@@ -14,17 +15,22 @@ export const LargeLoader: React.FC<{ text?: string }> = ({ text }) => (
   </div>
 );
 
-// Overlay de loading
+// Loading overlay component
 export const LoadingOverlay: React.FC<{
   children?: React.ReactNode;
   text?: string;
-}> = ({ children, text = 'Chargement...' }) => (
-  <div className={styles.loadingOverlay}>
-    <div>{children || <LargeLoader text={text} />}</div>
-  </div>
-);
+}> = ({ children, text }) => {
+  const { translate } = useTranslation();
+  const resolvedText = text ?? translate('loaders.default');
 
-// Loader à points animés
+  return (
+    <div className={styles.loadingOverlay}>
+      <div>{children || <LargeLoader text={resolvedText} />}</div>
+    </div>
+  );
+};
+
+// Animated dot loader
 export const DotLoader: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`${styles.dotLoader} ${className}`}>
     <div></div>
@@ -34,12 +40,12 @@ export const DotLoader: React.FC<{ className?: string }> = ({ className = '' }) 
   </div>
 );
 
-// Loader pulse
+// Pulse loader
 export const PulseLoader: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`${styles.pulseLoader} ${className}`} />
 );
 
-// Skeleton loader pour le texte
+// Skeleton loader for text blocks
 export const SkeletonText: React.FC<{
   lines?: number;
   className?: string;
@@ -55,7 +61,7 @@ export const SkeletonText: React.FC<{
   </div>
 );
 
-// Skeleton loader pour les boutons
+// Skeleton loader for buttons
 export const SkeletonButtons: React.FC<{
   count?: number;
   className?: string;
@@ -67,7 +73,7 @@ export const SkeletonButtons: React.FC<{
   </div>
 );
 
-// Hook pour simuler les états de loading
+// Hook that simulates loading states
 export const useLoadingState = (duration: number = 2000): boolean => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -82,7 +88,7 @@ export const useLoadingState = (duration: number = 2000): boolean => {
   return isLoading;
 };
 
-// Composant pour un bouton avec état de loading
+// Button component that supports a loading state
 export const LoadingButton: React.FC<{
   isLoading?: boolean;
   children: React.ReactNode;

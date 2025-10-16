@@ -27,6 +27,9 @@ declare const styles: {
   readonly '8': string;
   readonly '875rem': string;
   readonly themeButtons: string;
+  readonly languageControl: string;
+  readonly languageLabel: string;
+  readonly languageSelect: string;
   readonly '7': string;
   readonly themeButton: string;
   readonly '3s': string;

@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Live Chess.js integration demo showcasing Neo Chess Board with advanced validation, status tracking, and PGN tools."
+    />
     <script type="importmap">
       {
         "imports": {
@@ -20,6 +24,7 @@
         padding: 20px;
         background: #f5f5f5;
       }
+
       .container {
         max-width: 1400px;
         margin: 0 auto;
@@ -27,6 +32,35 @@
         gap: 20px;
         flex-wrap: wrap;
       }
+
+      .language-row {
+        flex-basis: 100%;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+      }
+
+      .language-toggle {
+        background: #ffffff;
+        border: 1px solid #d0d0d0;
+        color: #333333;
+        border-radius: 999px;
+        padding: 6px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      .language-toggle:hover {
+        background: #f0f0f0;
+        transform: translateY(-1px);
+      }
+
+      .language-toggle:active {
+        transform: translateY(0);
+      }
+
       .board-container {
         background: white;
         border-radius: 8px;
@@ -35,6 +69,7 @@
         flex: 1;
         min-width: 480px;
       }
+
       .controls {
         background: white;
         border-radius: 8px;
@@ -42,16 +77,19 @@
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         width: 350px;
       }
+
       h1 {
         text-align: center;
         color: #333;
         margin-bottom: 10px;
       }
+
       .subtitle {
         text-align: center;
         color: #666;
         margin-bottom: 30px;
       }
+
       .feature-box {
         background: #e7f3ff;
         border-left: 4px solid #2196f3;
@@ -59,10 +97,12 @@
         margin-bottom: 20px;
         border-radius: 4px;
       }
+
       .feature-box h3 {
         margin-top: 0;
         color: #1976d2;
       }
+
       .status-box {
         background: #f8f9fa;
         border: 1px solid #dee2e6;
@@ -70,36 +110,45 @@
         padding: 15px;
         margin-bottom: 20px;
       }
+
       .status-box h3 {
         margin-top: 0;
         color: #333;
       }
+
       .status-item {
         display: flex;
         justify-content: space-between;
         margin-bottom: 8px;
       }
+
       .status-value {
         font-weight: bold;
       }
+
       .check {
         color: #dc3545;
       }
+
       .checkmate {
         color: #dc3545;
         font-weight: bold;
       }
+
       .stalemate {
         color: #ffc107;
         font-weight: bold;
       }
+
       .normal {
         color: #28a745;
       }
+
       .fifty-warning {
         color: #ff9800;
         font-weight: 600;
       }
+
       .fifty-limit {
         color: #dc3545;
         font-weight: bold;
@@ -116,9 +165,11 @@
         font-size: 14px;
         width: calc(50% - 10px);
       }
+
       button:hover {
         background: #1976d2;
       }
+
       button:disabled {
         background: #ccc;
         cursor: not-allowed;
@@ -151,94 +202,126 @@
         padding: 15px;
         margin-bottom: 20px;
       }
+
       .comparison h3 {
         margin-top: 0;
         color: #856404;
+      }
+
+      @media (max-width: 1024px) {
+        .board-container {
+          min-width: 100%;
+        }
+
+        .controls {
+          width: 100%;
+        }
+
+        button {
+          width: calc(50% - 10px);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="board-container">
-        <h1>Chess.js Integration Demo</h1>
-        <p class="subtitle">Validation robuste des coups avec chess.js</p>
-
-        <!-- Le board sera injecté ici -->
-        <div id="board"></div>
+      <div class="language-row">
+        <button id="language-toggle" class="language-toggle" data-i18n="language.toggle.fr"></button>
       </div>
+      <div class="board-container">
+        <h1 data-i18n="heading.title">♞ Chess.js Integration Demo</h1>
+        <p class="subtitle" data-i18n="heading.subtitle">Robust move validation with chess.js.</p>
 
-      <div class="controls">
         <div class="comparison">
-          <h3>🆚 Comparaison des moteurs</h3>
-          <p><strong>Avant:</strong> LightRules (validation basique)</p>
-          <p><strong>Maintenant:</strong> Chess.js (validation complète)</p>
-          <p>✅ Échec et mat détecté</p>
-          <p>✅ Pat détecté</p>
-          <p>✅ Règles spéciales (roque, en passant)</p>
-          <p>✅ Historique des coups</p>
-          <p>✅ Export/Import PGN complet</p>
+          <h3 data-i18n="comparison.title">🆚 Engine comparison</h3>
+          <div data-i18n-html="comparison.content">
+            <p><strong>Before:</strong> LightRules (basic validation)</p>
+            <p><strong>Now:</strong> Chess.js (complete validation)</p>
+            <p>✅ Checkmate detection</p>
+            <p>✅ Stalemate detection</p>
+            <p>✅ Special rules (castling, en passant)</p>
+            <p>✅ Move history tracking</p>
+            <p>✅ Full PGN import/export</p>
+          </div>
         </div>
 
         <div class="move-counter">
-          <div><strong>Coup n°</strong> <span id="move-number">1</span></div>
-          <div>Au trait: <span id="current-turn">Blancs</span></div>
+          <div>
+            <strong data-i18n="status.moveNumberLabel">Move #</strong>
+            <span id="move-number">1</span>
+          </div>
+          <div>
+            <span data-i18n="status.turnPrefix">Side to move:</span>
+            <span id="current-turn" data-i18n="status.turn.white">White</span>
+          </div>
         </div>
 
         <div class="status-box">
-          <h3>État de la partie:</h3>
+          <h3 data-i18n="status.panelHeading">Game status:</h3>
           <div class="status-item">
-            <span>Statut:</span>
-            <span id="game-status" class="status-value normal">En cours</span>
+            <span data-i18n="status.label">Status:</span>
+            <span id="game-status" class="status-value normal" data-i18n="status.state.inProgress">⚡ In progress</span>
           </div>
           <div class="status-item">
-            <span>Échec:</span>
-            <span id="check-status" class="status-value">Non</span>
+            <span data-i18n="status.checkLabel">Check:</span>
+            <span id="check-status" class="status-value" data-i18n="status.check.no">No</span>
           </div>
           <div class="status-item">
-            <span>Coups possibles:</span>
+            <span data-i18n="status.movesLabel">Legal moves:</span>
             <span id="moves-count" class="status-value">20</span>
           </div>
           <div class="status-item">
-            <span>Demi-coups:</span>
+            <span data-i18n="status.halfMovesLabel">Half-moves:</span>
             <span id="half-moves" class="status-value">0</span>
           </div>
           <div class="status-item">
-            <span>Règle des 50 coups:</span>
-            <span id="fifty-move-status" class="status-value">100 demi-coups restants</span>
+            <span data-i18n="status.fiftyLabel">50-move rule:</span>
+            <span id="fifty-move-status" class="status-value" data-i18n="status.fifty.remaining">100 half-moves remaining</span>
           </div>
         </div>
+      </div>
 
+      <div class="controls">
         <div class="feature-box">
-          <h3>🎯 Fonctionnalités Chess.js</h3>
-          <ul>
-            <li><strong>Validation complète</strong> des coups</li>
-            <li><strong>Détection automatique</strong> échec/mat/pat</li>
-            <li><strong>Gestion des règles</strong> spéciales</li>
-            <li><strong>Historique</strong> des coups</li>
-            <li><strong>Positions FEN</strong> validées</li>
-            <li><strong>Suivi de l'horloge 50 coups</strong> en direct</li>
+          <h3 data-i18n="features.title">🎯 Chess.js capabilities</h3>
+          <ul data-i18n-html="features.list">
+            <li><strong>Full validation</strong> for legal moves</li>
+            <li><strong>Automatic detection</strong> for check, checkmate, and stalemate</li>
+            <li><strong>Advanced rule</strong> support for castling and en passant</li>
+            <li><strong>Move history</strong> kept in sync</li>
+            <li><strong>FEN positions</strong> verified on load</li>
+            <li><strong>50-move counter</strong> updated live</li>
           </ul>
         </div>
 
-        <h3>Actions rapides:</h3>
-        <button onclick="resetGame()">🔄 Nouvelle partie</button>
-        <button onclick="undoMove()" id="undo-btn">↶ Annuler</button>
-        <button onclick="loadPosition('scholar')">🎓 Mat du berger</button>
-        <button onclick="loadPosition('stalemate')">⚖️ Position de pat</button>
-        <button onclick="loadPosition('endgame')">♔ Fin de partie</button>
-        <button onclick="loadPosition('castling')">🏰 Test roque</button>
-        <button onclick="loadFamousGame()">🌟 Partie Immortelle</button>
+        <h3 data-i18n="actions.heading">Quick actions:</h3>
+        <button onclick="resetGame()" data-i18n="actions.reset">🔄 New game</button>
+        <button onclick="undoMove()" id="undo-btn" data-i18n="actions.undo">↶ Undo</button>
+        <button onclick="loadPosition('scholar')" data-i18n="actions.scholar">🎓 Scholar's mate</button>
+        <button onclick="loadPosition('stalemate')" data-i18n="actions.stalemate">⚖️ Stalemate scenario</button>
+        <button onclick="loadPosition('endgame')" data-i18n="actions.endgame">♔ Endgame practice</button>
+        <button onclick="loadPosition('castling')" data-i18n="actions.castling">🏰 Castle test</button>
+        <button onclick="loadFamousGame()" data-i18n="actions.famous">🌟 Immortal Game</button>
 
-        <h3>Export PGN:</h3>
-        <button onclick="exportPgn()">📄 Voir PGN</button>
-        <button onclick="downloadPgn()">💾 Télécharger PGN</button>
-        <button onclick="showLoadPgnDialog()">📂 Charger PGN</button>
-        <button onclick="copyPgnToClipboard()">📋 Copier PGN</button>
+        <h3 data-i18n="export.heading">PGN export:</h3>
+        <button onclick="exportPgn()" data-i18n="export.view">📄 View PGN</button>
+        <button onclick="downloadPgn()" data-i18n="export.download">💾 Download PGN</button>
+        <button onclick="showLoadPgnDialog()" data-i18n="export.load">📂 Load PGN</button>
+        <button onclick="copyPgnToClipboard()" data-i18n="export.copy">📋 Copy PGN</button>
 
-        <h3>Historique des coups:</h3>
-        <div class="moves-list" id="moves-history">Position initiale</div>
+        <h3 data-i18n="history.heading">Move history:</h3>
+        <div class="moves-list" id="moves-history" data-i18n="history.initial">Initial position</div>
 
-        <!-- Modal pour afficher/charger PGN -->
         <div
           id="pgn-modal"
           style="
@@ -265,7 +348,7 @@
               width: 90%;
             "
           >
-            <h3 id="modal-title">Export PGN</h3>
+            <h3 id="modal-title" data-i18n="modal.title.default">PGN viewer</h3>
             <textarea
               id="pgn-content"
               style="
@@ -280,17 +363,24 @@
               "
             ></textarea>
             <div style="margin-top: 15px; text-align: right">
-              <button onclick="closePgnModal()" style="background: #6c757d; margin-right: 10px">
-                Fermer
+              <button
+                onclick="closePgnModal()"
+                style="background: #6c757d; margin-right: 10px"
+                data-i18n="modal.button.close"
+              >
+                Close
               </button>
               <button
                 id="load-pgn-btn"
                 onclick="loadFromPgn()"
                 style="display: none; background: #28a745"
+                data-i18n="modal.button.load"
               >
-                Charger
+                Load
               </button>
-              <button onclick="copyPgnToClipboard()" style="background: #007bff">Copier</button>
+              <button onclick="copyPgnToClipboard()" style="background: #007bff" data-i18n="modal.button.copy">
+                Copy
+              </button>
             </div>
           </div>
         </div>
@@ -298,24 +388,45 @@
     </div>
 
     <script type="module">
+      import { setupI18n } from './i18n.js';
+
       document.addEventListener('DOMContentLoaded', async () => {
+        const i18n = setupI18n('chessJs');
+        const { translate } = i18n;
+
+        const languageToggle = document.getElementById('language-toggle');
+        const updateLanguageToggle = () => {
+          const key = i18n.getLanguage() === 'en' ? 'language.toggle.fr' : 'language.toggle.en';
+          languageToggle.textContent = translate(key);
+        };
+        updateLanguageToggle();
+        languageToggle.addEventListener('click', () => {
+          const nextLanguage = i18n.getLanguage() === 'en' ? 'fr' : 'en';
+          i18n.setLanguage(nextLanguage);
+          updateLanguageToggle();
+          updateStatus();
+        });
+
         async function loadNeoChessModule() {
-          // Import directly from the expected path on the server.
-          // This path should be relative to the file's location after deployment.
           return await import('../index.js');
         }
 
-        const neoChessModule = await loadNeoChessModule().catch((error) => {
-          console.error('Impossible de charger Neo Chess Board', error);
-          alert('Erreur de chargement: consultez la console pour plus de details.');
+        let NeoChessBoard;
+        let ChessJsRules;
+        try {
+          const neoChessModule = await loadNeoChessModule();
+          NeoChessBoard = neoChessModule.NeoChessBoard;
+          ChessJsRules = neoChessModule.ChessJsRules;
+        } catch (error) {
+          console.error('Unable to load Neo Chess Board', error);
+          alert(translate('alerts.loadingError'));
           throw error;
-        });
-        const { NeoChessBoard, ChessJsRules } = neoChessModule;
+        }
 
-        // Créer le board avec ChessJsRules
-        const board = new NeoChessBoard(document.querySelector('#board'), {
+        const boardElement = document.querySelector('#board');
+        const board = new NeoChessBoard(boardElement, {
           position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-          rulesAdapter: new ChessJsRules(), // Utiliser explicitement ChessJsRules
+          rulesAdapter: new ChessJsRules(),
           showArrows: true,
           showHighlights: true,
           rightClickHighlights: true,
@@ -323,11 +434,9 @@
           showCoordinates: true,
         });
 
-        // Variables globales - Créer une instance séparée pour les fonctions avancées
         let chessRules = new ChessJsRules();
         chessRules.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
-        // Configurer les métadonnées PGN par défaut conformes aux standards
         chessRules.setPgnMetadata({
           Event: 'Neo Chess Board Demo',
           Site: 'Local Demo',
@@ -338,11 +447,10 @@
           BlackElo: '1500',
           TimeControl: '300+3',
           ECO: '?',
-          Opening: '?'
+          Opening: '?',
         });
 
-        // Fonction pour mettre à jour le statut
-        function updateStatus() {
+        const updateStatus = () => {
           const moveNumber = chessRules.moveNumber();
           const turn = chessRules.turn();
           const inCheck = chessRules.inCheck();
@@ -354,99 +462,95 @@
           const halfMovesRemaining = Math.max(0, 100 - halfMoves);
           const history = chessRules.history();
 
-          // Mettre à jour l'affichage
-          document.getElementById('move-number').textContent = moveNumber;
-          document.getElementById('current-turn').textContent = turn === 'w' ? 'Blancs' : 'Noirs';
-          document.getElementById('moves-count').textContent = moves.length;
-          document.getElementById('half-moves').textContent = halfMoves;
+          document.getElementById('move-number').textContent = String(moveNumber);
+          document.getElementById('current-turn').textContent = translate(
+            turn === 'w' ? 'status.turn.white' : 'status.turn.black',
+          );
+          document.getElementById('moves-count').textContent = String(moves.length);
+          document.getElementById('half-moves').textContent = String(halfMoves);
+
           const fiftyMoveEl = document.getElementById('fifty-move-status');
-          if (fiftyMoveEl) {
-            if (halfMoves >= 100) {
-              fiftyMoveEl.textContent = 'Limite des 50 coups atteinte';
-              fiftyMoveEl.className = 'status-value fifty-limit';
-            } else {
-              fiftyMoveEl.textContent = `${halfMovesRemaining} demi-coups restants`;
-              fiftyMoveEl.className = halfMoves >= 80 ? 'status-value fifty-warning' : 'status-value';
-            }
+          if (halfMoves >= 100) {
+            fiftyMoveEl.textContent = translate('status.fifty.limitReached');
+            fiftyMoveEl.className = 'status-value fifty-limit';
+          } else {
+            fiftyMoveEl.textContent = translate('status.fifty.remaining', {
+              count: halfMovesRemaining,
+            });
+            fiftyMoveEl.className = halfMoves >= 80 ? 'status-value fifty-warning' : 'status-value';
           }
 
-          // Statut d'échec
           const checkEl = document.getElementById('check-status');
           if (inCheck) {
-            checkEl.textContent = 'Oui';
+            checkEl.textContent = translate('status.check.yes');
             checkEl.className = 'status-value check';
           } else {
-            checkEl.textContent = 'Non';
+            checkEl.textContent = translate('status.check.no');
             checkEl.className = 'status-value';
           }
 
-          // Statut de la partie
           const statusEl = document.getElementById('game-status');
           if (isCheckmate) {
-            statusEl.textContent = '🏆 Échec et mat';
+            statusEl.textContent = translate('status.state.checkmate');
             statusEl.className = 'status-value checkmate';
           } else if (isStalemate) {
-            statusEl.textContent = '⚖️ Pat';
+            statusEl.textContent = translate('status.state.stalemate');
             statusEl.className = 'status-value stalemate';
           } else if (isGameOver) {
-            statusEl.textContent = '🏁 Partie terminée';
+            statusEl.textContent = translate('status.state.gameOver');
             statusEl.className = 'status-value';
           } else {
-            statusEl.textContent = '⚡ En cours';
+            statusEl.textContent = translate('status.state.inProgress');
             statusEl.className = 'status-value normal';
           }
 
-          // Historique des coups
           const historyEl = document.getElementById('moves-history');
           if (history.length === 0) {
-            historyEl.textContent = 'Position initiale';
+            historyEl.textContent = translate('history.initial');
           } else {
             historyEl.innerHTML = history
-              .map((move, i) => {
-                const moveNum = Math.floor(i / 2) + 1;
-                const isWhite = i % 2 === 0;
-                return isWhite ? `${moveNum}. ${move}` : `${move}`;
+              .map((move, index) => {
+                const moveNum = Math.floor(index / 2) + 1;
+                const isWhite = index % 2 === 0;
+                const prefix = translate(
+                  isWhite ? 'history.movePrefix.white' : 'history.movePrefix.black',
+                  { moveNumber: moveNum },
+                );
+                return isWhite ? `${prefix} ${move}` : `${prefix} ${move}`;
               })
               .join(' ');
           }
 
-          // Bouton Annuler
           const undoBtn = document.getElementById('undo-btn');
           undoBtn.disabled = history.length === 0;
-        }
+        };
 
-        // Actions globales
-        window.resetGame = function () {
+        const resetGame = () => {
           chessRules.reset();
           board.setPosition(chessRules.getFEN(), true);
           updateStatus();
         };
 
-        window.undoMove = function () {
+        const undoMove = () => {
           if (chessRules.undo()) {
             board.setPosition(chessRules.getFEN(), true);
             updateStatus();
           }
         };
 
-        window.loadPosition = function (positionType) {
+        const loadPosition = (positionType) => {
           let fen;
-
           switch (positionType) {
             case 'scholar':
-              // Mat du berger
               fen = 'rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/3P1Q2/PPP2PPP/RNB1K1NR b KQkq - 0 4';
               break;
             case 'stalemate':
-              // Position de pat
               fen = 'k7/8/1K6/8/8/8/8/1Q6 b - - 0 1';
               break;
             case 'endgame':
-              // Fin de partie roi + dame vs roi
               fen = '8/8/8/8/8/3k4/8/K2Q4 w - - 0 1';
               break;
             case 'castling':
-              // Position pour tester les roques
               fen = 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1';
               break;
             default:
@@ -458,24 +562,24 @@
           updateStatus();
         };
 
-        // Écouter les événements du board
+        window.resetGame = resetGame;
+        window.undoMove = undoMove;
+        window.loadPosition = loadPosition;
+
         board.on('move', (data) => {
-          console.log('Coup joué:', data);
-          // Synchroniser l'instance de suivi avec le board
           chessRules.setFEN(data.fen);
           updateStatus();
 
-          // Vérifier la fin de partie
           if (chessRules.isGameOver()) {
             setTimeout(() => {
               let message;
               if (chessRules.isCheckmate()) {
-                const winner = chessRules.turn() === 'w' ? 'Noirs' : 'Blancs';
-                message = `🎉 Échec et mat ! Les ${winner} ont gagné !`;
+                const winner = chessRules.turn() === 'w' ? 'status.turn.black' : 'status.turn.white';
+                message = translate('alerts.checkmate', { winner: translate(winner) });
               } else if (chessRules.isStalemate()) {
-                message = '⚖️ Pat ! Match nul.';
+                message = translate('alerts.stalemate');
               } else {
-                message = '🏁 Partie terminée. Match nul.';
+                message = translate('alerts.gameOver');
               }
               alert(message);
             }, 100);
@@ -483,14 +587,17 @@
         });
 
         board.on('illegal', (data) => {
-          console.log('Coup illégal tenté:', data);
-          alert(`Coup illégal: ${data.from}-${data.to}\nRaison: ${data.reason}`);
+          alert(
+            translate('alerts.illegalMove', {
+              from: data.from,
+              to: data.to,
+              reason: data.reason,
+            }),
+          );
         });
 
-        // Mise à jour initiale
         updateStatus();
 
-        // Démo automatique (optionnel)
         let demoMoves = ['e2', 'e4', 'e7', 'e5', 'f1', 'c4', 'b8', 'c6', 'd1', 'h5'];
         let demoIndex = 0;
         let demoMode = false;
@@ -507,8 +614,6 @@
 
             const from = demoMoves[demoIndex];
             const to = demoMoves[demoIndex + 1];
-
-            // Simuler un coup
             const moveResult = chessRules.move({ from, to });
             if (moveResult.ok) {
               board.setPosition(chessRules.getFEN());
@@ -523,12 +628,14 @@
           setTimeout(playNextMove, 1000);
         };
 
-        // Fonctions PGN
         window.exportPgn = function () {
           const pgn = chessRules.toPgn();
+          const modalTitle = document.getElementById('modal-title');
+          modalTitle.dataset.i18n = 'modal.title.exportCurrent';
+          modalTitle.textContent = translate('modal.title.exportCurrent');
           document.getElementById('pgn-content').value = pgn;
-          document.getElementById('modal-title').textContent = 'Export PGN - Partie Actuelle';
-          document.getElementById('load-pgn-btn').style.display = 'none';
+          const loadButton = document.getElementById('load-pgn-btn');
+          loadButton.style.display = 'none';
           document.getElementById('pgn-modal').style.display = 'block';
         };
 
@@ -538,27 +645,30 @@
         };
 
         window.showLoadPgnDialog = function () {
+          const modalTitle = document.getElementById('modal-title');
+          modalTitle.dataset.i18n = 'modal.title.loadPrompt';
+          modalTitle.textContent = translate('modal.title.loadPrompt');
           document.getElementById('pgn-content').value = '';
-          document.getElementById('modal-title').textContent = 'Charger PGN - Coller votre PGN ici';
-          document.getElementById('load-pgn-btn').style.display = 'inline-block';
+          const loadButton = document.getElementById('load-pgn-btn');
+          loadButton.style.display = 'inline-block';
           document.getElementById('pgn-modal').style.display = 'block';
         };
 
         window.loadFromPgn = function () {
-          const pgn = document.getElementById('pgn-content').value.trim();
-          if (!pgn) {
-            alert('Veuillez saisir un PGN valide.');
+          const content = document.getElementById('pgn-content').value.trim();
+          if (!content) {
+            alert(translate('alerts.emptyPgn'));
             return;
           }
 
-          const success = chessRules.loadPgn(pgn);
+          const success = chessRules.loadPgn(content);
           if (success) {
             board.setPosition(chessRules.getFEN(), true);
             updateStatus();
             closePgnModal();
-            alert('PGN chargé avec succès !');
+            alert(translate('alerts.loadSuccess'));
           } else {
-            alert('Erreur: PGN invalide. Vérifiez le format.');
+            alert(translate('alerts.loadError'));
           }
         };
 
@@ -569,18 +679,17 @@
         window.copyPgnToClipboard = function () {
           const pgnContent = document.getElementById('pgn-content');
           pgnContent.select();
-          pgnContent.setSelectionRange(0, 99999); // Pour mobile
+          pgnContent.setSelectionRange(0, 99999);
 
           try {
             document.execCommand('copy');
-            alert('PGN copié dans le presse-papiers !');
+            alert(translate('alerts.copySuccess'));
           } catch (err) {
-            console.error('Erreur lors de la copie:', err);
-            alert('Erreur lors de la copie. Sélectionnez et copiez manuellement.');
+            console.error('Failed to copy PGN', err);
+            alert(translate('alerts.copyError'));
           }
         };
 
-        // Exemple de PGN célèbre pour les tests
         window.loadFamousGame = function () {
           const immortalGame = `[Event "Immortal Game"]
 [Site "London"]
@@ -593,16 +702,17 @@
 1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5 5. Bxb5 Nf6 6. Nf3 Qh6 7. d3 Nh5 8. Nh4 Qg5 9. Nf5 c6 10. g4 Nf6 11. Rg1 cxb5 12. h4 Qg6 13. h5 Qg5 14. Qf3 Ng8 15. Bxf4 Qf6 16. Nc3 Bc5 17. Nd5 Qxb2 18. Bd6 Bxg1 19. e5 Qxa1+ 20. Ke2 Na6 21. Nxg7+ Kd8 22. Qf6+ Nxf6 23. Be7# 1-0`;
 
           document.getElementById('pgn-content').value = immortalGame;
-          document.getElementById('modal-title').textContent =
-            'PGN - Partie Immortelle (Anderssen vs Kieseritzky, 1851)';
-          document.getElementById('load-pgn-btn').style.display = 'inline-block';
+          const modalTitle = document.getElementById('modal-title');
+          modalTitle.dataset.i18n = 'modal.title.famous';
+          modalTitle.textContent = translate('modal.title.famous');
+          const loadButton = document.getElementById('load-pgn-btn');
+          loadButton.style.display = 'inline-block';
           document.getElementById('pgn-modal').style.display = 'block';
         };
 
-        // Fermer le modal en cliquant à l'extérieur
-        document.getElementById('pgn-modal').addEventListener('click', function (e) {
-          if (e.target === this) {
-            closePgnModal();
+        document.getElementById('pgn-modal').addEventListener('click', function (event) {
+          if (event.target === this) {
+            window.closePgnModal();
           }
         });
       });

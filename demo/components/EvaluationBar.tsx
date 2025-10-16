@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../i18n/translations';
 import styles from './EvaluationBar.module.css';
 
 export interface ParsedEvaluation {
@@ -133,37 +134,50 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
   ply = 0,
   className,
 }) => {
+  const { translate } = useTranslation();
   const parsed = interpretEvaluationValue(evaluation);
   const isBlackPerspective = orientation === 'black';
-  const topLabel = isBlackPerspective ? 'Noirs' : 'Blancs';
-  const bottomLabel = isBlackPerspective ? 'Blancs' : 'Noirs';
+  const whiteLabel = translate('common.white');
+  const blackLabel = translate('common.black');
+  const topLabel = isBlackPerspective ? blackLabel : whiteLabel;
+  const bottomLabel = isBlackPerspective ? whiteLabel : blackLabel;
   const orientedValue =
     parsed.numeric !== null ? (isBlackPerspective ? -parsed.numeric : parsed.numeric) : 0;
   const fillPercent = parsed.hasValue ? ((clamp(orientedValue, -10, 10) + 10) / 20) * 100 : 50;
 
   const moveDescriptor = (() => {
     if (ply <= 0) {
-      return 'le début de partie';
+      return translate('evaluationBar.ply.start');
     }
     const moveNumber = Math.ceil(ply / 2);
     const isWhiteMove = ply % 2 === 1;
-    return `${moveNumber}${isWhiteMove ? '' : '...'} (${isWhiteMove ? 'Blancs' : 'Noirs'})`;
+    const suffix = isWhiteMove ? '' : '...';
+    const color = isWhiteMove ? whiteLabel : blackLabel;
+    return translate('evaluationBar.ply.move', {
+      moveNumber: moveNumber.toString(),
+      suffix,
+      color,
+    });
   })();
 
   const advantageText = (() => {
     if (!parsed.hasValue) {
-      return 'Aucune évaluation importée';
+      return translate('evaluationBar.none');
     }
     if (parsed.mate) {
-      return parsed.sign >= 0 ? 'Mat annoncé pour les Blancs' : 'Mat annoncé pour les Noirs';
+      return parsed.sign >= 0
+        ? translate('evaluationBar.mateWhite')
+        : translate('evaluationBar.mateBlack');
     }
     if (parsed.numeric === null) {
-      return 'Évaluation personnalisée';
+      return translate('evaluationBar.custom');
     }
     if (Math.abs(parsed.numeric) < 0.01) {
-      return 'Équilibre';
+      return translate('evaluationBar.balanced');
     }
-    return parsed.sign > 0 ? 'Avantage Blancs' : 'Avantage Noirs';
+    return parsed.sign > 0
+      ? translate('evaluationBar.advantageWhite')
+      : translate('evaluationBar.advantageBlack');
   })();
 
   const containerClassName = className ? `${styles.container} ${className}` : styles.container;
@@ -186,9 +200,9 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
         <span className={styles.summarySecondary}>
           {parsed.hasValue
             ? ply > 0
-              ? `Après ${moveDescriptor}`
-              : 'Évaluation initiale'
-            : 'Ajoutez [%eval ...] dans vos commentaires PGN pour alimenter la barre.'}
+              ? translate('evaluationBar.afterMove', { move: moveDescriptor })
+              : translate('evaluationBar.initial')
+            : translate('evaluationBar.importHint')}
         </span>
       </div>
     </div>
