@@ -10,7 +10,13 @@ import type {
   RulesMoveResponse,
   Move,
 } from '../../src/core/types';
-import { generateFileLabels, generateRankLabels, parseFEN, sqToFR } from '../../src/core/utils';
+import {
+  START_FEN,
+  generateFileLabels,
+  generateRankLabels,
+  parseFEN,
+  sqToFR,
+} from '../../src/core/utils';
 
 type MockCanvasElement = HTMLCanvasElement & {
   getContext: jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
@@ -427,6 +433,29 @@ describe('NeoChessBoard Core', () => {
       expect(() => {
         board.setFEN(testFEN, true);
       }).not.toThrow();
+    });
+  });
+
+  describe('Piece lookup', () => {
+    it('returns a stable list of squares for pieces in the starting position', () => {
+      board.setFEN(START_FEN, true);
+
+      expect(board.getPieceSquares('P')).toEqual(['a2', 'b2', 'c2', 'd2', 'e2', 'f2', 'g2', 'h2']);
+      expect(board.getPieceSquares('k')).toEqual(['e8']);
+    });
+
+    it('supports promoted pieces and preserves deterministic ordering', () => {
+      const fen = '4k2Q/8/8/8/3Q4/2q5/8/Q3K2q w - - 0 1';
+      board.setFEN(fen, true);
+
+      expect(board.getPieceSquares('Q')).toEqual(['a1', 'd4', 'h8']);
+      expect(board.getPieceSquares('q')).toEqual(['h1', 'c3']);
+    });
+
+    it('returns an empty array when the piece is absent', () => {
+      board.setFEN('4k3/8/8/8/8/8/8/4K3 w - - 0 1', true);
+
+      expect(board.getPieceSquares('q')).toEqual([]);
     });
   });
 

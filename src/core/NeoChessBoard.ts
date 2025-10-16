@@ -416,6 +416,33 @@ export class NeoChessBoard {
     return this._pieceAt(square) ?? null;
   }
 
+  /**
+   * Returns every square currently occupied by the requested piece.
+   *
+   * The `piece` parameter must use FEN notation: uppercase letters (`K`, `Q`, `R`, `B`, `N`, `P`)
+   * target white pieces while their lowercase counterparts (`k`, `q`, `r`, `b`, `n`, `p`) target
+   * black pieces. The resulting array is sorted from the lowest rank/file combination (for
+   * example `a1`) up to the highest (such as `h8`) to provide a stable order for assertions and
+   * deterministic rendering helpers.
+   */
+  public getPieceSquares(piece: Piece): Square[] {
+    const board = this.state.board;
+    const squares: Square[] = [];
+
+    for (let r = 0; r < board.length; r++) {
+      const row = board[r];
+      if (!row) continue;
+
+      for (let f = 0; f < row.length; f++) {
+        if (row[f] === piece) {
+          squares.push(this._indicesToSquare(f, r));
+        }
+      }
+    }
+
+    return squares;
+  }
+
   public getMoveHistory(): string[] {
     if (typeof this.rules.history === 'function') {
       return this.rules.history();

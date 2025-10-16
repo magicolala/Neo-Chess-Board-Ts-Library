@@ -46,6 +46,18 @@ Attempt to make a move on the board.
 
 - `boolean` - True if move was successful, false otherwise
 
+##### `getPieceSquares(piece: Piece): Square[]`
+
+Retrieve the list of squares containing a specific piece.
+
+**Parameters:**
+
+- `piece: Piece` - FEN-style piece symbol (`K`, `Q`, `R`, `B`, `N`, `P` for white, lowercase for black)
+
+**Returns:**
+
+- `Square[]` - Squares sorted from `a1` upward for deterministic inspection
+
 ##### `setTheme(theme: ThemeName | Theme): void`
 
 Change the visual theme of the board.
