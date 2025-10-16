@@ -1,8 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="vanilla">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Interactive vanilla JavaScript demo showcasing Neo Chess Board with themes, FEN loading, and PGN export."
+    />
     <script type="importmap">
       {
         "imports": {
@@ -36,6 +40,27 @@
         text-align: center;
         color: #333;
         margin-bottom: 30px;
+      }
+
+      .language-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+      }
+
+      .language-toggle {
+        background: rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .language-toggle:hover {
+        background: rgba(0, 0, 0, 0.16);
       }
 
       .game-area {
@@ -169,7 +194,10 @@
   </head>
   <body>
     <div class="container">
-      <h1>🏆 Neo Chess Board</h1>
+      <div class="language-row">
+        <button id="language-toggle" class="language-toggle" data-i18n="language.toggle.fr"></button>
+      </div>
+      <h1 data-i18n="heading.title"></h1>
 
       <div class="game-area">
         <div>
@@ -178,59 +206,59 @@
 
         <div class="controls">
           <div class="control-group">
-            <label for="theme-select">Theme:</label>
+            <label for="theme-select" data-i18n="label.theme"></label>
             <select id="theme-select">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="wood">Wood</option>
-              <option value="glass">Glass</option>
-              <option value="neon">Neon</option>
-              <option value="retro">Retro</option>
+              <option value="light" data-i18n="theme.light"></option>
+              <option value="dark" data-i18n="theme.dark"></option>
+              <option value="wood" data-i18n="theme.wood"></option>
+              <option value="glass" data-i18n="theme.glass"></option>
+              <option value="neon" data-i18n="theme.neon"></option>
+              <option value="retro" data-i18n="theme.retro"></option>
             </select>
           </div>
 
           <div class="control-group">
-            <label for="orientation-select">Orientation:</label>
+            <label for="orientation-select" data-i18n="label.orientation"></label>
             <select id="orientation-select">
-              <option value="white">White</option>
-              <option value="black">Black</option>
+              <option value="white" data-i18n="orientation.white"></option>
+              <option value="black" data-i18n="orientation.black"></option>
             </select>
           </div>
 
           <div class="control-group">
-            <button id="new-game-btn">🆕 New Game</button>
-            <button id="flip-board-btn">🔄 Flip Board</button>
-            <button id="export-pgn-btn">📋 Export PGN</button>
+            <button id="new-game-btn" data-i18n="button.newGame"></button>
+            <button id="flip-board-btn" data-i18n="button.flip"></button>
+            <button id="export-pgn-btn" data-i18n="button.export"></button>
           </div>
 
           <div class="control-group">
-            <label for="fen-input">FEN Position:</label>
+            <label for="fen-input" data-i18n="label.fen"></label>
             <textarea
               id="fen-input"
-              placeholder="Enter FEN string..."
+              data-i18n-attr="placeholder:placeholder.fen"
               rows="3"
               style="font-family: monospace; font-size: 11px"
             ></textarea>
-            <button id="load-position-btn">Load Position</button>
+            <button id="load-position-btn" data-i18n="button.loadPosition"></button>
           </div>
         </div>
       </div>
 
       <div class="game-info">
         <div>
-          <strong>Status:</strong>
-          <span id="game-status" class="status playing">Playing</span>
+          <strong data-i18n="status.label"></strong>
+          <span id="game-status" class="status playing" data-i18n="status.playing"></span>
         </div>
 
         <div style="margin-top: 10px">
-          <strong>Current Player:</strong>
-          <span id="current-player">White</span>
+          <strong data-i18n="status.current"></strong>
+          <span id="current-player" data-i18n="status.turn.white"></span>
         </div>
 
         <div style="margin-top: 15px">
-          <strong>Move History:</strong>
+          <strong data-i18n="history.label"></strong>
           <div id="moves-list">
-            <em>No moves yet</em>
+            <em data-i18n="history.empty"></em>
           </div>
         </div>
       </div>
@@ -238,25 +266,12 @@
 
     <script type="module">
       import { NeoChessBoard, createPromotionDialogExtension } from '../index.js';
+      import { setupI18n } from './i18n.js';
 
-      // Initialize board
+      const i18n = setupI18n('vanilla');
+
       const canvas = document.getElementById('chess-board');
-      const board = new NeoChessBoard(canvas, {
-        theme: 'light',
-        showCoordinates: true,
-        draggable: true,
-        onPromotionRequired: (request) => {
-          console.log('Promotion pending:', request);
-        },
-        extensions: [createPromotionDialogExtension()],
-      });
-
-      // Game state
-      let gameStatus = 'playing';
-      let currentPlayer = 'white';
-      let moveCount = 0;
-
-      // DOM elements
+      const languageToggle = document.getElementById('language-toggle');
       const themeSelect = document.getElementById('theme-select');
       const orientationSelect = document.getElementById('orientation-select');
       const newGameBtn = document.getElementById('new-game-btn');
@@ -268,33 +283,149 @@
       const currentPlayerElement = document.getElementById('current-player');
       const movesList = document.getElementById('moves-list');
 
-      // Event listeners for board events
+      const board = new NeoChessBoard(canvas, {
+        theme: 'light',
+        showCoordinates: true,
+        draggable: true,
+        onPromotionRequired: (request) => {
+          console.log('Promotion pending:', request);
+        },
+        extensions: [createPromotionDialogExtension()],
+      });
+
+      let gameStatus = 'playing';
+      let currentPlayer = 'white';
+      let moveCount = 0;
+      const moveHistory = [];
+      let statusDetails = { type: 'playing' };
+
+      const translateColor = (colorKey) => i18n.translate(colorKey);
+
+      const updateLanguageToggle = () => {
+        const key = i18n.getLanguage() === 'en' ? 'language.toggle.fr' : 'language.toggle.en';
+        languageToggle.textContent = i18n.translate(key);
+      };
+
+      const renderMoveHistory = () => {
+        if (moveHistory.length === 0) {
+          movesList.innerHTML = '';
+          const empty = document.createElement('em');
+          empty.textContent = i18n.translate('history.empty');
+          movesList.appendChild(empty);
+          return;
+        }
+
+        movesList.innerHTML = '';
+        moveHistory.forEach((entry) => {
+          const moveDiv = document.createElement('div');
+          moveDiv.className = 'move-entry';
+          const prefixKey = entry.isWhiteMove ? 'status.movePrefix.white' : 'status.movePrefix.black';
+          const prefix = i18n.translate(prefixKey, { moveNumber: entry.moveNumber });
+          moveDiv.textContent = `${prefix} ${entry.notation}`;
+          movesList.appendChild(moveDiv);
+        });
+        movesList.scrollTop = movesList.scrollHeight;
+      };
+
+      const updateGameStatus = (key, statusClass, replacements = {}) => {
+        gameStatusElement.textContent = i18n.translate(key, replacements);
+        gameStatusElement.className = `status ${statusClass}`;
+      };
+
+      const updateStatusFromDetails = () => {
+        switch (statusDetails.type) {
+          case 'check':
+            updateGameStatus('status.check', 'check', {
+              color: translateColor(statusDetails.colorKey),
+            });
+            break;
+          case 'checkmate':
+            updateGameStatus('status.checkmate', 'checkmate', {
+              winner: translateColor(statusDetails.winnerKey),
+            });
+            break;
+          case 'stalemate':
+            updateGameStatus('status.stalemate', 'checkmate');
+            break;
+          default:
+            updateGameStatus('status.playing', 'playing');
+            break;
+        }
+      };
+
+      const updateCurrentPlayer = () => {
+        const key = currentPlayer === 'white' ? 'status.turn.white' : 'status.turn.black';
+        currentPlayerElement.textContent = i18n.translate(key);
+      };
+
+      const updateFenInput = (fen) => {
+        fenInput.value = fen;
+      };
+
+      const resetGameState = () => {
+        gameStatus = 'playing';
+        statusDetails = { type: 'playing' };
+        currentPlayer = 'white';
+        moveCount = 0;
+        moveHistory.length = 0;
+        updateCurrentPlayer();
+        renderMoveHistory();
+        updateStatusFromDetails();
+        updateFenInput('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      };
+
+      const downloadText = (content, filename) => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      };
+
       board.on('move', (move) => {
         moveCount++;
-        currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+        const moveNumber = Math.floor((moveCount + 1) / 2);
+        const isWhiteMove = moveCount % 2 === 1;
+        moveHistory.push({
+          moveNumber,
+          isWhiteMove,
+          notation: move.san || `${move.from}-${move.to}`,
+        });
+        renderMoveHistory();
 
-        // Update UI
-        updateMovesList(move);
+        currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
         updateCurrentPlayer();
         updateFenInput(move.fen || board.getFEN());
-
-        console.log(`Move ${moveCount}:`, move);
+        statusDetails = { type: 'playing' };
+        updateStatusFromDetails();
       });
 
       board.on('check', (color) => {
         gameStatus = 'check';
-        updateGameStatus(`${color} king is in check!`, 'check');
+        statusDetails = {
+          type: 'check',
+          colorKey: color === 'white' ? 'status.turn.white' : 'status.turn.black',
+        };
+        updateStatusFromDetails();
       });
 
       board.on('checkmate', (color) => {
         gameStatus = 'checkmate';
-        const winner = color === 'white' ? 'Black' : 'White';
-        updateGameStatus(`Checkmate! ${winner} wins!`, 'checkmate');
+        statusDetails = {
+          type: 'checkmate',
+          winnerKey: color === 'white' ? 'status.turn.black' : 'status.turn.white',
+        };
+        updateStatusFromDetails();
       });
 
       board.on('stalemate', () => {
         gameStatus = 'stalemate';
-        updateGameStatus('Stalemate - Draw!', 'checkmate');
+        statusDetails = { type: 'stalemate' };
+        updateStatusFromDetails();
       });
 
       board.on('promotion', (request) => {
@@ -303,16 +434,14 @@
 
       board.on('illegalMove', (from, to) => {
         console.log(`Illegal move: ${from} to ${to}`);
-        // You could show a brief visual indication here
       });
 
-      // Control event listeners
-      themeSelect.addEventListener('change', (e) => {
-        board.setTheme(e.target.value);
+      themeSelect.addEventListener('change', (event) => {
+        board.setTheme(event.target.value);
       });
 
-      orientationSelect.addEventListener('change', (e) => {
-        board.setOrientation(e.target.value);
+      orientationSelect.addEventListener('change', (event) => {
+        board.setOrientation(event.target.value);
       });
 
       newGameBtn.addEventListener('click', () => {
@@ -322,9 +451,9 @@
 
       flipBoardBtn.addEventListener('click', () => {
         const currentOrientation = orientationSelect.value;
-        const newOrientation = currentOrientation === 'white' ? 'black' : 'white';
-        orientationSelect.value = newOrientation;
-        board.setOrientation(newOrientation);
+        const nextOrientation = currentOrientation === 'white' ? 'black' : 'white';
+        orientationSelect.value = nextOrientation;
+        board.setOrientation(nextOrientation);
       });
 
       exportPgnBtn.addEventListener('click', () => {
@@ -334,79 +463,35 @@
 
       loadPositionBtn.addEventListener('click', () => {
         const fen = fenInput.value.trim();
-        if (fen) {
-          try {
-            board.loadPosition(fen);
-            resetGameState();
-            console.log('Position loaded:', fen);
-          } catch (error) {
-            alert('Invalid FEN string: ' + error.message);
-          }
+        if (!fen) {
+          return;
+        }
+        try {
+          board.loadPosition(fen);
+          resetGameState();
+          console.log('Position loaded:', fen);
+        } catch (error) {
+          alert(i18n.translate('alert.invalidFen', { message: error.message }));
         }
       });
 
-      // Helper functions
-      function updateMovesList(move) {
-        const moveDiv = document.createElement('div');
-        moveDiv.className = 'move-entry';
-
-        const moveNumber = Math.floor((moveCount + 1) / 2);
-        const isWhiteMove = moveCount % 2 === 1;
-        const movePrefix = isWhiteMove ? `${moveNumber}.` : `${moveNumber}...`;
-
-        moveDiv.textContent = `${movePrefix} ${move.san || move.from + '-' + move.to}`;
-
-        if (movesList.children.length === 1 && movesList.children[0].tagName === 'EM') {
-          movesList.innerHTML = '';
-        }
-
-        movesList.appendChild(moveDiv);
-        movesList.scrollTop = movesList.scrollHeight;
-      }
-
-      function updateGameStatus(message, statusClass) {
-        gameStatusElement.textContent = message;
-        gameStatusElement.className = `status ${statusClass}`;
-      }
-
-      function updateCurrentPlayer() {
-        currentPlayerElement.textContent =
-          currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1);
-      }
-
-      function updateFenInput(fen) {
-        fenInput.value = fen;
-      }
-
-      function resetGameState() {
-        gameStatus = 'playing';
-        currentPlayer = 'white';
-        moveCount = 0;
-
-        updateGameStatus('Playing', 'playing');
+      languageToggle.addEventListener('click', () => {
+        const next = i18n.getLanguage() === 'en' ? 'fr' : 'en';
+        i18n.setLanguage(next);
+        updateLanguageToggle();
+        renderMoveHistory();
         updateCurrentPlayer();
+        updateStatusFromDetails();
+      });
 
-        movesList.innerHTML = '<em>No moves yet</em>';
-        updateFenInput('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      }
-
-      function downloadText(content, filename) {
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      // Initialize FEN display
+      updateLanguageToggle();
+      renderMoveHistory();
+      updateCurrentPlayer();
+      updateStatusFromDetails();
       updateFenInput('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
-      console.log('Neo Chess Board initialized!');
-      console.log('Try making some moves, changing themes, or loading positions.');
+      console.log(i18n.translate('log.init'));
+      console.log(i18n.translate('log.tryMoves'));
     </script>
   </body>
 </html>

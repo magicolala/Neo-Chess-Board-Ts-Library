@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Explore Neo Chess Board advanced features: arrows, highlights, premoves, state export, and keyboard shortcuts."
+    />
     <script type="importmap">
       {
         "imports": {
@@ -19,6 +23,31 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
         color: white;
+      }
+
+      .language-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 20px;
+      }
+
+      .language-toggle {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .language-toggle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+      }
+
+      .language-toggle:active {
+        transform: translateY(0);
       }
 
       .container {
@@ -102,83 +131,138 @@
         margin: 0 0 15px 0;
         font-size: 18px;
       }
+
+      @media (max-width: 960px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+
+        .board-wrapper {
+          width: 100%;
+          height: auto;
+        }
+      }
     </style>
   </head>
   <body>
+    <div class="language-row">
+      <button id="language-toggle" class="language-toggle" data-i18n="language.toggle.fr"></button>
+    </div>
     <div class="container">
       <div class="board-container">
-        <h1>🎯 Advanced Features Demo</h1>
+        <h1 data-i18n="heading.title">🎯 Advanced features demo</h1>
         <div class="board-wrapper">
-          <div id="board"></div>
+          <div id="board" data-i18n-attr="aria-label:board.ariaLabel" aria-label="Interactive board"></div>
         </div>
       </div>
 
       <div class="controls">
-        <h2>✨ New Features</h2>
+        <h2 data-i18n="controls.title">✨ New features</h2>
 
         <div class="control-group">
-          <h3>🏹 Arrows</h3>
-          <button onclick="addSampleArrow()">Add Arrow e2→e4</button>
-          <button onclick="addColoredArrow()">Add Red Arrow d1→d8</button>
-          <button onclick="board.clearArrows()">Clear Arrows</button>
+          <h3 data-i18n="controls.arrows.title">🏹 Arrows</h3>
+          <button onclick="window.addSampleArrow()" data-i18n="controls.arrows.addSample">Add arrow e2→e4</button>
+          <button onclick="window.addColoredArrow()" data-i18n="controls.arrows.addRed">Add red arrow d1→d8</button>
+          <button onclick="window.board.clearArrows()" data-i18n="controls.arrows.clear">Clear arrows</button>
         </div>
 
         <div class="control-group">
-          <h3>🎨 Highlights</h3>
-          <button onclick="addHighlight('e5', 'green')">Highlight e5 (Green)</button>
-          <button onclick="addHighlight('d4', 'red')">Highlight d4 (Red)</button>
-          <button onclick="addHighlight('f6', 'blue')">Highlight f6 (Blue)</button>
-          <button onclick="board.clearHighlights()">Clear Highlights</button>
+          <h3 data-i18n="controls.highlights.title">🎨 Highlights</h3>
+          <button onclick="window.addHighlight('e5', 'green')" data-i18n="controls.highlights.addGreen">Highlight e5 (green)</button>
+          <button onclick="window.addHighlight('d4', 'red')" data-i18n="controls.highlights.addRed">Highlight d4 (red)</button>
+          <button onclick="window.addHighlight('f6', 'blue')" data-i18n="controls.highlights.addBlue">Highlight f6 (blue)</button>
+          <button onclick="window.board.clearHighlights()" data-i18n="controls.highlights.clear">Clear highlights</button>
         </div>
 
         <div class="control-group">
-          <h3>⚡ Premoves</h3>
-          <button onclick="setPremoveExample()">Set Premove g1→f3</button>
-          <button onclick="board.clearPremove()">Clear Premove</button>
-          <button onclick="showPremoveStatus()">Show Premove Status</button>
+          <h3 data-i18n="controls.premoves.title">⚡ Premoves</h3>
+          <button onclick="window.setPremoveExample()" data-i18n="controls.premoves.setExample">Set premove g1→f3</button>
+          <button onclick="window.board.clearPremove()" data-i18n="controls.premoves.clear">Clear premove</button>
+          <button onclick="window.showPremoveStatus()" data-i18n="controls.premoves.show">Show premove status</button>
         </div>
 
         <div class="control-group">
-          <h3>🎮 Game Control</h3>
+          <h3 data-i18n="controls.game.title">🎮 Game control</h3>
           <button
-            onclick="board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')"
+            onclick="window.board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')"
+            data-i18n="controls.game.reset"
           >
-            Reset Board
+            Reset board
           </button>
           <button
-            onclick="board.setPosition('rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 4 4')"
+            onclick="window.board.setPosition('rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 4 4')"
+            data-i18n="controls.game.test"
           >
-            Test Position
+            Test position
           </button>
-          <button onclick="board.clearAllDrawings()">Clear All Drawings</button>
+          <button onclick="window.board.clearAllDrawings()" data-i18n="controls.game.clearDrawings">Clear all drawings</button>
         </div>
 
         <div class="control-group">
-          <h3>💾 State Management</h3>
-          <button onclick="exportDrawings()">Export State</button>
-          <button onclick="importDrawings()">Import State</button>
+          <h3 data-i18n="controls.state.title">💾 State management</h3>
+          <button onclick="window.exportDrawings()" data-i18n="controls.state.export">Export state</button>
+          <button onclick="window.importDrawings()" data-i18n="controls.state.import">Import state</button>
         </div>
 
         <div class="instructions">
-          <h3>📖 Instructions</h3>
-          <ul>
-            <li><strong>Right-click + drag</strong> to draw arrows between squares</li>
-            <li>
-              <strong>Simple right-click</strong> on squares to cycle through highlight colors
-            </li>
-            <li>Use premoves when it's not your turn to prepare the next move</li>
-            <li>Press <strong>Escape</strong> to cancel current drawing action</li>
+          <h3 data-i18n="instructions.title">📖 Instructions</h3>
+          <ul data-i18n-html="instructions.items">
+            <li><strong>Right-click + drag</strong> to draw arrows between squares.</li>
+            <li><strong>Right-click</strong> a square to cycle highlight colors.</li>
+            <li>Use premoves while it's not your turn to queue the next move.</li>
+            <li>Press <strong>Escape</strong> to cancel the current drawing action.</li>
           </ul>
         </div>
 
-        <div class="status" id="status">Ready to test advanced features!</div>
+        <div class="status" id="status" data-i18n="status.ready">Ready to test advanced features!</div>
       </div>
     </div>
 
     <script type="module">
+      import { setupI18n } from './i18n.js';
       import { NeoChessBoard } from '../index.js';
 
-      // Create board with all advanced features enabled
+      const i18n = setupI18n('advanced');
+      const { translate } = i18n;
+
+      const languageToggle = document.getElementById('language-toggle');
+      const statusElement = document.getElementById('status');
+
+      const statusState = {
+        key: 'status.ready',
+        replacements: undefined,
+      };
+
+      const renderStatus = () => {
+        statusElement.textContent = translate(statusState.key, statusState.replacements);
+      };
+
+      const updateStatus = (key, replacements) => {
+        statusState.key = key;
+        statusState.replacements = replacements;
+        renderStatus();
+        setTimeout(() => {
+          statusState.key = 'status.ready';
+          statusState.replacements = undefined;
+          renderStatus();
+        }, 3000);
+      };
+
+      const updateLanguageToggle = () => {
+        const key = i18n.getLanguage() === 'en' ? 'language.toggle.fr' : 'language.toggle.en';
+        languageToggle.textContent = translate(key);
+      };
+
+      languageToggle.addEventListener('click', () => {
+        const nextLanguage = i18n.getLanguage() === 'en' ? 'fr' : 'en';
+        i18n.setLanguage(nextLanguage);
+        updateLanguageToggle();
+        renderStatus();
+      });
+
+      updateLanguageToggle();
+      renderStatus();
+
       window.board = new NeoChessBoard(document.getElementById('board'), {
         theme: 'classic',
         orientation: 'white',
@@ -186,98 +270,82 @@
         showCoordinates: true,
         highlightLegal: true,
         animationMs: 300,
-
-        // New advanced options
         allowPremoves: true,
         showArrows: true,
         showHighlights: true,
         rightClickHighlights: true,
       });
 
-      // Event listeners
-      board.on('move', (data) => {
-        updateStatus(`Move: ${data.from}→${data.to}`);
+      window.board.on('move', (data) => {
+        updateStatus('status.move', { from: data.from, to: data.to });
       });
 
-      board.on('illegal', (data) => {
-        updateStatus(`Illegal move: ${data.from}→${data.to} (${data.reason})`);
+      window.board.on('illegal', (data) => {
+        updateStatus('status.illegal', { from: data.from, to: data.to, reason: data.reason });
       });
 
-      board.on('update', (data) => {
-        console.log('Position updated:', data.fen);
-      });
-
-      // Helper functions
       window.addSampleArrow = () => {
-        board.addArrow({
+        window.board.addArrow({
           from: 'e2',
           to: 'e4',
           color: '#ffeb3b',
           width: 4,
           opacity: 0.8,
         });
-        updateStatus('Added arrow from e2 to e4');
+        updateStatus('status.arrowSample');
       };
 
       window.addColoredArrow = () => {
-        board.addArrow({
+        window.board.addArrow({
           from: 'd1',
           to: 'd8',
           color: '#f44336',
           width: 5,
           opacity: 0.9,
         });
-        updateStatus('Added red arrow from d1 to d8');
+        updateStatus('status.arrowRed');
       };
 
       window.addHighlight = (square, type) => {
-        board.addHighlight({
-          square: square,
-          type: type,
+        window.board.addHighlight({
+          square,
+          type,
           opacity: 0.7,
         });
-        updateStatus(`Highlighted ${square} in ${type}`);
+        updateStatus('status.highlight', { square, type });
       };
 
       window.setPremoveExample = () => {
-        board.setPremove({
+        window.board.setPremove({
           from: 'g1',
           to: 'f3',
         });
-        updateStatus('Set premove: g1→f3');
+        updateStatus('status.premoveSet');
       };
 
       window.showPremoveStatus = () => {
-        const premove = board.getPremove();
+        const premove = window.board.getPremove();
         if (premove) {
-          updateStatus(`Current premove: ${premove.from}→${premove.to}`);
+          updateStatus('status.premoveCurrent', { from: premove.from, to: premove.to });
         } else {
-          updateStatus('No premove set');
+          updateStatus('status.premoveNone');
         }
       };
 
       window.exportDrawings = () => {
-        const state = board.exportDrawings();
+        const state = window.board.exportDrawings();
         localStorage.setItem('neo-chess-drawings', state);
-        updateStatus('Drawings exported to localStorage');
+        updateStatus('status.exported');
       };
 
       window.importDrawings = () => {
         const state = localStorage.getItem('neo-chess-drawings');
         if (state) {
-          board.importDrawings(state);
-          updateStatus('Drawings imported from localStorage');
+          window.board.importDrawings(state);
+          updateStatus('status.imported');
         } else {
-          updateStatus('No saved drawings found');
+          updateStatus('status.noSaved');
         }
-      };
-
-      window.updateStatus = (message) => {
-        const status = document.getElementById('status');
-        status.textContent = message;
-        setTimeout(() => {
-          status.textContent = 'Ready to test advanced features!';
-        }, 3000);
       };
 
       console.log('Advanced features demo loaded!');
