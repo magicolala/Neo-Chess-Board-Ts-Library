@@ -340,7 +340,9 @@ describe('NeoChessBoard Core', () => {
       const success = board.submitMove('e4');
 
       expect(success).toBe(true);
-      expect(board.getPosition()).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
+      expect(board.getPosition()).toBe(
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+      );
     });
   });
 
