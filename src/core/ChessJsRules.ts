@@ -1,5 +1,5 @@
 import { Chess, SQUARES, type Color, type Move as ChessMove } from 'chess.js';
-import type { RulesAdapter, Move, RulesMoveResponse } from './types';
+import type { RulesAdapter, Move, RulesMoveResponse, RulesMoveDetail } from './types';
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
 
@@ -70,25 +70,41 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Play a move
    */
-  move(moveData: { from: string; to: string; promotion?: string }): RulesMoveResponse {
+  move(moveData: string): RulesMoveResponse;
+  move(moveData: { from: string; to: string; promotion?: string }): RulesMoveResponse;
+  move(moveData: string | { from: string; to: string; promotion?: string }): RulesMoveResponse {
     try {
-      const move = this.chess.move({
-        from: moveData.from,
-        to: moveData.to,
-        promotion: moveData.promotion as 'q' | 'r' | 'b' | 'n' | undefined,
-      });
+      const chessMove =
+        typeof moveData === 'string'
+          ? this.chess.move(moveData)
+          : this.chess.move({
+              from: moveData.from,
+              to: moveData.to,
+              promotion: moveData.promotion as 'q' | 'r' | 'b' | 'n' | undefined,
+            });
 
-      if (move) {
-        return { ok: true, fen: this.chess.fen(), move };
-      } else {
-        return { ok: false, reason: 'Invalid move' };
-      }
+      return this.normalizeMoveResponse(chessMove);
     } catch (error: unknown) {
       if (error instanceof Error) {
         return { ok: false, reason: error.message };
       }
       return { ok: false, reason: 'Invalid move' };
     }
+  }
+
+  private normalizeMoveResponse(move: ChessMove | null | undefined): RulesMoveResponse {
+    if (!move) {
+      return { ok: false, reason: 'Invalid move' };
+    }
+
+    const normalizedMove: RulesMoveDetail = {
+      ...move,
+      from: move.from,
+      to: move.to,
+      san: move.san,
+    };
+
+    return { ok: true, fen: this.chess.fen(), move: normalizedMove };
   }
 
   /**

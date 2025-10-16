@@ -149,6 +149,7 @@ export class LightRules implements RulesAdapter {
       ...(ep ? { captured: 'p', ep: true } : {}),
     }));
   }
+  move(move: string): RulesMoveResponse;
   move({
     from,
     to,
@@ -157,7 +158,21 @@ export class LightRules implements RulesAdapter {
     from: Square;
     to: Square;
     promotion?: Move['promotion'];
-  }): RulesMoveResponse {
+  }): RulesMoveResponse;
+  move(
+    moveData:
+      | string
+      | {
+          from: Square;
+          to: Square;
+          promotion?: Move['promotion'];
+        },
+  ): RulesMoveResponse {
+    if (typeof moveData === 'string') {
+      return { ok: false, reason: 'SAN moves are not supported by LightRules' };
+    }
+
+    const { from, to, promotion } = moveData;
     const s = JSON.parse(JSON.stringify(this.state)) as ParsedFENState;
     const f0 = FILES.indexOf(from[0] as (typeof FILES)[number]);
     const r0 = RANKS.indexOf(from[1] as (typeof RANKS)[number]);

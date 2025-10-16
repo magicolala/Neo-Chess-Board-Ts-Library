@@ -26,6 +26,17 @@ describe('ChessJsRules', () => {
       expect(rules.moveNumber()).toBe(1);
     });
 
+    test('should make moves provided as SAN strings', () => {
+      const moveResult = rules.move('e4');
+
+      expect(moveResult?.ok).toBe(true);
+      expect(moveResult?.move?.san).toBe('e4');
+      expect(moveResult?.move?.from).toBe('e2');
+      expect(moveResult?.move?.to).toBe('e4');
+      expect(moveResult?.fen).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
+      expect(rules.getFEN()).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
+    });
+
     test('should reject invalid moves', () => {
       const moveResult = rules.move({ from: 'e2', to: 'e5' });
       expect(moveResult.ok).toBe(false);
