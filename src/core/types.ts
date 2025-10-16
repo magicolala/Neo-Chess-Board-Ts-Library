@@ -133,11 +133,17 @@ export interface ChessLike {
   turn(): Color | string;
 }
 
+export type RulesMoveDetail = {
+  from: Square;
+  to: Square;
+  san?: string;
+} & Record<string, unknown>;
+
 export interface RulesMoveResponse {
   ok: boolean;
   fen?: string;
   state?: unknown;
-  move?: unknown;
+  move?: RulesMoveDetail;
   reason?: string;
 }
 
@@ -146,11 +152,15 @@ export interface RulesAdapter {
   getFEN(): string;
   turn(): Color;
   movesFrom(square: Square): Move[];
+  /**
+   * Execute a move. When a string is provided it should be interpreted as SAN/LAN notation.
+   */
   move(m: {
     from: Square;
     to: Square;
     promotion?: Move['promotion'];
   }): RulesMoveResponse | null | undefined;
+  move(notation: string): RulesMoveResponse | null | undefined;
   reset?(): void;
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here

@@ -475,7 +475,25 @@ export class NeoChessBoard {
   // ============================================================================
 
   public submitMove(notation: string): boolean {
-    const parsed = this._parseCoordinateNotation(notation);
+    const sanitizedNotation = notation.trim();
+
+    if (!sanitizedNotation) {
+      return false;
+    }
+
+    const sanResult = this.rules.move(sanitizedNotation);
+    if (sanResult?.ok) {
+      const move = sanResult.move;
+      if (move?.from && move?.to) {
+        this._processMoveSuccess(move.from as Square, move.to as Square);
+      } else {
+        const fen = sanResult.fen ?? this.rules.getFEN();
+        this.setFEN(fen, true);
+      }
+      return true;
+    }
+
+    const parsed = this._parseCoordinateNotation(sanitizedNotation);
     if (!parsed) {
       return false;
     }

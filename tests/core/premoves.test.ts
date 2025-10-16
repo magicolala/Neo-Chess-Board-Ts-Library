@@ -21,8 +21,19 @@ const createMockEngine = (): RulesAdapter => {
 
   const moveMock = jest.fn<
     RulesMoveResponse | null | undefined,
-    [Parameters<RulesAdapter['move']>[0]]
+    [
+      | string
+      | {
+          from: Square;
+          to: Square;
+          promotion?: Move['promotion'];
+        },
+    ]
   >((move) => {
+    if (typeof move === 'string') {
+      return { ok: false, reason: 'unsupported' };
+    }
+
     if (move.from === 'e2' && move.to === 'e4') {
       position = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
       return { ok: true, fen: position };

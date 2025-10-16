@@ -77,6 +77,7 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     return [];
   }
 
+  move(move: string): RulesMoveResponse;
   move({
     from,
     to,
@@ -85,7 +86,21 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     from: Square;
     to: Square;
     promotion?: Move['promotion'];
-  }): RulesMoveResponse {
+  }): RulesMoveResponse;
+  move(
+    moveData:
+      | string
+      | {
+          from: Square;
+          to: Square;
+          promotion?: Move['promotion'];
+        },
+  ): RulesMoveResponse {
+    if (typeof moveData === 'string') {
+      return { ok: false, reason: 'unsupported' };
+    }
+
+    const { from, to, promotion } = moveData;
     const fromIndices = sqToFR(from, this.fileLabels, this.rankLabels);
     const toIndices = sqToFR(to, this.fileLabels, this.rankLabels);
 
@@ -317,6 +332,15 @@ describe('NeoChessBoard Core', () => {
       expect(() => {
         board.setFEN(testFEN, true);
       }).not.toThrow();
+    });
+  });
+
+  describe('Move submission', () => {
+    it('should submit SAN notation and update the board FEN', () => {
+      const success = board.submitMove('e4');
+
+      expect(success).toBe(true);
+      expect(board.getPosition()).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
     });
   });
 
