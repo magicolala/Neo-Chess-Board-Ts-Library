@@ -528,6 +528,7 @@ class NeoChessBoard {
   getOrientation(): 'white' | 'black';
   getTurn(): 'w' | 'b';
   getPieceAt(square: Square): string | null;
+  getPieceSquares(piece: Piece): Square[]; // Squares containing a piece symbol (KQRBNP/kqrbnp)
   attemptMove(from: Square, to: Square, options?: { promotion?: Move['promotion'] }): boolean;
   previewPromotionPiece(piece: Move['promotion'] | null): void;
   isPromotionPending(): boolean;
@@ -544,6 +545,11 @@ class NeoChessBoard {
   destroy(): void;
 }
 ```
+
+Pass a FEN-style piece symbol to `board.getPieceSquares()` to discover every matching square. Use
+uppercase letters (`K`, `Q`, `R`, `B`, `N`, `P`) for white pieces and lowercase (`k`, `q`, `r`,
+`b`, `n`, `p`) for black. The returned list is sorted from `a1` upward so automated tests can rely
+on deterministic ordering.
 
 ## ♿ Accessibility
 
