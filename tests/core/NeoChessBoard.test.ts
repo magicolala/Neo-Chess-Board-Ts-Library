@@ -1,4 +1,5 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import { ChessJsRules } from '../../src/core/ChessJsRules';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
 import type {
   Arrow,
@@ -148,6 +149,52 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
       rows.push(row || '0');
     }
     return `${rows.join('/') || '0'} ${this.turnColor} - - 0 1`;
+  }
+}
+
+class CoordinateOnlyRulesAdapter implements RulesAdapter {
+  private readonly inner = new ChessJsRules();
+
+  setFEN(fen: string): void {
+    this.inner.setFEN(fen);
+  }
+
+  getFEN(): string {
+    return this.inner.getFEN();
+  }
+
+  turn(): 'w' | 'b' {
+    return this.inner.turn();
+  }
+
+  movesFrom(square: Square): Move[] {
+    return this.inner.movesFrom(square);
+  }
+
+  move(move: string): RulesMoveResponse;
+  move({
+    from,
+    to,
+    promotion,
+  }: {
+    from: Square;
+    to: Square;
+    promotion?: Move['promotion'];
+  }): RulesMoveResponse;
+  move(
+    moveData:
+      | string
+      | {
+          from: Square;
+          to: Square;
+          promotion?: Move['promotion'];
+        },
+  ): RulesMoveResponse {
+    if (typeof moveData === 'string') {
+      throw new TypeError('SAN moves are not supported');
+    }
+
+    return this.inner.move(moveData);
   }
 }
 
@@ -343,6 +390,22 @@ describe('NeoChessBoard Core', () => {
       expect(board.getPosition()).toBe(
         'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
       );
+    });
+
+    it('should fall back to coordinate submission for adapters without SAN support', () => {
+      const customContainer = document.createElement('div') as HTMLDivElement;
+      const coordinateOnlyBoard = new NeoChessBoard(customContainer, {
+        rulesAdapter: new CoordinateOnlyRulesAdapter(),
+      });
+
+      const success = coordinateOnlyBoard.submitMove('e2e4');
+
+      expect(success).toBe(true);
+      expect(coordinateOnlyBoard.getPosition()).toBe(
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+      );
+
+      coordinateOnlyBoard.destroy();
     });
   });
 

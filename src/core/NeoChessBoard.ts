@@ -481,16 +481,28 @@ export class NeoChessBoard {
       return false;
     }
 
-    const sanResult = this.rules.move(sanitizedNotation);
-    if (sanResult?.ok) {
-      const move = sanResult.move;
-      if (move?.from && move?.to) {
-        this._processMoveSuccess(move.from as Square, move.to as Square);
-      } else {
-        const fen = sanResult.fen ?? this.rules.getFEN();
-        this.setFEN(fen, true);
+    if (this.rules.supportsSanMoves === true) {
+      let sanResult: RulesMoveResponse | null | undefined;
+
+      try {
+        sanResult = this.rules.move(sanitizedNotation);
+      } catch (error) {
+        sanResult = null;
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('SAN move submission failed; falling back to coordinates.', error);
+        }
       }
-      return true;
+
+      if (sanResult?.ok) {
+        const move = sanResult.move;
+        if (move?.from && move?.to) {
+          this._processMoveSuccess(move.from as Square, move.to as Square);
+        } else {
+          const fen = sanResult.fen ?? this.rules.getFEN();
+          this.setFEN(fen, true);
+        }
+        return true;
+      }
     }
 
     const parsed = this._parseCoordinateNotation(sanitizedNotation);
