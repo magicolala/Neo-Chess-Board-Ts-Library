@@ -20,6 +20,7 @@ const mockChess = {
     return ['e4', 'e5', 'Nf3', 'Nc6'];
   },
   pgn: () => '1. e4 e5 2. Nf3 Nc6',
+  isDraw: () => false,
   isCheckmate: () => false,
   isStalemate: () => false,
   isThreefoldRepetition: () => false,
@@ -216,6 +217,16 @@ describe('PgnNotation', () => {
       };
 
       pgn.importFromChessJs(repetitionChess);
+      expect(pgn.getResult()).toBe('1/2-1/2');
+    });
+
+    test('should detect generic draw flag', () => {
+      const drawChess = {
+        ...mockChess,
+        isDraw: () => true,
+      };
+
+      pgn.importFromChessJs(drawChess);
       expect(pgn.getResult()).toBe('1/2-1/2');
     });
 

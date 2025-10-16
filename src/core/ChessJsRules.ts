@@ -181,6 +181,27 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   /**
+   * Check whether the game is drawn
+   */
+  isDraw(): boolean {
+    return this.chess.isDraw();
+  }
+
+  /**
+   * Check whether the game is drawn by insufficient material
+   */
+  isInsufficientMaterial(): boolean {
+    return this.chess.isInsufficientMaterial();
+  }
+
+  /**
+   * Check whether the current position has occurred three times
+   */
+  isThreefoldRepetition(): boolean {
+    return this.chess.isThreefoldRepetition();
+  }
+
+  /**
    * Determine whether the game has ended
    */
   isGameOver(): boolean {

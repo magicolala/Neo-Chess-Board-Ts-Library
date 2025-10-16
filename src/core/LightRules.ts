@@ -212,4 +212,16 @@ export class LightRules implements RulesAdapter {
     this.state = previous;
     return true;
   }
+
+  isDraw(): boolean {
+    return false;
+  }
+
+  isInsufficientMaterial(): boolean {
+    return false;
+  }
+
+  isThreefoldRepetition(): boolean {
+    return false;
+  }
 }

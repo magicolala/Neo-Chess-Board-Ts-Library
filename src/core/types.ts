@@ -126,6 +126,7 @@ export type VerboseHistoryEntry = { san: string } & Record<string, unknown>;
 export interface ChessLike {
   history(options?: { verbose?: boolean }): string[] | VerboseHistoryEntry[];
   pgn?(): string;
+  isDraw?(): boolean;
   isCheckmate(): boolean;
   isStalemate(): boolean;
   isThreefoldRepetition(): boolean;
@@ -168,6 +169,9 @@ export interface RulesAdapter {
   }): RulesMoveResponse | null | undefined;
   move(notation: string): RulesMoveResponse | null | undefined;
   undo(): boolean;
+  isDraw(): boolean;
+  isInsufficientMaterial(): boolean;
+  isThreefoldRepetition(): boolean;
   reset?(): void;
   // Optional API if provided by chess.js
   getPGN?(): string; // chess.js exposes game.pgn(); we'll proxy it here

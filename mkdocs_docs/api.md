@@ -99,6 +99,18 @@ Returns `true` while the board is waiting for a promotion choice.
 
 Inspect the currently pending promotion request, if any.
 
+##### `isDraw(): boolean`
+
+Returns `true` if the underlying rules adapter reports a drawn position.
+
+##### `isInsufficientMaterial(): boolean`
+
+Returns `true` when the game cannot be won due to insufficient mating material.
+
+##### `isThreefoldRepetition(): boolean`
+
+Returns `true` when the current position has occurred at least three times.
+
 #### Events
 
 The board emits events through the EventBus system:
@@ -336,6 +348,18 @@ Checks if the current player is in checkmate.
 ##### `isStalemate(): boolean`
 
 Checks if the current player is in stalemate.
+
+##### `isDraw(): boolean`
+
+Checks if the current position is a draw for any reason supported by the rules engine.
+
+##### `isInsufficientMaterial(): boolean`
+
+Checks if the game is drawn due to insufficient mating material.
+
+##### `isThreefoldRepetition(): boolean`
+
+Checks if the current position has occurred three times (threefold repetition).
 
 ##### `isGameOver(): boolean`
 

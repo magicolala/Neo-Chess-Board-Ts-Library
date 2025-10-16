@@ -84,6 +84,9 @@ const createMockEngine = (): RulesAdapter => {
      */
     move: moveMock,
     undo: jest.fn(() => false),
+    isDraw: jest.fn(() => false),
+    isInsufficientMaterial: jest.fn(() => false),
+    isThreefoldRepetition: jest.fn(() => false),
   };
 };
 
