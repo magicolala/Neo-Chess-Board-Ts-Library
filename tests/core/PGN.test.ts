@@ -8,6 +8,7 @@ const createMockAdapter = (pgnOverride?: string): RulesAdapter => ({
   turn: jest.fn(() => 'w'),
   movesFrom: jest.fn(() => []),
   move: jest.fn(() => ({ ok: true })),
+  undo: jest.fn(() => false),
   getPGN: pgnOverride ? jest.fn(() => pgnOverride) : undefined,
   header: jest.fn(),
 });

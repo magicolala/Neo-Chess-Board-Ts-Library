@@ -48,6 +48,7 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
   private turnColor: 'w' | 'b' = 'w';
   private readonly fileLabels: readonly string[];
   private readonly rankLabels: readonly string[];
+  private historyStack: Array<{ board: (string | null)[][]; turn: 'w' | 'b'; fen: string }> = [];
 
   constructor(
     private readonly files: number,
@@ -64,6 +65,7 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     this.board = parsed.board.map((row) => [...row]);
     this.turnColor = parsed.turn;
     this.fen = this._buildFen();
+    this.historyStack = [];
   }
 
   getFEN(): string {
@@ -117,6 +119,12 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
         : promotion.toLowerCase()
       : piece;
 
+    this.historyStack.push({
+      board: this.board.map((row) => [...row]),
+      turn: this.turnColor,
+      fen: this.fen,
+    });
+
     this.board[fromIndices.r][fromIndices.f] = null;
     this.board[toIndices.r][toIndices.f] = promotedPiece;
 
@@ -124,6 +132,18 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     this.fen = this._buildFen();
 
     return { ok: true, fen: this.fen };
+  }
+
+  undo(): boolean {
+    const previous = this.historyStack.pop();
+    if (!previous) {
+      return false;
+    }
+
+    this.board = previous.board.map((row) => [...row]);
+    this.turnColor = previous.turn;
+    this.fen = previous.fen;
+    return true;
   }
 
   private _buildFen(): string {
@@ -195,6 +215,10 @@ class CoordinateOnlyRulesAdapter implements RulesAdapter {
     }
 
     return this.inner.move(moveData);
+  }
+
+  undo(): boolean {
+    return this.inner.undo();
   }
 }
 
@@ -406,6 +430,46 @@ describe('NeoChessBoard Core', () => {
       );
 
       coordinateOnlyBoard.destroy();
+    });
+  });
+
+  describe('Undo functionality', () => {
+    it('should undo the last move, reset selections, and emit update', () => {
+      const initialFen = board.getCurrentFEN();
+      const updateSpy = jest.fn();
+      board.on('update', updateSpy);
+
+      expect(board.undoMove()).toBe(false);
+
+      const moveSuccess = board.submitMove('e4');
+      expect(moveSuccess).toBe(true);
+      expect(board.getCurrentFEN()).not.toBe(initialFen);
+
+      const drawingManager = getPrivate<{
+        setPremove: (from: Square, to: Square, promotion?: Move['promotion']) => void;
+        clearPremove: () => void;
+      }>(board, 'drawingManager');
+      const clearPremoveSpy = jest.spyOn(drawingManager, 'clearPremove');
+
+      drawingManager.setPremove('a2', 'a3');
+      Reflect.set(board as unknown as Record<string, unknown>, '_premove', {
+        from: 'a2',
+        to: 'a3',
+      });
+      Reflect.set(board as unknown as Record<string, unknown>, '_selected', 'e2');
+
+      updateSpy.mockClear();
+
+      const undone = board.undoMove(true);
+
+      expect(undone).toBe(true);
+      expect(board.getCurrentFEN()).toBe(initialFen);
+      expect(getPrivate<Square | null>(board, '_selected')).toBeNull();
+      expect(getPrivate<unknown>(board, '_premove')).toBeNull();
+      expect(getPrivate<unknown>(board, '_lastMove')).toBeNull();
+      expect(clearPremoveSpy).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).toHaveBeenCalledWith({ fen: initialFen });
     });
   });
 

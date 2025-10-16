@@ -83,6 +83,7 @@ const createMockEngine = (): RulesAdapter => {
      * @returns An object indicating if the move was successful and the new FEN if so.
      */
     move: moveMock,
+    undo: jest.fn(() => false),
   };
 };
 

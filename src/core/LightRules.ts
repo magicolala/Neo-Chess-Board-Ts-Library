@@ -26,12 +26,18 @@ function boardToFEN(state: ParsedFENState) {
 
 export class LightRules implements RulesAdapter {
   private state = parseFEN(START_FEN);
+  private historyStack: ParsedFENState[] = [];
   public readonly supportsSanMoves = false;
+  private cloneState(state: ParsedFENState): ParsedFENState {
+    return JSON.parse(JSON.stringify(state)) as ParsedFENState;
+  }
   reset() {
     this.state = parseFEN(START_FEN);
+    this.historyStack = [];
   }
   setFEN(f: string) {
     this.state = parseFEN(f);
+    this.historyStack = [];
   }
   getFEN() {
     return boardToFEN(this.state);
@@ -174,7 +180,7 @@ export class LightRules implements RulesAdapter {
     }
 
     const { from, to, promotion } = moveData;
-    const s = JSON.parse(JSON.stringify(this.state)) as ParsedFENState;
+    const s = this.cloneState(this.state);
     const f0 = FILES.indexOf(from[0] as (typeof FILES)[number]);
     const r0 = RANKS.indexOf(from[1] as (typeof RANKS)[number]);
     const f1 = FILES.indexOf(to[0] as (typeof FILES)[number]);
@@ -196,7 +202,14 @@ export class LightRules implements RulesAdapter {
       s.board[r1][f1] = isW ? promo.toUpperCase() : promo;
     }
     s.turn = s.turn === 'w' ? 'b' : 'w';
+    this.historyStack.push(this.cloneState(this.state));
     this.state = s; // Update internal state
     return { ok: true, fen: boardToFEN(s), state: s };
+  }
+  undo(): boolean {
+    const previous = this.historyStack.pop();
+    if (!previous) return false;
+    this.state = previous;
+    return true;
   }
 }
