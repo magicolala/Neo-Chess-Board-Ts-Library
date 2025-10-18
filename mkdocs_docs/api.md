@@ -9,23 +9,24 @@ The main chess board class that handles rendering, interaction, and game state.
 #### Constructor
 
 ```typescript
-constructor(canvas: HTMLCanvasElement, options?: Partial<BoardOptions>)
+constructor(root: HTMLElement, options?: BoardOptions)
 ```
 
 **Parameters:**
 
-- `canvas: HTMLCanvasElement` - The canvas element to render the board on
-- `options?: Partial<BoardOptions>` - Optional board configuration
+- `root: HTMLElement` - The container element that will host the rendered board layers
+- `options?: BoardOptions` - Optional board configuration
 
 #### Methods
 
-##### `loadPosition(fen: string): void`
+##### `loadPosition(fen: string, immediate?: boolean): void`
 
 Load a chess position from FEN notation.
 
 **Parameters:**
 
 - `fen: string` - Valid FEN string representing the position
+- `immediate?: boolean` - Set to `false` to animate the transition instead of snapping instantly (defaults to `true`)
 
 **Example:**
 
@@ -33,18 +34,45 @@ Load a chess position from FEN notation.
 board.loadPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 ```
 
-##### `makeMove(from: Square, to: Square): boolean`
+##### `submitMove(notation: string): boolean`
 
-Attempt to make a move on the board.
+Play a move using SAN (`"Nf3"`, `"exd5"`) or coordinate (`"e2e4"`) notation. The move is validated by the underlying rules
+adapter.
+
+**Parameters:**
+
+- `notation: string` - Move string in SAN or coordinate notation
+
+**Returns:**
+
+- `boolean` - `true` if the move was executed, `false` if it was rejected
+
+**Example:**
+
+```typescript
+board.submitMove('e4');
+board.submitMove('Nf3');
+```
+
+##### `attemptMove(from: Square, to: Square, options?: { promotion?: PromotionPiece }): boolean`
+
+Attempt to move a piece directly between two squares. Optionally provide a promotion piece when moving a pawn to the back rank.
 
 **Parameters:**
 
 - `from: Square` - Source square (e.g., 'e2')
 - `to: Square` - Destination square (e.g., 'e4')
+- `options?: { promotion?: PromotionPiece }` - Optional promotion configuration
 
 **Returns:**
 
-- `boolean` - True if move was successful, false otherwise
+- `boolean` - `true` if the move was successful, `false` otherwise
+
+**Example:**
+
+```typescript
+board.attemptMove('e7', 'e8', { promotion: 'q' });
+```
 
 ##### `getPieceSquares(piece: Piece): Square[]`
 
@@ -66,25 +94,29 @@ Change the visual theme of the board.
 
 - `theme: ThemeName | Theme` - Theme name or custom theme object
 
-##### `setOrientation(color: 'white' | 'black'): void`
+##### `setOrientation(orientation: 'white' | 'black'): void`
 
 Flip the board orientation.
 
 **Parameters:**
 
-- `color: 'white' | 'black'` - Which color should be at the bottom
+- `orientation: 'white' | 'black'` - Which color should be at the bottom
 
-##### `setAutoFlip(enabled: boolean): void`
+##### `setAutoFlip(autoFlip: boolean): void`
 
 Enable or disable automatic board flipping based on the side to move.
 
 **Parameters:**
 
-- `enabled: boolean` - `true` to follow the active player, `false` to keep the current orientation
+- `autoFlip: boolean` - `true` to follow the active player, `false` to keep the current orientation
 
-##### `reset(): void`
+##### `reset(immediate?: boolean): void`
 
 Reset the board to the initial chess position.
+
+**Parameters:**
+
+- `immediate?: boolean` - Set to `false` to animate the reset instead of snapping instantly (defaults to `true`)
 
 ##### `exportPGN(): string`
 
