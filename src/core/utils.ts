@@ -33,6 +33,59 @@ export function generateRankLabels(count: number): string[] {
   return Array.from({ length: safeCount }, (_, index) => String(index + 1));
 }
 
+export interface ResolveBoardGeometryOptions {
+  files: number;
+  ranks: number;
+  fileLabels?: readonly string[];
+  rankLabels?: readonly string[];
+  defaultFiles?: number;
+  defaultRanks?: number;
+}
+
+export interface ResolvedBoardGeometry {
+  files: number;
+  ranks: number;
+  fileLabels: string[];
+  rankLabels: string[];
+}
+
+function sanitizeDimension(value: number, fallback: number): number {
+  const normalizedFallback = Number.isFinite(fallback) ? fallback : 8;
+  const candidate = Number.isFinite(value) ? value : normalizedFallback;
+  const normalizedCandidate = Number.isFinite(candidate) ? candidate : normalizedFallback;
+  const floored = Math.floor(normalizedCandidate);
+  return Math.max(1, Number.isFinite(floored) ? floored : Math.floor(normalizedFallback) || 1);
+}
+
+export function resolveBoardGeometry({
+  files,
+  ranks,
+  fileLabels,
+  rankLabels,
+  defaultFiles = 8,
+  defaultRanks = 8,
+}: ResolveBoardGeometryOptions): ResolvedBoardGeometry {
+  const sanitizedFiles = sanitizeDimension(files, defaultFiles);
+  const sanitizedRanks = sanitizeDimension(ranks, defaultRanks);
+
+  const resolvedFileLabels =
+    fileLabels && fileLabels.length >= sanitizedFiles
+      ? fileLabels.slice(0, sanitizedFiles)
+      : generateFileLabels(sanitizedFiles);
+
+  const resolvedRankLabels =
+    rankLabels && rankLabels.length >= sanitizedRanks
+      ? rankLabels.slice(0, sanitizedRanks)
+      : generateRankLabels(sanitizedRanks);
+
+  return {
+    files: sanitizedFiles,
+    ranks: sanitizedRanks,
+    fileLabels: resolvedFileLabels,
+    rankLabels: resolvedRankLabels,
+  };
+}
+
 export const FILES = Object.freeze(generateFileLabels(DEFAULT_LABEL_COUNT));
 export const RANKS = Object.freeze(generateRankLabels(DEFAULT_LABEL_COUNT));
 
