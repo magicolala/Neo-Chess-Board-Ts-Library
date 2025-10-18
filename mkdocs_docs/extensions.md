@@ -4,7 +4,7 @@ Neo Chess Board now supports a lightweight extension system that lets you hook i
 
 ## Lifecycle overview
 
-Every extension implements the `Extension` interface exposed by `@neo-chess-board/core`:
+Every extension implements the `Extension` interface exposed by `@magicolala/neo-chess-board`:
 
 ```ts
 export interface Extension<TOptions = unknown> {
@@ -48,7 +48,7 @@ Each config exposes an `id`, optional `options` bag, and a `create` callback tha
 The library ships with `createArrowHighlightExtension`, a migration of the legacy drawing helpers onto the new extension surface. It adds initial arrows and highlights, keeps them in sync after board updates, and draws a coloured arrow for the last move. Cleanup happens automatically when the board is destroyed.
 
 ```ts
-import { NeoChessBoard, createArrowHighlightExtension } from '@neo-chess-board/core';
+import { NeoChessBoard, createArrowHighlightExtension } from '@magicolala/neo-chess-board';
 
 const board = new NeoChessBoard(container, {
   extensions: [
@@ -83,3 +83,6 @@ create(ctx) {
 ```
 
 The board tracks all registered listeners and disposes them during `destroy()`, so extensions do not have to manage unsubscription manually.【F:src/core/NeoChessBoard.ts†L56-L68】【F:src/core/NeoChessBoard.ts†L499-L547】
+
+!!! note
+    All bundled extensions are available directly from the root package export, so you can import them alongside `NeoChessBoard`.
