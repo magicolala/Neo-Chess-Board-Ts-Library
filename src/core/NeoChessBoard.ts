@@ -509,6 +509,11 @@ export class NeoChessBoard {
     this._emitUpdateEvent();
   }
 
+  private _adapterSupportsSanMoves(): boolean {
+    const adapter = this.rules as { supportsSanMoves?: boolean };
+    return adapter?.supportsSanMoves === true;
+  }
+
   // ============================================================================
   // Public API - Move Submission
   // ============================================================================
@@ -520,7 +525,7 @@ export class NeoChessBoard {
       return false;
     }
 
-    if (this.rules.supportsSanMoves === true) {
+    if (this._adapterSupportsSanMoves()) {
       let sanResult: RulesMoveResponse | null | undefined;
 
       try {
