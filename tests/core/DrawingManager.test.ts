@@ -185,11 +185,7 @@ describe('DrawingManager', () => {
       fileLabels: generateFileLabels(4),
       rankLabels: generateRankLabels(4),
     });
-    Reflect.set(
-      drawingManager as unknown as Record<string, unknown>,
-      'orientation',
-      'black',
-    );
+    Reflect.set(drawingManager as unknown as Record<string, unknown>, 'orientation', 'black');
 
     mockContext.fillText.mockClear();
     drawingManager.renderSquareNames('black', 0, 1);
