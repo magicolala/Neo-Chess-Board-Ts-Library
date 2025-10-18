@@ -1,4 +1,5 @@
 import { DrawingManager } from '../../src/core/DrawingManager';
+import { generateFileLabels, generateRankLabels } from '../../src/core/utils';
 import type { Arrow, SquareHighlight, Premove } from '../../src/core/types';
 
 // Mock HTMLCanvasElement
@@ -98,6 +99,50 @@ describe('DrawingManager', () => {
       // updateDimensions calls getContext internally but doesn't use the result
       // The method updates internal squareSize based on canvas dimensions
       expect(drawingManager).toBeDefined();
+    });
+  });
+
+  describe('Board geometry handling', () => {
+    it('truncates custom labels that exceed the geometry size', () => {
+      drawingManager.updateDimensions({
+        files: 5,
+        ranks: 4,
+        fileLabels: ['a1', 'b1', 'c1', 'd1', 'e1', 'f1'],
+        rankLabels: ['1', '2', '3', '4', '5'],
+      });
+
+      const fileLabels = Reflect.get(
+        drawingManager as unknown as Record<string, unknown>,
+        'fileLabels',
+      );
+      const rankLabels = Reflect.get(
+        drawingManager as unknown as Record<string, unknown>,
+        'rankLabels',
+      );
+
+      expect(fileLabels).toEqual(['a1', 'b1', 'c1', 'd1', 'e1']);
+      expect(rankLabels).toEqual(['1', '2', '3', '4']);
+    });
+
+    it('falls back to generated labels when provided labels are insufficient', () => {
+      drawingManager.updateDimensions({
+        files: 3,
+        ranks: 3,
+        fileLabels: ['x'],
+        rankLabels: ['1'],
+      });
+
+      const fileLabels = Reflect.get(
+        drawingManager as unknown as Record<string, unknown>,
+        'fileLabels',
+      );
+      const rankLabels = Reflect.get(
+        drawingManager as unknown as Record<string, unknown>,
+        'rankLabels',
+      );
+
+      expect(fileLabels).toEqual(generateFileLabels(3));
+      expect(rankLabels).toEqual(generateRankLabels(3));
     });
   });
 

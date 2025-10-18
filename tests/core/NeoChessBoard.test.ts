@@ -417,6 +417,24 @@ describe('NeoChessBoard Core', () => {
 
       customBoard.destroy();
     });
+
+    it('truncates custom labels to the resolved geometry size', () => {
+      const methodHost = getMethodHost(board);
+      methodHost._setBoardGeometry(4, 3, ['aa', 'bb', 'cc', 'dd', 'ee'], ['1', '2', '3', '4']);
+
+      expect(getPrivate<number>(board, 'filesCount')).toBe(4);
+      expect(getPrivate<number>(board, 'ranksCount')).toBe(3);
+      expect(getPrivate<string[]>(board, 'fileLabels')).toEqual(['aa', 'bb', 'cc', 'dd']);
+      expect(getPrivate<string[]>(board, 'rankLabels')).toEqual(['1', '2', '3']);
+    });
+
+    it('falls back to generated labels when custom labels are insufficient', () => {
+      const methodHost = getMethodHost(board);
+      methodHost._setBoardGeometry(3, 3, ['only-a'], ['1']);
+
+      expect(getPrivate<string[]>(board, 'fileLabels')).toEqual(generateFileLabels(3));
+      expect(getPrivate<string[]>(board, 'rankLabels')).toEqual(generateRankLabels(3));
+    });
   });
 
   describe('FEN handling', () => {

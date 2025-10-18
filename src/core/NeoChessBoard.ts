@@ -11,6 +11,7 @@ import {
   type ParsedFENState,
   generateFileLabels,
   generateRankLabels,
+  resolveBoardGeometry,
 } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
@@ -1326,19 +1327,25 @@ export class NeoChessBoard {
   // Private - Dimension Management
   // ============================================================================
 
-  private _setBoardGeometry(files: number, ranks: number): void {
-    const sanitizedFiles = Math.max(
-      1,
-      Math.floor(Number.isFinite(files) ? files : DEFAULT_BOARD_FILES),
-    );
-    const sanitizedRanks = Math.max(
-      1,
-      Math.floor(Number.isFinite(ranks) ? ranks : DEFAULT_BOARD_RANKS),
-    );
-    this.filesCount = sanitizedFiles;
-    this.ranksCount = sanitizedRanks;
-    this.fileLabels = generateFileLabels(this.filesCount);
-    this.rankLabels = generateRankLabels(this.ranksCount);
+  private _setBoardGeometry(
+    files: number,
+    ranks: number,
+    fileLabels?: readonly string[],
+    rankLabels?: readonly string[],
+  ): void {
+    const geometry = resolveBoardGeometry({
+      files,
+      ranks,
+      fileLabels,
+      rankLabels,
+      defaultFiles: DEFAULT_BOARD_FILES,
+      defaultRanks: DEFAULT_BOARD_RANKS,
+    });
+
+    this.filesCount = geometry.files;
+    this.ranksCount = geometry.ranks;
+    this.fileLabels = geometry.fileLabels;
+    this.rankLabels = geometry.rankLabels;
   }
 
   private _parseFEN(fen: string): ParsedFENState {

@@ -10,7 +10,16 @@ import type {
   ArrowStyleOptions,
   NotationStyleOptions,
 } from './types';
-import { FILES, RANKS, clamp, generateFileLabels, generateRankLabels, sq, sqToFR } from './utils';
+import {
+  FILES,
+  RANKS,
+  clamp,
+  generateFileLabels,
+  generateRankLabels,
+  sq,
+  sqToFR,
+  resolveBoardGeometry,
+} from './utils';
 
 type ModifierKey = 'shiftKey' | 'ctrlKey' | 'altKey';
 type ModifierState = Partial<Record<ModifierKey, boolean>>;
@@ -158,18 +167,19 @@ export class DrawingManager {
   }
 
   private setBoardGeometry({ files, ranks, fileLabels, rankLabels }: BoardGeometryConfig): void {
-    const sanitizedFiles = Math.max(1, Math.floor(files));
-    const sanitizedRanks = Math.max(1, Math.floor(ranks));
-    this.filesCount = sanitizedFiles;
-    this.ranksCount = sanitizedRanks;
-    this.fileLabels =
-      fileLabels.length >= sanitizedFiles
-        ? fileLabels.slice(0, sanitizedFiles)
-        : generateFileLabels(sanitizedFiles);
-    this.rankLabels =
-      rankLabels.length >= sanitizedRanks
-        ? rankLabels.slice(0, sanitizedRanks)
-        : generateRankLabels(sanitizedRanks);
+    const geometry = resolveBoardGeometry({
+      files,
+      ranks,
+      fileLabels,
+      rankLabels,
+      defaultFiles: this.filesCount,
+      defaultRanks: this.ranksCount,
+    });
+
+    this.filesCount = geometry.files;
+    this.ranksCount = geometry.ranks;
+    this.fileLabels = geometry.fileLabels;
+    this.rankLabels = geometry.rankLabels;
   }
 
   private squareFromIndices(file: number, rank: number): Square {
