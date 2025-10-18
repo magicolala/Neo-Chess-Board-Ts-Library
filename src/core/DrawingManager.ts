@@ -516,12 +516,7 @@ export class DrawingManager {
     ctx.textBaseline = 'alphabetic';
     for (let column = 0; column < this.filesCount; column++) {
       const boardFileIndex = orientation === 'white' ? column : this.filesCount - 1 - column;
-      const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
-      const char =
-        this.fileLabels[boardFileIndex] ??
-        FILES[boardFileIndex] ??
-        fallbackFileLabels[fallbackFileLabels.length - 1] ??
-        '';
+      const char = this.resolveFileLabel(boardFileIndex);
       const isLightSquare = (boardFileIndex + bottomRankIndex) % 2 === 0;
       const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
         squareSize,
@@ -542,12 +537,7 @@ export class DrawingManager {
     ctx.textBaseline = 'middle';
     for (let row = 0; row < this.ranksCount; row++) {
       const boardRankIndex = orientation === 'white' ? row : this.ranksCount - 1 - row;
-      const fallbackRankLabels = generateRankLabels(boardRankIndex + 1);
-      const label =
-        this.rankLabels[boardRankIndex] ??
-        RANKS[boardRankIndex] ??
-        fallbackRankLabels[fallbackRankLabels.length - 1] ??
-        String(boardRankIndex + 1);
+      const label = this.resolveRankLabel(boardRankIndex);
       const isLightSquare = (leftFileIndex + boardRankIndex) % 2 === 0;
       const { color, font, padding, opacity, textTransform } = this.resolveNotationStyle(
         squareSize,
@@ -612,6 +602,28 @@ export class DrawingManager {
       return value.toLowerCase();
     }
     return value;
+  }
+
+  private resolveFileLabel(boardFileIndex: number): string {
+    const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
+
+    return (
+      this.fileLabels[boardFileIndex] ??
+      FILES[boardFileIndex] ??
+      fallbackFileLabels[fallbackFileLabels.length - 1] ??
+      ''
+    );
+  }
+
+  private resolveRankLabel(boardRankIndex: number): string {
+    const fallbackRankLabels = generateRankLabels(boardRankIndex + 1);
+
+    return (
+      this.rankLabels[boardRankIndex] ??
+      RANKS[boardRankIndex] ??
+      fallbackRankLabels[fallbackRankLabels.length - 1] ??
+      String(boardRankIndex + 1)
+    );
   }
 
   public drawArrows(ctx: CanvasRenderingContext2D): void {
@@ -1249,12 +1261,7 @@ export class DrawingManager {
         if (r === (this.orientation === 'white' ? this.ranksCount - 1 : 0)) {
           // Bottom rank for white, top rank for black
           const boardFileIndex = this.orientation === 'white' ? f : this.filesCount - 1 - f;
-          const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
-          const file =
-            this.fileLabels[boardFileIndex] ??
-            FILES[boardFileIndex] ??
-            fallbackFileLabels[fallbackFileLabels.length - 1] ??
-            '';
+          const file = this.resolveFileLabel(boardFileIndex);
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
           ctx.textBaseline = 'bottom';
           ctx.fillText(
@@ -1271,12 +1278,7 @@ export class DrawingManager {
         if (f === (this.orientation === 'white' ? 0 : this.filesCount - 1)) {
           // Left file for white, right file for black
           const boardRankIndex = this.orientation === 'white' ? this.ranksCount - 1 - r : r;
-          const fallbackRankLabels = generateRankLabels(boardRankIndex + 1);
-          const rank =
-            this.rankLabels[boardRankIndex] ??
-            RANKS[boardRankIndex] ??
-            fallbackRankLabels[fallbackRankLabels.length - 1] ??
-            String(boardRankIndex + 1);
+          const rank = this.resolveRankLabel(boardRankIndex);
           ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
           ctx.textBaseline = this.orientation === 'white' ? 'top' : 'bottom';
           ctx.fillText(

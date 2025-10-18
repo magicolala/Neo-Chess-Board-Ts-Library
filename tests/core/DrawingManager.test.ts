@@ -178,6 +178,38 @@ describe('DrawingManager', () => {
     });
   });
 
+  it('renders identical square labels across both rendering paths', () => {
+    drawingManager.updateDimensions({
+      files: 4,
+      ranks: 4,
+      fileLabels: generateFileLabels(4),
+      rankLabels: generateRankLabels(4),
+    });
+    Reflect.set(
+      drawingManager as unknown as Record<string, unknown>,
+      'orientation',
+      'black',
+    );
+
+    mockContext.fillText.mockClear();
+    drawingManager.renderSquareNames('black', 0, 1);
+    const renderLabels = mockContext.fillText.mock.calls.map((call) => call[0]);
+
+    mockContext.fillText.mockClear();
+    (
+      drawingManager as unknown as {
+        _drawSquareNames(context: CanvasRenderingContext2D): void;
+      }
+    )._drawSquareNames(mockContext);
+    const legacyLabels = mockContext.fillText.mock.calls.map((call) => call[0]);
+
+    const sortedRenderLabels = [...renderLabels].sort();
+    const sortedLegacyLabels = [...legacyLabels].sort();
+
+    expect(sortedLegacyLabels).toEqual(sortedRenderLabels);
+    expect(sortedLegacyLabels).toEqual(['1', '2', '3', '4', 'a', 'b', 'c', 'd']);
+  });
+
   describe('Arrow Management', () => {
     it('should add arrow with from/to format', () => {
       drawingManager.addArrow('e2', 'e4');
