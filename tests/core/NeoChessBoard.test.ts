@@ -1,4 +1,7 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import type { BoardAudioManager } from '../../src/core/BoardAudioManager';
+import type { BoardEventManager } from '../../src/core/BoardEventManager';
+import { BoardDomManager } from '../../src/core/BoardDomManager';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
 import type {
@@ -23,8 +26,8 @@ type MockCanvasElement = HTMLCanvasElement & {
   getBoundingClientRect: jest.Mock<ReturnType<HTMLCanvasElement['getBoundingClientRect']>>;
 };
 
-const getPrivate = <T>(instance: NeoChessBoard, key: string): T =>
-  Reflect.get(instance as unknown as Record<string, unknown>, key) as T;
+const getPrivate = <T>(instance: unknown, key: string): T =>
+  Reflect.get(instance as Record<string, unknown>, key) as T;
 
 const getOrientation = (instance: NeoChessBoard): 'white' | 'black' =>
   getPrivate<'white' | 'black'>(instance, 'orientation');
@@ -32,11 +35,11 @@ const getOrientation = (instance: NeoChessBoard): 'white' | 'black' =>
 const getSoundEnabled = (instance: NeoChessBoard): boolean =>
   getPrivate<boolean>(instance, 'soundEnabled');
 
-const getBoardState = (instance: NeoChessBoard): { turn: 'w' | 'b' } =>
-  getPrivate<{ turn: 'w' | 'b' }>(instance, 'state');
-
 const getMethodHost = (instance: NeoChessBoard): Record<string, (...args: unknown[]) => unknown> =>
   instance as unknown as Record<string, (...args: unknown[]) => unknown>;
+
+const getEventManager = (instance: NeoChessBoard): BoardEventManager =>
+  getPrivate<BoardEventManager>(instance, 'eventManager');
 
 type AudioMock = {
   play: jest.Mock<Promise<void>, []>;
@@ -47,6 +50,16 @@ type AudioMock = {
 };
 
 type AudioConstructor = new (src?: string) => HTMLAudioElement;
+
+if (typeof globalThis.PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    constructor(type: string, init?: Record<string, unknown>) {
+      super(type, init);
+    }
+  }
+  (globalThis as unknown as { PointerEvent: typeof PointerEvent }).PointerEvent =
+    PointerEventPolyfill as unknown as typeof PointerEvent;
+}
 
 class FlexibleGeometryRulesAdapter implements RulesAdapter {
   private fen: string;
@@ -390,13 +403,14 @@ describe('NeoChessBoard Core', () => {
       board.destroy();
       board = new NeoChessBoard(container, { allowDragging: false });
 
-      expect(getPrivate<boolean>(board, '_globalPointerEventsAttached')).toBe(false);
-      expect(getPrivate<boolean>(board, '_localPointerEventsAttached')).toBe(true);
+      const eventManager = getEventManager(board);
+      expect(getPrivate<boolean>(eventManager, 'globalPointerEventsAttached')).toBe(false);
+      expect(getPrivate<boolean>(eventManager, 'localPointerEventsAttached')).toBe(true);
 
       board.setDraggingEnabled(true);
 
-      expect(getPrivate<boolean>(board, '_globalPointerEventsAttached')).toBe(true);
-      expect(getPrivate<boolean>(board, '_localPointerEventsAttached')).toBe(false);
+      expect(getPrivate<boolean>(eventManager, 'globalPointerEventsAttached')).toBe(true);
+      expect(getPrivate<boolean>(eventManager, 'localPointerEventsAttached')).toBe(false);
     });
   });
 
@@ -759,9 +773,8 @@ describe('NeoChessBoard Core', () => {
         soundUrl: 'mock-sound.mp3',
       });
 
-      const initSpy = jest
-        .spyOn(getMethodHost(silentBoard), '_initializeSound')
-        .mockImplementation(() => {});
+      const audioManager = getPrivate<BoardAudioManager>(silentBoard, 'audioManager');
+      const initSpy = jest.spyOn(audioManager, 'initialize');
 
       silentBoard.setSoundEnabled(true);
 
@@ -812,7 +825,7 @@ describe('NeoChessBoard Core', () => {
             black: 'black-sound.mp3',
           },
         });
-        const soundMethods = getMethodHost(soundBoard);
+        const audioManager = getPrivate<BoardAudioManager>(soundBoard, 'audioManager');
 
         const whiteSound = audioInstances['white-sound.mp3'];
         const blackSound = audioInstances['black-sound.mp3'];
@@ -821,16 +834,14 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         whiteSound.currentTime = 2;
-        getBoardState(soundBoard).turn = 'b';
-        soundMethods._playMoveSound();
+        audioManager.playMoveSound('b');
 
         expect(whiteSound.play).toHaveBeenCalledTimes(1);
         expect(whiteSound.currentTime).toBe(0);
         expect(blackSound.play).not.toHaveBeenCalled();
 
         blackSound.currentTime = 3;
-        getBoardState(soundBoard).turn = 'w';
-        soundMethods._playMoveSound();
+        audioManager.playMoveSound('w');
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
@@ -846,7 +857,7 @@ describe('NeoChessBoard Core', () => {
             black: 'black-only.mp3',
           },
         });
-        const soundMethods = getMethodHost(soundBoard);
+        const audioManager = getPrivate<BoardAudioManager>(soundBoard, 'audioManager');
 
         const defaultSound = audioInstances['default-sound.mp3'];
         const blackSound = audioInstances['black-only.mp3'];
@@ -855,15 +866,13 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         defaultSound.currentTime = 5;
-        getBoardState(soundBoard).turn = 'b';
-        soundMethods._playMoveSound();
+        audioManager.playMoveSound('b');
 
         expect(defaultSound.play).toHaveBeenCalledTimes(1);
         expect(defaultSound.currentTime).toBe(0);
 
         blackSound.currentTime = 4;
-        getBoardState(soundBoard).turn = 'w';
-        soundMethods._playMoveSound();
+        audioManager.playMoveSound('w');
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
@@ -984,6 +993,76 @@ describe('NeoChessBoard Core', () => {
       clearSpy.mockRestore();
       setSpy.mockRestore();
       renderSpy.mockRestore();
+    });
+  });
+
+  describe('Helper integration', () => {
+    it('initializes DOM manager and canvas layers', () => {
+      const domManager = getPrivate<BoardDomManager>(board, 'domManager');
+      expect(domManager).toBeInstanceOf(BoardDomManager);
+
+      const canvases = board.getRootElement().querySelectorAll('canvas');
+      expect(canvases).toHaveLength(3);
+      expect(board.getRootElement().querySelector('.ncb-dom-overlay')).not.toBeNull();
+    });
+
+    it('emits square events via pointer interactions', () => {
+      const overlay = getPrivate<HTMLCanvasElement>(board, 'cOverlay');
+      overlay.getBoundingClientRect = jest.fn(() => ({
+        left: 0,
+        top: 0,
+        width: overlay.width || 480,
+        height: overlay.height || 480,
+        right: overlay.width || 480,
+        bottom: overlay.height || 480,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }));
+
+      const handler = jest.fn();
+      const unsubscribe = board.on('squareMouseDown', handler);
+
+      overlay.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          button: 0,
+          clientX: 16,
+          clientY: 16,
+        }),
+      );
+
+      expect(handler).toHaveBeenCalled();
+      unsubscribe();
+    });
+
+    it('invokes the audio manager when moves succeed', () => {
+      const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+      const playSpy = jest.spyOn(audioManager, 'playMoveSound');
+
+      const originalAudio = globalThis.Audio;
+      const audioFactory = jest.fn(() => ({
+        play: jest.fn().mockResolvedValue(undefined),
+        addEventListener: jest.fn(),
+        preload: 'auto',
+        volume: 0.3,
+        currentTime: 0,
+      }));
+      (globalThis as typeof globalThis & { Audio?: AudioConstructor }).Audio =
+        audioFactory as unknown as AudioConstructor;
+
+      try {
+        const result = board.attemptMove('e2', 'e4');
+        expect(result).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('b');
+      } finally {
+        playSpy.mockRestore();
+        if (originalAudio) {
+          (globalThis as typeof globalThis & { Audio?: AudioConstructor }).Audio = originalAudio;
+        } else {
+          Reflect.deleteProperty(globalThis as Record<string, unknown>, 'Audio');
+        }
+      }
     });
   });
 
@@ -1211,12 +1290,25 @@ describe('NeoChessBoard Core', () => {
 
     beforeEach(() => {
       overlay = getPrivate<HTMLCanvasElement>(board, 'cOverlay');
-      const pointerDown = getPrivate<(event: PointerEvent) => void>(board, '_onPointerDown');
-      const pointerMove = getPrivate<(event: PointerEvent) => void>(board, '_onPointerMove');
-      const pointerUp = getPrivate<(event: PointerEvent) => void>(board, '_onPointerUp');
-      onPointerDown = pointerDown.bind(board);
-      onPointerMove = pointerMove.bind(board);
-      onPointerUp = pointerUp.bind(board);
+      const eventManager = getEventManager(board);
+      const pointerDown = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerDownHandler',
+      );
+      const pointerMove = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerMoveHandler',
+      );
+      const pointerUp = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerUpHandler',
+      );
+      if (!pointerDown || !pointerMove || !pointerUp) {
+        throw new Error('Pointer handlers were not initialized');
+      }
+      onPointerDown = pointerDown;
+      onPointerMove = pointerMove;
+      onPointerUp = pointerUp;
       overlayRect = overlay.getBoundingClientRect();
     });
 
@@ -1446,12 +1538,25 @@ describe('NeoChessBoard Core', () => {
       board = new NeoChessBoard(container, { allowAutoScroll: true });
 
       overlay = getPrivate<HTMLCanvasElement>(board, 'cOverlay');
-      const pointerDown = getPrivate<(event: PointerEvent) => void>(board, '_onPointerDown');
-      const pointerMove = getPrivate<(event: PointerEvent) => void>(board, '_onPointerMove');
-      const pointerUp = getPrivate<(event: PointerEvent) => void>(board, '_onPointerUp');
-      onPointerDown = pointerDown.bind(board);
-      onPointerMove = pointerMove.bind(board);
-      onPointerUp = pointerUp.bind(board);
+      const eventManager = getEventManager(board);
+      const pointerDown = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerDownHandler',
+      );
+      const pointerMove = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerMoveHandler',
+      );
+      const pointerUp = getPrivate<(event: PointerEvent) => void | undefined>(
+        eventManager,
+        'pointerUpHandler',
+      );
+      if (!pointerDown || !pointerMove || !pointerUp) {
+        throw new Error('Pointer handlers were not initialized');
+      }
+      onPointerDown = pointerDown;
+      onPointerMove = pointerMove;
+      onPointerUp = pointerUp;
       overlayRect = overlay.getBoundingClientRect();
 
       const down = createPointerEventForSquare(0, 'e2');
