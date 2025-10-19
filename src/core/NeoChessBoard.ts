@@ -8,16 +8,19 @@ import {
   lerp,
   easeOutCubic,
   START_FEN,
-  type ParsedFENState,
   generateFileLabels,
   generateRankLabels,
   resolveBoardGeometry,
 } from './utils';
+import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
 import { FlatSprites } from './FlatSprites';
 import { ChessJsRules } from './ChessJsRules';
-import { DrawingManager } from './DrawingManager';
+import type { DrawingManager } from './DrawingManager';
+import { BoardDomManager } from './BoardDomManager';
+import { BoardAudioManager } from './BoardAudioManager';
+import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import type { PgnNotation } from './PgnNotation';
 import type {
   Square,
@@ -57,7 +60,6 @@ import type {
 
 const DEFAULT_BOARD_SIZE = 480;
 const DEFAULT_ANIMATION_MS = 300;
-const DEFAULT_AUDIO_VOLUME = 0.3;
 const SPRITE_SIZE = 128;
 const DEFAULT_BOARD_RANKS = 8;
 const DEFAULT_BOARD_FILES = 8;
@@ -121,10 +123,7 @@ interface PendingPromotionState {
   request: PromotionRequest;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
+type Point = BoardPointerEventPoint;
 
 interface DraggingState {
   from: Square;
@@ -152,8 +151,6 @@ export class NeoChessBoard {
   private domOverlay?: HTMLDivElement;
   private squareLayer?: HTMLDivElement;
   private pieceLayer?: HTMLDivElement;
-  private boardInlineStyle?: InlineStyle;
-  private appliedBoardStyleKeys = new Set<string>();
   private baseSquareStyle?: SquareStyleOptions;
   private lightSquareStyleOptions?: SquareStyleOptions;
   private darkSquareStyleOptions?: SquareStyleOptions;
@@ -213,12 +210,11 @@ export class NeoChessBoard {
 
   // ---- Managers ----
   public drawingManager!: DrawingManager;
+  private domManager!: BoardDomManager;
+  private audioManager: BoardAudioManager;
+  private eventManager?: BoardEventManager;
 
   // ---- Audio ----
-  private soundUrl: string | undefined;
-  private soundUrls: BoardOptions['soundUrls'];
-  private moveSound: HTMLAudioElement | null = null;
-  private moveSounds: Partial<Record<'white' | 'black', HTMLAudioElement>> = {};
 
   // ---- Interaction State ----
   private _lastMove: { from: Square; to: Square } | null = null;
@@ -260,17 +256,6 @@ export class NeoChessBoard {
   private extensionStates: ExtensionState[] = [];
   private readonly initialOptions: BoardOptions;
 
-  // ---- Event Handlers (stored for cleanup) ----
-  private _onPointerDown?: (e: PointerEvent) => void;
-  private _onPointerMove?: (e: PointerEvent) => void;
-  private _onPointerUp?: (e: PointerEvent) => void;
-  private _onKeyDown?: (e: KeyboardEvent) => void;
-  private _onContextMenu?: (e: Event) => void;
-  private _ro?: ResizeObserver;
-  private _pointerDownAttached = false;
-  private _globalPointerEventsAttached = false;
-  private _localPointerEventsAttached = false;
-
   // ============================================================================
   // Constructor
   // ============================================================================
@@ -288,7 +273,7 @@ export class NeoChessBoard {
       options.chessboardRows ?? DEFAULT_BOARD_RANKS,
     );
     this.boardId = options.id ?? undefined;
-    this.boardInlineStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
+    const boardStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
     this.baseSquareStyle = options.squareStyle ? { ...options.squareStyle } : undefined;
     this.lightSquareStyleOptions = options.lightSquareStyle
       ? { ...options.lightSquareStyle }
@@ -362,10 +347,13 @@ export class NeoChessBoard {
     this.controlledArrows = options.arrows;
 
     // Initialize sound configuration
-    this.soundUrl = options.soundUrl;
-    this.soundUrls = options.soundUrls;
+    this.audioManager = new BoardAudioManager({
+      enabled: this.soundEnabled,
+      soundUrl: options.soundUrl,
+      soundUrls: options.soundUrls,
+    });
+    this.audioManager.initialize();
     this.promotionHandler = options.onPromotionRequired;
-    this._initializeSound();
 
     // Initialize rules and state
     this.rules = options.rulesAdapter || new ChessJsRules();
@@ -380,8 +368,68 @@ export class NeoChessBoard {
     this._initializeExtensions(options.extensions);
 
     // Build and setup
-    this._buildDOM();
-    this._attachEvents();
+    this.domManager = new BoardDomManager({
+      root: this.root,
+      boardId: this.boardId,
+      boardInlineStyle: boardStyle,
+      filesCount: this.filesCount,
+      ranksCount: this.ranksCount,
+      fileLabels: this.fileLabels,
+      rankLabels: this.rankLabels,
+      orientation: this.orientation,
+      showSquareNames: this.showSquareNames,
+      allowDrawingArrows: this.allowDrawingArrows,
+      arrowOptions: this.arrowOptions,
+      clearArrowsOnClick: this.clearArrowsOnClick,
+      controlledArrows: this.controlledArrows,
+      lightNotationStyle: this.lightNotationStyle,
+      darkNotationStyle: this.darkNotationStyle,
+      alphaNotationStyle: this.alphaNotationStyle,
+      numericNotationStyle: this.numericNotationStyle,
+      onArrowsChange: this.drawingManagerArrowsChangeHandler,
+      onResizeRequested: () => this.resize(),
+      theme: this.theme,
+      spriteSize: SPRITE_SIZE,
+    });
+    const domResult = this.domManager.build();
+    this.cBoard = domResult.cBoard;
+    this.cPieces = domResult.cPieces;
+    this.cOverlay = domResult.cOverlay;
+    this.ctxB = domResult.ctxBoard;
+    this.ctxP = domResult.ctxPieces;
+    this.ctxO = domResult.ctxOverlay;
+    this.domOverlay = domResult.domOverlay;
+    this.squareLayer = domResult.squareLayer;
+    this.pieceLayer = domResult.pieceLayer;
+    this.drawingManager = domResult.drawingManager;
+    this.sprites = domResult.sprites;
+    this.squareElements.clear();
+    this.pieceElements.clear();
+    this._applyNotationStyles();
+
+    this._invokeExtensionHook('onInit');
+
+    this.eventManager = new BoardEventManager(this.cOverlay, {
+      cancelActiveDrag: () => {
+        if (!this._dragging) {
+          return false;
+        }
+        this._clearInteractionState();
+        this.renderAll();
+        return true;
+      },
+      handleLeftMouseDown: (event) => this._handleLeftMouseDown(event),
+      handleLeftMouseUp: (event) => this._handleLeftMouseUp(event),
+      handleMouseMove: (event, point) => this._handleMouseMove(event, point),
+      handleRightMouseDown: (event) => this._handleRightMouseDown(event),
+      handleRightMouseUp: (event) => this._handleRightMouseUp(event),
+      handleEscapeKey: () => this._handleEscapeKey(),
+      getPointerPosition: (event) => this._getPointerPosition(event),
+      isInteractive: () => this.interactive,
+      allowDragging: () => this.allowDragging,
+      allowRightClickHighlights: () => this.rightClickHighlights,
+    });
+    this.eventManager.attach();
     this.resize();
 
     if (options.pieceSet) {
@@ -693,20 +741,11 @@ export class NeoChessBoard {
 
   public setSoundEnabled(enabled: boolean): void {
     this.soundEnabled = enabled;
-    if (enabled) {
-      this._initializeSound();
-    } else {
-      this._clearSound();
-    }
+    this.audioManager.setEnabled(enabled);
   }
 
   public setSoundUrls(soundUrls: BoardOptions['soundUrls']): void {
-    this.soundUrls = soundUrls;
-    if (this.soundEnabled) {
-      this._initializeSound();
-    } else {
-      this._clearSound();
-    }
+    this.audioManager.setSoundUrls(soundUrls);
   }
 
   public setAutoFlip(autoFlip: boolean): void {
@@ -741,7 +780,7 @@ export class NeoChessBoard {
       this._clearInteractionState();
       this.renderAll();
     }
-    this._updatePointerEventBindings();
+    this.eventManager?.updatePointerBindings();
   }
 
   public setAllowDragOffBoard(allow: boolean): void {
@@ -769,8 +808,7 @@ export class NeoChessBoard {
   }
 
   public setBoardStyle(style?: InlineStyle): void {
-    this.boardInlineStyle = style ? { ...style } : undefined;
-    this._applyBoardStyle();
+    this.domManager.setBoardStyle(style);
   }
 
   public setBoardId(id?: string): void {
@@ -1095,7 +1133,8 @@ export class NeoChessBoard {
 
   public destroy(): void {
     this._cancelPendingPromotion();
-    this._removeEvents();
+    this.eventManager?.detach();
+    this.domManager.disconnect();
     this._disposeExtensions();
     this.root.innerHTML = '';
     this.domOverlay = undefined;
@@ -1103,141 +1142,11 @@ export class NeoChessBoard {
     this.pieceLayer = undefined;
     this.squareElements.clear();
     this.pieceElements.clear();
-    this.appliedBoardStyleKeys.clear();
   }
 
   // ============================================================================
-  // Private - DOM & Initialization
+  // Private - DOM Utilities
   // ============================================================================
-
-  private _buildDOM(): void {
-    this._setupRootElement();
-    this._createCanvases();
-    this._createDomLayers();
-    this._initializeContexts();
-    this._initializeDrawingManager();
-    this._rasterize();
-    this._setupResizeObserver();
-    this._injectStyles();
-    this._invokeExtensionHook('onInit');
-  }
-
-  private _setupRootElement(): void {
-    this.root.classList.add('ncb-root');
-    this.root.style.position = 'relative';
-    this.root.style.userSelect = 'none';
-    this.root.style.aspectRatio = `${this.filesCount} / ${this.ranksCount}`;
-    if (this.boardId) {
-      this.root.id = this.boardId;
-    }
-    this._applyBoardStyle();
-  }
-
-  private _createCanvases(): void {
-    this.cBoard = this._createCanvas();
-    this.cPieces = this._createCanvas();
-    this.cOverlay = this._createCanvas();
-
-    [this.cBoard, this.cPieces, this.cOverlay].forEach((canvas) => {
-      this.root.appendChild(canvas);
-    });
-  }
-
-  private _createDomLayers(): void {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    if (this.domOverlay) {
-      this.domOverlay.remove();
-      this.domOverlay = undefined;
-    }
-
-    const overlay = document.createElement('div');
-    overlay.classList.add('ncb-dom-overlay');
-    Object.assign(overlay.style, {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-    });
-
-    const squareLayer = document.createElement('div');
-    squareLayer.classList.add('ncb-square-overlay');
-    Object.assign(squareLayer.style, {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-    });
-    overlay.appendChild(squareLayer);
-
-    const pieceLayer = document.createElement('div');
-    pieceLayer.classList.add('ncb-piece-overlay');
-    Object.assign(pieceLayer.style, {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-    });
-    overlay.appendChild(pieceLayer);
-
-    this.root.appendChild(overlay);
-
-    this.domOverlay = overlay;
-    this.squareLayer = squareLayer;
-    this.pieceLayer = pieceLayer;
-    this.squareElements.clear();
-    this.pieceElements.clear();
-  }
-
-  private _applyBoardStyle(): void {
-    if (!this.root) {
-      return;
-    }
-
-    const style = this.boardInlineStyle;
-    const nextKeys = new Set<string>(style ? Object.keys(style) : []);
-
-    for (const key of this.appliedBoardStyleKeys) {
-      if (!nextKeys.has(key)) {
-        this._setRootStyleValue(key, '');
-      }
-    }
-
-    this.appliedBoardStyleKeys.clear();
-
-    if (!style) {
-      return;
-    }
-
-    for (const [key, value] of Object.entries(style)) {
-      const normalized = this._normalizeStyleValue(value);
-      this._setRootStyleValue(key, normalized);
-      this.appliedBoardStyleKeys.add(key);
-    }
-  }
-
-  private _setRootStyleValue(key: string, value: string): void {
-    if (key.includes('-')) {
-      this.root.style.setProperty(key, value);
-    } else {
-      (this.root.style as unknown as Record<string, string>)[key] = value;
-    }
-  }
-
-  private _normalizeStyleValue(value: string | number): string {
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? `${value}` : '';
-    }
-    return value;
-  }
 
   private _applyNotationStyles(): void {
     if (!this.drawingManager) {
@@ -1249,74 +1158,6 @@ export class NeoChessBoard {
       alpha: this.alphaNotationStyle ?? null,
       numeric: this.numericNotationStyle ?? null,
     });
-  }
-
-  private _createCanvas(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    Object.assign(canvas.style, {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      width: '100%',
-      height: '100%',
-    });
-    return canvas;
-  }
-
-  private _initializeContexts(): void {
-    this.ctxB = this.cBoard.getContext('2d')!;
-    this.ctxP = this.cPieces.getContext('2d')!;
-    this.ctxO = this.cOverlay.getContext('2d')!;
-  }
-
-  private _initializeDrawingManager(): void {
-    this.drawingManager = new DrawingManager(this.cOverlay, {
-      allowDrawingArrows: this.allowDrawingArrows,
-      arrowOptions: this.arrowOptions,
-      clearArrowsOnClick: this.clearArrowsOnClick,
-      onArrowsChange: this.drawingManagerArrowsChangeHandler,
-      lightSquareNotationStyle: this.lightNotationStyle,
-      darkSquareNotationStyle: this.darkNotationStyle,
-      alphaNotationStyle: this.alphaNotationStyle,
-      numericNotationStyle: this.numericNotationStyle,
-      boardFiles: this.filesCount,
-      boardRanks: this.ranksCount,
-      fileLabels: this.fileLabels,
-      rankLabels: this.rankLabels,
-    });
-    this.drawingManager.setOrientation(this.orientation);
-    this.drawingManager.setShowSquareNames(this.showSquareNames);
-    this._applyNotationStyles();
-    if (this.controlledArrows) {
-      this.drawingManager.setArrows(this.controlledArrows);
-    }
-  }
-
-  private _setupResizeObserver(): void {
-    const ro = new ResizeObserver(() => this.resize());
-    ro.observe(this.root);
-    this._ro = ro;
-  }
-
-  private _injectStyles(): void {
-    if (typeof document === 'undefined') return;
-
-    const style = document.createElement('style');
-    style.textContent = `
-      .ncb-root {
-        display: block;
-        max-width: 100%;
-        aspect-ratio: auto 606/606;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.10);
-      }
-      canvas {
-        image-rendering: optimizeQuality;
-        aspect-ratio: auto 606/606;
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   private _rasterize(): void {
@@ -1904,149 +1745,6 @@ export class NeoChessBoard {
   // Private - Event Handling
   // ============================================================================
 
-  private _attachEvents(): void {
-    let cancelledDragWithRightClick = false;
-
-    const cancelActiveDrag = (): boolean => {
-      if (!this._dragging) return false;
-      this._clearInteractionState();
-      this.renderAll();
-      return true;
-    };
-
-    const onDown = (e: PointerEvent) => {
-      if (e.button === 2) {
-        e.preventDefault();
-        if (cancelActiveDrag()) {
-          cancelledDragWithRightClick = true;
-          return;
-        }
-        cancelledDragWithRightClick = false;
-        this._handleRightMouseDown(e);
-        return;
-      }
-
-      if (e.button !== 0 || !this.interactive) return;
-      this._handleLeftMouseDown(e);
-    };
-
-    const onMove = (e: PointerEvent) => {
-      const pt = this._getPointerPosition(e);
-      this._handleMouseMove(e, pt);
-    };
-
-    const onUp = (e: PointerEvent) => {
-      if (e.button === 2) {
-        if (cancelActiveDrag()) {
-          cancelledDragWithRightClick = false;
-          return;
-        }
-        if (cancelledDragWithRightClick) {
-          cancelledDragWithRightClick = false;
-          return;
-        }
-        this._handleRightMouseUp(e);
-        return;
-      }
-
-      this._handleLeftMouseUp(e);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this._handleEscapeKey();
-      }
-    };
-
-    const onContextMenu = (e: Event) => {
-      if (this.rightClickHighlights) {
-        e.preventDefault();
-      }
-    };
-
-    this._onPointerDown = onDown;
-    this._onPointerMove = onMove;
-    this._onPointerUp = onUp;
-    this._onKeyDown = onKeyDown;
-    this._onContextMenu = onContextMenu;
-
-    this.cOverlay.addEventListener('contextmenu', onContextMenu);
-    globalThis.addEventListener('keydown', onKeyDown);
-
-    this._updatePointerEventBindings();
-  }
-
-  private _removeEvents(): void {
-    if (this._pointerDownAttached && this._onPointerDown) {
-      this.cOverlay.removeEventListener('pointerdown', this._onPointerDown);
-      this._pointerDownAttached = false;
-    }
-    if (this._onContextMenu) {
-      this.cOverlay.removeEventListener('contextmenu', this._onContextMenu);
-    }
-    this._unbindGlobalPointerEvents();
-    this._unbindLocalPointerEvents();
-    if (this._onKeyDown) {
-      globalThis.removeEventListener('keydown', this._onKeyDown);
-    }
-    this._ro?.disconnect();
-  }
-
-  private _updatePointerEventBindings(): void {
-    if (!this._onPointerDown || !this._onPointerMove || !this._onPointerUp) {
-      return;
-    }
-
-    if (!this._pointerDownAttached) {
-      this.cOverlay.addEventListener('pointerdown', this._onPointerDown);
-      this._pointerDownAttached = true;
-    }
-
-    if (this.allowDragging) {
-      this._unbindLocalPointerEvents();
-      this._bindGlobalPointerEvents();
-    } else {
-      this._unbindGlobalPointerEvents();
-      this._bindLocalPointerEvents();
-    }
-  }
-
-  private _bindGlobalPointerEvents(): void {
-    if (this._globalPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
-      return;
-    }
-    globalThis.addEventListener('pointermove', this._onPointerMove);
-    globalThis.addEventListener('pointerup', this._onPointerUp);
-    this._globalPointerEventsAttached = true;
-  }
-
-  private _unbindGlobalPointerEvents(): void {
-    if (!this._globalPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
-      return;
-    }
-    globalThis.removeEventListener('pointermove', this._onPointerMove);
-    globalThis.removeEventListener('pointerup', this._onPointerUp);
-    this._globalPointerEventsAttached = false;
-  }
-
-  private _bindLocalPointerEvents(): void {
-    if (this._localPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
-      return;
-    }
-    this.cOverlay.addEventListener('pointermove', this._onPointerMove);
-    this.cOverlay.addEventListener('pointerup', this._onPointerUp);
-    this._localPointerEventsAttached = true;
-  }
-
-  private _unbindLocalPointerEvents(): void {
-    if (!this._localPointerEventsAttached || !this._onPointerMove || !this._onPointerUp) {
-      return;
-    }
-    this.cOverlay.removeEventListener('pointermove', this._onPointerMove);
-    this.cOverlay.removeEventListener('pointerup', this._onPointerUp);
-    this._localPointerEventsAttached = false;
-  }
-
   private _emitSquarePointerEvent<K extends SquarePointerEventName>(
     type: K,
     square: Square,
@@ -2588,7 +2286,7 @@ export class NeoChessBoard {
       this.drawingManager.clearArrows();
     }
 
-    this._playMoveSound();
+    this.audioManager.playMoveSound(this.state.turn);
     this._animateTo(newState, oldState);
     this._emitMoveEvent(from, to, fen);
 
@@ -2936,74 +2634,6 @@ export class NeoChessBoard {
   // ============================================================================
   // Private - Sound Management
   // ============================================================================
-
-  private _initializeSound(): void {
-    this.moveSound = null;
-    this.moveSounds = {};
-
-    if (!this.soundEnabled || typeof Audio === 'undefined') return;
-
-    const defaultUrl = this.soundUrl;
-    const whiteUrl = this.soundUrls?.white;
-    const blackUrl = this.soundUrls?.black;
-
-    if (!defaultUrl && !whiteUrl && !blackUrl) return;
-
-    if (whiteUrl) {
-      const whiteSound = this._createAudioElement(whiteUrl);
-      if (whiteSound) {
-        this.moveSounds.white = whiteSound;
-      }
-    }
-    if (blackUrl) {
-      const blackSound = this._createAudioElement(blackUrl);
-      if (blackSound) {
-        this.moveSounds.black = blackSound;
-      }
-    }
-    if (defaultUrl) {
-      this.moveSound = this._createAudioElement(defaultUrl);
-    }
-  }
-
-  private _createAudioElement(url: string): HTMLAudioElement | null {
-    try {
-      const audio = new Audio(url);
-      audio.volume = DEFAULT_AUDIO_VOLUME;
-      audio.preload = 'auto';
-      audio.addEventListener('error', () => {
-        console.debug('Sound not available');
-      });
-      return audio;
-    } catch (error) {
-      console.warn('Unable to load move sound:', error);
-      return null;
-    }
-  }
-
-  private _playMoveSound(): void {
-    if (!this.soundEnabled) return;
-
-    const movedColor: 'white' | 'black' = this.state.turn === 'w' ? 'black' : 'white';
-    const sound = this.moveSounds[movedColor] ?? this.moveSound;
-
-    if (!sound) return;
-
-    try {
-      sound.currentTime = 0;
-      sound.play().catch((error) => {
-        console.debug('Sound not played:', error.message);
-      });
-    } catch (error) {
-      console.debug('Error playing sound:', error);
-    }
-  }
-
-  private _clearSound(): void {
-    this.moveSound = null;
-    this.moveSounds = {};
-  }
-
   // ============================================================================
   // Private - Piece Set Management
   // ============================================================================
