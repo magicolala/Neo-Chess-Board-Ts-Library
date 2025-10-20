@@ -72,6 +72,7 @@ jspm_packages/
 
 # Optional REPL history
 .node_repl_history
+.npmrc
 
 # Output of 'npm pack'
 *.tgz
@@ -114,3 +115,4 @@ temp/
 # Test artifacts
 test-results/
 playwright-report/
+.npmrc
