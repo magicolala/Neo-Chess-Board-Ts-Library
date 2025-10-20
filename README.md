@@ -35,6 +35,7 @@
 ## 🎯 Key Features
 
 ### 🚀 Performance & Modern Stack
+
 - 📦 **Zero dependencies** (React is peer dependency only)
 - 🪶 **~15kb minified** – Minimal bundle impact
 - ⚡ **60fps animations** with optimized Canvas rendering
@@ -42,6 +43,7 @@
 - 📱 **Responsive design** that scales beautifully
 
 ### 🎮 Rich Chess Experience
+
 - 🖱️ **Smooth drag & drop** with customizable activation distance
 - 🎨 **Beautiful piece sprites** with shadows and anti-aliasing
 - 🧩 **Custom piece sets** – Bring your own SVG, PNG, or Canvas images
@@ -52,6 +54,7 @@
 - 🏹 **Visual annotations** – Draw arrows and highlight squares
 
 ### 🔧 Developer Experience
+
 - ⚛️ **React hooks ready** with SSR support
 - 🅰️ **Complete TypeScript types** for everything
 - 📋 **Advanced PGN management** – Import/export with comments
@@ -61,6 +64,7 @@
 - 📐 **Smart coordinate display** – Labels stay aligned in any orientation
 
 ### ♿ Accessibility
+
 - ⌨️ **Keyboard navigation** with arrow keys
 - 🔊 **Screen reader support** via optional extension
 - 📝 **Move history** in text format
@@ -205,6 +209,7 @@ const customPieces: PieceSet = {
 ```
 
 **Features:**
+
 - ✅ Keys follow FEN notation (`K`, `Q`, `R`, `B`, `N`, `P` for white; lowercase for black)
 - ✅ Any `CanvasImageSource` supported (SVG, PNG, Canvas elements)
 - ✅ Per-piece `scale`, `offsetX`, `offsetY` for fine-tuning
@@ -432,6 +437,7 @@ const board = new NeoChessBoard(element, {
 ```
 
 **Features:**
+
 - ⌨️ Arrow key navigation
 - 🔊 Screen reader compatible table
 - 📝 Braille/text representation
@@ -516,6 +522,7 @@ npm run test:coverage # Generate coverage report
 ```
 
 Tests cover:
+
 - ✅ Core chess engine
 - ✅ React component integration
 - ✅ PGN parsing and export
