@@ -23,7 +23,8 @@ import { NeoChessBoard } from '@magicolala/neo-chess-board';
 const canvas = document.querySelector('#board') as HTMLCanvasElement;
 const board = new NeoChessBoard(canvas, {
   theme: 'classic',
-  coordinates: true,
+  showCoordinates: true,
+  highlightLegal: true,
 });
 
 board.loadPosition('start');
@@ -32,26 +33,40 @@ board.loadPosition('start');
 ### Utilisation React avec hooks
 
 ```tsx
-import { NeoChessBoardProvider, useNeoChessBoard } from '@magicolala/neo-chess-board/react';
+import { useCallback } from 'react';
+import { useNeoChessBoard } from '@magicolala/neo-chess-board/react';
 
-function Game() {
-  const { board } = useNeoChessBoard();
+export function PlateauInteractif() {
+  const { containerRef, boardRef, isReady } = useNeoChessBoard({
+    options: {
+      theme: 'midnight',
+      showCoordinates: true,
+      highlightLegal: true,
+    },
+    onMove: ({ san }) => console.log(san),
+  });
+
+  const basculerOrientation = useCallback(() => {
+    const board = boardRef.current;
+    if (!board) {
+      return;
+    }
+
+    const prochaineOrientation =
+      board.getOrientation() === 'white' ? 'black' : 'white';
+    board.setOrientation(prochaineOrientation);
+  }, [boardRef]);
 
   return (
-    <button onClick={() => board?.flip()}>
-      Changer d'orientation
-    </button>
-  );
-}
-
-export function App() {
-  return (
-    <NeoChessBoardProvider
-      theme="midnight"
-      onMove={({ san }) => console.log(san)}
-    >
-      <Game />
-    </NeoChessBoardProvider>
+    <div className="board-wrapper">
+      <div
+        ref={containerRef}
+        style={{ width: 460, height: 460, borderRadius: '1rem', overflow: 'hidden' }}
+      />
+      <button onClick={basculerOrientation} disabled={!isReady}>
+        Inverser l'orientation
+      </button>
+    </div>
   );
 }
 ```
@@ -59,14 +74,14 @@ export function App() {
 ### Import/Export PGN
 
 ```typescript
-import { Pgn } from '@magicolala/neo-chess-board/pgn';
+import { PgnNotation } from '@magicolala/neo-chess-board';
 
-const pgn = new Pgn();
+const notation = new PgnNotation();
 
-pgn.load('[Event "Casual Game"]\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *');
-console.log(pgn.moves);
+notation.loadPgnWithAnnotations('[Event "Casual Game"]\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *');
+console.log(notation.getMovesWithAnnotations());
 
-const exported = pgn.export();
+const exported = notation.toPgn();
 console.log(exported);
 ```
 
@@ -80,5 +95,5 @@ console.log(exported);
 ## ✅ Bonnes pratiques
 
 - Lancez `npm run build` pour vérifier que les exemples restent compatibles avec la dernière API.
-- Réutilisez les helpers fournis (`board.loadPosition`, `board.onMove`, `pgn.export`) pour garantir un comportement homogène.
+- Réutilisez les helpers fournis (`board.loadPosition`, `board.on('move', …)`, `new PgnNotation().toPgn()`) pour garantir un comportement homogène.
 - Ajoutez vos propres démos dans `examples/` afin d'illustrer des intégrations spécifiques (framework, moteur, UI).
