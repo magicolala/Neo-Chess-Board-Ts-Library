@@ -549,6 +549,19 @@ body {
   box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
 }
 
+.playgroundLink {
+  text-decoration: none;
+  background: linear-gradient(135deg, #22d3ee, #38bdf8);
+  color: #0f172a;
+  transition: all 0.3s ease;
+}
+
+.playgroundLink:hover {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+}
+
 .themeCreatorLink {
   text-decoration: none;
   background: linear-gradient(135deg, #8b5cf6, #a855f7);

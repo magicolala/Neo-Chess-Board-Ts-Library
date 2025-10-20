@@ -39,6 +39,7 @@ declare const styles: {
   readonly '6': string;
   readonly active: string;
   readonly '4': string;
+  readonly playgroundLink: string;
   readonly themeCreatorLink: string;
   readonly boardWrapper: string;
   readonly boardCanvas: string;
