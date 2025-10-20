@@ -1,0 +1,9 @@
+[Event "Annotated Example"]
+[Site "Neo Chess Board"]
+[Date "2024.02.20"]
+[Round "-"]
+[White "Annotator"]
+[Black "Engine"]
+[Result "1/2-1/2"]
+
+1. d4 {[%eval 0.20]} Nf6 {[%eval 0.10]} 2. c4 e6 3. Nc3 Bb4 {[%eval 0.05] [%clk 0:59:31]} 4. Qc2 d5 5. a3 Bxc3+ 6. Qxc3 O-O 7. Bg5 h6?! {[%eval 0.35]} 8. Bxf6 Qxf6 9. Nf3 dxc4 10. e3 b5 {[%eval -0.10]} 11. a4 Bb7 12. axb5 Bxf3 13. gxf3 Qxf3 14. Rg1 g6 15. Bg2 Qg4 16. Kf1 Nd7 17. Bxa8 Qh3+ {[%eval 0.00]} 18. Bg2 Qxh2 19. Rh1 Qd6 20. Rxh6 Kg7 21. Rh1 Nf6 22. Qxc4 Rb8 23. Rxa7 Qb6 24. Rxc7 Qxb5 25. Qxb5 Rxb5 26. Rc2 Ra5 27. Ke2 Rb5 28. Bc6 Rb6 29. Rhc1 g5 30. Rc5 Kg6 31. e4 Rxb2+ 32. R1c2 Rb4 33. R5c4 Rb3 34. f3 Nh5 35. Ba4 Nf4+ 36. Kf2 Rb1 37. Rd2 Rh1 38. Ke3 Re1+ 39. Kf2 Rh1 40. Ke3 Re1+ 41. Kf2 Rh1 1/2-1/2

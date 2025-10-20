@@ -1,0 +1,9 @@
+[Event "Mate in Two"]
+[Site "Demo"]
+[Date "2023.08.01"]
+[Round "-"]
+[White "Composer"]
+[Black "Defender"]
+[Result "1-0"]
+
+1. Qh7+ Kf8 2. Qh8+ Ke7 3. Qf6+ Kf8 4. Rh8# 1-0
