@@ -112,6 +112,24 @@ export interface ChessRowToRowIndexResult {
   rankLabel: string;
 }
 
+export interface RelativeCoordsConfig {
+  boardWidth: number;
+  boardHeight: number;
+  files: number;
+  ranks: number;
+  orientation?: BoardOrientation;
+  fileLabels?: readonly string[];
+  rankLabels?: readonly string[];
+}
+
+export interface RelativeCoord {
+  square: Square;
+  topLeft: { x: number; y: number };
+  center: { x: number; y: number };
+  squareWidth: number;
+  squareHeight: number;
+}
+
 function sanitizeDimension(value: number, fallback: number): number {
   const normalizedFallback = Number.isFinite(fallback) ? fallback : 8;
   const candidate = Number.isFinite(value) ? value : normalizedFallback;
@@ -227,6 +245,55 @@ export function sqToFR(
   }
 
   return { f, r };
+}
+
+export function getRelativeCoords<T extends Square | readonly Square[]>(
+  config: RelativeCoordsConfig,
+  squares: T,
+): T extends readonly Square[] ? RelativeCoord[] : RelativeCoord {
+  const boardWidth = Number(config.boardWidth);
+  const boardHeight = Number(config.boardHeight);
+
+  if (!Number.isFinite(boardWidth) || boardWidth <= 0) {
+    throw new RangeError(`boardWidth must be a positive number. Received: ${config.boardWidth}`);
+  }
+  if (!Number.isFinite(boardHeight) || boardHeight <= 0) {
+    throw new RangeError(`boardHeight must be a positive number. Received: ${config.boardHeight}`);
+  }
+
+  const files = sanitizeDimension(config.files, config.files);
+  const ranks = sanitizeDimension(config.ranks, config.ranks);
+  const orientation = normalizeOrientation(config.orientation);
+
+  const resolvedFileLabels = resolveFileLabels(files, config.fileLabels);
+  const resolvedRankLabels = resolveRankLabels(ranks, config.rankLabels);
+
+  const squareWidth = boardWidth / files;
+  const squareHeight = boardHeight / ranks;
+  const maxFile = files - 1;
+  const maxRank = ranks - 1;
+
+  const targetSquares = Array.isArray(squares) ? squares : [squares];
+
+  const results = targetSquares.map((targetSquare) => {
+    const { f, r } = sqToFR(targetSquare, resolvedFileLabels, resolvedRankLabels);
+    const fileIndex = orientation === 'white' ? f : maxFile - f;
+    const rankIndex = orientation === 'white' ? maxRank - r : r;
+    const x = fileIndex * squareWidth;
+    const y = rankIndex * squareHeight;
+
+    return {
+      square: targetSquare,
+      topLeft: { x, y },
+      center: { x: x + squareWidth / 2, y: y + squareHeight / 2 },
+      squareWidth,
+      squareHeight,
+    };
+  });
+
+  return (Array.isArray(squares) ? results : results[0]) as T extends readonly Square[]
+    ? RelativeCoord[]
+    : RelativeCoord;
 }
 
 export function parseFEN(

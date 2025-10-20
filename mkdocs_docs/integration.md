@@ -176,6 +176,45 @@ board.setBoardStyle({
 
 Changes propagate immediately—the board keeps a ResizeObserver active through `BoardDomManager`, and sound sources hot-reload via `BoardAudioManager`.
 
+### Translate squares into pixel coordinates
+
+Use `getRelativeCoords` when you need to align your own overlays or DOM nodes with specific board squares. The helper understands files/ranks, orientation, and even non-square boards. It returns both the top-left origin and the center point for each queried square.
+
+```ts
+import { getRelativeCoords } from '@magicolala/neo-chess-board';
+
+const { center } = getRelativeCoords(
+  {
+    boardWidth: 640,
+    boardHeight: 640,
+    files: 8,
+    ranks: 8,
+    orientation: 'white',
+  },
+  'e4',
+);
+
+// Position a tooltip over e4
+tooltip.style.transform = `translate(${center.x}px, ${center.y}px)`;
+```
+
+You can also query multiple squares at once or work with rectangular boards by passing an array of algebraic identifiers:
+
+```ts
+const [from, to] = getRelativeCoords(
+  {
+    boardWidth: 960,
+    boardHeight: 640,
+    files: 8,
+    ranks: 8,
+    orientation: 'black',
+  },
+  ['g7', 'g2'],
+);
+
+drawArrow(from.center, to.center);
+```
+
 ## 5. Layout and Responsiveness
 
 Wrap the board in a responsive container and control its dimensions using CSS. Because the board uses a `<canvas>`, it scales smoothly with `width`/`height` changes.
