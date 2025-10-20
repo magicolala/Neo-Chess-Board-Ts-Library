@@ -2,75 +2,86 @@
 
 <div align="center">
 
-<!-- BADGES:START -->
 ![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v1.0.0-blue?style=for-the-badge&logo=chess&logoColor=white)
 
 [![GitHub Package](https://img.shields.io/static/v1?label=GitHub%20Packages&message=v1.0.0&color=0A66C2&style=flat-square)](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/pkgs/npm/neo-chess-board)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-<!-- BADGES:END -->
 
-**A modern, lightweight, and beautiful chess board library built with Canvas and TypeScript**
+**A modern, lightweight chess board library built with Canvas and TypeScript**
 
-_Perfect for creating chess applications with Chessbook-like feel and performance_
+*Chessbook-inspired performance meets developer-friendly APIs*
 
-[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](#documentation) • [⚡ Quick Start](#quick-start) • [🎨 Themes](#themes)
+[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](#-documentation) • [⚡ Quick Start](#-quick-start) • [🎨 Themes](#-themes)
 
 </div>
 
 ---
 
-## ✨ Features
+## ✨ Why Neo Chess Board?
 
-🎯 **Modern & Lightweight**
+| Feature                | Neo Chess Board          | Other Libraries      |
+|------------------------|--------------------------|----------------------|
+| **Bundle Size**        | 🟢 ~15kb (minified)      | 🔴 50-200kb          |
+| **Dependencies**       | 🟢 Zero core deps        | 🔴 Multiple          |
+| **TypeScript**         | 🟢 Full native support   | 🟡 Partial/types-only|
+| **React Integration**  | 🟢 Native hooks & SSR    | 🔴 Wrapper required  |
+| **Performance**        | 🟢 Canvas optimized      | 🟡 DOM-heavy         |
+| **Customization**      | 🟢 Themes + piece sets   | 🔴 Limited options   |
+| **PGN Support**        | 🟢 Built-in w/ annotations| 🔴 External library |
+| **Accessibility**      | 🟢 Optional extension    | 🔴 None/limited      |
 
-- 📦 Zero dependencies (React is peer dependency)
-- 🪶 Minimal bundle size
-- ⚡ High performance Canvas rendering
-- 🔧 Full TypeScript support
+## 🎯 Key Features
 
-🎮 **Rich Chess Experience**
+### 🚀 Performance & Modern Stack
+- 📦 **Zero dependencies** (React is peer dependency only)
+- 🪶 **~15kb minified** – Minimal bundle impact
+- ⚡ **60fps animations** with optimized Canvas rendering
+- 🔧 **Full TypeScript** support with complete type definitions
+- 📱 **Responsive design** that scales beautifully
 
-- 🖱️ Smooth drag & drop interactions
-- 🎨 Beautiful piece sprites with shadows
-- 🧩 Bring your own piece set (SVG, PNG, or Canvas sources)
-- ✨ Fluid animations and transitions
-- 🎯 Legal move highlighting
-- 📈 Demo evaluation bar that reads PGN [%eval] annotations
-- 🔄 Optional auto-flip to follow the side to move
-- 📱 Responsive design
+### 🎮 Rich Chess Experience
+- 🖱️ **Smooth drag & drop** with customizable activation distance
+- 🎨 **Beautiful piece sprites** with shadows and anti-aliasing
+- 🧩 **Custom piece sets** – Bring your own SVG, PNG, or Canvas images
+- ✨ **Fluid animations** with configurable duration
+- 🎯 **Legal move highlighting** with dots and indicators
+- 📈 **Evaluation bar** that reads PGN `[%eval]` annotations
+- 🔄 **Auto-flip board** to follow the active player
+- 🏹 **Visual annotations** – Draw arrows and highlight squares
 
-🔧 **Developer Friendly**
+### 🔧 Developer Experience
+- ⚛️ **React hooks ready** with SSR support
+- 🅰️ **Complete TypeScript types** for everything
+- 📋 **Advanced PGN management** – Import/export with comments
+- 🎨 **Customizable themes** with visual creator tool
+- 🧪 **Jest test suite** with coverage reports
+- 🔌 **Extensible architecture** via plugin system
+- 📐 **Smart coordinate display** – Labels stay aligned in any orientation
 
-- 🅰️ Complete TypeScript types
-- ⚛️ React hooks ready
-- 📋 Advanced PGN Management (import/export with annotations)
-- 🎨 Customizable themes
-- 🧪 Jest setup for automated testing
-
-🎪 **Advanced Features**
-
-- 📝 Built-in PGN recorder
-- 🎭 Multiple visual themes
-- 🔄 FEN support
-- 🎮 Custom rules engine
-- 🏹 Visual PGN Annotations (arrows & circles)
-- 📐 Square names stay aligned to the bottom and left edges in every orientation
+### ♿ Accessibility
+- ⌨️ **Keyboard navigation** with arrow keys
+- 🔊 **Screen reader support** via optional extension
+- 📝 **Move history** in text format
+- 🎯 **ARIA labels** for all interactive elements
 
 ## 🚀 Quick Start
 
 ### Installation
 
-Configure npm to use the GitHub Packages registry for the `@magicolala` scope before installing. Create a [GitHub Personal Access Token](https://docs.github.com/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with the **`read:packages`** permission and add it to your `.npmrc`:
+Neo Chess Board is distributed via GitHub Packages. Configure npm to use the GitHub registry for the `@magicolala` scope:
+
+**Step 1:** Create a [GitHub Personal Access Token](https://docs.github.com/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with `read:packages` permission.
+
+**Step 2:** Add to your `.npmrc` file:
 
 ```ini
-# .npmrc
 @magicolala:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
 ```
 
-Replace `${GITHUB_TOKEN}` with your token or an environment variable that provides it. After the registry is configured, install the package with your preferred client:
+**Step 3:** Install the package:
 
 ```bash
 npm install @magicolala/neo-chess-board
@@ -80,23 +91,21 @@ yarn add @magicolala/neo-chess-board
 pnpm add @magicolala/neo-chess-board
 ```
 
-### React Usage
+### Basic Usage (React)
 
 ```tsx
-import React, { useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessApp() {
-  const [fen, setFen] = useState();
-
   return (
     <NeoChessBoard
       theme="midnight"
+      showCoordinates
+      highlightLegal
       onMove={({ from, to, fen }) => {
         console.log(`Move: ${from} → ${to}`);
-        setFen(fen);
       }}
-      style={{ width: '400px', height: '400px' }}
+      style={{ width: '500px', height: '500px' }}
     />
   );
 }
@@ -111,6 +120,7 @@ const board = new NeoChessBoard(document.getElementById('board'), {
   theme: 'classic',
   interactive: true,
   showCoordinates: true,
+  highlightLegal: true,
 });
 
 board.on('move', ({ from, to, fen }) => {
@@ -120,286 +130,250 @@ board.on('move', ({ from, to, fen }) => {
 
 ## 🎨 Themes
 
-Neo Chess Board comes with beautiful built-in themes:
+Neo Chess Board includes two beautiful themes out of the box, and you can easily create your own.
 
-| Theme        | Preview                                                                     | Colors               |
-| ------------ | --------------------------------------------------------------------------- | -------------------- |
-| **Classic**  | ![Classic Theme](https://via.placeholder.com/100x100/EBEDF0/B3C0CE?text=♔)  | Light & clean design |
-| **Midnight** | ![Midnight Theme](https://via.placeholder.com/100x100/2A2F3A/1F242E?text=♔) | Dark & modern feel   |
+### Built-in Themes
+
+| Theme        | Description               | Best For                    |
+|--------------|---------------------------|-----------------------------|
+| **Classic**  | Light & clean design      | Traditional chess apps      |
+| **Midnight** | Dark & modern aesthetic   | Night mode, modern UIs      |
 
 ```tsx
-// Switch themes dynamically
+// Use built-in themes
 <NeoChessBoard theme="midnight" />
 <NeoChessBoard theme="classic" />
 ```
 
-To define your own presets, call `registerTheme('sunset', customTheme)` once during initialization. Custom theme objects can also be passed directly to the constructor, `setTheme`, or the React component.
+### Custom Themes
+
+Create and register your own themes:
+
+```typescript
+import { registerTheme, THEMES } from '@magicolala/neo-chess-board';
+
+// Extend existing theme
+const customTheme = {
+  ...THEMES.midnight,
+  light: '#E8E8E8',
+  dark: '#4A4A4A',
+  moveFrom: 'rgba(255, 215, 0, 0.6)',
+  moveTo: 'rgba(0, 255, 127, 0.4)',
+  border: '#2C2C2C',
+};
+
+// Register for reuse
+registerTheme('custom', customTheme);
+
+// Use by name or pass directly
+<NeoChessBoard theme="custom" />
+<NeoChessBoard theme={customTheme} />
+```
+
+### 🌐 Interactive Theme Creator
+
+Use our [Theme Creator web app](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html) to design themes visually:
+
+- 🎛️ **Live preview** – See changes instantly
+- 💾 **Save presets** – Store themes in localStorage
+- 📤 **Export code** – Generate JSON or TypeScript snippets
+- 🎨 **15 customizable properties** – Full control over appearance
+
+Try it locally: `npm run dev` in the `demo` folder, then visit `http://localhost:5174/theme-creator.html`
 
 ## 🧩 Custom Piece Sets
 
-Prefer wooden Staunton pieces, minimalist line art, or even emoji? Pass a `pieceSet` option to the board (or React component) and supply the sprites you want to use. Each entry can be an imported image/URL, an `HTMLCanvasElement`, or any other [`CanvasImageSource`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage#parameters) instance.
+Replace default pieces with your own artwork:
 
 ```tsx
 import type { PieceSet } from '@magicolala/neo-chess-board';
 import whiteKing from './pieces/wK.svg';
 import blackKing from './pieces/bK.svg';
-import whitePawn from './pieces/wP.png';
-import blackPawn from './pieces/bP.png';
 
-const customPieces = {
+const customPieces: PieceSet = {
   defaultScale: 0.9,
   pieces: {
     K: { image: whiteKing },
     k: { image: blackKing },
     P: { image: whitePawn, offsetY: 0.02 },
-    p: { image: blackPawn },
+    p: { image: blackPawn, scale: 0.85 },
+    // ... other pieces
   },
-} satisfies PieceSet;
-
-<NeoChessBoard theme="midnight" pieceSet={customPieces} />;
-```
-
-- Keys follow FEN notation (`K`, `Q`, `R`, `B`, `N`, `P` for white and lowercase for black). Any pieces you omit will fall back to the default flat sprites.
-- `defaultScale` and per-piece `scale` let you shrink or enlarge the artwork relative to the square size, while `offsetX`/`offsetY` (fractions of the square) help fine tune alignment.
-- At runtime you can call `board.setPieceSet(newSet)` (or `setPieceSet(undefined)`) to swap collections instantly.
-
-### 🌐 Theme Creator Web App
-
-Looking for a faster way to design palettes? The project ships with an interactive [Theme Creator](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html) that lets you experiment visually before exporting code. It provides:
-
-- 🎛️ Live controls for all 15 theme properties with instant board preview
-- 💾 Theme management helpers to load presets (`classic`, `midnight`), rename them, and store new ideas
-- 📤 Export buttons that generate JSON payloads or ready-to-paste TypeScript snippets using `registerTheme`
-
-#### How to use it
-
-1. Open the [Theme Creator page](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/theme-creator.html) or, for local development, run `npm run dev` from the `demo` folder and visit `http://localhost:5174/theme-creator.html`.
-2. Pick a starting palette from the dropdown or begin with a blank canvas.
-3. Adjust colors via the color pickers/text inputs and watch the preview board update in real time.
-4. Give your creation a name, save it, and export the JSON/code snippet when you are happy with the result.
-
-### 🧪 Demo Playground Highlights
-
-- The demo PGN textarea now accepts pasted games (including comments such as `[%eval 0.45]`). Hit **Load** to import the position, annotations, and metadata in one go.
-- A vertical evaluation bar displays the last imported score, stays aligned with the current board orientation and refreshes as you replay moves or navigate through the game.
-
-Once exported you can register the theme in your app:
-
-```ts
-import { registerTheme } from '@magicolala/neo-chess-board';
-
-const aurora = {
-  light: '#F5F3FF',
-  dark: '#1E1B4B',
-  // ...other properties from the generator
 };
 
-registerTheme('aurora', aurora);
+<NeoChessBoard theme="midnight" pieceSet={customPieces} />
 ```
 
-The saved presets can also be stored in `localStorage` for later editing, making it easy to iterate on branding.
+**Features:**
+- ✅ Keys follow FEN notation (`K`, `Q`, `R`, `B`, `N`, `P` for white; lowercase for black)
+- ✅ Any `CanvasImageSource` supported (SVG, PNG, Canvas elements)
+- ✅ Per-piece `scale`, `offsetX`, `offsetY` for fine-tuning
+- ✅ Runtime swapping with `board.setPieceSet(newSet)`
+- ✅ Omitted pieces fall back to default sprites
 
 ## 📖 Documentation
 
-### Core Components
-
-#### NeoChessBoard (React)
+### React Component API
 
 ```typescript
 interface NeoChessProps {
-  fen?: string; // Chess position in FEN notation
-  theme?: ThemeName | Theme; // Built-in theme name or custom object
-  pieceSet?: PieceSet; // Provide custom piece sprites
+  // Position & State
+  fen?: string;                    // FEN position string
   orientation?: 'white' | 'black'; // Board orientation
-  autoFlip?: boolean; // Follow the side to move automatically
-  interactive?: boolean; // Enable drag & drop
-  showCoordinates?: boolean; // Show file/rank labels
-  animationMs?: number; // Animation duration (legacy alias)
-  animationDurationInMs?: number; // Preferred animation duration alias
-  showAnimations?: boolean; // Toggle move animation rendering
-  highlightLegal?: boolean; // Highlight legal moves
-  allowDragging?: boolean; // Enable pointer dragging on the board
-  dragActivationDistance?: number; // Pixels required before starting a drag
-  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
-  allowAutoScroll?: boolean; // Auto-scroll container when dragging near edges
-  allowDrawingArrows?: boolean; // Enable right-click arrow drawing
-  clearArrowsOnClick?: boolean; // Clear existing arrows on left click
-  arrowOptions?: { color?: string; width?: number; opacity?: number }; // Default arrow styling
-  arrows?: Arrow[]; // Controlled arrows state
-  onArrowsChange?: (arrows: Arrow[]) => void; // Callback when arrows change
-  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Filter draggable pieces
-  onMove?: (move) => void; // Move event handler
-  onIllegal?: (attempt) => void; // Illegal move handler
-  onPromotionRequired?: (request) => void; // Optional promotion resolver
-  style?: React.CSSProperties; // CSS styling
-  className?: string; // CSS class
+  autoFlip?: boolean;              // Follow active player
+  
+  // Visual Styling
+  theme?: ThemeName | Theme;       // Built-in name or custom object
+  pieceSet?: PieceSet;             // Custom piece images
+  showCoordinates?: boolean;       // Show rank/file labels
+  
+  // Interaction
+  interactive?: boolean;           // Enable drag & drop
+  highlightLegal?: boolean;        // Show legal move indicators
+  allowDragging?: boolean;         // Enable pointer dragging
+  dragActivationDistance?: number; // Pixels before drag starts
+  allowDragOffBoard?: boolean;     // Allow cancel by dropping outside
+  allowAutoScroll?: boolean;       // Scroll container during drag
+  
+  // Animations
+  showAnimations?: boolean;        // Toggle animations
+  animationDurationInMs?: number;  // Animation speed (default: 200)
+  
+  // Arrows & Annotations
+  allowDrawingArrows?: boolean;    // Enable right-click arrows
+  clearArrowsOnClick?: boolean;    // Clear arrows on left click
+  arrows?: Arrow[];                // Controlled arrows state
+  onArrowsChange?: (arrows: Arrow[]) => void;
+  arrowOptions?: {
+    color?: string;
+    width?: number;
+    opacity?: number;
+  };
+  
+  // Advanced
+  rulesAdapter?: RulesAdapter;     // Custom chess rules
+  canDragPiece?: (params: {
+    square: Square;
+    piece: string;
+    board: NeoChessBoard;
+  }) => boolean;
+  
+  // Events
+  onMove?: (move: MoveEvent) => void;
+  onIllegal?: (attempt: IllegalMoveEvent) => void;
+  onUpdate?: (state: UpdateEvent) => void;
+  onPromotionRequired?: (request: PromotionRequest) => void;
+  
+  // Styling
+  style?: React.CSSProperties;
+  className?: string;
 }
 ```
 
-#### Core Chess Engine
+### Core Board Methods
 
 ```typescript
-// Initialize board
-const board = new NeoChessBoard(element, options);
+class NeoChessBoard {
+  // Position Management
+  getPosition(): string;
+  getCurrentFEN(): string;
+  setPosition(fen: string, immediate?: boolean): void;
+  getMoveHistory(): string[];
+  submitMove(notation: string): boolean;
+  
+  // Board State
+  getOrientation(): 'white' | 'black';
+  getTurn(): 'w' | 'b';
+  getPieceAt(square: Square): string | null;
+  getPieceSquares(piece: Piece): Square[];
+  
+  // Move Handling
+  attemptMove(from: Square, to: Square, options?: {
+    promotion?: 'q' | 'r' | 'b' | 'n';
+  }): boolean;
+  
+  // Promotion
+  previewPromotionPiece(piece: 'q' | 'r' | 'b' | 'n' | null): void;
+  isPromotionPending(): boolean;
+  getPendingPromotion(): {
+    from: Square;
+    to: Square;
+    color: 'w' | 'b';
+    mode: 'move' | 'premove';
+  } | null;
+  
+  // Event System
+  on<T>(event: string, handler: (data: T) => void): () => void;
+  
+  // Rendering
+  resize(): void;
+  renderAll(): void;
+  
+  // Lifecycle
+  destroy(): void;
+}
+```
 
-// Event handling
-board.on('move', ({ from, to, fen }) => {
-  // Handle move
-});
+### Pawn Promotion
 
-board.on('illegal', ({ from, to, reason }) => {
-  // Handle illegal move attempt
-});
+Neo Chess Board offers three ways to handle pawn promotion:
 
+#### 1. Event Listener
+
+```typescript
 board.on('promotion', (request) => {
-  // Show your UI here or default to a queen
-  request.resolve('q');
+  // Show your custom UI
+  showPromotionDialog().then(piece => {
+    request.resolve(piece); // 'q', 'r', 'b', or 'n'
+  });
 });
+```
 
-### Pawn promotion helpers
+#### 2. Callback Option
 
-When a pawn reaches the back rank, NeoChessBoard pauses the move and emits a `promotion` request. You can respond in three
-different ways:
-
-- **Listen for the `promotion` event** (as shown above) and resolve or cancel the request when your UI is ready.
-- **Provide `onPromotionRequired` in the board options** to centralize the handler without registering listeners manually.
-- **Use the built-in `createPromotionDialogExtension`** to display a ready-to-go overlay that lets players pick between a queen,
-  rook, bishop, or knight.
-
-Each `PromotionRequest` exposes `{ from, to, color, mode, choices, resolve, cancel }`. Call `resolve('q' | 'r' | 'b' | 'n')` once
-the user has selected a piece or `cancel()` to abort. While the chooser is open you can preview the selection with
-`board.previewPromotionPiece(piece)` and inspect the pending request via `board.getPendingPromotion()`.
-
-```ts
-import { NeoChessBoard, createPromotionDialogExtension } from '@magicolala/neo-chess-board';
-
-const board = new NeoChessBoard(document.getElementById('board')!, {
+```typescript
+const board = new NeoChessBoard(element, {
   onPromotionRequired(request) {
-    // Optional hook (the extension also calls resolve/cancel)
-    console.log('Promotion pending for', request.mode, request.from, '→', request.to);
-  },
+    // Handle promotion
+    request.resolve('q');
+  }
+});
+```
+
+#### 3. Built-in UI Extension
+
+```typescript
+import { createPromotionDialogExtension } from '@magicolala/neo-chess-board';
+
+const board = new NeoChessBoard(element, {
   extensions: [createPromotionDialogExtension()],
 });
 ```
 
-// Position management
-board.setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-const currentFEN = board.getPosition();
+## 📝 PGN Support
 
-```
-
-#### PGN Recording & Annotations
+### Recording Games
 
 ```typescript
 import { PgnNotation } from '@magicolala/neo-chess-board';
 
 const pgn = new PgnNotation();
 
-// Set game metadata
+// Set metadata
 pgn.setMetadata({
-  Event: 'Annotated Game',
-  White: 'Player A',
-  Black: 'Player B',
-  Date: '2024.09.15',
+  Event: 'World Championship',
+  White: 'Magnus Carlsen',
+  Black: 'Ian Nepomniachtchi',
+  Date: '2024.04.15',
 });
 
-// Add moves with comments and visual annotations
-pgn.addMove(1, 'e4', 'e5', "White starts with king's pawn.", '{%cal Ge2e4,Re7e5}');
+// Add moves with annotations
+pgn.addMove(1, 'e4', 'e5', "King's pawn opening.", '{%cal Ge2e4}');
 pgn.addMove(2, 'Nf3', 'Nc6', 'Knights develop.', '{%csl Gf3,Gc6}');
 
-// Generate PGN with annotations
+// Export
 const pgnText = pgn.toPgnWithAnnotations();
-console.log(pgnText);
-/*
-[Event "Annotated Game"]
-[Site "Neo Chess Board"]
-[Date "2024.09.15"]
-[Round "1"]
-[White "Player A"]
-[Black "Player B"]
-[Result "*"]
-
-1. e4 {%cal Ge2e4,Re7e5} e5 {White starts with king\'s pawn.}
-2. Nf3 {%csl Gf3,Gc6} Nc6 {Knights develop.}
-*/
-
-// Download PGN
-pgn.downloadPgn('annotated_game.pgn');
-```
-
-## 🎪 Advanced Examples
-
-### Complete Chess Application
-
-```tsx
-import React, { useState, useMemo } from 'react';
-import { NeoChessBoard, PGNRecorder } from '@magicolala/neo-chess-board';
-
-function ChessGame() {
-  const [fen, setFen] = useState();
-  const [theme, setTheme] = useState('midnight');
-  const pgn = useMemo(() => new PGNRecorder(), []);
-
-  const handleMove = ({ from, to, fen }) => {
-    pgn.push({ from, to });
-    setFen(fen);
-  };
-
-  const exportGame = () => {
-    pgn.setHeaders({
-      Event: 'Online Game',
-      Site: 'My App',
-      Date: new Date().toISOString().slice(0, 10),
-    });
-    pgn.download();
-  };
-
-  return (
-    <div className="chess-game">
-      <div className="board-controls">
-        <button onClick={() => setTheme('classic')}>Classic</button>
-        <button onClick={() => setTheme('midnight')}>Midnight</button>
-        <button onClick={exportGame}>Export PGN</button>
-      </div>
-
-      <NeoChessBoard
-        theme={theme}
-        fen={fen}
-        onMove={handleMove}
-        showCoordinates
-        style={{ width: '100%', maxWidth: '500px' }}
-      />
-
-      <div className="game-info">
-        <textarea value={pgn.getPGN()} readOnly />
-      </div>
-    </div>
-  );
-}
-```
-
-### Custom Themes
-
-```typescript
-import { NeoChessBoard, THEMES, registerTheme } from '@magicolala/neo-chess-board';
-
-// Extend an existing preset
-const customTheme = {
-  ...THEMES.midnight,
-  moveFrom: 'rgba(255, 215, 0, 0.6)', // Golden highlight
-  moveTo: 'rgba(0, 255, 127, 0.4)', // Spring green
-};
-
-// Optionally register the theme under a name for reuse
-registerTheme('sunset', customTheme);
-
-const board = new NeoChessBoard(element, {
-  // Direct object support
-  theme: customTheme,
-});
-
-// Or later by name after registration
-board.setTheme('sunset');
+pgn.downloadPgn('game.pgn');
 ```
 
 ### Integration with Chess.js
@@ -416,217 +390,191 @@ const board = new NeoChessBoard(element, {
   onMove: ({ from, to }) => {
     const move = game.move({ from, to });
     if (move) {
-      rules.getPgnNotation().addMove(rules.moveNumber(), move.san);
-      // Add annotations to the last move
-      rules.getPgnNotation().addMoveAnnotations(rules.moveNumber(), true, {
-        arrows: [{ from: move.from, to: move.to, color: '#00ff00' }],
-        circles: [{ square: move.to, color: '#ffff00' }],
-        textComment: 'Good move!',
-      });
+      rules.getPgnNotation().addMove(
+        rules.moveNumber(),
+        move.san,
+        'Good move!',
+        `{%cal G${from}${to}}`
+      );
     }
   },
 });
 
-// To get the PGN with annotations from ChessJsRules:
-const pgnWithAnnotations = rules.toPgn(true);
-console.log(pgnWithAnnotations);
+// Get annotated PGN
+const pgn = rules.toPgn(true);
 ```
 
-#### Attacked Square Detection
+### Attack Detection
 
-`ChessJsRules` builds on top of `chess.js` to analyze board control:
+```typescript
+// Get all attacked squares by current player
+const attackedSquares = rules.getAttackedSquares();
 
-- `getAttackedSquares()` returns every square currently threatened by the player to move—perfect for powering dynamic highlights.
-- `isSquareAttacked(square, by?)` checks whether a specific square is attacked by the provided color (or the side to move by default). The method validates algebraic notation input and accepts case-insensitive values.
+// Check if specific square is attacked
+const isAttacked = rules.isSquareAttacked('e4', 'w'); // by white
+```
+
+## ♿ Accessibility Extension
+
+Make your chess board accessible to all users:
+
+```typescript
+import { createAccessibilityExtension } from '@magicolala/neo-chess-board';
+
+const board = new NeoChessBoard(element, {
+  extensions: [
+    createAccessibilityExtension({
+      enableKeyboard: true,
+      regionLabel: 'Interactive chessboard',
+    })
+  ],
+});
+```
+
+**Features:**
+- ⌨️ Arrow key navigation
+- 🔊 Screen reader compatible table
+- 📝 Braille/text representation
+- 📜 Move history list
+- 💬 ARIA labels and live regions
+- 🎯 Coordinate notation input
+
+## 🎪 Advanced Examples
+
+### Complete Chess Application
+
+```tsx
+import React, { useState, useMemo } from 'react';
+import { NeoChessBoard, PGNRecorder } from '@magicolala/neo-chess-board';
+
+function ChessGame() {
+  const [fen, setFen] = useState<string>();
+  const [theme, setTheme] = useState<'classic' | 'midnight'>('midnight');
+  const pgn = useMemo(() => new PGNRecorder(), []);
+
+  const handleMove = ({ from, to, fen }: MoveEvent) => {
+    pgn.push({ from, to });
+    setFen(fen);
+  };
+
+  const exportGame = () => {
+    pgn.setHeaders({
+      Event: 'Online Game',
+      Site: 'My Chess App',
+      Date: new Date().toISOString().slice(0, 10),
+    });
+    pgn.download('my-game.pgn');
+  };
+
+  return (
+    <div className="chess-game">
+      <div className="controls">
+        <button onClick={() => setTheme('classic')}>Classic Theme</button>
+        <button onClick={() => setTheme('midnight')}>Midnight Theme</button>
+        <button onClick={exportGame}>Export PGN</button>
+      </div>
+
+      <NeoChessBoard
+        theme={theme}
+        fen={fen}
+        onMove={handleMove}
+        showCoordinates
+        highlightLegal
+        style={{ width: '100%', maxWidth: '600px' }}
+      />
+
+      <div className="game-notation">
+        <h3>PGN</h3>
+        <textarea 
+          value={pgn.getPGN()} 
+          readOnly 
+          rows={10}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+## 🌟 Live Examples
+
+Explore these interactive examples:
+
+- 🌐 [**Vanilla JS Starter**](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html) – Basic setup with theme switching and PGN export
+- ♞ [**Chess.js Integration**](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Full rules engine integration
+- 📈 [**PGN Import & Evaluation**](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Annotated games with eval bar
+- ⚡ [**Advanced Features**](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html) – Puzzles, analysis, keyboard controls
+
+## 🧪 Testing
+
+Neo Chess Board includes a comprehensive Jest test suite:
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Generate coverage report
+```
+
+Tests cover:
+- ✅ Core chess engine
+- ✅ React component integration
+- ✅ PGN parsing and export
+- ✅ Theme system
+- ✅ Accessibility features
+
+See [`tests/README.md`](tests/README.md) for details on the test structure and how to add new tests.
 
 ## 🏗️ Architecture
 
 ```
 Neo-Chess-Board-Ts-Library/
 ├── 🎯 Core Engine
-│   ├── EventBus          # Type-safe event system
-│   ├── LightRules        # Built-in chess rules
-│   ├── NeoChessBoard     # Main board class
-│   └── Utils             # Chess utilities
+│   ├── EventBus           # Type-safe event system
+│   ├── LightRules         # Built-in chess rules
+│   ├── ChessJsRules       # Chess.js adapter
+│   └── NeoChessBoard      # Main board class
+│
 ├── 🎨 Rendering
-│   ├── FlatSprites       # SVG-like piece rendering
-│   ├── Themes            # Visual theme system
-│   └── Canvas Layers     # Optimized rendering
-├── ⚛️ React Integration
-│   └── NeoChessBoard     # React component wrapper
-└── 📝 PGN Support
-    └── PGNRecorder       # Game notation recording
+│   ├── Canvas Layers      # Optimized multi-layer rendering
+│   ├── FlatSprites        # Default piece renderer
+│   └── Themes             # Theme system
+│
+├── ⚛️ React
+│   └── NeoChessBoard      # React component with hooks
+│
+├── 📝 PGN
+│   ├── PgnNotation        # PGN data structure
+│   └── PGNRecorder        # Game recording
+│
+└── 🔌 Extensions
+    ├── PromotionDialog    # Built-in promotion UI
+    └── Accessibility      # A11y features
 ```
 
-## 🎯 Why Neo Chess Board?
+## 🚀 Performance Optimizations
 
-| Feature         | Neo Chess Board      | Other Libraries   |
-| --------------- | -------------------- | ----------------- |
-| **Bundle Size** | 🟢 ~15kb             | 🔴 50-200kb       |
-| **TypeScript**  | 🟢 Full support      | 🟡 Partial        |
-| **React Ready** | 🟢 Native hooks      | 🔴 Wrapper needed |
-| **Performance** | 🟢 Canvas optimized  | 🟡 DOM heavy      |
-| **Themes**      | 🟢 Built-in + custom | 🔴 Limited        |
-| **PGN Export**  | 🟢 Included          | 🔴 External dep   |
-| **Modern Code** | 🟢 ES2022+           | 🔴 Legacy         |
-
-## 📋 API Reference
-
-### React Component Props
-
-```typescript
-interface NeoChessProps {
-  // Position & Rules
-  fen?: string; // Position in FEN notation
-  rulesAdapter?: RulesAdapter; // Custom rules engine
-
-  // Visual Appearance
-  theme?: ThemeName | Theme; // Built-in theme name or custom object
-  orientation?: 'white' | 'black'; // Board flip
-  autoFlip?: boolean; // Automatically follow the side to move
-  showCoordinates?: boolean; // A-H, 1-8 labels (always bottom/left)
-
-  // Interaction
-  interactive?: boolean; // Enable piece dragging
-  highlightLegal?: boolean; // Show legal move dots
-  animationMs?: number; // Move animation speed (legacy alias)
-  animationDurationInMs?: number; // Preferred animation duration alias
-  showAnimations?: boolean; // Toggle move animations on/off
-  allowDragging?: boolean; // Enable pointer dragging interactions
-  dragActivationDistance?: number; // Minimum pointer travel before dragging starts
-  allowDragOffBoard?: boolean; // Allow dropping outside the board to cancel
-  allowAutoScroll?: boolean; // Auto-scroll scrollable ancestors during drag
-  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean; // Control drag eligibility
-
-  // Event Handlers
-  onMove?: (move: MoveEvent) => void;
-  onIllegal?: (attempt: IllegalMoveEvent) => void;
-  onUpdate?: (state: UpdateEvent) => void;
-  onPromotionRequired?: (request: PromotionRequest) => void;
-
-  // Styling
-  style?: React.CSSProperties;
-  className?: string;
-}
-```
-
-### Core Board Methods
-
-```typescript
-class NeoChessBoard {
-  constructor(element: HTMLElement, options?: BoardOptions);
-
-  // Position Management
-  getPosition(): string;
-  getCurrentFEN(): string; // Alias for current position
-  setPosition(fen: string, immediate?: boolean): void;
-  getMoveHistory(): string[]; // SAN strings when supported by the rules adapter
-  submitMove(notation: string): boolean; // Coordinate notation helper (e.g. "e2e4")
-
-  // Board Introspection
-  getRootElement(): HTMLElement;
-  getOrientation(): 'white' | 'black';
-  getTurn(): 'w' | 'b';
-  getPieceAt(square: Square): string | null;
-  getPieceSquares(piece: Piece): Square[]; // Squares containing a piece symbol (KQRBNP/kqrbnp)
-  attemptMove(from: Square, to: Square, options?: { promotion?: Move['promotion'] }): boolean;
-  previewPromotionPiece(piece: Move['promotion'] | null): void;
-  isPromotionPending(): boolean;
-  getPendingPromotion(): { from: Square; to: Square; color: 'w' | 'b'; mode: 'move' | 'premove' } | null;
-
-  // Event System
-  on<T>(event: string, handler: (data: T) => void): () => void;
-
-  // Rendering
-  resize(): void;
-  renderAll(): void;
-
-  // Cleanup
-  destroy(): void;
-}
-```
-
-Pass a FEN-style piece symbol to `board.getPieceSquares()` to discover every matching square. Use
-uppercase letters (`K`, `Q`, `R`, `B`, `N`, `P`) for white pieces and lowercase (`k`, `q`, `r`,
-`b`, `n`, `p`) for black. The returned list is sorted from `a1` upward so automated tests can rely
-on deterministic ordering.
-
-## ♿ Accessibility
-
-The library ships with an optional `AccessibilityExtension` that mirrors the board state in accessible formats so screen-reader
-and keyboard users can follow along without relying on the canvas.
-
-### What it provides
-
-- A live-updating table that exposes every square as a focusable control with `aria-label`s describing the occupying piece.
-- A synchronized braille/text representation of the position and a FEN readout that both update after every move or FEN change.
-- A move history list sourced from `board.getMoveHistory()` so textual updates stay in sync with piece animations.
-- An optional move form that accepts coordinate notation (for example, `e2e4`) and forwards it through `board.submitMove()`.
-- Keyboard navigation with the arrow keys and <kbd>Enter</kbd>/<kbd>Space</kbd> for picking origin and destination squares. When
-  `enableKeyboard` is disabled, focus falls back to the canvas interactions.
-
-### Usage
-
-```ts
-import { NeoChessBoard, createAccessibilityExtension } from '@magicolala/neo-chess-board';
-
-const board = new NeoChessBoard(document.getElementById('board')!, {
-  extensions: [
-    createAccessibilityExtension({
-      regionLabel: 'Accessible chessboard controls',
-      enableKeyboard: true,
-    }),
-  ],
-});
-
-// Text-only integrations can drive the position without the mouse.
-board.submitMove('e2e4');
-console.log(board.getCurrentFEN());
-console.log(board.getMoveHistory());
-```
-
-#### Configuration
-
-- `container`: supply a custom element to host the controls; otherwise the extension appends itself beneath the board.
-- `enableKeyboard`: toggle the arrow-key/Enter navigation helpers (defaults to `true`).
-- `regionLabel`, `boardLabel`, `moveInputLabel`, `livePoliteness`: customize the ARIA copy announced to assistive tech.
-
-## 🧪 Testing
-
-Neo Chess Board comes with a Jest-based test suite that exercises the core engine, React bindings, and the demo scenarios. The
-suite lives under [`tests/`](tests/), and [`tests/README.md`](tests/README.md) explains the folder layout together with tips for
-adding new coverage. When you run the suite locally it will refresh the generated artifacts such as `tests/RESULTS.md` and the
-coverage report.
-
-```bash
-npm test              # Run the full suite once
-npm run test:watch    # Re-run affected tests on file changes
-npm run test:coverage # Produce an updated coverage summary + HTML report
-```
-
-> ℹ️ Coverage percentages depend on the latest local run. After executing the commands above you can open `coverage/lcov-report/index.html`
-> for detailed metrics and, if desired, commit an updated summary to `tests/RESULTS.md`.
-
-## 🚀 Performance
-
-- **Smooth 60fps** animations
-- **Optimized Canvas** rendering with layers
-- **Efficient** piece sprite system
-- **Minimal re-renders** in React
-- **Memory efficient** event system
-
-## 🌟 Examples Gallery
-
-Check out these live examples powered by Neo Chess Board:
-
-- 🌐 [Vanilla JS Starter](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/vanilla-js-example.html) – Quick start board with theme switching, move history, and PGN export helpers.
-- ♞ [Chess.js Integration](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Demonstrates the ChessJsRules adapter synchronized with the chess.js engine.
-- 📈 [PGN + Evaluation HUD](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Import annotated games and follow the evaluation bar as you navigate.
-- ⚡ [Advanced Features Showcase](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html) – Explore puzzles, analysis tools, and keyboard-driven workflows.
+- ⚡ **Canvas layering** – Separate layers for board, pieces, and highlights
+- 🎯 **Dirty rectangle tracking** – Only redraw changed regions
+- 💾 **Sprite caching** – Pre-rendered piece images
+- 🔄 **Efficient animations** – RequestAnimationFrame with interpolation
+- 📦 **Tree-shaking friendly** – Import only what you need
+- 🧮 **Minimal re-renders** – React memo and optimization
 
 ## 🤝 Contributing
 
-We love contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+Contributions are welcome! Here's how to get started:
+
+1. 🍴 Fork the repository
+2. 🌿 Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. ✅ Write tests for your changes
+4. 💚 Ensure tests pass (`npm test`)
+5. 📝 Commit your changes (`git commit -m 'Add amazing feature'`)
+6. 🚀 Push to the branch (`git push origin feature/amazing-feature`)
+7. 🎉 Open a Pull Request
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+### Report Issues
 
 - 🐛 [Report bugs](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues)
 - 💡 [Request features](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues)
@@ -642,6 +590,8 @@ MIT © [Cédric Oloa](https://github.com/magicolala)
 
 **Made with ❤️ for the chess community**
 
-⭐ **Star this repo if you find it useful!** ⭐
+⭐ **If Neo Chess Board helps your project, consider giving it a star!** ⭐
+
+[🎮 Try the Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Read the Docs](#-documentation) • [💬 Join Discussions](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/discussions)
 
 </div>
