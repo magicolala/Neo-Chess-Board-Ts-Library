@@ -19,6 +19,8 @@ import {
   sq,
   sqToFR,
   resolveBoardGeometry,
+  getRelativeCoords,
+  type RelativeCoord,
 } from './utils';
 
 type ModifierKey = 'shiftKey' | 'ctrlKey' | 'altKey';
@@ -188,6 +190,21 @@ export class DrawingManager {
 
   private indicesFromSquare(square: Square): { f: number; r: number } {
     return sqToFR(square, this.fileLabels, this.rankLabels);
+  }
+
+  private resolveRelativeCoords(square: Square): RelativeCoord {
+    return getRelativeCoords(
+      {
+        boardWidth: this.squareSize * this.filesCount,
+        boardHeight: this.squareSize * this.ranksCount,
+        files: this.filesCount,
+        ranks: this.ranksCount,
+        orientation: this.orientation,
+        fileLabels: this.fileLabels,
+        rankLabels: this.rankLabels,
+      },
+      square,
+    );
   }
 
   public setNotationStyles(styles: NotationStyles): void {
@@ -411,16 +428,8 @@ export class DrawingManager {
    * @returns An object with x and y coordinates
    */
   private getSquareCoordinates(square: string): { x: number; y: number } {
-    const { f, r } = this.indicesFromSquare(square as Square);
-    const maxFile = this.filesCount - 1;
-    const maxRank = this.ranksCount - 1;
-    const fileIndex = this.orientation === 'white' ? f : maxFile - f;
-    const rankIndex = this.orientation === 'white' ? maxRank - r : r;
-
-    return {
-      x: fileIndex * this.squareSize,
-      y: rankIndex * this.squareSize,
-    };
+    const coords = this.resolveRelativeCoords(square as Square);
+    return coords.topLeft;
   }
 
   /**
@@ -434,12 +443,8 @@ export class DrawingManager {
    * Get the center point of a square in pixels
    */
   private getSquareCenter(square: string): { x: number; y: number } {
-    const { x, y } = this.getSquareCoordinates(square);
-    const halfSize = this.squareSize / 2;
-    return {
-      x: x + halfSize,
-      y: y + halfSize,
-    };
+    const coords = this.resolveRelativeCoords(square as Square);
+    return coords.center;
   }
 
   public getHighlights(): SquareHighlight[] {

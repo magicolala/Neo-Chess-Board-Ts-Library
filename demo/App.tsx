@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback, useId } from 'react';
 import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
@@ -24,6 +24,7 @@ import {
   LegalMovesIcon,
   OrientationIcon,
   PremovesIcon,
+  AnimationIcon,
   SoundIcon,
   SquareNamesIcon,
   TrashIcon,
@@ -101,6 +102,8 @@ interface BoardFeatureOptions {
   highlightLegal: boolean;
   autoFlip: boolean;
   allowResize: boolean;
+  showAnimations: boolean;
+  animationDuration: number;
 }
 
 const AppContent: React.FC = () => {
@@ -136,7 +139,10 @@ const AppContent: React.FC = () => {
     highlightLegal: true,
     autoFlip: false,
     allowResize: true,
+    showAnimations: true,
+    animationDuration: 300,
   });
+  const animationSpeedInputId = useId();
   const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const {
@@ -487,12 +493,21 @@ const AppContent: React.FC = () => {
     | 'showSquareNames'
     | 'soundEnabled'
     | 'highlightLegal'
-    | 'allowResize';
+    | 'allowResize'
+    | 'showAnimations';
 
   const toggleOption = useCallback((option: ToggleableOption) => {
     setBoardOptions((prev) => ({
       ...prev,
       [option]: !prev[option],
+    }));
+  }, []);
+
+  const handleAnimationSpeedChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number(event.target.value);
+    setBoardOptions((prev) => ({
+      ...prev,
+      animationDuration: Number.isNaN(nextValue) ? prev.animationDuration : nextValue,
     }));
   }, []);
 
@@ -744,6 +759,8 @@ const AppContent: React.FC = () => {
               showHighlights={boardOptions.showHighlights}
               allowPremoves={boardOptions.allowPremoves}
               soundEnabled={boardOptions.soundEnabled}
+              showAnimations={boardOptions.showAnimations}
+              animationDurationInMs={boardOptions.animationDuration}
               soundUrl={moveSound}
               orientation={boardOptions.orientation}
               highlightLegal={boardOptions.highlightLegal}
@@ -961,6 +978,55 @@ const AppContent: React.FC = () => {
                   </span>
                 </span>
               </button>
+
+              <button
+                type="button"
+                className={`${styles.optionButton} ${boardOptions.showAnimations ? styles.optionActive : ''}`}
+                onClick={() => toggleOption('showAnimations')}
+                aria-pressed={boardOptions.showAnimations}
+              >
+                <span className={styles.optionIcon}>
+                  <AnimationIcon />
+                </span>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionTitle}>
+                    {translate('options.showAnimations.title')}
+                  </span>
+                  <span className={styles.optionHint}>
+                    {translate(
+                      boardOptions.showAnimations
+                        ? 'options.showAnimations.enabled'
+                        : 'options.showAnimations.disabled',
+                    )}
+                  </span>
+                </span>
+              </button>
+
+              <div className={styles.animationControl} aria-disabled={!boardOptions.showAnimations}>
+                <label className={styles.optionTitle} htmlFor={animationSpeedInputId}>
+                  {translate('options.animationSpeed.label')}
+                </label>
+                <input
+                  id={animationSpeedInputId}
+                  type="range"
+                  min={0}
+                  max={2000}
+                  step={50}
+                  value={boardOptions.animationDuration}
+                  onChange={handleAnimationSpeedChange}
+                  className={styles.animationControlInput}
+                  disabled={!boardOptions.showAnimations}
+                  aria-valuemin={0}
+                  aria-valuemax={2000}
+                  aria-valuenow={boardOptions.animationDuration}
+                  aria-label={translate('options.animationSpeed.label')}
+                />
+                <span className={styles.animationControlValue}>
+                  {translate('options.animationSpeed.value', {
+                    milliseconds: boardOptions.animationDuration,
+                  })}
+                </span>
+              </div>
 
               <button
                 type="button"

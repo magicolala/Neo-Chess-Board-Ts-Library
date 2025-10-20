@@ -39,6 +39,15 @@ export const PremovesIcon: React.FC = () => (
   </SvgIcon>
 );
 
+export const AnimationIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.3" />
+    <path d="M19.5 12a7.5 7.5 0 0 1-12.6 5.3" />
+    <path d="M15.5 5.5v3h3" />
+    <path d="M8.5 18.5v-3h-3" />
+  </SvgIcon>
+);
+
 export const SquareNamesIcon: React.FC = () => (
   <SvgIcon>
     <rect x={4.5} y={4.5} width={15} height={15} rx={2} />

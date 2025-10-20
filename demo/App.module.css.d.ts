@@ -7,6 +7,9 @@ declare const styles: {
   readonly optionLabel: string;
   readonly optionTitle: string;
   readonly optionHint: string;
+  readonly animationControl: string;
+  readonly animationControlInput: string;
+  readonly animationControlValue: string;
   readonly '85rem': string;
   readonly '2s': string;
   readonly optionActive: string;

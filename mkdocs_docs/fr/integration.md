@@ -89,10 +89,17 @@ import { registerTheme } from '@magicolala/neo-chess-board';
 const themeAurore = {
   light: '#f5f3ff',
   dark: '#1e1b4b',
-  highlight: '#fbbf24',
-  check: '#f59e0b',
-  coordinates: '#312e81',
-  // ...complétez les autres champs du thème
+  boardBorder: '#312e81',
+  whitePiece: '#fdf4ff',
+  blackPiece: '#312e81',
+  pieceShadow: 'rgba(15, 23, 42, 0.25)',
+  moveFrom: '#fbbf24',
+  moveTo: '#f59e0b',
+  lastMove: '#facc15',
+  premove: '#a855f7',
+  dot: 'rgba(15, 23, 42, 0.55)',
+  arrow: '#fbbf24',
+  squareNameColor: '#312e81',
 };
 
 registerTheme('aurore', themeAurore);
@@ -120,7 +127,7 @@ const piecesBrillantes: PieceSet = {
 
 const board = new NeoChessBoard(container, {
   pieceSet: piecesBrillantes,
-  background: '#0f172a',
+  boardStyle: { background: '#0f172a' },
 });
 ```
 
@@ -133,9 +140,9 @@ Les pièces non définies utilisent automatiquement le set minimaliste par défa
 ```ts
 const board = new NeoChessBoard(container, {
   showCoordinates: true,
-  highlightMoves: true,
+  highlightLegal: true,
   highlightLastMove: true,
-  highlightCheck: true,
+  showHighlights: true,
 });
 ```
 
@@ -144,11 +151,15 @@ const board = new NeoChessBoard(container, {
 Abonnez-vous aux événements (`move`, `promotion`, `select`, etc.) pour synchroniser le plateau avec le reste de votre interface.
 
 ```ts
-board.on('promotion', ({ square, setPiece }) => {
+board.on('promotion', (request) => {
   ouvrirFenetrePromotion({
-    square,
+    square: request.to,
+    couleur: request.color,
     onChoice(piece) {
-      setPiece(piece);
+      request.resolve(piece);
+    },
+    onCancel() {
+      request.cancel();
     },
   });
 });
@@ -198,13 +209,20 @@ Enveloppez le plateau dans un conteneur flexible et contrôlez ses dimensions vi
 Combinez les helpers PGN/FEN avec un stockage local pour retrouver une partie ultérieurement.
 
 ```ts
-import { NeoChessBoard, parsePgn, toPgn } from '@magicolala/neo-chess-board';
+import { NeoChessBoard } from '@magicolala/neo-chess-board';
 
-const sauvegarde = localStorage.getItem('neo-chess-game');
-const board = new NeoChessBoard(container, { fen: sauvegarde ?? undefined });
+const sauvegardeFen = localStorage.getItem('neo-chess-game');
+const sauvegardePgn = localStorage.getItem('neo-chess-pgn');
+
+const board = new NeoChessBoard(container, { fen: sauvegardeFen ?? undefined });
+
+if (sauvegardePgn) {
+  board.loadPgnWithAnnotations(sauvegardePgn);
+}
 
 board.on('move', () => {
-  localStorage.setItem('neo-chess-game', board.getFen());
+  localStorage.setItem('neo-chess-game', board.getCurrentFEN());
+  localStorage.setItem('neo-chess-pgn', board.exportPgnWithAnnotations());
 });
 ```
 

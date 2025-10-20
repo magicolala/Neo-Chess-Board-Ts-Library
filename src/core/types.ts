@@ -6,6 +6,53 @@ import type { PgnNotation } from './PgnNotation';
 export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';
 export type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+export type BoardOrientation = 'white' | 'black';
+
+export interface SquareDataType {
+  square: Square;
+  fileLabel: string;
+  rankLabel: string;
+  fileIndex: number;
+  rankIndex: number;
+  columnIndex: number;
+  rowIndex: number;
+}
+
+export type SquareMatrix = SquareDataType[][];
+
+export interface PieceDataType {
+  pieceType: Piece;
+}
+
+export interface DraggingPieceDataType extends PieceDataType {
+  sourceSquare: Square;
+  targetSquare: Square | null;
+  pointerPosition: { x: number; y: number } | null;
+}
+
+export type PositionDataType = Partial<Record<Square, PieceDataType>>;
+
+export interface PieceHandlerArgsBase {
+  board: NeoChessBoard;
+  position: PositionDataType;
+  orientation: BoardOrientation;
+}
+
+export interface PieceCanDragHandlerArgs extends PieceHandlerArgsBase {
+  square: Square;
+  piece: PieceDataType;
+}
+
+export interface PieceDragHandlerArgs extends PieceHandlerArgsBase {
+  sourceSquare: Square;
+  targetSquare: Square | null;
+  piece: DraggingPieceDataType;
+}
+
+export interface PieceDropHandlerArgs extends PieceDragHandlerArgs {
+  newPosition: PositionDataType;
+  previousPosition: PositionDataType;
+}
 
 export interface Move {
   from: Square;
@@ -285,7 +332,7 @@ export interface BoardOptions {
   allowAutoScroll?: boolean;
   allowDragging?: boolean;
   allowDragOffBoard?: boolean;
-  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean;
+  canDragPiece?: (params: PieceCanDragHandlerArgs) => boolean;
   dragActivationDistance?: number;
   allowPremoves?: boolean;
   showArrows?: boolean;

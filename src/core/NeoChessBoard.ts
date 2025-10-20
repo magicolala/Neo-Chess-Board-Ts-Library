@@ -11,6 +11,7 @@ import {
   generateFileLabels,
   generateRankLabels,
   resolveBoardGeometry,
+  fenStringToPositionObject,
 } from './utils';
 import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
@@ -1841,8 +1842,25 @@ export class NeoChessBoard {
       return;
     }
 
-    if (this.canDragPiece && !this.canDragPiece({ square: from, piece, board: this })) {
-      return;
+    if (this.canDragPiece) {
+      const currentPosition = fenStringToPositionObject(this.getPosition(), {
+        files: this.filesCount,
+        ranks: this.ranksCount,
+        fileLabels: this.fileLabels,
+        rankLabels: this.rankLabels,
+      });
+
+      const canDrag = this.canDragPiece({
+        board: this,
+        orientation: this.orientation,
+        position: currentPosition,
+        square: from,
+        piece: { pieceType: piece as Piece },
+      });
+
+      if (!canDrag) {
+        return;
+      }
     }
 
     if (!this._shouldSelectOnPointerDown(from, piece)) {
