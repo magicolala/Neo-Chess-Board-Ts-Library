@@ -785,6 +785,29 @@ describe('NeoChessBoard Core', () => {
       silentBoard.destroy();
     });
 
+    it('should clear cached audio when disabling sound at runtime', () => {
+      const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+      const clearSpy = jest.spyOn(audioManager, 'clear');
+
+      board.setSoundEnabled(false);
+
+      expect(getSoundEnabled(board)).toBe(false);
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+
+      clearSpy.mockRestore();
+    });
+
+    it('should reinitialize audio elements when sound sources change', () => {
+      const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+      const initializeSpy = jest.spyOn(audioManager, 'initialize');
+
+      board.setSoundUrls({ white: 'alt-white.mp3' });
+
+      expect(initializeSpy).toHaveBeenCalledTimes(1);
+
+      initializeSpy.mockRestore();
+    });
+
     describe('per-color move sounds', () => {
       let originalAudio: AudioConstructor | undefined;
       let audioInstances: Record<string, AudioMock>;
@@ -1177,6 +1200,36 @@ describe('NeoChessBoard Core', () => {
       callback.mockClear();
       board.clearArrows();
       expect(callback).toHaveBeenCalledWith([]);
+    });
+
+    describe('DOM helpers', () => {
+      it('applies inline board styles and removes stale keys when cleared', () => {
+        board.setBoardStyle({ border: '2px solid red', backgroundColor: 'black' });
+
+        expect(container.style.border).toBe('2px solid red');
+        expect(container.style.backgroundColor).toBe('black');
+
+        board.setBoardStyle({ border: '1px solid blue' });
+
+        expect(container.style.border).toBe('1px solid blue');
+        expect(container.style.backgroundColor).toBe('');
+      });
+
+      it('disconnects observers and detaches events on destroy', () => {
+        const domManager = getPrivate<BoardDomManager>(board, 'domManager');
+        const eventManager = getEventManager(board);
+        const disconnectSpy = jest.spyOn(domManager, 'disconnect');
+        const detachSpy = jest.spyOn(eventManager, 'detach');
+
+        board.destroy();
+        board = undefined as unknown as NeoChessBoard;
+
+        expect(disconnectSpy).toHaveBeenCalledTimes(1);
+        expect(detachSpy).toHaveBeenCalledTimes(1);
+
+        disconnectSpy.mockRestore();
+        detachSpy.mockRestore();
+      });
     });
 
     it('should add highlights using both signature styles', () => {

@@ -156,6 +156,26 @@ board.on('promotion', ({ square, setPiece }) => {
 
 In React, use the dedicated props: `onMove`, `onPromotion`, `onSquareClick`, and others.
 
+### Sound cues & board chrome
+
+Runtime toggles delegate to the new audio and DOM managers, which means you can change ambience or styling without rebuilding the board.
+
+```ts
+board.setSoundEnabled(true);
+board.setSoundUrls({
+  white: '/sounds/light-move.mp3',
+  black: '/sounds/dark-move.mp3',
+});
+
+// Apply inline CSS to the layered root element
+board.setBoardStyle({
+  borderRadius: '18px',
+  boxShadow: '0 12px 35px rgba(15, 23, 42, 0.25)',
+});
+```
+
+Changes propagate immediately—the board keeps a ResizeObserver active through `BoardDomManager`, and sound sources hot-reload via `BoardAudioManager`.
+
 ## 5. Layout and Responsiveness
 
 Wrap the board in a responsive container and control its dimensions using CSS. Because the board uses a `<canvas>`, it scales smoothly with `width`/`height` changes.

@@ -356,9 +356,12 @@ console.log(pgnWithAnnotations);
 ```
 Neo-Chess-Board-Ts-Library/
 ├── 🎯 Core Engine
+│   ├── NeoChessBoard     # Main board class
+│   ├── BoardDomManager   # Canvas & DOM layout orchestration
+│   ├── BoardEventManager # Pointer + keyboard routing
+│   ├── BoardAudioManager # Move sound lifecycle
 │   ├── EventBus          # Type-safe event system
 │   ├── LightRules        # Built-in chess rules
-│   ├── NeoChessBoard     # Main board class
 │   └── Utils             # Chess utilities
 ├── 🎨 Rendering
 │   ├── FlatSprites       # SVG-like piece rendering
@@ -369,6 +372,16 @@ Neo-Chess-Board-Ts-Library/
 └── 📝 PGN Support
     └── PGNRecorder       # Game notation recording
 ```
+
+### Internal helper managers
+
+The refactored core is split into focused helpers so you can reason about behaviour changes quickly:
+
+- **`BoardDomManager`** builds and maintains the layered canvas/DOM structure, applies inline styles, and wires resize logic.
+- **`BoardEventManager`** centralises pointer/keyboard routing so interaction tweaks stay isolated from rendering concerns.
+- **`BoardAudioManager`** owns move sound configuration, live toggles, and per-colour playback.
+
+Each manager exposes a small API and is orchestrated by `NeoChessBoard`, making it easier to customise or swap subsystems without touching unrelated code.
 
 ## 🎯 Why Neo Chess Board?
 

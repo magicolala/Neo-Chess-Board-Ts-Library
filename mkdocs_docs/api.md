@@ -110,6 +110,30 @@ Enable or disable automatic board flipping based on the side to move.
 
 - `autoFlip: boolean` - `true` to follow the active player, `false` to keep the current orientation
 
+##### `setSoundEnabled(enabled: boolean): void`
+
+Toggle move sounds without recreating the board instance.
+
+**Parameters:**
+
+- `enabled: boolean` - `true` to preload and play move sounds, `false` to release audio resources
+
+##### `setSoundUrls(soundUrls: BoardOptions['soundUrls']): void`
+
+Swap the audio clips used for move sounds. When sounds are enabled the board reinitialises its audio elements immediately.
+
+**Parameters:**
+
+- `soundUrls: BoardOptions['soundUrls']` - Optional map with `white` and/or `black` entries that override the default clip
+
+##### `setBoardStyle(style?: InlineStyle): void`
+
+Apply inline CSS to the board wrapper. Passing `undefined` clears previously assigned keys while leaving other styles untouched.
+
+**Parameters:**
+
+- `style?: InlineStyle` - CSS properties expressed as camelCase keys or CSS custom property names
+
 ##### `reset(immediate?: boolean): void`
 
 Reset the board to the initial chess position.
