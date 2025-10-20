@@ -9,4 +9,21 @@ export type {
 } from './useNeoChessBoard';
 
 // Re-export core types for convenience
-export type { BoardOptions, Move, Piece, Square, Color, Theme, RulesAdapter } from '../core/types';
+export type {
+  BoardOptions,
+  Move,
+  Piece,
+  Square,
+  Color,
+  Theme,
+  RulesAdapter,
+  SquareDataType,
+} from '../core/types';
+
+export {
+  generateBoard,
+  rowIndexToChessRow,
+  columnIndexToChessColumn,
+  chessColumnToColumnIndex,
+  chessRowToRowIndex,
+} from '../core/utils';

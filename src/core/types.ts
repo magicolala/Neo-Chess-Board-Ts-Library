@@ -6,6 +6,19 @@ import type { PgnNotation } from './PgnNotation';
 export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';
 export type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+export type BoardOrientation = 'white' | 'black';
+
+export interface SquareDataType {
+  square: Square;
+  fileLabel: string;
+  rankLabel: string;
+  fileIndex: number;
+  rankIndex: number;
+  columnIndex: number;
+  rowIndex: number;
+}
+
+export type SquareMatrix = SquareDataType[][];
 
 export interface Move {
   from: Square;
