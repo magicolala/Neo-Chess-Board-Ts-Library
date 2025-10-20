@@ -1,9 +1,15 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { NeoChessBoard } from '../../../src/react';
+import { THEMES } from '../../../src/core/themes';
+import {
+  usePlaygroundState,
+  usePlaygroundActions,
+  type PlaygroundState,
+  type ThemeName,
+} from '../state/playgroundStore';
 import '../styles/playground.css';
 
 type Orientation = 'white' | 'black';
-type ThemeName = 'midnight' | 'classic';
 
 interface PanelSection {
   id: string;
@@ -11,23 +17,253 @@ interface PanelSection {
   content: React.ReactNode;
 }
 
-const buildOptionsSections = (): PanelSection[] => [
+interface PlaygroundControlHandlers {
+  onThemeChange: React.ChangeEventHandler<HTMLSelectElement>;
+  onShowCoordinatesChange: React.ChangeEventHandler<HTMLInputElement>;
+  onHighlightLegalChange: React.ChangeEventHandler<HTMLInputElement>;
+  onInteractiveChange: React.ChangeEventHandler<HTMLInputElement>;
+  onAutoFlipChange: React.ChangeEventHandler<HTMLInputElement>;
+  onAllowDrawingArrowsChange: React.ChangeEventHandler<HTMLInputElement>;
+  onAnimationDurationChange: React.ChangeEventHandler<HTMLInputElement>;
+  onDragActivationDistanceChange: React.ChangeEventHandler<HTMLInputElement>;
+}
+
+interface BuildOptionsArgs {
+  state: PlaygroundState;
+  themeOptions: ThemeName[];
+  handlers: PlaygroundControlHandlers;
+}
+
+const controlStackStyles: React.CSSProperties = {
+  display: 'grid',
+  gap: '0.75rem',
+};
+
+const themeControlStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.4rem',
+  padding: '0.75rem 1rem',
+  borderRadius: '0.85rem',
+  border: '1px solid var(--playground-border)',
+  backgroundColor: 'rgba(15, 23, 42, 0.55)',
+};
+
+const selectControlStyles: React.CSSProperties = {
+  width: '100%',
+  padding: '0.5rem 0.75rem',
+  borderRadius: '0.65rem',
+  border: '1px solid var(--playground-border)',
+  backgroundColor: 'rgba(15, 23, 42, 0.85)',
+  color: 'var(--playground-text)',
+  fontSize: '0.95rem',
+};
+
+const toggleRowStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '0.85rem',
+  padding: '0.75rem 1rem',
+  borderRadius: '0.85rem',
+  border: '1px solid var(--playground-border)',
+  backgroundColor: 'rgba(15, 23, 42, 0.55)',
+  cursor: 'pointer',
+};
+
+const toggleTextBlockStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+  flex: '1 1 auto',
+};
+
+const toggleTitleStyles: React.CSSProperties = {
+  fontWeight: 600,
+  color: 'var(--playground-text)',
+  letterSpacing: '0.01em',
+};
+
+const toggleDescriptionStyles: React.CSSProperties = {
+  fontSize: '0.8rem',
+  color: 'var(--playground-muted)',
+};
+
+const checkboxInputStyles: React.CSSProperties = {
+  width: '1.25rem',
+  height: '1.25rem',
+  accentColor: '#6366f1',
+};
+
+const sliderContainerStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+  padding: '0.75rem 1rem',
+  borderRadius: '0.85rem',
+  border: '1px solid var(--playground-border)',
+  backgroundColor: 'rgba(15, 23, 42, 0.55)',
+};
+
+const sliderHeaderStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '0.75rem',
+};
+
+const sliderValueStyles: React.CSSProperties = {
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  padding: '0.2rem 0.6rem',
+  borderRadius: '999px',
+  backgroundColor: 'rgba(99, 102, 241, 0.25)',
+  color: 'var(--playground-text)',
+};
+
+const rangeInputStyles: React.CSSProperties = {
+  width: '100%',
+  accentColor: '#6366f1',
+};
+
+const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+
+const renderThemeControl = (
+  currentTheme: ThemeName,
+  themeOptions: ThemeName[],
+  onChange: React.ChangeEventHandler<HTMLSelectElement>,
+): React.ReactElement => (
+  <label style={themeControlStyles}>
+    <span style={toggleTitleStyles}>Theme</span>
+    <span style={toggleDescriptionStyles}>
+      Switch between the available board palettes in real time.
+    </span>
+    <select style={selectControlStyles} value={currentTheme} onChange={onChange}>
+      {themeOptions.map((themeOption) => (
+        <option key={themeOption} value={themeOption}>
+          {formatThemeLabel(themeOption)}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+const renderToggle = (
+  label: string,
+  description: string,
+  checked: boolean,
+  onChange: React.ChangeEventHandler<HTMLInputElement>,
+): React.ReactElement => (
+  <label style={toggleRowStyles}>
+    <span style={toggleTextBlockStyles}>
+      <span style={toggleTitleStyles}>{label}</span>
+      <span style={toggleDescriptionStyles}>{description}</span>
+    </span>
+    <input type="checkbox" style={checkboxInputStyles} checked={checked} onChange={onChange} />
+  </label>
+);
+
+const renderSlider = (
+  label: string,
+  valueLabel: string,
+  description: string,
+  value: number,
+  options: { min: number; max: number; step: number },
+  onChange: React.ChangeEventHandler<HTMLInputElement>,
+): React.ReactElement => (
+  <label style={sliderContainerStyles}>
+    <span style={sliderHeaderStyles}>
+      <span style={toggleTitleStyles}>{label}</span>
+      <span style={sliderValueStyles}>{valueLabel}</span>
+    </span>
+    <span style={toggleDescriptionStyles}>{description}</span>
+    <input
+      type="range"
+      style={rangeInputStyles}
+      value={value}
+      min={options.min}
+      max={options.max}
+      step={options.step}
+      onChange={onChange}
+    />
+  </label>
+);
+
+const buildOptionsSections = ({
+  state,
+  themeOptions,
+  handlers,
+}: BuildOptionsArgs): PanelSection[] => [
   {
     id: 'setup',
     title: 'Board setup',
-    content: <p>Placeholder controls for configuring the board (FEN import, presets, etc.).</p>,
+    content: (
+      <div style={controlStackStyles}>
+        {renderThemeControl(state.theme, themeOptions, handlers.onThemeChange)}
+        {renderToggle(
+          'Show coordinates',
+          'Display algebraic notation along the board borders.',
+          state.showCoordinates,
+          handlers.onShowCoordinatesChange,
+        )}
+      </div>
+    ),
   },
   {
     id: 'interactions',
     title: 'Interactions',
     content: (
-      <p>Toggle annotations, highlights, coordinates, and other interactive helpers here.</p>
+      <div style={controlStackStyles}>
+        {renderToggle(
+          'Interactive mode',
+          'Allow pointer interactions such as dragging pieces and hovering.',
+          state.interactive,
+          handlers.onInteractiveChange,
+        )}
+        {renderToggle(
+          'Highlight legal moves',
+          'Emphasize the valid destinations for the selected piece.',
+          state.highlightLegal,
+          handlers.onHighlightLegalChange,
+        )}
+        {renderToggle(
+          'Auto flip orientation',
+          'Rotate the board automatically after every move turn.',
+          state.autoFlip,
+          handlers.onAutoFlipChange,
+        )}
+        {renderToggle(
+          'Allow drawing arrows',
+          'Enable training annotations by holding the right mouse button.',
+          state.allowDrawingArrows,
+          handlers.onAllowDrawingArrowsChange,
+        )}
+      </div>
     ),
   },
   {
     id: 'advanced',
     title: 'Advanced options',
-    content: <p>Extra playground settings will appear here (engine hooks, timers, overlays).</p>,
+    content: (
+      <div style={controlStackStyles}>
+        {renderSlider(
+          'Animation duration',
+          `${state.animationDurationInMs} ms`,
+          'Control how long move animations take when pieces slide across the board.',
+          state.animationDurationInMs,
+          { min: 0, max: 2000, step: 50 },
+          handlers.onAnimationDurationChange,
+        )}
+        {renderSlider(
+          'Drag activation distance',
+          `${state.dragActivationDistance} px`,
+          'Require the pointer to travel this distance before starting a drag operation.',
+          state.dragActivationDistance,
+          { min: 0, max: 48, step: 1 },
+          handlers.onDragActivationDistanceChange,
+        )}
+      </div>
+    ),
   },
 ];
 
@@ -78,10 +314,25 @@ const getInitialBoardSize = (): number => {
 
 export const Playground: React.FC = () => {
   const [orientation, setOrientation] = useState<Orientation>('white');
-  const [theme, setTheme] = useState<ThemeName>('midnight');
   const [boardKey, setBoardKey] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
+
+  const boardOptions = usePlaygroundState();
+  const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
+
+  const themeOptions = useMemo(() => Object.keys(THEMES) as ThemeName[], []);
+
+  const {
+    theme,
+    showCoordinates,
+    highlightLegal,
+    interactive,
+    autoFlip,
+    allowDrawingArrows,
+    animationDurationInMs,
+    dragActivationDistance,
+  } = boardOptions;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -101,43 +352,142 @@ export const Playground: React.FC = () => {
     };
   }, []);
 
-  const optionSections = useMemo(buildOptionsSections, []);
-  const outputSections = useMemo(() => buildOutputSections(logs), [logs]);
-
-  const pushLog = (label: string) => {
+  const pushLog = useCallback((label: string) => {
     setLogs((previous) => {
       const timestamp = new Date().toLocaleTimeString();
       const entry = `${timestamp} – ${label}`;
       return [entry, ...previous].slice(0, 8);
     });
-  };
+  }, []);
 
-  const handleFlip = () => {
+  const handleThemeChange = useCallback<React.ChangeEventHandler<HTMLSelectElement>>(
+    (event) => {
+      const nextTheme = event.target.value as ThemeName;
+      updateBoardOptions({ theme: nextTheme });
+      pushLog(`Theme changed to ${formatThemeLabel(nextTheme)}`);
+    },
+    [updateBoardOptions, pushLog],
+  );
+
+  const handleShowCoordinatesChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      updateBoardOptions({ showCoordinates: event.target.checked });
+    },
+    [updateBoardOptions],
+  );
+
+  const handleHighlightLegalChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      updateBoardOptions({ highlightLegal: event.target.checked });
+    },
+    [updateBoardOptions],
+  );
+
+  const handleInteractiveChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      updateBoardOptions({ interactive: event.target.checked });
+    },
+    [updateBoardOptions],
+  );
+
+  const handleAutoFlipChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      updateBoardOptions({ autoFlip: event.target.checked });
+    },
+    [updateBoardOptions],
+  );
+
+  const handleAllowDrawingArrowsChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      updateBoardOptions({ allowDrawingArrows: event.target.checked });
+    },
+    [updateBoardOptions],
+  );
+
+  const handleAnimationDurationChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      const nextValue = Number(event.target.value);
+      if (Number.isFinite(nextValue)) {
+        updateBoardOptions({ animationDurationInMs: nextValue });
+      }
+    },
+    [updateBoardOptions],
+  );
+
+  const handleDragActivationDistanceChange = useCallback<
+    React.ChangeEventHandler<HTMLInputElement>
+  >(
+    (event) => {
+      const nextValue = Number(event.target.value);
+      if (Number.isFinite(nextValue)) {
+        updateBoardOptions({ dragActivationDistance: nextValue });
+      }
+    },
+    [updateBoardOptions],
+  );
+
+  const optionSections = useMemo(
+    () =>
+      buildOptionsSections({
+        state: boardOptions,
+        themeOptions,
+        handlers: {
+          onThemeChange: handleThemeChange,
+          onShowCoordinatesChange: handleShowCoordinatesChange,
+          onHighlightLegalChange: handleHighlightLegalChange,
+          onInteractiveChange: handleInteractiveChange,
+          onAutoFlipChange: handleAutoFlipChange,
+          onAllowDrawingArrowsChange: handleAllowDrawingArrowsChange,
+          onAnimationDurationChange: handleAnimationDurationChange,
+          onDragActivationDistanceChange: handleDragActivationDistanceChange,
+        },
+      }),
+    [
+      boardOptions,
+      themeOptions,
+      handleThemeChange,
+      handleShowCoordinatesChange,
+      handleHighlightLegalChange,
+      handleInteractiveChange,
+      handleAutoFlipChange,
+      handleAllowDrawingArrowsChange,
+      handleAnimationDurationChange,
+      handleDragActivationDistanceChange,
+    ],
+  );
+
+  const outputSections = useMemo(() => buildOutputSections(logs), [logs]);
+
+  const handleFlip = useCallback(() => {
     setOrientation((current) => (current === 'white' ? 'black' : 'white'));
     pushLog('Board flipped');
-  };
+  }, [pushLog]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setBoardKey((value) => value + 1);
     setOrientation('white');
-    pushLog('Board reset to initial position');
-  };
+    resetBoardOptions();
+    pushLog('Board reset and controls restored to defaults');
+  }, [resetBoardOptions, pushLog]);
 
-  const handleStressTest = () => {
+  const handleStressTest = useCallback(() => {
     pushLog('Stress test triggered');
-  };
+  }, [pushLog]);
 
-  const handleA11yAudit = () => {
+  const handleA11yAudit = useCallback(() => {
     pushLog('Accessibility audit placeholder');
-  };
+  }, [pushLog]);
 
-  const handleThemeToggle = () => {
-    setTheme((current) => {
-      const nextTheme: ThemeName = current === 'midnight' ? 'classic' : 'midnight';
-      return nextTheme;
-    });
-    pushLog('Theme toggled');
-  };
+  const handleThemeToggle = useCallback(() => {
+    if (themeOptions.length === 0) {
+      return;
+    }
+    const currentIndex = themeOptions.indexOf(theme);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
+    const nextTheme = themeOptions[nextIndex];
+    updateBoardOptions({ theme: nextTheme });
+    pushLog(`Theme changed to ${formatThemeLabel(nextTheme)}`);
+  }, [themeOptions, theme, updateBoardOptions, pushLog]);
 
   return (
     <div className="playground">
@@ -182,10 +532,16 @@ export const Playground: React.FC = () => {
               key={boardKey}
               theme={theme}
               orientation={orientation}
-              showSquareNames
+              showCoordinates={showCoordinates}
+              showSquareNames={showCoordinates}
+              highlightLegal={highlightLegal}
+              interactive={interactive}
+              autoFlip={autoFlip}
+              allowDrawingArrows={allowDrawingArrows}
+              animationDurationInMs={animationDurationInMs}
+              dragActivationDistance={dragActivationDistance}
               showArrows
               showHighlights
-              highlightLegal
               allowPremoves
               soundEnabled
               size={boardSize}
