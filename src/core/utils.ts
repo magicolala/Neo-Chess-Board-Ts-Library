@@ -1,4 +1,13 @@
-import type { Square, Color, SquareMatrix, SquareDataType, BoardOrientation } from './types';
+import type {
+  Square,
+  Color,
+  SquareMatrix,
+  SquareDataType,
+  BoardOrientation,
+  Piece,
+  PieceDataType,
+  PositionDataType,
+} from './types';
 
 const DEFAULT_LABEL_COUNT = 26;
 
@@ -261,6 +270,128 @@ export function parseFEN(
     halfmove: parseInt(parts[4] || '0'),
     fullmove: parseInt(parts[5] || '1'),
   };
+}
+
+export interface FenStringToPositionObjectOptions {
+  files?: number;
+  ranks?: number;
+  fileLabels?: readonly string[];
+  rankLabels?: readonly string[];
+}
+
+export function fenStringToPositionObject(
+  fen: string,
+  options: FenStringToPositionObjectOptions = {},
+): PositionDataType {
+  const { files, ranks, fileLabels, rankLabels } = options;
+  const parsed = parseFEN(fen, { files, ranks });
+  const board = parsed.board;
+
+  const totalRanks = board.length;
+  const totalFiles = totalRanks > 0 ? board[0]!.length : Math.max(1, Math.floor(files ?? 8));
+
+  const resolvedFileLabels = resolveFileLabels(totalFiles, fileLabels);
+  const resolvedRankLabels = resolveRankLabels(totalRanks, rankLabels);
+
+  const position: PositionDataType = {};
+
+  for (let r = 0; r < totalRanks; r++) {
+    const row = board[r];
+    for (let f = 0; f < totalFiles; f++) {
+      const piece = row[f];
+      if (!piece) {
+        continue;
+      }
+
+      const square = sq(f, r, resolvedFileLabels, resolvedRankLabels);
+      position[square] = { pieceType: piece as Piece };
+    }
+  }
+
+  return position;
+}
+
+export interface GetPositionUpdatesOptions extends FenStringToPositionObjectOptions {
+  previousOrientation?: BoardOrientation;
+  nextOrientation?: BoardOrientation;
+}
+
+export interface PositionUpdateResult {
+  added: PositionDataType;
+  removed: Square[];
+}
+
+function clonePosition(position: PositionDataType): PositionDataType {
+  return Object.entries(position).reduce<PositionDataType>((acc, [square, piece]) => {
+    if (piece) {
+      acc[square as Square] = { pieceType: piece.pieceType };
+    }
+    return acc;
+  }, {});
+}
+
+export function getPositionUpdates(
+  previous: string | PositionDataType,
+  next: string | PositionDataType,
+  options: GetPositionUpdatesOptions = {},
+): PositionUpdateResult {
+  const {
+    previousOrientation = 'white',
+    nextOrientation = previousOrientation,
+    ...fenOptions
+  } = options;
+
+  const resolvePosition = (value: string | PositionDataType): PositionDataType =>
+    typeof value === 'string' ? fenStringToPositionObject(value, fenOptions) : clonePosition(value);
+
+  const previousPosition = resolvePosition(previous);
+  const nextPosition = resolvePosition(next);
+
+  const removedSet = new Set<Square>();
+  const added: PositionDataType = {};
+
+  const orientationChanged = previousOrientation !== nextOrientation;
+
+  if (orientationChanged) {
+    for (const square of Object.keys(previousPosition) as Square[]) {
+      removedSet.add(square);
+    }
+    for (const [square, piece] of Object.entries(nextPosition) as Array<
+      [Square, PieceDataType | undefined]
+    >) {
+      if (piece) {
+        added[square] = { pieceType: piece.pieceType };
+      }
+    }
+  } else {
+    const squares = new Set<Square>([
+      ...(Object.keys(previousPosition) as Square[]),
+      ...(Object.keys(nextPosition) as Square[]),
+    ]);
+
+    for (const square of squares) {
+      const previousPiece = previousPosition[square];
+      const nextPiece = nextPosition[square];
+
+      if (!nextPiece && previousPiece) {
+        removedSet.add(square);
+        continue;
+      }
+
+      if (nextPiece) {
+        if (!previousPiece || previousPiece.pieceType !== nextPiece.pieceType) {
+          if (previousPiece) {
+            removedSet.add(square);
+          }
+          added[square] = { pieceType: nextPiece.pieceType };
+        }
+      }
+    }
+  }
+
+  const removed = Array.from(removedSet);
+  removed.sort((a, b) => a.localeCompare(b));
+  return { added, removed };
 }
 
 export function rowIndexToChessRow({

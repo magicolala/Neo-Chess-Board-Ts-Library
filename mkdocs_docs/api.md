@@ -179,6 +179,44 @@ Returns `true` when the game cannot be won due to insufficient mating material.
 
 Returns `true` when the current position has occurred at least three times.
 
+## Utility Functions
+
+The core utilities provide helpers for working with FEN strings and incremental board updates.
+
+### `fenStringToPositionObject(fen: string, options?: FenStringToPositionObjectOptions): PositionDataType`
+
+Convert a FEN string into a plain object keyed by algebraic square names. Each entry contains the corresponding `pieceType`,
+allowing consumers to inspect or diff a position without parsing the FEN manually.
+
+**Example:**
+
+```typescript
+import { fenStringToPositionObject, START_FEN } from 'neo-chess-board';
+
+const position = fenStringToPositionObject(START_FEN);
+// position.e2 => { pieceType: 'P' }
+```
+
+### `getPositionUpdates(previous: string | PositionDataType, next: string | PositionDataType, options?: GetPositionUpdatesOptions): PositionUpdateResult`
+
+Compute the differences between two positions, returning the squares that were removed and the set of updated squares with
+their new `pieceType`. The helper accepts both FEN strings and already-parsed position objects. When the board orientation
+changes (for example, flipping from white to black), every occupied square is marked for re-rendering so DOM overlays can be
+correctly repositioned.
+
+**Example:**
+
+```typescript
+import { getPositionUpdates } from 'neo-chess-board';
+
+const { added, removed } = getPositionUpdates('8/8/8/4P3/8/8/8/8 w - - 0 1', '8/8/8/8/4P3/8/8/8 b - - 0 1');
+// removed => ['e4']
+// added   => { e5: { pieceType: 'P' } }
+```
+
+`PositionDataType`, `PieceDataType`, `PieceCanDragHandlerArgs`, and related interfaces are exported alongside these helpers
+so extensions and integrations can share a consistent shape when reacting to position updates or drag/drop lifecycle events.
+
 #### Events
 
 The board emits events through the EventBus system:

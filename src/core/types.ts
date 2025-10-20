@@ -20,6 +20,40 @@ export interface SquareDataType {
 
 export type SquareMatrix = SquareDataType[][];
 
+export interface PieceDataType {
+  pieceType: Piece;
+}
+
+export interface DraggingPieceDataType extends PieceDataType {
+  sourceSquare: Square;
+  targetSquare: Square | null;
+  pointerPosition: { x: number; y: number } | null;
+}
+
+export type PositionDataType = Partial<Record<Square, PieceDataType>>;
+
+export interface PieceHandlerArgsBase {
+  board: NeoChessBoard;
+  position: PositionDataType;
+  orientation: BoardOrientation;
+}
+
+export interface PieceCanDragHandlerArgs extends PieceHandlerArgsBase {
+  square: Square;
+  piece: PieceDataType;
+}
+
+export interface PieceDragHandlerArgs extends PieceHandlerArgsBase {
+  sourceSquare: Square;
+  targetSquare: Square | null;
+  piece: DraggingPieceDataType;
+}
+
+export interface PieceDropHandlerArgs extends PieceDragHandlerArgs {
+  newPosition: PositionDataType;
+  previousPosition: PositionDataType;
+}
+
 export interface Move {
   from: Square;
   to: Square;
@@ -298,7 +332,7 @@ export interface BoardOptions {
   allowAutoScroll?: boolean;
   allowDragging?: boolean;
   allowDragOffBoard?: boolean;
-  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean;
+  canDragPiece?: (params: PieceCanDragHandlerArgs) => boolean;
   dragActivationDistance?: number;
   allowPremoves?: boolean;
   showArrows?: boolean;
