@@ -1,0 +1,9 @@
+[Event "Classic Example"]
+[Site "Demo"]
+[Date "1910.01.01"]
+[Round "-"]
+[White "White Player"]
+[Black "Black Player"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 bxc4 12. Bxc4 Bb7 13. Nc3 Re8 14. Ng5 Rf8 15. Qb3 d5 16. exd5 exd4 17. Qxb7 dxc3 18. bxc3 Nc5 19. Qb1 h6 20. Nf3 Bd6 21. Nd4 Re8 22. Be3 Rb8 23. Qc2 Qd7 24. Nc6 Rb6 25. a4 Nxd5 26. Bxd5 Rxc6 27. Bxc6 Qxc6 28. Bxc5 Bxc5 29. Rxe8+ Qxe8 30. Qd3 Bd6 31. Qxa6 Qe5 32. g3 Qxc3 33. Rb1 Bxg3 34. Qc8+ Kh7 35. Qf5+ g6 36. Qxf7+ Qg7 37. Qxg7+ Kxg7 38. fxg3 1-0

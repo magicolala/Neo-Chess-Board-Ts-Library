@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { NeoChessBoard } from '../../../src/react';
+import type { NeoChessRef } from '../../../src/react';
 import { THEMES } from '../../../src/core/themes';
 import {
   usePlaygroundState,
@@ -15,6 +16,8 @@ import {
   syncPlaygroundPermalink,
   type PlaygroundOrientation,
 } from '../utils/permalink';
+import type { BoardEventMap } from '../../../src/core/types';
+import PgnPanel from '../components/PgnPanel';
 
 interface PanelSection {
   id: string;
@@ -272,7 +275,12 @@ const buildOptionsSections = ({
   },
 ];
 
-const buildOutputSections = (logs: string[]): PanelSection[] => [
+const buildOutputSections = (logs: string[], pgnPanel: React.ReactNode): PanelSection[] => [
+  {
+    id: 'pgn',
+    title: 'PGN',
+    content: pgnPanel,
+  },
   {
     id: 'logs',
     title: 'Logs',
@@ -332,6 +340,8 @@ export const Playground: React.FC = () => {
   const [boardKey, setBoardKey] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
+  const [pgn, setPgn] = useState('');
+  const boardRef = useRef<NeoChessRef | null>(null);
 
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
@@ -486,7 +496,35 @@ export const Playground: React.FC = () => {
     ],
   );
 
-  const outputSections = useMemo(() => buildOutputSections(logs), [logs]);
+  const exportPgnFromBoard = useCallback((): string => {
+    const board = boardRef.current?.getBoard();
+    if (!board) {
+      return '';
+    }
+    const withRules = board as unknown as {
+      rules?: { getPgnNotation?: () => { toPgnWithAnnotations?: () => string } | null };
+    };
+    const notation = withRules.rules?.getPgnNotation?.();
+    if (notation && typeof notation.toPgnWithAnnotations === 'function') {
+      return notation.toPgnWithAnnotations();
+    }
+    if (typeof board.exportPgnWithAnnotations === 'function') {
+      return board.exportPgnWithAnnotations();
+    }
+    if (typeof board.exportPGN === 'function') {
+      return board.exportPGN();
+    }
+    return '';
+  }, []);
+
+  const outputSections = useMemo(
+    () =>
+      buildOutputSections(
+        logs,
+        <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
+      ),
+    [boardRef, logs, pgn, pushLog],
+  );
 
   const handleFlip = useCallback(() => {
     setOrientation((current) => (current === 'white' ? 'black' : 'white'));
@@ -498,6 +536,7 @@ export const Playground: React.FC = () => {
     setOrientation(DEFAULT_ORIENTATION);
     resetBoardOptions();
     clearPlaygroundPermalink();
+    setPgn('');
     pushLog('Board reset and controls restored to defaults');
   }, [resetBoardOptions, pushLog]);
 
@@ -519,6 +558,18 @@ export const Playground: React.FC = () => {
     updateBoardOptions({ theme: nextTheme });
     pushLog(`Theme changed to ${formatThemeLabel(nextTheme)}`);
   }, [themeOptions, theme, updateBoardOptions, pushLog]);
+
+  const handleBoardMove = useCallback(
+    (event: BoardEventMap['move']) => {
+      setPgn(exportPgnFromBoard());
+      pushLog(`Move played from ${event.from} to ${event.to}`);
+    },
+    [exportPgnFromBoard, pushLog],
+  );
+
+  const handleBoardUpdate = useCallback(() => {
+    setPgn(exportPgnFromBoard());
+  }, [exportPgnFromBoard]);
 
   return (
     <div className="playground">
@@ -560,6 +611,7 @@ export const Playground: React.FC = () => {
         <section className="playground__board" aria-label="Chessboard">
           <div className="playground__board-frame">
             <NeoChessBoard
+              ref={boardRef}
               key={boardKey}
               theme={theme}
               orientation={orientation}
@@ -576,6 +628,8 @@ export const Playground: React.FC = () => {
               allowPremoves
               soundEnabled
               size={boardSize}
+              onMove={handleBoardMove}
+              onUpdate={handleBoardUpdate}
             />
           </div>
 
