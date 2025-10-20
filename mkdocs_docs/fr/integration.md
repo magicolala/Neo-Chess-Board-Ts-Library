@@ -156,6 +156,26 @@ board.on('promotion', ({ square, setPiece }) => {
 
 Dans React, utilisez les props dédiées : `onMove`, `onPromotion`, `onSquareClick`, etc.
 
+### Sons et habillage du plateau
+
+Les bascules à chaud s'appuient désormais sur les gestionnaires audio et DOM, ce qui permet d'ajuster l'ambiance ou le style sans reconstruire le plateau.
+
+```ts
+board.setSoundEnabled(true);
+board.setSoundUrls({
+  white: '/sons/coup-blanc.mp3',
+  black: '/sons/coup-noir.mp3',
+});
+
+// Appliquer du CSS en ligne à l'enveloppe superposée
+board.setBoardStyle({
+  borderRadius: '18px',
+  boxShadow: '0 12px 35px rgba(15, 23, 42, 0.25)',
+});
+```
+
+Les changements sont immédiats : `BoardDomManager` maintient un `ResizeObserver` actif et `BoardAudioManager` recharge les sources sonores à la volée.
+
 ## 5. Mise en page et responsivité
 
 Enveloppez le plateau dans un conteneur flexible et contrôlez ses dimensions via le CSS. Le `<canvas>` se redimensionne en douceur lorsque `width` ou `height` changent.
