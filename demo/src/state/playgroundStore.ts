@@ -53,19 +53,63 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
   let changed = false;
   const nextState: PlaygroundState = { ...state };
 
-  (Object.keys(partial) as (keyof PlaygroundState)[]).forEach((key) => {
-    if (!Object.prototype.hasOwnProperty.call(partial, key)) {
-      return;
-    }
-    const value = partial[key];
-    if (typeof value === 'undefined') {
-      return;
-    }
-    if (!Object.is(nextState[key], value)) {
-      nextState[key] = value as PlaygroundState[typeof key];
-      changed = true;
-    }
-  });
+  if (typeof partial.theme !== 'undefined' && !Object.is(nextState.theme, partial.theme)) {
+    nextState.theme = partial.theme;
+    changed = true;
+  }
+
+  if (
+    typeof partial.showCoordinates !== 'undefined' &&
+    !Object.is(nextState.showCoordinates, partial.showCoordinates)
+  ) {
+    nextState.showCoordinates = partial.showCoordinates;
+    changed = true;
+  }
+
+  if (
+    typeof partial.highlightLegal !== 'undefined' &&
+    !Object.is(nextState.highlightLegal, partial.highlightLegal)
+  ) {
+    nextState.highlightLegal = partial.highlightLegal;
+    changed = true;
+  }
+
+  if (
+    typeof partial.interactive !== 'undefined' &&
+    !Object.is(nextState.interactive, partial.interactive)
+  ) {
+    nextState.interactive = partial.interactive;
+    changed = true;
+  }
+
+  if (typeof partial.autoFlip !== 'undefined' && !Object.is(nextState.autoFlip, partial.autoFlip)) {
+    nextState.autoFlip = partial.autoFlip;
+    changed = true;
+  }
+
+  if (
+    typeof partial.allowDrawingArrows !== 'undefined' &&
+    !Object.is(nextState.allowDrawingArrows, partial.allowDrawingArrows)
+  ) {
+    nextState.allowDrawingArrows = partial.allowDrawingArrows;
+    changed = true;
+  }
+
+  if (
+    typeof partial.animationDurationInMs !== 'undefined' &&
+    !Object.is(nextState.animationDurationInMs, partial.animationDurationInMs)
+  ) {
+    nextState.animationDurationInMs = partial.animationDurationInMs;
+    changed = true;
+  }
+
+  if (
+    typeof partial.dragActivationDistance !== 'undefined' &&
+    !Object.is(nextState.dragActivationDistance, partial.dragActivationDistance)
+  ) {
+    nextState.dragActivationDistance = partial.dragActivationDistance;
+    changed = true;
+  }
 
   if (!changed) {
     return false;
