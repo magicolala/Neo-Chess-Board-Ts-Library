@@ -199,6 +199,59 @@ body {
   color: white;
 }
 
+.animationControl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: 14px 18px;
+  border-radius: calc(var(--radius) + 16px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  min-height: 64px;
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.animationControl:focus-within {
+  border-color: var(--glass-active-border);
+  box-shadow:
+    var(--shadow-glass),
+    0 0 0 3px var(--glass-focus-ring);
+  background: var(--glass-hover);
+}
+
+.animationControl[aria-disabled='true'] {
+  opacity: 0.7;
+}
+
+.animationControlInput {
+  width: 100%;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.animationControlInput:disabled {
+  cursor: not-allowed;
+}
+
+.animationControlValue {
+  align-self: flex-end;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.animationControl[aria-disabled='true'] .animationControlValue {
+  color: rgba(148, 163, 184, 0.75);
+}
+
 .optionIcon svg {
   width: 20px;
   height: 20px;
