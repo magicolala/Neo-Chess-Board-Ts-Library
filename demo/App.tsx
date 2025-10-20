@@ -734,6 +734,13 @@ const AppContent: React.FC = () => {
               {translate('app.themes.classic')}
             </LoadingButton>
             <a
+              href="./playground.html"
+              className={`${styles.themeButton} ${styles.playgroundLink}`}
+              title={translate('app.playgroundLinkTitle')}
+            >
+              {translate('app.playgroundLinkText')}
+            </a>
+            <a
               href="./theme-creator.html"
               className={`${styles.themeButton} ${styles.themeCreatorLink}`}
               title={translate('app.themeCreatorTitle')}
