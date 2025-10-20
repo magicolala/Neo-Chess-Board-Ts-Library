@@ -8,8 +8,13 @@ import {
   type ThemeName,
 } from '../state/playgroundStore';
 import '../styles/playground.css';
-
-type Orientation = 'white' | 'black';
+import {
+  DEFAULT_ORIENTATION,
+  clearPlaygroundPermalink,
+  parsePlaygroundPermalink,
+  syncPlaygroundPermalink,
+  type PlaygroundOrientation,
+} from '../utils/permalink';
 
 interface PanelSection {
   id: string;
@@ -313,13 +318,38 @@ const getInitialBoardSize = (): number => {
 };
 
 export const Playground: React.FC = () => {
-  const [orientation, setOrientation] = useState<Orientation>('white');
+  const permalinkSnapshot = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    return parsePlaygroundPermalink(window.location.search);
+  }, []);
+
+  const [orientation, setOrientation] = useState<PlaygroundOrientation>(
+    permalinkSnapshot.orientation ?? DEFAULT_ORIENTATION,
+  );
   const [boardKey, setBoardKey] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
 
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
+
+  useEffect(() => {
+    if (!permalinkSnapshot.state) {
+      return;
+    }
+
+    updateBoardOptions(permalinkSnapshot.state);
+  }, [permalinkSnapshot.state, updateBoardOptions]);
+
+  useEffect(() => {
+    syncPlaygroundPermalink({
+      orientation,
+      state: boardOptions,
+    });
+  }, [orientation, boardOptions]);
 
   const themeOptions = useMemo(() => Object.keys(THEMES) as ThemeName[], []);
 
@@ -465,8 +495,9 @@ export const Playground: React.FC = () => {
 
   const handleReset = useCallback(() => {
     setBoardKey((value) => value + 1);
-    setOrientation('white');
+    setOrientation(DEFAULT_ORIENTATION);
     resetBoardOptions();
+    clearPlaygroundPermalink();
     pushLog('Board reset and controls restored to defaults');
   }, [resetBoardOptions, pushLog]);
 
