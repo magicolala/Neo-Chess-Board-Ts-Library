@@ -1,6 +1,6 @@
 {
   "name": "@magicolala/neo-chess-board",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Canvas chessboard library with React bindings and PGN recorder (Chessbook-like feel)",
   "keywords": [
     "chess",
