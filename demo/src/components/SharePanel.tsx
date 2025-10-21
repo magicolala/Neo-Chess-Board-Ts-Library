@@ -78,18 +78,15 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
     };
   }, []);
 
-  const permalinkParams = useMemo(() => {
-    const params = serializePlaygroundPermalink({
-      orientation,
-      state,
-    });
-
-    if (fen) {
-      params.set('fen', fen);
-    }
-
-    return params;
-  }, [orientation, state, fen]);
+  const permalinkParams = useMemo(
+    () =>
+      serializePlaygroundPermalink({
+        orientation,
+        state,
+        fen: typeof fen === 'string' && fen.trim().length > 0 ? fen : undefined,
+      }),
+    [orientation, state, fen],
+  );
 
   const resolvedShareUrl = useMemo(() => {
     if (shareUrl) {

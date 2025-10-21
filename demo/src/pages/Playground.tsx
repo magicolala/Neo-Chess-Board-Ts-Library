@@ -413,7 +413,11 @@ export const Playground: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
   const [pgn, setPgn] = useState('');
-  const [currentFen, setCurrentFen] = useState<string>(DEFAULT_START_FEN);
+  const initialFen =
+    typeof permalinkSnapshot.fen === 'string' && permalinkSnapshot.fen.trim().length > 0
+      ? permalinkSnapshot.fen
+      : DEFAULT_START_FEN;
+  const [currentFen, setCurrentFen] = useState<string>(initialFen);
   const [isStressTestRunning, setIsStressTestRunning] = useState(false);
   const [isPerfPanelVisible, setIsPerfPanelVisible] = useState(false);
   const [showFpsBadge, setShowFpsBadge] = useState(false);
@@ -486,8 +490,9 @@ export const Playground: React.FC = () => {
     syncPlaygroundPermalink({
       orientation,
       state: boardOptions,
+      fen: currentFen,
     });
-  }, [orientation, boardOptions]);
+  }, [orientation, boardOptions, currentFen]);
 
   useEffect(() => {
     boardSizeRef.current = boardSize;
@@ -1391,6 +1396,7 @@ export const Playground: React.FC = () => {
                 theme={theme}
                 pieceSet={selectedPieceSet ?? undefined}
                 orientation={orientation}
+                fen={currentFen}
                 showCoordinates={showCoordinates}
                 showSquareNames={showCoordinates}
                 highlightLegal={highlightLegal}
