@@ -19,6 +19,8 @@ import {
 import type { BoardEventMap } from '../../../src/core/types';
 import PgnPanel from '../components/PgnPanel';
 import LogsPanel from '../components/LogsPanel';
+import CodePanel from '../components/CodePanel';
+import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 
 interface PanelSection {
   id: string;
@@ -279,6 +281,7 @@ const buildOptionsSections = ({
 const buildOutputSections = (
   logs: string[],
   pgnPanel: React.ReactNode,
+  codePanel: React.ReactNode,
   onClearLogs: () => void,
 ): PanelSection[] => [
   {
@@ -294,11 +297,7 @@ const buildOutputSections = (
   {
     id: 'code',
     title: 'Generated code',
-    content: (
-      <pre className="playground__code-block">
-        <code>{'// Code preview will appear here once options are wired.'}</code>
-      </pre>
-    ),
+    content: codePanel,
   },
 ];
 
@@ -359,6 +358,13 @@ export const Playground: React.FC = () => {
   }, [orientation, boardOptions]);
 
   const themeOptions = useMemo(() => Object.keys(THEMES) as ThemeName[], []);
+
+  const codeSnippets = useMemo(
+    () => buildPlaygroundSnippets({ state: boardOptions, orientation }),
+    [boardOptions, orientation],
+  );
+
+  const codePanelElement = useMemo(() => <CodePanel snippets={codeSnippets} />, [codeSnippets]);
 
   const {
     theme,
@@ -523,9 +529,10 @@ export const Playground: React.FC = () => {
       buildOutputSections(
         logs,
         <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
+        codePanelElement,
         handleClearLogs,
       ),
-    [boardRef, logs, pgn, pushLog, handleClearLogs],
+    [boardRef, logs, pgn, pushLog, handleClearLogs, codePanelElement],
   );
 
   const handleFlip = useCallback(() => {
