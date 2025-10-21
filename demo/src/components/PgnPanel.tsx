@@ -35,14 +35,14 @@ const EXAMPLE_PGNS: ExamplePgn[] = [
 ];
 
 const buildAssetUrl = (relativePath: string): string => {
-  const baseHref =
-    typeof document !== 'undefined'
-      ? document.querySelector('base')?.getAttribute('href')
-      : undefined;
-  const base = baseHref ?? '/';
-  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
   const normalizedPath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
-  return `${normalizedBase}${normalizedPath}`;
+
+  if (typeof document !== 'undefined' && typeof document.baseURI === 'string') {
+    const resolvedUrl = new URL(normalizedPath, document.baseURI);
+    return `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
+  }
+
+  return `/${normalizedPath}`;
 };
 
 const getRulesFromBoard = (board: unknown): ChessJsRules | null => {
