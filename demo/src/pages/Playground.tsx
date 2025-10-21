@@ -635,13 +635,15 @@ export const Playground: React.FC = () => {
 
       <main className="playground__content">
         <aside className="playground__panel playground__panel--left" aria-label="Options">
-          <h2 className="playground__panel-title">Options</h2>
-          {optionSections.map((section) => (
-            <details key={section.id} className="playground__accordion" open>
-              <summary>{section.title}</summary>
-              <div className="playground__accordion-body">{section.content}</div>
-            </details>
-          ))}
+          <div className="playground__panel-content">
+            <h2 className="playground__panel-title">Options</h2>
+            {optionSections.map((section) => (
+              <details key={section.id} className="playground__accordion" open>
+                <summary>{section.title}</summary>
+                <div className="playground__accordion-body">{section.content}</div>
+              </details>
+            ))}
+          </div>
         </aside>
 
         <section className="playground__board" aria-label="Chessboard">
@@ -673,38 +675,44 @@ export const Playground: React.FC = () => {
 
           <div className="playground__mobile-panels" aria-live="polite">
             <section>
-              <h2 className="playground__panel-title">Options</h2>
-              {optionSections.map((section) => (
-                <details key={`mobile-${section.id}`} className="playground__accordion">
-                  <summary>{section.title}</summary>
-                  <div className="playground__accordion-body">{section.content}</div>
-                </details>
-              ))}
+              <div className="playground__panel-content">
+                <h2 className="playground__panel-title">Options</h2>
+                {optionSections.map((section) => (
+                  <details key={`mobile-${section.id}`} className="playground__accordion">
+                    <summary>{section.title}</summary>
+                    <div className="playground__accordion-body">{section.content}</div>
+                  </details>
+                ))}
+              </div>
             </section>
             <section>
-              <h2 className="playground__panel-title">Outputs</h2>
-              {outputSections.map((section) => (
-                <details key={`mobile-${section.id}`} className="playground__accordion">
-                  <summary>{section.title}</summary>
-                  <div className="playground__accordion-body">{section.content}</div>
-                </details>
-              ))}
+              <div className="playground__panel-content">
+                <h2 className="playground__panel-title">Outputs</h2>
+                {outputSections.map((section) => (
+                  <details key={`mobile-${section.id}`} className="playground__accordion">
+                    <summary>{section.title}</summary>
+                    <div className="playground__accordion-body">{section.content}</div>
+                  </details>
+                ))}
+              </div>
             </section>
           </div>
         </section>
 
         <aside className="playground__panel playground__panel--right" aria-label="Outputs">
-          <h2 className="playground__panel-title">Outputs</h2>
-          {outputSections.map((section) => (
-            <details
-              key={section.id}
-              className="playground__accordion"
-              open={section.id === 'logs'}
-            >
-              <summary>{section.title}</summary>
-              <div className="playground__accordion-body">{section.content}</div>
-            </details>
-          ))}
+          <div className="playground__panel-content">
+            <h2 className="playground__panel-title">Outputs</h2>
+            {outputSections.map((section) => (
+              <details
+                key={section.id}
+                className="playground__accordion"
+                open={section.id === 'logs'}
+              >
+                <summary>{section.title}</summary>
+                <div className="playground__accordion-body">{section.content}</div>
+              </details>
+            ))}
+          </div>
         </aside>
       </main>
     </div>

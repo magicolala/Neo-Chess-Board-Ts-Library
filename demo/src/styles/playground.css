@@ -7,6 +7,8 @@
   --playground-accent: #6366f1;
   --playground-radius: 18px;
   --playground-gap: clamp(1rem, 2vw, 2rem);
+  --playground-panel-top-offset: clamp(1rem, 2vw, 2rem);
+  --playground-panel-padding: 1rem;
 }
 
 .playground {
@@ -95,22 +97,30 @@
 .playground__panel {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   background: var(--playground-panel-bg);
   border: 1px solid var(--playground-border);
-  padding: 1rem;
+  padding: var(--playground-panel-padding);
   border-radius: var(--playground-radius);
   position: sticky;
-  top: clamp(1rem, 2vw, 2rem);
-  max-height: calc(100vh - clamp(3rem, 4vw, 5rem));
-  overflow-y: auto;
+  top: var(--playground-panel-top-offset);
 }
 
-.playground__panel::-webkit-scrollbar {
+.playground__panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: calc(
+    100vh - var(--playground-panel-top-offset) - (var(--playground-panel-padding) * 2)
+  );
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.playground__panel-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.playground__panel::-webkit-scrollbar-thumb {
+.playground__panel-content::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.35);
   border-radius: 999px;
 }
