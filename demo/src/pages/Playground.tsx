@@ -321,6 +321,40 @@ const getInitialBoardSize = (): number => {
   return clampBoardSize(window.innerWidth - 120);
 };
 
+const STRESS_TEST_CYCLE: readonly string[] = ['Nf3', 'Nf6', 'Ng1', 'Ng8'] as const;
+
+const STRESS_TEST_MOVES: readonly string[] = (() => {
+  const moves: string[] = [];
+  for (let i = 0; i < 50; i += 1) {
+    moves.push(...STRESS_TEST_CYCLE);
+  }
+  return moves;
+})();
+
+const STRESS_TEST_MOVE_DELAY_MS = 160;
+const STRESS_TEST_INITIAL_DELAY_MS = 240;
+const STRESS_TEST_RESIZE_WIDTHS: readonly number[] = [320, 360, 400, 440, 480, 520, 560, 600];
+const STRESS_TEST_RESIZE_INTERVAL_MS = 420;
+const STRESS_TEST_RESIZE_ANIMATION_MS = 180;
+
+interface StressTestBoardApi {
+  submitMove?: (notation: string) => boolean;
+  reset?: (immediate?: boolean) => void;
+}
+
+interface StressTestRunState {
+  board: StressTestBoardApi;
+  moveIndex: number;
+  moveTimeoutId?: number;
+  resizeTimeoutId?: number;
+  rafId?: number;
+  resizeIndex: number;
+  resizeDirection: 1 | -1;
+  originalOrientation: PlaygroundOrientation;
+  originalOptions: PlaygroundState;
+  originalBoardSize: number;
+}
+
 export const Playground: React.FC = () => {
   const permalinkSnapshot = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -337,7 +371,10 @@ export const Playground: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
   const [pgn, setPgn] = useState('');
+  const [isStressTestRunning, setIsStressTestRunning] = useState(false);
   const boardRef = useRef<NeoChessRef | null>(null);
+  const stressTestStateRef = useRef<StressTestRunState | null>(null);
+  const boardSizeRef = useRef(boardSize);
 
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
@@ -356,6 +393,10 @@ export const Playground: React.FC = () => {
       state: boardOptions,
     });
   }, [orientation, boardOptions]);
+
+  useEffect(() => {
+    boardSizeRef.current = boardSize;
+  }, [boardSize]);
 
   const themeOptions = useMemo(() => Object.keys(THEMES) as ThemeName[], []);
 
@@ -394,6 +435,66 @@ export const Playground: React.FC = () => {
       window.removeEventListener('resize', updateSize);
     };
   }, []);
+
+  const cancelStressTestTimers = useCallback(() => {
+    const state = stressTestStateRef.current;
+    if (!state) {
+      return;
+    }
+
+    if (typeof state.moveTimeoutId === 'number') {
+      window.clearTimeout(state.moveTimeoutId);
+      state.moveTimeoutId = undefined;
+    }
+
+    if (typeof state.resizeTimeoutId === 'number') {
+      window.clearTimeout(state.resizeTimeoutId);
+      state.resizeTimeoutId = undefined;
+    }
+
+    if (typeof state.rafId === 'number') {
+      window.cancelAnimationFrame(state.rafId);
+      state.rafId = undefined;
+    }
+  }, []);
+
+  const stopStressTest = useCallback(
+    (message?: string, options?: { silent?: boolean }) => {
+      const state = stressTestStateRef.current;
+      if (!state) {
+        return;
+      }
+
+      cancelStressTestTimers();
+
+      stressTestStateRef.current = null;
+      setIsStressTestRunning(false);
+      const restoredSize = clampBoardSize(state.originalBoardSize);
+      setBoardSize(restoredSize);
+      boardSizeRef.current = restoredSize;
+      setOrientation(state.originalOrientation);
+      updateBoardOptions(() => ({ ...state.originalOptions }));
+      if (typeof state.board.reset === 'function') {
+        state.board.reset(true);
+      }
+
+      if (!options?.silent) {
+        if (message) {
+          pushLog(message);
+        }
+        pushLog('Stress test finished');
+      }
+    },
+    [cancelStressTestTimers, pushLog, setOrientation, updateBoardOptions],
+  );
+
+  useEffect(
+    () => () => {
+      cancelStressTestTimers();
+      stressTestStateRef.current = null;
+    },
+    [cancelStressTestTimers],
+  );
 
   const pushLog = useCallback((label: string) => {
     setLogs((previous) => {
@@ -541,17 +642,176 @@ export const Playground: React.FC = () => {
   }, [pushLog]);
 
   const handleReset = useCallback(() => {
+    if (isStressTestRunning) {
+      stopStressTest('Stress test aborted: manual reset triggered.');
+    }
     setBoardKey((value) => value + 1);
     setOrientation(DEFAULT_ORIENTATION);
     resetBoardOptions();
     clearPlaygroundPermalink();
     setPgn('');
     pushLog('Board reset and controls restored to defaults');
-  }, [resetBoardOptions, pushLog]);
+  }, [isStressTestRunning, resetBoardOptions, stopStressTest, pushLog]);
 
   const handleStressTest = useCallback(() => {
-    pushLog('Stress test triggered');
-  }, [pushLog]);
+    if (typeof window === 'undefined') {
+      pushLog('Stress test is only available in a browser environment.');
+      return;
+    }
+
+    if (isStressTestRunning) {
+      pushLog('Stress test is already running; ignoring duplicate request.');
+      return;
+    }
+
+    const board = boardRef.current?.getBoard() as StressTestBoardApi | null;
+    if (!board) {
+      pushLog('Unable to start stress test: board instance is not ready.');
+      return;
+    }
+
+    if (typeof board.submitMove !== 'function') {
+      pushLog('Unable to start stress test: submitMove API is unavailable.');
+      return;
+    }
+
+    const runState: StressTestRunState = {
+      board,
+      moveIndex: 0,
+      resizeIndex: 0,
+      resizeDirection: 1,
+      originalOrientation: orientation,
+      originalOptions: { ...boardOptions },
+      originalBoardSize: boardSizeRef.current,
+    };
+
+    stressTestStateRef.current = runState;
+    setIsStressTestRunning(true);
+    pushLog(`Stress test started with ${STRESS_TEST_MOVES.length} SAN moves.`);
+
+    if (typeof board.reset === 'function') {
+      board.reset(true);
+    }
+
+    const playNextMove = () => {
+      const state = stressTestStateRef.current;
+      if (!state) {
+        return;
+      }
+
+      if (state.moveIndex >= STRESS_TEST_MOVES.length) {
+        stopStressTest('Stress test completed successfully.');
+        return;
+      }
+
+      const notation = STRESS_TEST_MOVES[state.moveIndex];
+      const submitMove = state.board.submitMove;
+      const ok = typeof submitMove === 'function' ? submitMove.call(state.board, notation) : false;
+      const moveNumber = state.moveIndex + 1;
+
+      pushLog(
+        `Move ${moveNumber}/${STRESS_TEST_MOVES.length}: ${notation}${ok ? '' : ' (failed)'}`,
+      );
+
+      if (!ok) {
+        stopStressTest(`Stress test aborted: move "${notation}" could not be played.`);
+        return;
+      }
+
+      state.moveIndex += 1;
+      state.moveTimeoutId = window.setTimeout(playNextMove, STRESS_TEST_MOVE_DELAY_MS);
+    };
+
+    const animateResizeTo = (targetSize: number) => {
+      const state = stressTestStateRef.current;
+      if (!state) {
+        return;
+      }
+
+      if (typeof state.rafId === 'number') {
+        window.cancelAnimationFrame(state.rafId);
+      }
+
+      const startSize = boardSizeRef.current;
+      const normalizedTarget = clampBoardSize(targetSize);
+      if (startSize === normalizedTarget) {
+        return;
+      }
+
+      const startTime = performance.now();
+
+      const step = (timestamp: number) => {
+        const activeState = stressTestStateRef.current;
+        if (!activeState) {
+          return;
+        }
+
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / STRESS_TEST_RESIZE_ANIMATION_MS, 1);
+        const interpolated = Math.round(startSize + (normalizedTarget - startSize) * progress);
+        const clamped = clampBoardSize(interpolated);
+        setBoardSize(clamped);
+
+        if (progress < 1) {
+          activeState.rafId = window.requestAnimationFrame(step);
+        } else {
+          activeState.rafId = undefined;
+        }
+      };
+
+      state.rafId = window.requestAnimationFrame(step);
+    };
+
+    const scheduleNextResize = () => {
+      const state = stressTestStateRef.current;
+      if (!state || STRESS_TEST_RESIZE_WIDTHS.length === 0) {
+        return;
+      }
+
+      state.resizeTimeoutId = window.setTimeout(() => {
+        const activeState = stressTestStateRef.current;
+        if (!activeState) {
+          return;
+        }
+
+        if (STRESS_TEST_RESIZE_WIDTHS.length === 1) {
+          animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[0]);
+          scheduleNextResize();
+          return;
+        }
+
+        let nextIndex = activeState.resizeIndex + activeState.resizeDirection;
+        if (nextIndex >= STRESS_TEST_RESIZE_WIDTHS.length) {
+          nextIndex = STRESS_TEST_RESIZE_WIDTHS.length - 2;
+          activeState.resizeDirection = -1;
+        } else if (nextIndex < 0) {
+          nextIndex = 1;
+          activeState.resizeDirection = 1;
+        }
+
+        activeState.resizeIndex = nextIndex;
+        animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[nextIndex]);
+        scheduleNextResize();
+      }, STRESS_TEST_RESIZE_INTERVAL_MS);
+    };
+
+    if (STRESS_TEST_RESIZE_WIDTHS.length > 0) {
+      animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[0]);
+      scheduleNextResize();
+    }
+
+    runState.moveTimeoutId = window.setTimeout(() => {
+      playNextMove();
+    }, STRESS_TEST_INITIAL_DELAY_MS);
+  }, [
+    boardOptions,
+    boardRef,
+    boardSizeRef,
+    isStressTestRunning,
+    orientation,
+    pushLog,
+    stopStressTest,
+  ]);
 
   const handleA11yAudit = useCallback(() => {
     pushLog('Accessibility audit placeholder');
@@ -621,8 +881,8 @@ export const Playground: React.FC = () => {
           <button type="button" onClick={handleReset}>
             Reset
           </button>
-          <button type="button" onClick={handleStressTest}>
-            Stress Test
+          <button type="button" onClick={handleStressTest} disabled={isStressTestRunning}>
+            {isStressTestRunning ? 'Running…' : 'Stress Test'}
           </button>
           <button type="button" onClick={handleA11yAudit}>
             A11y
