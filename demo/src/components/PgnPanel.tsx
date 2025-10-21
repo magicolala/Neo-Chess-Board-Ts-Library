@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { NeoChessRef } from '../../../src/react';
 import type { ChessJsRules } from '../../../src/core/ChessJsRules';
 import type { PgnNotation } from '../../../src/core/PgnNotation';
+import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 
 interface PgnPanelProps {
   boardRef: React.RefObject<NeoChessRef>;
@@ -124,10 +125,19 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
         setError(null);
         setStatus(`Loaded PGN from ${originLabel}.`);
         onLog?.(`Loaded PGN from ${originLabel}`);
+        trackEvent(ANALYTICS_EVENTS.IMPORT_PGN, {
+          origin: originLabel,
+          success: true,
+        });
       } catch (loadError) {
         console.error(loadError);
         setError('Failed to load PGN. Please verify the file content.');
         setStatus(null);
+        trackEvent(ANALYTICS_EVENTS.IMPORT_PGN, {
+          origin: originLabel,
+          success: false,
+          error: loadError instanceof Error ? loadError.message : 'unknown-error',
+        });
       }
     },
     [boardRef, handleBoardPgnExport, onLog, onPgnChange],

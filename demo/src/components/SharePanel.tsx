@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaygroundState } from '../state/playgroundStore';
 import { serializePlaygroundPermalink, type PlaygroundOrientation } from '../utils/permalink';
+import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 
 export interface SharePanelProps {
   orientation: PlaygroundOrientation;
@@ -127,6 +128,12 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
         timeoutRef.current = window.setTimeout(() => {
           setCopyStatus(null);
         }, 2400);
+        trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
+          intent,
+          success: false,
+          source: 'share-panel',
+          reason: 'empty-value',
+        });
         return;
       }
 
@@ -146,6 +153,11 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
       timeoutRef.current = window.setTimeout(() => {
         setCopyStatus(null);
       }, 2400);
+      trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
+        intent,
+        success,
+        source: 'share-panel',
+      });
     },
     [onCopy],
   );
