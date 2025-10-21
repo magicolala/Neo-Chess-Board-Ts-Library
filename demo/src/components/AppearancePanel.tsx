@@ -117,7 +117,7 @@ const AppearancePanel: React.FC<AppearancePanelProps> = ({
               type="button"
               style={{
                 ...cardStyles,
-                ...(isActive ? cardActiveStyles : null),
+                ...(isActive ? cardActiveStyles : {}),
               }}
               onClick={() => onSelectTheme(theme.id)}
               aria-pressed={isActive}
@@ -152,7 +152,7 @@ const AppearancePanel: React.FC<AppearancePanelProps> = ({
               type="button"
               style={{
                 ...cardStyles,
-                ...(isActive ? cardActiveStyles : null),
+                ...(isActive ? cardActiveStyles : {}),
               }}
               onClick={() => onSelectPieceSet(pieceSet.id)}
               aria-pressed={isActive}
