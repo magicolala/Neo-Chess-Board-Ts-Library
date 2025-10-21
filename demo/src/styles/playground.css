@@ -113,6 +113,7 @@
   border-radius: var(--playground-radius);
   position: sticky;
   top: var(--playground-panel-top-offset);
+  min-height: 0;
 }
 
 .playground__panel-content {
@@ -124,6 +125,7 @@
   );
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .playground__panel-content::-webkit-scrollbar {
@@ -140,6 +142,26 @@
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.theme-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  max-height: 360px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.theme-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.theme-grid::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
 }
 
 .playground__accordion {
