@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { ThemeName } from '../../../src/core/themes';
+import type { CustomThemeName } from '../../../src/core/themes';
 
-export type { ThemeName } from '../../../src/core/themes';
+export type ThemeName = CustomThemeName;
 
 export interface PlaygroundState {
   theme: ThemeName;
