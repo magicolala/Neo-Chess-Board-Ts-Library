@@ -43,7 +43,9 @@ export function PlateauInteractif() {
       showCoordinates: true,
       highlightLegal: true,
     },
-    onMove: ({ san }) => console.log(san),
+    onMove: ({ from, to, fen }) => {
+      console.log({ from, to, fen });
+    },
   });
 
   const basculerOrientation = useCallback(() => {
