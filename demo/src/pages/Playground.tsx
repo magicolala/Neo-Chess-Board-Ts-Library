@@ -20,6 +20,7 @@ import type { BoardEventMap } from '../../../src/core/types';
 import PgnPanel from '../components/PgnPanel';
 import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
+import PerfPanel from '../components/PerfPanel';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 
 interface PanelSection {
@@ -283,23 +284,36 @@ const buildOutputSections = (
   pgnPanel: React.ReactNode,
   codePanel: React.ReactNode,
   onClearLogs: () => void,
-): PanelSection[] => [
-  {
-    id: 'pgn',
-    title: 'PGN',
-    content: pgnPanel,
-  },
-  {
-    id: 'logs',
-    title: 'Logs',
-    content: <LogsPanel logs={logs} onClear={onClearLogs} />,
-  },
-  {
-    id: 'code',
-    title: 'Generated code',
-    content: codePanel,
-  },
-];
+  perfPanel?: React.ReactNode,
+): PanelSection[] => {
+  const sections: PanelSection[] = [
+    {
+      id: 'pgn',
+      title: 'PGN',
+      content: pgnPanel,
+    },
+    {
+      id: 'logs',
+      title: 'Logs',
+      content: <LogsPanel logs={logs} onClear={onClearLogs} />,
+    },
+    {
+      id: 'code',
+      title: 'Generated code',
+      content: codePanel,
+    },
+  ];
+
+  if (perfPanel) {
+    sections.push({
+      id: 'perf',
+      title: 'Performance',
+      content: perfPanel,
+    });
+  }
+
+  return sections;
+};
 
 const clampBoardSize = (size: number): number => {
   const MIN_SIZE = 280;
@@ -333,9 +347,12 @@ const STRESS_TEST_MOVES: readonly string[] = (() => {
 
 const STRESS_TEST_MOVE_DELAY_MS = 160;
 const STRESS_TEST_INITIAL_DELAY_MS = 240;
-const STRESS_TEST_RESIZE_WIDTHS: readonly number[] = [320, 360, 400, 440, 480, 520, 560, 600];
-const STRESS_TEST_RESIZE_INTERVAL_MS = 420;
-const STRESS_TEST_RESIZE_ANIMATION_MS = 180;
+const STRESS_TEST_DEFAULT_RESIZE_MIN = 320;
+const STRESS_TEST_DEFAULT_RESIZE_MAX = 600;
+const STRESS_TEST_RESIZE_STEP = 40;
+const STRESS_TEST_DEFAULT_RESIZE_INTERVAL_MS = 420;
+const STRESS_TEST_DEFAULT_RESIZE_ANIMATION_MS = 180;
+const PERF_PANEL_ID = 'playground-perf-panel';
 
 interface StressTestBoardApi {
   submitMove?: (notation: string) => boolean;
@@ -350,6 +367,10 @@ interface StressTestRunState {
   rafId?: number;
   resizeIndex: number;
   resizeDirection: 1 | -1;
+  resizeLoopEnabled: boolean;
+  resizeWidths: number[];
+  resizeIntervalMs: number;
+  resizeAnimationMs: number;
   originalOrientation: PlaygroundOrientation;
   originalOptions: PlaygroundState;
   originalBoardSize: number;
@@ -372,6 +393,19 @@ export const Playground: React.FC = () => {
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
   const [pgn, setPgn] = useState('');
   const [isStressTestRunning, setIsStressTestRunning] = useState(false);
+  const [isPerfPanelVisible, setIsPerfPanelVisible] = useState(false);
+  const [showFpsBadge, setShowFpsBadge] = useState(false);
+  const [showDirtyOverlay, setShowDirtyOverlay] = useState(false);
+  const [stressResizeEnabled, setStressResizeEnabled] = useState(true);
+  const [stressResizeIntervalMs, setStressResizeIntervalMs] = useState(
+    STRESS_TEST_DEFAULT_RESIZE_INTERVAL_MS,
+  );
+  const [stressResizeAnimationMs, setStressResizeAnimationMs] = useState(
+    STRESS_TEST_DEFAULT_RESIZE_ANIMATION_MS,
+  );
+  const [stressResizeMinWidth, setStressResizeMinWidth] = useState(STRESS_TEST_DEFAULT_RESIZE_MIN);
+  const [stressResizeMaxWidth, setStressResizeMaxWidth] = useState(STRESS_TEST_DEFAULT_RESIZE_MAX);
+  const [fpsSample, setFpsSample] = useState<number | null>(null);
   const boardRef = useRef<NeoChessRef | null>(null);
   const stressTestStateRef = useRef<StressTestRunState | null>(null);
   const boardSizeRef = useRef(boardSize);
@@ -407,6 +441,27 @@ export const Playground: React.FC = () => {
 
   const codePanelElement = useMemo(() => <CodePanel snippets={codeSnippets} />, [codeSnippets]);
 
+  const stressResizeWidths = useMemo(() => {
+    if (!stressResizeEnabled) {
+      return [] as number[];
+    }
+
+    const normalizedMin = clampBoardSize(Math.min(stressResizeMinWidth, stressResizeMaxWidth));
+    const normalizedMax = clampBoardSize(Math.max(stressResizeMinWidth, stressResizeMaxWidth));
+
+    const widths: number[] = [];
+    for (let size = normalizedMin; size <= normalizedMax; size += STRESS_TEST_RESIZE_STEP) {
+      widths.push(clampBoardSize(size));
+    }
+
+    const lastWidth = widths[widths.length - 1];
+    if (!lastWidth || lastWidth !== normalizedMax) {
+      widths.push(normalizedMax);
+    }
+
+    return widths;
+  }, [stressResizeEnabled, stressResizeMinWidth, stressResizeMaxWidth]);
+
   const {
     theme,
     showCoordinates,
@@ -436,6 +491,46 @@ export const Playground: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showFpsBadge) {
+      setFpsSample(null);
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setFpsSample(null);
+      return;
+    }
+
+    let frameCount = 0;
+    let animationFrameId: number;
+    let lastTime =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+
+    const measure = (timestamp: number) => {
+      frameCount += 1;
+      const elapsed = timestamp - lastTime;
+      if (elapsed >= 500) {
+        const fpsValue = Math.round((frameCount * 1000) / elapsed);
+        setFpsSample(fpsValue);
+        frameCount = 0;
+        lastTime = timestamp;
+      }
+      animationFrameId = window.requestAnimationFrame(measure);
+    };
+
+    animationFrameId = window.requestAnimationFrame(measure);
+
+    return () => {
+      if (typeof animationFrameId === 'number') {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      setFpsSample(null);
+    };
+  }, [showFpsBadge]);
+
   const cancelStressTestTimers = useCallback(() => {
     const state = stressTestStateRef.current;
     if (!state) {
@@ -456,6 +551,14 @@ export const Playground: React.FC = () => {
       window.cancelAnimationFrame(state.rafId);
       state.rafId = undefined;
     }
+  }, []);
+
+  const pushLog = useCallback((label: string) => {
+    setLogs((previous) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = `${timestamp} – ${label}`;
+      return [...previous, entry];
+    });
   }, []);
 
   const stopStressTest = useCallback(
@@ -496,17 +599,105 @@ export const Playground: React.FC = () => {
     [cancelStressTestTimers],
   );
 
-  const pushLog = useCallback((label: string) => {
-    setLogs((previous) => {
-      const timestamp = new Date().toLocaleTimeString();
-      const entry = `${timestamp} – ${label}`;
-      return [...previous, entry];
-    });
-  }, []);
-
   const handleClearLogs = useCallback(() => {
     setLogs([]);
   }, []);
+
+  const handleShowFpsBadgeChange = useCallback(
+    (next: boolean) => {
+      setShowFpsBadge(next);
+      pushLog(`FPS badge ${next ? 'enabled' : 'disabled'}.`);
+    },
+    [pushLog],
+  );
+
+  const handleShowDirtyOverlayChange = useCallback(
+    (next: boolean) => {
+      setShowDirtyOverlay(next);
+      pushLog(`Dirty rectangle overlay ${next ? 'enabled' : 'disabled'}.`);
+    },
+    [pushLog],
+  );
+
+  const handleStressResizeEnabledChange = useCallback(
+    (next: boolean) => {
+      setStressResizeEnabled(next);
+      pushLog(`Stress test resize loop ${next ? 'enabled' : 'disabled'}.`);
+    },
+    [pushLog],
+  );
+
+  const handleStressResizeIntervalChange = useCallback((next: number) => {
+    setStressResizeIntervalMs((value) => {
+      const clamped = Math.max(120, Math.min(1500, Math.round(next)));
+      return value === clamped ? value : clamped;
+    });
+  }, []);
+
+  const handleStressResizeAnimationChange = useCallback((next: number) => {
+    setStressResizeAnimationMs((value) => {
+      const clamped = Math.max(60, Math.min(600, Math.round(next)));
+      return value === clamped ? value : clamped;
+    });
+  }, []);
+
+  const handleStressResizeMinChange = useCallback(
+    (next: number) => {
+      const normalized = clampBoardSize(Math.max(280, Math.min(next, stressResizeMaxWidth)));
+      setStressResizeMinWidth(normalized);
+    },
+    [stressResizeMaxWidth],
+  );
+
+  const handleStressResizeMaxChange = useCallback(
+    (next: number) => {
+      const normalized = clampBoardSize(Math.max(next, stressResizeMinWidth));
+      setStressResizeMaxWidth(normalized);
+    },
+    [stressResizeMinWidth],
+  );
+
+  const perfPanelElement = useMemo(() => {
+    if (!isPerfPanelVisible) {
+      return null;
+    }
+
+    return (
+      <PerfPanel
+        id={PERF_PANEL_ID}
+        showFpsBadge={showFpsBadge}
+        onShowFpsBadgeChange={handleShowFpsBadgeChange}
+        showDirtyOverlay={showDirtyOverlay}
+        onShowDirtyOverlayChange={handleShowDirtyOverlayChange}
+        resizeLoopEnabled={stressResizeEnabled}
+        onResizeLoopEnabledChange={handleStressResizeEnabledChange}
+        resizeIntervalInMs={stressResizeIntervalMs}
+        onResizeIntervalInMsChange={handleStressResizeIntervalChange}
+        resizeAnimationInMs={stressResizeAnimationMs}
+        onResizeAnimationInMsChange={handleStressResizeAnimationChange}
+        resizeMinWidth={stressResizeMinWidth}
+        onResizeMinWidthChange={handleStressResizeMinChange}
+        resizeMaxWidth={stressResizeMaxWidth}
+        onResizeMaxWidthChange={handleStressResizeMaxChange}
+      />
+    );
+  }, [
+    isPerfPanelVisible,
+    showFpsBadge,
+    handleShowFpsBadgeChange,
+    showDirtyOverlay,
+    handleShowDirtyOverlayChange,
+    stressResizeEnabled,
+    handleStressResizeEnabledChange,
+    stressResizeIntervalMs,
+    handleStressResizeIntervalChange,
+    stressResizeAnimationMs,
+    handleStressResizeAnimationChange,
+    stressResizeMinWidth,
+    handleStressResizeMinChange,
+    stressResizeMaxWidth,
+    handleStressResizeMaxChange,
+  ]);
 
   const handleThemeChange = useCallback<React.ChangeEventHandler<HTMLSelectElement>>(
     (event) => {
@@ -632,8 +823,9 @@ export const Playground: React.FC = () => {
         <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
         codePanelElement,
         handleClearLogs,
+        perfPanelElement ?? undefined,
       ),
-    [boardRef, logs, pgn, pushLog, handleClearLogs, codePanelElement],
+    [boardRef, logs, pgn, pushLog, handleClearLogs, codePanelElement, perfPanelElement],
   );
 
   const handleFlip = useCallback(() => {
@@ -680,6 +872,10 @@ export const Playground: React.FC = () => {
       moveIndex: 0,
       resizeIndex: 0,
       resizeDirection: 1,
+      resizeLoopEnabled: stressResizeEnabled && stressResizeWidths.length > 0,
+      resizeWidths: [...stressResizeWidths],
+      resizeIntervalMs: stressResizeIntervalMs,
+      resizeAnimationMs: stressResizeAnimationMs,
       originalOrientation: orientation,
       originalOptions: { ...boardOptions },
       originalBoardSize: boardSizeRef.current,
@@ -747,7 +943,8 @@ export const Playground: React.FC = () => {
         }
 
         const elapsed = timestamp - startTime;
-        const progress = Math.min(elapsed / STRESS_TEST_RESIZE_ANIMATION_MS, 1);
+        const duration = activeState.resizeAnimationMs || STRESS_TEST_DEFAULT_RESIZE_ANIMATION_MS;
+        const progress = Math.min(elapsed / duration, 1);
         const interpolated = Math.round(startSize + (normalizedTarget - startSize) * progress);
         const clamped = clampBoardSize(interpolated);
         setBoardSize(clamped);
@@ -764,25 +961,30 @@ export const Playground: React.FC = () => {
 
     const scheduleNextResize = () => {
       const state = stressTestStateRef.current;
-      if (!state || STRESS_TEST_RESIZE_WIDTHS.length === 0) {
+      if (!state || !state.resizeLoopEnabled || state.resizeWidths.length === 0) {
         return;
       }
 
       state.resizeTimeoutId = window.setTimeout(() => {
         const activeState = stressTestStateRef.current;
-        if (!activeState) {
+        if (
+          !activeState ||
+          !activeState.resizeLoopEnabled ||
+          activeState.resizeWidths.length === 0
+        ) {
           return;
         }
 
-        if (STRESS_TEST_RESIZE_WIDTHS.length === 1) {
-          animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[0]);
+        const widths = activeState.resizeWidths;
+        if (widths.length === 1) {
+          animateResizeTo(widths[0]);
           scheduleNextResize();
           return;
         }
 
         let nextIndex = activeState.resizeIndex + activeState.resizeDirection;
-        if (nextIndex >= STRESS_TEST_RESIZE_WIDTHS.length) {
-          nextIndex = STRESS_TEST_RESIZE_WIDTHS.length - 2;
+        if (nextIndex >= widths.length) {
+          nextIndex = widths.length - 2;
           activeState.resizeDirection = -1;
         } else if (nextIndex < 0) {
           nextIndex = 1;
@@ -790,13 +992,13 @@ export const Playground: React.FC = () => {
         }
 
         activeState.resizeIndex = nextIndex;
-        animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[nextIndex]);
+        animateResizeTo(widths[nextIndex]);
         scheduleNextResize();
-      }, STRESS_TEST_RESIZE_INTERVAL_MS);
+      }, state.resizeIntervalMs);
     };
 
-    if (STRESS_TEST_RESIZE_WIDTHS.length > 0) {
-      animateResizeTo(STRESS_TEST_RESIZE_WIDTHS[0]);
+    if (runState.resizeLoopEnabled && runState.resizeWidths.length > 0) {
+      animateResizeTo(runState.resizeWidths[0]);
       scheduleNextResize();
     }
 
@@ -811,7 +1013,19 @@ export const Playground: React.FC = () => {
     orientation,
     pushLog,
     stopStressTest,
+    stressResizeWidths,
+    stressResizeEnabled,
+    stressResizeIntervalMs,
+    stressResizeAnimationMs,
   ]);
+
+  const handlePerfToggle = useCallback(() => {
+    setIsPerfPanelVisible((visible) => {
+      const next = !visible;
+      pushLog(`Performance panel ${next ? 'opened' : 'hidden'}.`);
+      return next;
+    });
+  }, [pushLog]);
 
   const handleA11yAudit = useCallback(() => {
     pushLog('Accessibility audit placeholder');
@@ -867,6 +1081,34 @@ export const Playground: React.FC = () => {
     [pushLog],
   );
 
+  const fpsStatusColor = useMemo(() => {
+    if (fpsSample === null) {
+      return 'rgba(148, 163, 184, 0.65)';
+    }
+    if (fpsSample >= 55) {
+      return '#34d399';
+    }
+    if (fpsSample >= 45) {
+      return '#facc15';
+    }
+    return '#f87171';
+  }, [fpsSample]);
+
+  const fpsStatusLabel = useMemo(() => {
+    if (fpsSample === null) {
+      return 'Measuring…';
+    }
+    if (fpsSample >= 55) {
+      return 'Smooth';
+    }
+    if (fpsSample >= 45) {
+      return 'Stable';
+    }
+    return 'Degraded';
+  }, [fpsSample]);
+
+  const fpsDisplayValue = useMemo(() => (fpsSample === null ? '—' : `${fpsSample}`), [fpsSample]);
+
   return (
     <div className="playground">
       <header className="playground__header">
@@ -886,6 +1128,15 @@ export const Playground: React.FC = () => {
           </button>
           <button type="button" onClick={handleA11yAudit}>
             A11y
+          </button>
+          <button
+            type="button"
+            onClick={handlePerfToggle}
+            aria-pressed={isPerfPanelVisible}
+            aria-expanded={isPerfPanelVisible}
+            aria-controls={isPerfPanelVisible ? PERF_PANEL_ID : undefined}
+          >
+            Perf
           </button>
           <button type="button" onClick={handleThemeToggle}>
             Theme
@@ -908,29 +1159,47 @@ export const Playground: React.FC = () => {
 
         <section className="playground__board" aria-label="Chessboard">
           <div className="playground__board-frame">
-            <NeoChessBoard
-              ref={boardRef}
-              key={boardKey}
-              theme={theme}
-              orientation={orientation}
-              showCoordinates={showCoordinates}
-              showSquareNames={showCoordinates}
-              highlightLegal={highlightLegal}
-              interactive={interactive}
-              autoFlip={autoFlip}
-              allowDrawingArrows={allowDrawingArrows}
-              animationDurationInMs={animationDurationInMs}
-              dragActivationDistance={dragActivationDistance}
-              showArrows
-              showHighlights
-              allowPremoves
-              soundEnabled
-              size={boardSize}
-              onMove={handleBoardMove}
-              onIllegal={handleBoardIllegal}
-              onUpdate={handleBoardUpdate}
-              onPromotionRequired={handlePromotionRequired}
-            />
+            <div className="playground__board-stage">
+              <NeoChessBoard
+                ref={boardRef}
+                key={boardKey}
+                theme={theme}
+                orientation={orientation}
+                showCoordinates={showCoordinates}
+                showSquareNames={showCoordinates}
+                highlightLegal={highlightLegal}
+                interactive={interactive}
+                autoFlip={autoFlip}
+                allowDrawingArrows={allowDrawingArrows}
+                animationDurationInMs={animationDurationInMs}
+                dragActivationDistance={dragActivationDistance}
+                showArrows
+                showHighlights
+                allowPremoves
+                soundEnabled
+                size={boardSize}
+                onMove={handleBoardMove}
+                onIllegal={handleBoardIllegal}
+                onUpdate={handleBoardUpdate}
+                onPromotionRequired={handlePromotionRequired}
+              />
+              {showDirtyOverlay ? (
+                <div className="playground__dirty-overlay" aria-hidden="true" />
+              ) : null}
+              {showFpsBadge ? (
+                <div className="playground__fps-badge" role="status" aria-live="polite">
+                  <span
+                    className="playground__fps-dot"
+                    style={{ backgroundColor: fpsStatusColor }}
+                    aria-hidden="true"
+                  />
+                  <span className="playground__fps-metrics">
+                    <span className="playground__fps-value">{fpsDisplayValue} FPS</span>
+                    <span className="playground__fps-subtitle">{fpsStatusLabel}</span>
+                  </span>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="playground__mobile-panels" aria-live="polite">
@@ -966,7 +1235,7 @@ export const Playground: React.FC = () => {
               <details
                 key={section.id}
                 className="playground__accordion"
-                open={section.id === 'logs'}
+                open={section.id === 'logs' || section.id === 'perf'}
               >
                 <summary>{section.title}</summary>
                 <div className="playground__accordion-body">{section.content}</div>
