@@ -35,7 +35,11 @@ const EXAMPLE_PGNS: ExamplePgn[] = [
 ];
 
 const buildAssetUrl = (relativePath: string): string => {
-  const base = import.meta.env.BASE_URL ?? '/';
+  const baseHref =
+    typeof document !== 'undefined'
+      ? document.querySelector('base')?.getAttribute('href')
+      : undefined;
+  const base = baseHref ?? '/';
   const normalizedBase = base.endsWith('/') ? base : `${base}/`;
   const normalizedPath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
   return `${normalizedBase}${normalizedPath}`;
