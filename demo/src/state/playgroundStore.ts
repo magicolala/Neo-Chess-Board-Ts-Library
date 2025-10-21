@@ -1,10 +1,12 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import type { CustomThemeName } from '../../../src/core/themes';
+import { BUILTIN_PIECE_SET_ID } from '../pieces';
 
 export type ThemeName = CustomThemeName;
 
 export interface PlaygroundState {
   theme: ThemeName;
+  pieceSetId: string;
   showCoordinates: boolean;
   highlightLegal: boolean;
   interactive: boolean;
@@ -16,6 +18,7 @@ export interface PlaygroundState {
 
 export const PLAYGROUND_DEFAULT_STATE: PlaygroundState = {
   theme: 'midnight',
+  pieceSetId: BUILTIN_PIECE_SET_ID,
   showCoordinates: true,
   highlightLegal: true,
   interactive: true,
@@ -55,6 +58,14 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
 
   if (typeof partial.theme !== 'undefined' && !Object.is(nextState.theme, partial.theme)) {
     nextState.theme = partial.theme;
+    changed = true;
+  }
+
+  if (
+    typeof partial.pieceSetId !== 'undefined' &&
+    !Object.is(nextState.pieceSetId, partial.pieceSetId)
+  ) {
+    nextState.pieceSetId = partial.pieceSetId;
     changed = true;
   }
 

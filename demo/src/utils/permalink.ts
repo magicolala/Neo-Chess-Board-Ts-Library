@@ -4,6 +4,7 @@ import {
   type ThemeName,
 } from '../state/playgroundStore';
 import { playgroundThemeMetadata } from '../themes/customThemes';
+import { playgroundPieceSets } from '../pieces';
 
 export type PlaygroundOrientation = 'white' | 'black';
 
@@ -12,6 +13,7 @@ const DEFAULT_ORIENTATION: PlaygroundOrientation = 'white';
 const PARAM_KEYS = {
   orientation: 'o',
   theme: 'theme',
+  pieceSet: 'pieces',
   showCoordinates: 'coords',
   highlightLegal: 'highlight',
   interactive: 'interactive',
@@ -22,6 +24,7 @@ const PARAM_KEYS = {
 } as const;
 
 const VALID_THEMES = new Set<ThemeName>(playgroundThemeMetadata.map((theme) => theme.id));
+const VALID_PIECE_SETS = new Set<string>(playgroundPieceSets.map((pieceSet) => pieceSet.id));
 
 const encodeBoolean = (value: boolean): string => (value ? '1' : '0');
 
@@ -75,6 +78,7 @@ const parseOrientationParam = (value: string | null): PlaygroundOrientation | un
 
 const isDefaultState = (state: PlaygroundState): boolean =>
   state.theme === PLAYGROUND_DEFAULT_STATE.theme &&
+  state.pieceSetId === PLAYGROUND_DEFAULT_STATE.pieceSetId &&
   state.showCoordinates === PLAYGROUND_DEFAULT_STATE.showCoordinates &&
   state.highlightLegal === PLAYGROUND_DEFAULT_STATE.highlightLegal &&
   state.interactive === PLAYGROUND_DEFAULT_STATE.interactive &&
@@ -104,6 +108,10 @@ export const serializePlaygroundPermalink = (
 
   if (payload.state.theme !== PLAYGROUND_DEFAULT_STATE.theme) {
     params.set(PARAM_KEYS.theme, payload.state.theme);
+  }
+
+  if (payload.state.pieceSetId !== PLAYGROUND_DEFAULT_STATE.pieceSetId) {
+    params.set(PARAM_KEYS.pieceSet, payload.state.pieceSetId);
   }
 
   if (payload.state.showCoordinates !== PLAYGROUND_DEFAULT_STATE.showCoordinates) {
@@ -157,6 +165,12 @@ export const parsePlaygroundPermalink = (search: string): PlaygroundPermalinkSna
   const theme = params.get(PARAM_KEYS.theme);
   if (theme && VALID_THEMES.has(theme as ThemeName)) {
     state.theme = theme as ThemeName;
+    hasState = true;
+  }
+
+  const pieceSet = params.get(PARAM_KEYS.pieceSet);
+  if (pieceSet && VALID_PIECE_SETS.has(pieceSet)) {
+    state.pieceSetId = pieceSet;
     hasState = true;
   }
 

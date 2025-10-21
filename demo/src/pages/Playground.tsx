@@ -22,6 +22,7 @@ import PgnPanel from '../components/PgnPanel';
 import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
 import PerfPanel from '../components/PerfPanel';
+import AppearancePanel from '../components/AppearancePanel';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 import { createFpsMeter } from '../utils/fpsMeter';
 import type {
@@ -29,6 +30,13 @@ import type {
   RenderDebugRect,
   RenderLayer,
 } from '../../../src/core/NeoChessBoard';
+import {
+  BUILTIN_PIECE_SET_ID,
+  pieceSetValueById,
+  playgroundPieceSetFallbackNote,
+  playgroundPieceSets,
+} from '../pieces';
+import type { PlaygroundPieceSetMetadata } from '../pieces';
 
 interface PanelSection {
   id: string;
@@ -37,7 +45,8 @@ interface PanelSection {
 }
 
 interface PlaygroundControlHandlers {
-  onThemeChange: React.ChangeEventHandler<HTMLSelectElement>;
+  onThemeSelect: (themeId: ThemeName) => void;
+  onPieceSetSelect: (pieceSetId: string) => void;
   onShowCoordinatesChange: React.ChangeEventHandler<HTMLInputElement>;
   onHighlightLegalChange: React.ChangeEventHandler<HTMLInputElement>;
   onInteractiveChange: React.ChangeEventHandler<HTMLInputElement>;
@@ -50,32 +59,14 @@ interface PlaygroundControlHandlers {
 interface BuildOptionsArgs {
   state: PlaygroundState;
   themeOptions: PlaygroundThemeMetadata[];
+  pieceSets: PlaygroundPieceSetMetadata[];
+  pieceSetFallbackNote?: string;
   handlers: PlaygroundControlHandlers;
 }
 
 const controlStackStyles: React.CSSProperties = {
   display: 'grid',
   gap: '0.75rem',
-};
-
-const themeControlStyles: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.4rem',
-  padding: '0.75rem 1rem',
-  borderRadius: '0.85rem',
-  border: '1px solid var(--playground-border)',
-  backgroundColor: 'rgba(15, 23, 42, 0.55)',
-};
-
-const selectControlStyles: React.CSSProperties = {
-  width: '100%',
-  padding: '0.5rem 0.75rem',
-  borderRadius: '0.65rem',
-  border: '1px solid var(--playground-border)',
-  backgroundColor: 'rgba(15, 23, 42, 0.85)',
-  color: 'var(--playground-text)',
-  fontSize: '0.95rem',
 };
 
 const toggleRowStyles: React.CSSProperties = {
@@ -159,26 +150,6 @@ const DIRTY_STROKE_BY_LAYER: Record<RenderLayer, string> = {
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
-const renderThemeControl = (
-  currentTheme: ThemeName,
-  themeOptions: PlaygroundThemeMetadata[],
-  onChange: React.ChangeEventHandler<HTMLSelectElement>,
-): React.ReactElement => (
-  <label style={themeControlStyles}>
-    <span style={toggleTitleStyles}>Theme</span>
-    <span style={toggleDescriptionStyles}>
-      Switch between the available board palettes in real time.
-    </span>
-    <select style={selectControlStyles} value={currentTheme} onChange={onChange}>
-      {themeOptions.map((themeOption) => (
-        <option key={themeOption.id} value={themeOption.id}>
-          {themeOption.label || formatThemeLabel(themeOption.id)}
-        </option>
-      ))}
-    </select>
-  </label>
-);
-
 const renderToggle = (
   label: string,
   description: string,
@@ -223,6 +194,8 @@ const renderSlider = (
 const buildOptionsSections = ({
   state,
   themeOptions,
+  pieceSets,
+  pieceSetFallbackNote,
   handlers,
 }: BuildOptionsArgs): PanelSection[] => [
   {
@@ -230,7 +203,15 @@ const buildOptionsSections = ({
     title: 'Board setup',
     content: (
       <div style={controlStackStyles}>
-        {renderThemeControl(state.theme, themeOptions, handlers.onThemeChange)}
+        <AppearancePanel
+          themes={themeOptions}
+          selectedTheme={state.theme}
+          onSelectTheme={handlers.onThemeSelect}
+          pieceSets={pieceSets}
+          selectedPieceSetId={state.pieceSetId}
+          onSelectPieceSet={handlers.onPieceSetSelect}
+          fallbackNote={pieceSetFallbackNote}
+        />
         {renderToggle(
           'Show coordinates',
           'Display algebraic notation along the board borders.',
@@ -473,6 +454,20 @@ export const Playground: React.FC = () => {
     [themeLabelById],
   );
 
+  const pieceSetMetadata = useMemo<PlaygroundPieceSetMetadata[]>(() => playgroundPieceSets, []);
+  const pieceSetLabelById = useMemo(() => {
+    const entries = new Map<string, string>();
+    for (const metadata of pieceSetMetadata) {
+      entries.set(metadata.id, metadata.label);
+    }
+    return entries;
+  }, [pieceSetMetadata]);
+
+  const getPieceSetLabel = useCallback(
+    (id: string): string => pieceSetLabelById.get(id) ?? id,
+    [pieceSetLabelById],
+  );
+
   const codeSnippets = useMemo(
     () => buildPlaygroundSnippets({ state: boardOptions, orientation }),
     [boardOptions, orientation],
@@ -503,6 +498,7 @@ export const Playground: React.FC = () => {
 
   const {
     theme,
+    pieceSetId,
     showCoordinates,
     highlightLegal,
     interactive,
@@ -511,6 +507,11 @@ export const Playground: React.FC = () => {
     animationDurationInMs,
     dragActivationDistance,
   } = boardOptions;
+
+  const selectedPieceSet = useMemo(
+    () => pieceSetValueById.get(pieceSetId) ?? pieceSetValueById.get(BUILTIN_PIECE_SET_ID),
+    [pieceSetId],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -821,13 +822,25 @@ export const Playground: React.FC = () => {
     handleStressResizeMaxChange,
   ]);
 
-  const handleThemeChange = useCallback<React.ChangeEventHandler<HTMLSelectElement>>(
-    (event) => {
-      const nextTheme = event.target.value as ThemeName;
+  const handleThemeSelect = useCallback(
+    (nextTheme: ThemeName) => {
       updateBoardOptions({ theme: nextTheme });
       pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
     },
     [updateBoardOptions, pushLog, getThemeLabel],
+  );
+
+  const handlePieceSetSelect = useCallback(
+    (nextPieceSetId: string) => {
+      if (nextPieceSetId === pieceSetId) {
+        return;
+      }
+
+      updateBoardOptions({ pieceSetId: nextPieceSetId });
+      const label = getPieceSetLabel(nextPieceSetId);
+      pushLog(`Pieces changed to ${label}`);
+    },
+    [pieceSetId, updateBoardOptions, pushLog, getPieceSetLabel],
   );
 
   const handleShowCoordinatesChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
@@ -892,8 +905,11 @@ export const Playground: React.FC = () => {
       buildOptionsSections({
         state: boardOptions,
         themeOptions: themeMetadata,
+        pieceSets: pieceSetMetadata,
+        pieceSetFallbackNote: playgroundPieceSetFallbackNote,
         handlers: {
-          onThemeChange: handleThemeChange,
+          onThemeSelect: handleThemeSelect,
+          onPieceSetSelect: handlePieceSetSelect,
           onShowCoordinatesChange: handleShowCoordinatesChange,
           onHighlightLegalChange: handleHighlightLegalChange,
           onInteractiveChange: handleInteractiveChange,
@@ -906,7 +922,10 @@ export const Playground: React.FC = () => {
     [
       boardOptions,
       themeMetadata,
-      handleThemeChange,
+      pieceSetMetadata,
+      playgroundPieceSetFallbackNote,
+      handleThemeSelect,
+      handlePieceSetSelect,
       handleShowCoordinatesChange,
       handleHighlightLegalChange,
       handleInteractiveChange,
@@ -1286,6 +1305,7 @@ export const Playground: React.FC = () => {
                 ref={boardRef}
                 key={boardKey}
                 theme={theme}
+                pieceSet={selectedPieceSet ?? undefined}
                 orientation={orientation}
                 showCoordinates={showCoordinates}
                 showSquareNames={showCoordinates}
