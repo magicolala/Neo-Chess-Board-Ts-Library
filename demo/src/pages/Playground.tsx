@@ -22,6 +22,12 @@ import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
 import PerfPanel from '../components/PerfPanel';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
+import { createFpsMeter } from '../utils/fpsMeter';
+import type {
+  RenderCommandType,
+  RenderDebugRect,
+  RenderLayer,
+} from '../../../src/core/NeoChessBoard';
 
 interface PanelSection {
   id: string;
@@ -136,6 +142,18 @@ const sliderValueStyles: React.CSSProperties = {
 const rangeInputStyles: React.CSSProperties = {
   width: '100%',
   accentColor: '#6366f1',
+};
+
+const DIRTY_FILL_BY_COMMAND: Record<RenderCommandType, string> = {
+  clear: 'rgba(59, 130, 246, 0.24)',
+  fill: 'rgba(34, 197, 94, 0.3)',
+  sprite: 'rgba(192, 132, 252, 0.36)',
+};
+
+const DIRTY_STROKE_BY_LAYER: Record<RenderLayer, string> = {
+  board: 'rgba(56, 189, 248, 0.75)',
+  pieces: 'rgba(168, 85, 247, 0.75)',
+  overlay: 'rgba(250, 204, 21, 0.75)',
 };
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
@@ -409,6 +427,10 @@ export const Playground: React.FC = () => {
   const boardRef = useRef<NeoChessRef | null>(null);
   const stressTestStateRef = useRef<StressTestRunState | null>(null);
   const boardSizeRef = useRef(boardSize);
+  const fpsMeterRef = useRef<ReturnType<typeof createFpsMeter> | null>(null);
+  const fpsUnsubscribeRef = useRef<(() => void) | null>(null);
+  const dirtyCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dirtyObserverBoardRef = useRef<ReturnType<NeoChessRef['getBoard']>>(null);
 
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
@@ -493,6 +515,9 @@ export const Playground: React.FC = () => {
 
   useEffect(() => {
     if (!showFpsBadge) {
+      fpsUnsubscribeRef.current?.();
+      fpsUnsubscribeRef.current = null;
+      fpsMeterRef.current?.stop();
       setFpsSample(null);
       return;
     }
@@ -502,34 +527,114 @@ export const Playground: React.FC = () => {
       return;
     }
 
-    let frameCount = 0;
-    let animationFrameId: number;
-    let lastTime =
-      typeof performance !== 'undefined' && typeof performance.now === 'function'
-        ? performance.now()
-        : Date.now();
-
-    const measure = (timestamp: number) => {
-      frameCount += 1;
-      const elapsed = timestamp - lastTime;
-      if (elapsed >= 500) {
-        const fpsValue = Math.round((frameCount * 1000) / elapsed);
-        setFpsSample(fpsValue);
-        frameCount = 0;
-        lastTime = timestamp;
-      }
-      animationFrameId = window.requestAnimationFrame(measure);
-    };
-
-    animationFrameId = window.requestAnimationFrame(measure);
+    const meter = fpsMeterRef.current ?? createFpsMeter();
+    fpsMeterRef.current = meter;
+    const unsubscribe = meter.subscribe((value) => {
+      setFpsSample(Math.max(0, value));
+    });
+    fpsUnsubscribeRef.current = unsubscribe;
+    meter.start();
 
     return () => {
-      if (typeof animationFrameId === 'number') {
-        window.cancelAnimationFrame(animationFrameId);
-      }
+      unsubscribe();
+      fpsUnsubscribeRef.current = null;
+      meter.stop();
       setFpsSample(null);
     };
   }, [showFpsBadge]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const boardInstance = boardRef.current?.getBoard();
+    const canvas = dirtyCanvasRef.current;
+
+    if (!showDirtyOverlay || !boardInstance || !canvas) {
+      if (dirtyObserverBoardRef.current) {
+        dirtyObserverBoardRef.current.setRenderObserver(null);
+        dirtyObserverBoardRef.current = null;
+      }
+      if (canvas) {
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      return;
+    }
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      boardInstance.setRenderObserver(null);
+      dirtyObserverBoardRef.current = null;
+      return;
+    }
+
+    dirtyObserverBoardRef.current = boardInstance;
+
+    const renderObserver = (commands: RenderDebugRect[]): void => {
+      const root = boardInstance.getRootElement();
+      const bounds = root.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const pixelWidth = Math.max(1, Math.round(bounds.width * dpr));
+      const pixelHeight = Math.max(1, Math.round(bounds.height * dpr));
+
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+        canvas.style.width = `${bounds.width}px`;
+        canvas.style.height = `${bounds.height}px`;
+      }
+
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (commands.length > 0) {
+        const strokeWidth = Math.max(1, dpr * 0.75);
+        for (const command of commands) {
+          const fill = DIRTY_FILL_BY_COMMAND[command.type] ?? 'rgba(148, 163, 184, 0.2)';
+          const stroke = DIRTY_STROKE_BY_LAYER[command.layer] ?? 'rgba(148, 163, 184, 0.5)';
+          context.fillStyle = fill;
+          context.fillRect(command.rect.x, command.rect.y, command.rect.width, command.rect.height);
+          context.strokeStyle = stroke;
+          context.lineWidth = strokeWidth;
+          const offset = strokeWidth / 2;
+          const width = Math.max(0, command.rect.width - strokeWidth);
+          const height = Math.max(0, command.rect.height - strokeWidth);
+          context.strokeRect(command.rect.x + offset, command.rect.y + offset, width, height);
+        }
+      }
+
+      context.restore();
+    };
+
+    boardInstance.setRenderObserver(renderObserver);
+    boardInstance.renderAll();
+
+    return () => {
+      if (dirtyObserverBoardRef.current === boardInstance) {
+        boardInstance.setRenderObserver(null);
+        dirtyObserverBoardRef.current = null;
+      }
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [showDirtyOverlay, boardKey, boardSize, orientation, theme]);
+
+  useEffect(() => {
+    return () => {
+      fpsUnsubscribeRef.current?.();
+      fpsUnsubscribeRef.current = null;
+      fpsMeterRef.current?.stop();
+      fpsMeterRef.current = null;
+      const boardInstance = boardRef.current?.getBoard();
+      if (boardInstance) {
+        boardInstance.setRenderObserver(null);
+      }
+    };
+  }, []);
 
   const cancelStressTestTimers = useCallback(() => {
     const state = stressTestStateRef.current;
@@ -1184,7 +1289,11 @@ export const Playground: React.FC = () => {
                 onPromotionRequired={handlePromotionRequired}
               />
               {showDirtyOverlay ? (
-                <div className="playground__dirty-overlay" aria-hidden="true" />
+                <canvas
+                  ref={dirtyCanvasRef}
+                  className="playground__dirty-overlay"
+                  aria-hidden="true"
+                />
               ) : null}
               {showFpsBadge ? (
                 <div className="playground__fps-badge" role="status" aria-live="polite">
