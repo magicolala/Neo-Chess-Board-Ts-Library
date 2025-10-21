@@ -23,6 +23,7 @@ import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
 import PerfPanel from '../components/PerfPanel';
 import AppearancePanel from '../components/AppearancePanel';
+import StickyHeader, { type StickyHeaderCtaLinks } from '../components/StickyHeader';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 import { createFpsMeter } from '../utils/fpsMeter';
 import type {
@@ -353,6 +354,13 @@ const STRESS_TEST_RESIZE_STEP = 40;
 const STRESS_TEST_DEFAULT_RESIZE_INTERVAL_MS = 420;
 const STRESS_TEST_DEFAULT_RESIZE_ANIMATION_MS = 180;
 const PERF_PANEL_ID = 'playground-perf-panel';
+
+const PLAYGROUND_CTA_LINKS: StickyHeaderCtaLinks = {
+  tryPlayground: 'https://neo-chess-board.vercel.app/playground',
+  docs: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/',
+  install: 'https://www.npmjs.com/package/@magicolala/neo-chess-board',
+  github: 'https://github.com/magicolala/Neo-Chess-Board-Ts-Library',
+};
 
 interface StressTestBoardApi {
   submitMove?: (notation: string) => boolean;
@@ -1252,38 +1260,18 @@ export const Playground: React.FC = () => {
 
   return (
     <div className="playground">
-      <header className="playground__header">
-        <div className="playground__brand">
-          <h1>NeoChessBoard Playground</h1>
-          <p>Experiment with layouts, themes, and integrations in a dedicated workspace.</p>
-        </div>
-        <div className="playground__actions" role="group" aria-label="Playground actions">
-          <button type="button" onClick={handleFlip}>
-            Flip
-          </button>
-          <button type="button" onClick={handleReset}>
-            Reset
-          </button>
-          <button type="button" onClick={handleStressTest} disabled={isStressTestRunning}>
-            {isStressTestRunning ? 'Running…' : 'Stress Test'}
-          </button>
-          <button type="button" onClick={handleA11yAudit}>
-            A11y
-          </button>
-          <button
-            type="button"
-            onClick={handlePerfToggle}
-            aria-pressed={isPerfPanelVisible}
-            aria-expanded={isPerfPanelVisible}
-            aria-controls={isPerfPanelVisible ? PERF_PANEL_ID : undefined}
-          >
-            Perf
-          </button>
-          <button type="button" onClick={handleThemeToggle}>
-            Theme
-          </button>
-        </div>
-      </header>
+      <StickyHeader
+        onFlip={handleFlip}
+        onReset={handleReset}
+        onStressTest={handleStressTest}
+        onAccessibilityAudit={handleA11yAudit}
+        onPerfToggle={handlePerfToggle}
+        onThemeToggle={handleThemeToggle}
+        isStressTestRunning={isStressTestRunning}
+        isPerfPanelVisible={isPerfPanelVisible}
+        perfPanelId={PERF_PANEL_ID}
+        ctaLinks={PLAYGROUND_CTA_LINKS}
+      />
 
       <main className="playground__content">
         <aside className="playground__panel playground__panel--left" aria-label="Options">
