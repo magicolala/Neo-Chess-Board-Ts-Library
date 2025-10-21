@@ -23,6 +23,7 @@ import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
 import PerfPanel from '../components/PerfPanel';
 import AppearancePanel from '../components/AppearancePanel';
+import SharePanel, { type SharePanelProps } from '../components/SharePanel';
 import StickyHeader, { type StickyHeaderCtaLinks } from '../components/StickyHeader';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 import { createFpsMeter } from '../utils/fpsMeter';
@@ -63,6 +64,11 @@ interface BuildOptionsArgs {
   pieceSets: PlaygroundPieceSetMetadata[];
   pieceSetFallbackNote?: string;
   handlers: PlaygroundControlHandlers;
+}
+
+interface OutputSectionConfig {
+  sharePanel: SharePanelProps;
+  perfPanel?: React.ReactNode;
 }
 
 const controlStackStyles: React.CSSProperties = {
@@ -148,6 +154,8 @@ const DIRTY_STROKE_BY_LAYER: Record<RenderLayer, string> = {
   pieces: 'rgba(168, 85, 247, 0.75)',
   overlay: 'rgba(250, 204, 21, 0.75)',
 };
+
+const DEFAULT_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -285,7 +293,7 @@ const buildOutputSections = (
   pgnPanel: React.ReactNode,
   codePanel: React.ReactNode,
   onClearLogs: () => void,
-  perfPanel?: React.ReactNode,
+  config: OutputSectionConfig,
 ): PanelSection[] => {
   const sections: PanelSection[] = [
     {
@@ -303,13 +311,18 @@ const buildOutputSections = (
       title: 'Generated code',
       content: codePanel,
     },
+    {
+      id: 'share',
+      title: 'Share & Embed',
+      content: <SharePanel {...config.sharePanel} />,
+    },
   ];
 
-  if (perfPanel) {
+  if (config.perfPanel) {
     sections.push({
       id: 'perf',
       title: 'Performance',
-      content: perfPanel,
+      content: config.perfPanel,
     });
   }
 
@@ -400,6 +413,7 @@ export const Playground: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
   const [pgn, setPgn] = useState('');
+  const [currentFen, setCurrentFen] = useState<string>(DEFAULT_START_FEN);
   const [isStressTestRunning, setIsStressTestRunning] = useState(false);
   const [isPerfPanelVisible, setIsPerfPanelVisible] = useState(false);
   const [showFpsBadge, setShowFpsBadge] = useState(false);
@@ -425,6 +439,41 @@ export const Playground: React.FC = () => {
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
 
+  const copyToClipboard = useCallback(async (value: string): Promise<boolean> => {
+    if (!value) {
+      return false;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (typeof document === 'undefined') {
+      return false;
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const result = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return result;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     if (!permalinkSnapshot.state) {
       return;
@@ -443,6 +492,28 @@ export const Playground: React.FC = () => {
   useEffect(() => {
     boardSizeRef.current = boardSize;
   }, [boardSize]);
+
+  useEffect(() => {
+    const boardInstance = boardRef.current?.getBoard?.();
+    if (!boardInstance) {
+      return;
+    }
+
+    const candidate =
+      (boardInstance as { getCurrentFEN?: () => string }).getCurrentFEN ??
+      (boardInstance as { getPosition?: () => string }).getPosition;
+
+    if (typeof candidate === 'function') {
+      try {
+        const fenValue = candidate.call(boardInstance);
+        if (typeof fenValue === 'string' && fenValue.trim().length > 0) {
+          setCurrentFen(fenValue);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }, [boardKey]);
 
   const themeMetadata = useMemo(() => playgroundThemeMetadata, []);
   const themeOptions = useMemo<ThemeName[]>(
@@ -965,6 +1036,16 @@ export const Playground: React.FC = () => {
     return '';
   }, []);
 
+  const sharePanelProps = useMemo<SharePanelProps>(
+    () => ({
+      orientation,
+      state: boardOptions,
+      fen: currentFen,
+      onCopy: copyToClipboard,
+    }),
+    [orientation, boardOptions, currentFen, copyToClipboard],
+  );
+
   const outputSections = useMemo(
     () =>
       buildOutputSections(
@@ -972,9 +1053,21 @@ export const Playground: React.FC = () => {
         <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
         codePanelElement,
         handleClearLogs,
-        perfPanelElement ?? undefined,
+        {
+          sharePanel: sharePanelProps,
+          perfPanel: perfPanelElement ?? undefined,
+        },
       ),
-    [boardRef, logs, pgn, pushLog, handleClearLogs, codePanelElement, perfPanelElement],
+    [
+      boardRef,
+      logs,
+      pgn,
+      pushLog,
+      handleClearLogs,
+      codePanelElement,
+      sharePanelProps,
+      perfPanelElement,
+    ],
   );
 
   const handleFlip = useCallback(() => {
@@ -991,6 +1084,7 @@ export const Playground: React.FC = () => {
     resetBoardOptions();
     clearPlaygroundPermalink();
     setPgn('');
+    setCurrentFen(DEFAULT_START_FEN);
     pushLog('Board reset and controls restored to defaults');
   }, [isStressTestRunning, resetBoardOptions, stopStressTest, pushLog]);
 
@@ -1194,6 +1288,7 @@ export const Playground: React.FC = () => {
   const handleBoardMove = useCallback(
     (event: BoardEventMap['move']) => {
       setPgn(exportPgnFromBoard());
+      setCurrentFen(event.fen);
       pushLog(`Move played from ${event.from} to ${event.to}`);
     },
     [exportPgnFromBoard, pushLog],
@@ -1211,6 +1306,7 @@ export const Playground: React.FC = () => {
   const handleBoardUpdate = useCallback(
     (event: BoardEventMap['update']) => {
       setPgn(exportPgnFromBoard());
+      setCurrentFen(event.fen);
       pushLog(`Board updated: ${event.fen}`);
     },
     [exportPgnFromBoard, pushLog],
