@@ -18,6 +18,7 @@ import {
 } from '../utils/permalink';
 import type { BoardEventMap } from '../../../src/core/types';
 import PgnPanel from '../components/PgnPanel';
+import LogsPanel from '../components/LogsPanel';
 
 interface PanelSection {
   id: string;
@@ -275,7 +276,11 @@ const buildOptionsSections = ({
   },
 ];
 
-const buildOutputSections = (logs: string[], pgnPanel: React.ReactNode): PanelSection[] => [
+const buildOutputSections = (
+  logs: string[],
+  pgnPanel: React.ReactNode,
+  onClearLogs: () => void,
+): PanelSection[] => [
   {
     id: 'pgn',
     title: 'PGN',
@@ -284,15 +289,7 @@ const buildOutputSections = (logs: string[], pgnPanel: React.ReactNode): PanelSe
   {
     id: 'logs',
     title: 'Logs',
-    content: logs.length ? (
-      <ul className="playground__log-list">
-        {logs.map((entry) => (
-          <li key={entry}>{entry}</li>
-        ))}
-      </ul>
-    ) : (
-      <p>No actions logged yet.</p>
-    ),
+    content: <LogsPanel logs={logs} onClear={onClearLogs} />,
   },
   {
     id: 'code',
@@ -396,8 +393,12 @@ export const Playground: React.FC = () => {
     setLogs((previous) => {
       const timestamp = new Date().toLocaleTimeString();
       const entry = `${timestamp} – ${label}`;
-      return [entry, ...previous].slice(0, 8);
+      return [...previous, entry];
     });
+  }, []);
+
+  const handleClearLogs = useCallback(() => {
+    setLogs([]);
   }, []);
 
   const handleThemeChange = useCallback<React.ChangeEventHandler<HTMLSelectElement>>(
@@ -522,8 +523,9 @@ export const Playground: React.FC = () => {
       buildOutputSections(
         logs,
         <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
+        handleClearLogs,
       ),
-    [boardRef, logs, pgn, pushLog],
+    [boardRef, logs, pgn, pushLog, handleClearLogs],
   );
 
   const handleFlip = useCallback(() => {
@@ -567,9 +569,36 @@ export const Playground: React.FC = () => {
     [exportPgnFromBoard, pushLog],
   );
 
-  const handleBoardUpdate = useCallback(() => {
-    setPgn(exportPgnFromBoard());
-  }, [exportPgnFromBoard]);
+  const handleBoardIllegal = useCallback(
+    (event: BoardEventMap['illegal']) => {
+      pushLog(
+        `Illegal move attempted from ${event.from} to ${event.to}: ${event.reason || 'Unknown reason'}`,
+      );
+    },
+    [pushLog],
+  );
+
+  const handleBoardUpdate = useCallback(
+    (event: BoardEventMap['update']) => {
+      setPgn(exportPgnFromBoard());
+      pushLog(`Board updated: ${event.fen}`);
+    },
+    [exportPgnFromBoard, pushLog],
+  );
+
+  const handlePromotionRequired = useCallback(
+    (request: BoardEventMap['promotion']) => {
+      const fallbackChoice = request.choices[0] ?? 'q';
+      const choice = request.choices.includes('q') ? 'q' : fallbackChoice;
+      const pieceLabel = choice.toUpperCase();
+      pushLog(
+        `Promotion required for ${request.color === 'w' ? 'White' : 'Black'} pawn on ${request.to}. Auto-selecting ${pieceLabel}.`,
+      );
+      request.resolve(choice);
+      pushLog(`Promotion resolved with ${pieceLabel}.`);
+    },
+    [pushLog],
+  );
 
   return (
     <div className="playground">
@@ -629,7 +658,9 @@ export const Playground: React.FC = () => {
               soundEnabled
               size={boardSize}
               onMove={handleBoardMove}
+              onIllegal={handleBoardIllegal}
               onUpdate={handleBoardUpdate}
+              onPromotionRequired={handlePromotionRequired}
             />
           </div>
 
