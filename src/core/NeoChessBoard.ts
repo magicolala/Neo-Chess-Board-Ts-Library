@@ -135,6 +135,17 @@ interface DraggingState {
 
 type PendingPromotionSummary = Pick<PendingPromotionState, 'from' | 'to' | 'color' | 'mode'>;
 
+export type RenderLayer = 'board' | 'pieces' | 'overlay';
+export type RenderCommandType = 'clear' | 'fill' | 'sprite';
+
+export interface RenderDebugRect {
+  layer: RenderLayer;
+  type: RenderCommandType;
+  rect: { x: number; y: number; width: number; height: number };
+}
+
+export type RenderObserver = (commands: RenderDebugRect[]) => void;
+
 // ============================================================================
 // Main Class
 // ============================================================================
@@ -198,6 +209,9 @@ export class NeoChessBoard {
   private allowAutoScroll: boolean;
   private allowDragging: boolean;
   private allowDragOffBoard: boolean;
+  private renderObserver?: RenderObserver;
+  private renderFrameRects: RenderDebugRect[] = [];
+  private isRenderCaptureActive = false;
   private animationMs: number;
   private showAnimations: boolean;
   private canDragPiece?: BoardOptions['canDragPiece'];
@@ -452,6 +466,12 @@ export class NeoChessBoard {
 
   public getRootElement(): HTMLElement {
     return this.root;
+  }
+
+  public setRenderObserver(observer: RenderObserver | null): void {
+    this.renderObserver = observer ?? undefined;
+    this.renderFrameRects = [];
+    this.isRenderCaptureActive = false;
   }
 
   public getOrientation(): 'white' | 'black' {
@@ -1126,9 +1146,10 @@ export class NeoChessBoard {
 
   public renderAll(): void {
     this._invokeExtensionHook('onBeforeRender');
+    this._startRenderCaptureFrame();
     this._drawBoard();
-    this._drawPieces();
-    this._drawOverlay();
+    this._renderPiecesAndOverlayLayers();
+    this._flushRenderCaptureFrame();
     this._invokeExtensionHook('onAfterRender');
   }
 
@@ -1265,6 +1286,99 @@ export class NeoChessBoard {
   // Private - Rendering
   // ============================================================================
 
+  private _startRenderCaptureFrame(): void {
+    if (!this.renderObserver) {
+      this.isRenderCaptureActive = false;
+      this.renderFrameRects = [];
+      return;
+    }
+
+    this.renderFrameRects = [];
+    this.isRenderCaptureActive = true;
+  }
+
+  private _recordRenderRect(
+    layer: RenderLayer,
+    type: RenderCommandType,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): void {
+    if (!this.renderObserver || !this.isRenderCaptureActive) {
+      return;
+    }
+
+    this.renderFrameRects.push({ layer, type, rect: { x, y, width, height } });
+  }
+
+  private _flushRenderCaptureFrame(): void {
+    if (!this.renderObserver || !this.isRenderCaptureActive) {
+      this.renderFrameRects = [];
+      this.isRenderCaptureActive = false;
+      return;
+    }
+
+    const payload = [...this.renderFrameRects];
+    try {
+      this.renderObserver(payload);
+    } finally {
+      this.renderFrameRects = [];
+      this.isRenderCaptureActive = false;
+    }
+  }
+
+  private _clearCanvas(
+    ctx: CanvasRenderingContext2D,
+    layer: RenderLayer,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): void {
+    ctx.clearRect(x, y, width, height);
+    this._recordRenderRect(layer, 'clear', x, y, width, height);
+  }
+
+  private _fillCanvas(
+    ctx: CanvasRenderingContext2D,
+    layer: RenderLayer,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): void {
+    ctx.fillRect(x, y, width, height);
+    this._recordRenderRect(layer, 'fill', x, y, width, height);
+  }
+
+  private _drawImage(
+    ctx: CanvasRenderingContext2D,
+    layer: RenderLayer,
+    image: PieceSpriteImage,
+    dx: number,
+    dy: number,
+    dWidth: number,
+    dHeight: number,
+    sx?: number,
+    sy?: number,
+    sWidth?: number,
+    sHeight?: number,
+  ): void {
+    if (
+      typeof sx === 'number' &&
+      typeof sy === 'number' &&
+      typeof sWidth === 'number' &&
+      typeof sHeight === 'number'
+    ) {
+      ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+    } else {
+      ctx.drawImage(image, dx, dy, dWidth, dHeight);
+    }
+
+    this._recordRenderRect(layer, 'sprite', dx, dy, dWidth, dHeight);
+  }
+
   private _drawBoard(): void {
     const { light, dark, boardBorder } = this.theme;
     const ctx = this.ctxB;
@@ -1272,9 +1386,9 @@ export class NeoChessBoard {
     const W = this.cBoard.width;
     const H = this.cBoard.height;
 
-    ctx.clearRect(0, 0, W, H);
+    this._clearCanvas(ctx, 'board', 0, 0, W, H);
     ctx.fillStyle = boardBorder;
-    ctx.fillRect(0, 0, W, H);
+    this._fillCanvas(ctx, 'board', 0, 0, W, H);
 
     for (let r = 0; r < this.ranksCount; r++) {
       for (let f = 0; f < this.filesCount; f++) {
@@ -1285,7 +1399,7 @@ export class NeoChessBoard {
         const fill = style.fill ?? (isLight ? light : dark);
         if (fill) {
           ctx.fillStyle = fill as CanvasGradient | CanvasPattern | string;
-          ctx.fillRect(x, y, s, s);
+          this._fillCanvas(ctx, 'board', x, y, s, s);
         }
         if (style.stroke) {
           const strokeWidth = style.strokeWidth ?? 1;
@@ -1305,7 +1419,7 @@ export class NeoChessBoard {
     const W = this.cPieces.width;
     const H = this.cPieces.height;
 
-    ctx.clearRect(0, 0, W, H);
+    this._clearCanvas(ctx, 'pieces', 0, 0, W, H);
 
     const draggingSq = this._dragging?.from;
     const activeDomPieces = new Set<Square>();
@@ -1539,7 +1653,7 @@ export class NeoChessBoard {
     const size = this.square * spriteScale;
     const dx = x + (this.square - size) / 2 + sprite.offsetX * this.square;
     const dy = y + (this.square - size) / 2 + sprite.offsetY * this.square;
-    this.ctxP.drawImage(sprite.image, dx, dy, size, size);
+    this._drawImage(this.ctxP, 'pieces', sprite.image, dx, dy, size, size);
   }
 
   private _drawDefaultPieceSprite(piece: string, x: number, y: number, scale: number): void {
@@ -1551,7 +1665,19 @@ export class NeoChessBoard {
     const dx = x + (this.square - d) / 2;
     const dy = y + (this.square - d) / 2;
 
-    this.ctxP.drawImage(this.sprites.getSheet(), sx, sy, SPRITE_SIZE, SPRITE_SIZE, dx, dy, d, d);
+    this._drawImage(
+      this.ctxP,
+      'pieces',
+      this.sprites.getSheet(),
+      dx,
+      dy,
+      d,
+      d,
+      sx,
+      sy,
+      SPRITE_SIZE,
+      SPRITE_SIZE,
+    );
   }
 
   private _drawOverlay(): void {
@@ -1559,7 +1685,7 @@ export class NeoChessBoard {
     const W = this.cOverlay.width;
     const H = this.cOverlay.height;
 
-    ctx.clearRect(0, 0, W, H);
+    this._clearCanvas(ctx, 'overlay', 0, 0, W, H);
 
     this._drawLastMoveHighlight();
     this._drawCustomHighlights();
@@ -1571,6 +1697,20 @@ export class NeoChessBoard {
     this._drawDrawingManagerElements();
   }
 
+  private _renderPiecesAndOverlayLayers(): void {
+    const alreadyCapturing = this.isRenderCaptureActive;
+    if (!alreadyCapturing) {
+      this._startRenderCaptureFrame();
+    }
+
+    this._drawPieces();
+    this._drawOverlay();
+
+    if (!alreadyCapturing) {
+      this._flushRenderCaptureFrame();
+    }
+  }
+
   private _drawLastMoveHighlight(): void {
     if (!this._lastMove) return;
 
@@ -1580,8 +1720,8 @@ export class NeoChessBoard {
     const B = this._sqToXY(to);
 
     this.ctxO.fillStyle = this.theme.lastMove;
-    this.ctxO.fillRect(A.x, A.y, s, s);
-    this.ctxO.fillRect(B.x, B.y, s, s);
+    this._fillCanvas(this.ctxO, 'overlay', A.x, A.y, s, s);
+    this._fillCanvas(this.ctxO, 'overlay', B.x, B.y, s, s);
   }
 
   private _drawCustomHighlights(): void {
@@ -1590,7 +1730,7 @@ export class NeoChessBoard {
     this.ctxO.fillStyle = this.theme.moveTo;
     for (const sqr of this._customHighlights.squares) {
       const { x, y } = this._sqToXY(sqr);
-      this.ctxO.fillRect(x, y, this.square, this.square);
+      this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
     }
   }
 
@@ -1599,7 +1739,7 @@ export class NeoChessBoard {
 
     const { x, y } = this._sqToXY(this._selected);
     this.ctxO.fillStyle = this.theme.moveFrom;
-    this.ctxO.fillRect(x, y, this.square, this.square);
+    this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
   }
 
   private _drawLegalMoves(): void {
@@ -1630,8 +1770,8 @@ export class NeoChessBoard {
     const B = this._sqToXY(this._premove.to);
 
     this.ctxO.fillStyle = this.theme.premove;
-    this.ctxO.fillRect(A.x, A.y, s, s);
-    this.ctxO.fillRect(B.x, B.y, s, s);
+    this._fillCanvas(this.ctxO, 'overlay', A.x, A.y, s, s);
+    this._fillCanvas(this.ctxO, 'overlay', B.x, B.y, s, s);
   }
 
   private _drawHoverHighlight(): void {
@@ -1639,7 +1779,7 @@ export class NeoChessBoard {
 
     const { x, y } = this._sqToXY(this._hoverSq);
     this.ctxO.fillStyle = this.theme.moveTo;
-    this.ctxO.fillRect(x, y, this.square, this.square);
+    this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
   }
 
   private _drawDrawingManagerElements(): void {
@@ -2006,8 +2146,7 @@ export class NeoChessBoard {
       this._dragging.y = pt.y;
       this._hoverSq = square;
       this._autoScrollDuringDrag(e);
-      this._drawPieces();
-      this._drawOverlay();
+      this._renderPiecesAndOverlayLayers();
       this._emitPieceDragEvent(e, this._dragging.from, this._dragging.piece, square, pt);
     } else if (this._dragging && !pt) {
       this._autoScrollDuringDrag(e);
@@ -2034,8 +2173,7 @@ export class NeoChessBoard {
       this._ensureScrollContainer();
     }
 
-    this._drawPieces();
-    this._drawOverlay();
+    this._renderPiecesAndOverlayLayers();
     this._emitPieceDragEvent(event, from, piece, this._hoverSq, pt);
   }
 
@@ -2591,7 +2729,8 @@ export class NeoChessBoard {
     progress: number,
   ): void {
     const ctx = this.ctxP;
-    ctx.clearRect(0, 0, this.cPieces.width, this.cPieces.height);
+    this._startRenderCaptureFrame();
+    this._clearCanvas(ctx, 'pieces', 0, 0, this.cPieces.width, this.cPieces.height);
 
     for (let r = 0; r < this.ranksCount; r++) {
       for (let f = 0; f < this.filesCount; f++) {
@@ -2610,6 +2749,7 @@ export class NeoChessBoard {
     }
 
     this._drawOverlay();
+    this._flushRenderCaptureFrame();
   }
 
   private _findMovingPieceSource(moving: Map<string, string>, target: Square): Square | null {
