@@ -1,13 +1,14 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { NeoChessBoard } from '../../../src/react';
 import type { NeoChessRef } from '../../../src/react';
-import { THEMES } from '../../../src/core/themes';
 import {
   usePlaygroundState,
   usePlaygroundActions,
   type PlaygroundState,
   type ThemeName,
 } from '../state/playgroundStore';
+import { playgroundThemeMetadata } from '../themes/customThemes';
+import type { PlaygroundThemeMetadata } from '../themes/customThemes';
 import '../styles/playground.css';
 import {
   DEFAULT_ORIENTATION,
@@ -48,7 +49,7 @@ interface PlaygroundControlHandlers {
 
 interface BuildOptionsArgs {
   state: PlaygroundState;
-  themeOptions: ThemeName[];
+  themeOptions: PlaygroundThemeMetadata[];
   handlers: PlaygroundControlHandlers;
 }
 
@@ -160,7 +161,7 @@ const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase(
 
 const renderThemeControl = (
   currentTheme: ThemeName,
-  themeOptions: ThemeName[],
+  themeOptions: PlaygroundThemeMetadata[],
   onChange: React.ChangeEventHandler<HTMLSelectElement>,
 ): React.ReactElement => (
   <label style={themeControlStyles}>
@@ -170,8 +171,8 @@ const renderThemeControl = (
     </span>
     <select style={selectControlStyles} value={currentTheme} onChange={onChange}>
       {themeOptions.map((themeOption) => (
-        <option key={themeOption} value={themeOption}>
-          {formatThemeLabel(themeOption)}
+        <option key={themeOption.id} value={themeOption.id}>
+          {themeOption.label || formatThemeLabel(themeOption.id)}
         </option>
       ))}
     </select>
@@ -454,7 +455,23 @@ export const Playground: React.FC = () => {
     boardSizeRef.current = boardSize;
   }, [boardSize]);
 
-  const themeOptions = useMemo(() => Object.keys(THEMES) as ThemeName[], []);
+  const themeMetadata = useMemo(() => playgroundThemeMetadata, []);
+  const themeOptions = useMemo<ThemeName[]>(
+    () => themeMetadata.map((metadata) => metadata.id),
+    [themeMetadata],
+  );
+  const themeLabelById = useMemo(() => {
+    const entries = new Map<ThemeName, string>();
+    for (const metadata of themeMetadata) {
+      entries.set(metadata.id, metadata.label || formatThemeLabel(metadata.id));
+    }
+    return entries;
+  }, [themeMetadata]);
+
+  const getThemeLabel = useCallback(
+    (id: ThemeName): string => themeLabelById.get(id) ?? formatThemeLabel(id),
+    [themeLabelById],
+  );
 
   const codeSnippets = useMemo(
     () => buildPlaygroundSnippets({ state: boardOptions, orientation }),
@@ -808,9 +825,9 @@ export const Playground: React.FC = () => {
     (event) => {
       const nextTheme = event.target.value as ThemeName;
       updateBoardOptions({ theme: nextTheme });
-      pushLog(`Theme changed to ${formatThemeLabel(nextTheme)}`);
+      pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
     },
-    [updateBoardOptions, pushLog],
+    [updateBoardOptions, pushLog, getThemeLabel],
   );
 
   const handleShowCoordinatesChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
@@ -874,7 +891,7 @@ export const Playground: React.FC = () => {
     () =>
       buildOptionsSections({
         state: boardOptions,
-        themeOptions,
+        themeOptions: themeMetadata,
         handlers: {
           onThemeChange: handleThemeChange,
           onShowCoordinatesChange: handleShowCoordinatesChange,
@@ -888,7 +905,7 @@ export const Playground: React.FC = () => {
       }),
     [
       boardOptions,
-      themeOptions,
+      themeMetadata,
       handleThemeChange,
       handleShowCoordinatesChange,
       handleHighlightLegalChange,
@@ -1144,8 +1161,8 @@ export const Playground: React.FC = () => {
     const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
     const nextTheme = themeOptions[nextIndex];
     updateBoardOptions({ theme: nextTheme });
-    pushLog(`Theme changed to ${formatThemeLabel(nextTheme)}`);
-  }, [themeOptions, theme, updateBoardOptions, pushLog]);
+    pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
+  }, [themeOptions, theme, updateBoardOptions, pushLog, getThemeLabel]);
 
   const handleBoardMove = useCallback(
     (event: BoardEventMap['move']) => {

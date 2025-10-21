@@ -1,9 +1,9 @@
-import { THEMES } from '../../../src/core/themes';
 import {
   PLAYGROUND_DEFAULT_STATE,
   type PlaygroundState,
   type ThemeName,
 } from '../state/playgroundStore';
+import { playgroundThemeMetadata } from '../themes/customThemes';
 
 export type PlaygroundOrientation = 'white' | 'black';
 
@@ -21,7 +21,7 @@ const PARAM_KEYS = {
   dragActivationDistance: 'drag',
 } as const;
 
-const VALID_THEMES = new Set<ThemeName>(Object.keys(THEMES) as ThemeName[]);
+const VALID_THEMES = new Set<ThemeName>(playgroundThemeMetadata.map((theme) => theme.id));
 
 const encodeBoolean = (value: boolean): string => (value ? '1' : '0');
 
