@@ -21,6 +21,7 @@ const PARAM_KEYS = {
   allowDrawingArrows: 'arrows',
   animationDurationInMs: 'anim',
   dragActivationDistance: 'drag',
+  fen: 'fen',
 } as const;
 
 const VALID_THEMES = new Set<ThemeName>(playgroundThemeMetadata.map((theme) => theme.id));
@@ -90,11 +91,13 @@ const isDefaultState = (state: PlaygroundState): boolean =>
 export interface PlaygroundPermalinkPayload {
   orientation: PlaygroundOrientation;
   state: PlaygroundState;
+  fen?: string;
 }
 
 export interface PlaygroundPermalinkSnapshot {
   orientation?: PlaygroundOrientation;
   state?: Partial<PlaygroundState>;
+  fen?: string;
 }
 
 export const serializePlaygroundPermalink = (
@@ -140,6 +143,10 @@ export const serializePlaygroundPermalink = (
 
   if (payload.state.dragActivationDistance !== PLAYGROUND_DEFAULT_STATE.dragActivationDistance) {
     params.set(PARAM_KEYS.dragActivationDistance, String(payload.state.dragActivationDistance));
+  }
+
+  if (typeof payload.fen === 'string' && payload.fen.trim().length > 0) {
+    params.set(PARAM_KEYS.fen, payload.fen.trim());
   }
 
   return params;
@@ -218,6 +225,11 @@ export const parsePlaygroundPermalink = (search: string): PlaygroundPermalinkSna
 
   if (hasState) {
     snapshot.state = state;
+  }
+
+  const fen = params.get(PARAM_KEYS.fen);
+  if (typeof fen === 'string' && fen.trim().length > 0) {
+    snapshot.fen = fen.trim();
   }
 
   return snapshot;
