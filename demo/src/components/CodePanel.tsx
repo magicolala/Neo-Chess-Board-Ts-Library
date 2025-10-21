@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaygroundSnippets, SnippetKind } from '../utils/snippetBuilder';
+import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 
 interface CodePanelProps {
   snippets: PlaygroundSnippets;
@@ -141,9 +142,16 @@ const CodePanel: React.FC<CodePanelProps> = ({ snippets }) => {
   const handleCopy = useCallback(async () => {
     const text = activeSnippet;
     if (!text) {
+      trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
+        success: false,
+        source: 'code-panel',
+        reason: 'empty-snippet',
+        format: activeTab,
+      });
       return;
     }
 
+    let success = false;
     try {
       if (
         typeof navigator === 'undefined' ||
@@ -155,11 +163,19 @@ const CodePanel: React.FC<CodePanelProps> = ({ snippets }) => {
 
       await navigator.clipboard.writeText(text);
       setToast({ intent: 'success', message: 'Code copied to clipboard' });
+      success = true;
     } catch (error: unknown) {
       console.error(error);
       setToast({ intent: 'error', message: 'Unable to copy code' });
+      success = false;
     }
-  }, [activeSnippet]);
+
+    trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
+      success,
+      source: 'code-panel',
+      format: activeTab,
+    });
+  }, [activeSnippet, activeTab]);
 
   return (
     <div style={panelStyles}>

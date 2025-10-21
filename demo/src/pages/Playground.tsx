@@ -39,6 +39,7 @@ import {
   playgroundPieceSets,
 } from '../pieces';
 import type { PlaygroundPieceSetMetadata } from '../pieces';
+import { ANALYTICS_EVENTS, trackEvent, trackPageView } from '../utils/analytics';
 
 interface PanelSection {
   id: string;
@@ -479,6 +480,18 @@ export const Playground: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const payload =
+      typeof window !== 'undefined'
+        ? {
+            path: window.location.pathname,
+            search: window.location.search,
+            title: document?.title,
+          }
+        : undefined;
+    trackPageView(ANALYTICS_EVENTS.PAGE_VIEW, payload);
+  }, []);
+
+  useEffect(() => {
     if (!permalinkSnapshot.state) {
       return;
     }
@@ -910,6 +923,10 @@ export const Playground: React.FC = () => {
     (nextTheme: ThemeName) => {
       updateBoardOptions({ theme: nextTheme });
       pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
+      trackEvent(ANALYTICS_EVENTS.THEME_SWITCH, {
+        theme: nextTheme,
+        origin: 'options-panel',
+      });
     },
     [updateBoardOptions, pushLog, getThemeLabel],
   );
@@ -1288,6 +1305,10 @@ export const Playground: React.FC = () => {
     const nextTheme = themeOptions[nextIndex];
     updateBoardOptions({ theme: nextTheme });
     pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
+    trackEvent(ANALYTICS_EVENTS.THEME_SWITCH, {
+      theme: nextTheme,
+      origin: 'header-toggle',
+    });
   }, [themeOptions, theme, updateBoardOptions, pushLog, getThemeLabel]);
 
   const handleBoardMove = useCallback(
