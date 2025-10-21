@@ -174,6 +174,7 @@
 
 .playground__board-frame {
   margin: 0 auto;
+  width: 100%;
   padding: 1rem;
   background: var(--playground-panel-bg);
   border-radius: var(--playground-radius);
