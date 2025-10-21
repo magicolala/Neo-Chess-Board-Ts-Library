@@ -20,6 +20,7 @@ const panelStyles: React.CSSProperties = {
   borderRadius: '0.85rem',
   border: '1px solid var(--playground-border)',
   backgroundColor: 'rgba(15, 23, 42, 0.55)',
+  minHeight: '0',
 };
 
 const sectionHeaderStyles: React.CSSProperties = {
@@ -107,7 +108,7 @@ const AppearancePanel: React.FC<AppearancePanelProps> = ({
           Choose a color palette.
         </span>
       </header>
-      <div style={galleryStyles}>
+      <div className="theme-grid" style={galleryStyles}>
         {themes.map((theme) => {
           const isActive = theme.id === selectedTheme;
           return (
