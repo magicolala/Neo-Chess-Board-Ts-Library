@@ -1,4 +1,5 @@
 import React from 'react';
+import OptionHelp from './OptionHelp';
 import type { PlaygroundThemeMetadata } from '../themes/customThemes';
 import type { PlaygroundPieceSetMetadata } from '../pieces';
 
@@ -28,6 +29,12 @@ const sectionHeaderStyles: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   color: 'var(--playground-text)',
+};
+
+const sectionTitleGroupStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.4rem',
 };
 
 const galleryStyles: React.CSSProperties = {
@@ -103,7 +110,13 @@ const AppearancePanel: React.FC<AppearancePanelProps> = ({
   return (
     <section style={panelStyles} aria-label="Appearance options">
       <header style={sectionHeaderStyles}>
-        <span style={{ fontWeight: 600 }}>Theme</span>
+        <span style={sectionTitleGroupStyles}>
+          <span style={{ fontWeight: 600 }}>Theme</span>
+          <OptionHelp
+            href="https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/themes/#theme-structure"
+            label="Open documentation for theme selection"
+          />
+        </span>
         <span style={{ fontSize: '0.8rem', color: 'var(--playground-muted)' }}>
           Choose a color palette.
         </span>
@@ -138,7 +151,13 @@ const AppearancePanel: React.FC<AppearancePanelProps> = ({
       </div>
 
       <header style={{ ...sectionHeaderStyles, marginTop: '0.25rem' }}>
-        <span style={{ fontWeight: 600 }}>Pieces</span>
+        <span style={sectionTitleGroupStyles}>
+          <span style={{ fontWeight: 600 }}>Pieces</span>
+          <OptionHelp
+            href="https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/integration/#custom-piece-sets"
+            label="Open documentation for custom piece sets"
+          />
+        </span>
         <span style={{ fontSize: '0.8rem', color: 'var(--playground-muted)' }}>
           Swap the artwork.
         </span>
