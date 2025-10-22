@@ -3,6 +3,7 @@ import type { NeoChessRef } from '../../../src/react';
 import type { ChessJsRules } from '../../../src/core/ChessJsRules';
 import type { PgnNotation } from '../../../src/core/PgnNotation';
 import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
+import { useToaster } from './Toaster';
 
 interface PgnPanelProps {
   boardRef: React.RefObject<NeoChessRef>;
@@ -68,6 +69,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loadingExample, setLoadingExample] = useState<string | null>(null);
+  const { pushToast } = useToaster();
 
   const resetTransientMessages = useCallback(() => {
     setError(null);
@@ -96,22 +98,28 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
     (pgnString: string, originLabel: string): void => {
       const trimmed = pgnString.trim();
       if (!trimmed) {
-        setError('The provided PGN is empty.');
+        const message = 'The provided PGN is empty.';
+        setError(message);
         setStatus(null);
+        pushToast(message, { intent: 'error' });
         return;
       }
 
       const board = boardRef.current?.getBoard();
       if (!board) {
-        setError('Chessboard is not ready yet.');
+        const message = 'Chessboard is not ready yet.';
+        setError(message);
         setStatus(null);
+        pushToast(message, { intent: 'error' });
         return;
       }
 
       const notation = getPgnNotationFromBoard(board);
       if (!notation) {
-        setError('Unable to access PGN notation from the rules adapter.');
+        const message = 'Unable to access PGN notation from the rules adapter.';
+        setError(message);
         setStatus(null);
+        pushToast(message, { intent: 'error' });
         return;
       }
 
@@ -123,7 +131,9 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
         const exported = notation.toPgnWithAnnotations?.() ?? handleBoardPgnExport();
         onPgnChange(exported);
         setError(null);
-        setStatus(`Loaded PGN from ${originLabel}.`);
+        const message = `Loaded PGN from ${originLabel}.`;
+        setStatus(message);
+        pushToast(message, { intent: 'success' });
         onLog?.(`Loaded PGN from ${originLabel}`);
         trackEvent(ANALYTICS_EVENTS.IMPORT_PGN, {
           origin: originLabel,
@@ -131,8 +141,10 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
         });
       } catch (loadError) {
         console.error(loadError);
-        setError('Failed to load PGN. Please verify the file content.');
+        const message = 'Failed to load PGN. Please verify the file content.';
+        setError(message);
         setStatus(null);
+        pushToast(message, { intent: 'error' });
         trackEvent(ANALYTICS_EVENTS.IMPORT_PGN, {
           origin: originLabel,
           success: false,
@@ -140,7 +152,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
         });
       }
     },
-    [boardRef, handleBoardPgnExport, onLog, onPgnChange],
+    [boardRef, handleBoardPgnExport, onLog, onPgnChange, pushToast],
   );
 
   const handleFileContent = useCallback(
@@ -150,7 +162,9 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
       }
       resetTransientMessages();
       if (!file.name.toLowerCase().endsWith('.pgn')) {
-        setError('Only .pgn files are supported.');
+        const message = 'Only .pgn files are supported.';
+        setError(message);
+        pushToast(message, { intent: 'error' });
         return;
       }
       try {
@@ -158,10 +172,12 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
         applyPgnToBoard(content, file.name);
       } catch (readError) {
         console.error(readError);
-        setError('Unable to read the selected file.');
+        const message = 'Unable to read the selected file.';
+        setError(message);
+        pushToast(message, { intent: 'error' });
       }
     },
-    [applyPgnToBoard, resetTransientMessages],
+    [applyPgnToBoard, resetTransientMessages, pushToast],
   );
 
   const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
@@ -211,22 +227,26 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
           throw new Error(`Failed to fetch ${example.path}`);
         }
         const content = await response.text();
-        applyPgnToBoard(content, `${example.label.toLowerCase()}`);
+        applyPgnToBoard(content, example.label);
       } catch (fetchError) {
         console.error(fetchError);
-        setError('Unable to load the example PGN.');
+        const message = 'Unable to load the example PGN.';
+        setError(message);
+        pushToast(message, { intent: 'error' });
       } finally {
         setLoadingExample(null);
       }
     },
-    [applyPgnToBoard, resetTransientMessages],
+    [applyPgnToBoard, resetTransientMessages, pushToast],
   );
 
   const handleExport = useCallback(() => {
     resetTransientMessages();
     const exported = handleBoardPgnExport();
     if (!exported) {
-      setError('There is no PGN to export yet.');
+      const message = 'There is no PGN to export yet.';
+      setError(message);
+      pushToast(message, { intent: 'error' });
       return;
     }
     const blob = new Blob([exported], { type: 'application/x-chess-pgn' });
@@ -238,9 +258,11 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
-    setStatus('PGN exported successfully.');
+    const message = 'PGN exported successfully.';
+    setStatus(message);
+    pushToast(message, { intent: 'success' });
     onLog?.('Exported current PGN.');
-  }, [handleBoardPgnExport, onLog, resetTransientMessages]);
+  }, [handleBoardPgnExport, onLog, pushToast, resetTransientMessages]);
 
   const handleSelectFileClick = useCallback(() => {
     resetTransientMessages();

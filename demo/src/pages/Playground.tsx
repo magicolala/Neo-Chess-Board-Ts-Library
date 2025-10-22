@@ -26,6 +26,7 @@ import AppearancePanel from '../components/AppearancePanel';
 import SharePanel, { type SharePanelProps } from '../components/SharePanel';
 import StickyHeader, { type StickyHeaderCtaLinks } from '../components/StickyHeader';
 import OptionHelp from '../components/OptionHelp';
+import { ToasterProvider, useToaster } from '../components/Toaster';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 import { createFpsMeter } from '../utils/fpsMeter';
 import type {
@@ -426,7 +427,7 @@ interface StressTestRunState {
   originalBoardSize: number;
 }
 
-export const Playground: React.FC = () => {
+const PlaygroundView: React.FC = () => {
   const permalinkSnapshot = useMemo(() => {
     if (typeof window === 'undefined') {
       return {};
@@ -471,6 +472,7 @@ export const Playground: React.FC = () => {
 
   const boardOptions = usePlaygroundState();
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
+  const { pushToast } = useToaster();
 
   const copyToClipboard = useCallback(async (value: string): Promise<boolean> => {
     if (!value) {
@@ -1205,7 +1207,8 @@ export const Playground: React.FC = () => {
     setPgn('');
     setCurrentFen(DEFAULT_START_FEN);
     pushLog('Board reset and controls restored to defaults');
-  }, [isStressTestRunning, resetBoardOptions, stopStressTest, pushLog]);
+    pushToast('Playground reset to defaults and permalink cleared.', { intent: 'success' });
+  }, [isStressTestRunning, resetBoardOptions, stopStressTest, pushLog, pushToast]);
 
   const handleStressTest = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -1601,5 +1604,11 @@ export const Playground: React.FC = () => {
     </div>
   );
 };
+
+export const Playground: React.FC = () => (
+  <ToasterProvider>
+    <PlaygroundView />
+  </ToasterProvider>
+);
 
 export default Playground;

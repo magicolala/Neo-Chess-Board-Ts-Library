@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { PlaygroundState } from '../state/playgroundStore';
 import { serializePlaygroundPermalink, type PlaygroundOrientation } from '../utils/permalink';
 import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
+import { useToaster } from './Toaster';
 
 export interface SharePanelProps {
   orientation: PlaygroundOrientation;
@@ -13,12 +14,18 @@ export interface SharePanelProps {
 
 type CopyIntent = 'iframe' | 'link';
 
-type CopyStatus = {
-  intent: CopyIntent;
-  success: boolean;
-};
-
 const FALLBACK_PLAYGROUND_URL = 'https://neo-chess-board.vercel.app/playground';
+
+const COPY_MESSAGES: Record<CopyIntent, { success: string; failure: string }> = {
+  iframe: {
+    success: 'Embed snippet copied to clipboard',
+    failure: 'Unable to copy embed snippet',
+  },
+  link: {
+    success: 'Share link copied to clipboard',
+    failure: 'Unable to copy share link',
+  },
+};
 
 const fallbackCopyToClipboard = async (value: string): Promise<boolean> => {
   if (!value) {
@@ -67,17 +74,7 @@ const buildBaseUrl = (query: string): string => {
 };
 
 const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareUrl, onCopy }) => {
-  const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, []);
+  const { pushToast } = useToaster();
 
   const permalinkParams = useMemo(
     () =>
@@ -121,13 +118,7 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
     async (value: string, intent: CopyIntent) => {
       const copyFn = onCopy ?? fallbackCopyToClipboard;
       if (!value) {
-        setCopyStatus({ intent, success: false });
-        if (timeoutRef.current !== null) {
-          window.clearTimeout(timeoutRef.current);
-        }
-        timeoutRef.current = window.setTimeout(() => {
-          setCopyStatus(null);
-        }, 2400);
+        pushToast(COPY_MESSAGES[intent].failure, { intent: 'error' });
         trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
           intent,
           success: false,
@@ -146,50 +137,16 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
         success = false;
       }
 
-      setCopyStatus({ intent, success });
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = window.setTimeout(() => {
-        setCopyStatus(null);
-      }, 2400);
+      const message = success ? COPY_MESSAGES[intent].success : COPY_MESSAGES[intent].failure;
+      pushToast(message, { intent: success ? 'success' : 'error' });
       trackEvent(ANALYTICS_EVENTS.COPY_CODE, {
         intent,
         success,
         source: 'share-panel',
       });
     },
-    [onCopy],
+    [onCopy, pushToast],
   );
-
-  const renderCopyToast = () => {
-    if (!copyStatus) {
-      return null;
-    }
-
-    const messages: Record<CopyIntent, { success: string; failure: string }> = {
-      iframe: {
-        success: 'Embed snippet copied to clipboard',
-        failure: 'Unable to copy embed snippet',
-      },
-      link: {
-        success: 'Share link copied to clipboard',
-        failure: 'Unable to copy share link',
-      },
-    };
-
-    const intentMessages = messages[copyStatus.intent];
-    const message = copyStatus.success ? intentMessages.success : intentMessages.failure;
-    const intentClass = copyStatus.success
-      ? 'playground__share-toast--success'
-      : 'playground__share-toast--error';
-
-    return (
-      <div className={`playground__share-toast ${intentClass}`} role="status" aria-live="polite">
-        {message}
-      </div>
-    );
-  };
 
   return (
     <div className="playground__share-panel">
@@ -237,8 +194,6 @@ const SharePanel: React.FC<SharePanelProps> = ({ orientation, state, fen, shareU
           {iframeSnippet}
         </pre>
       </section>
-
-      {renderCopyToast()}
     </div>
   );
 };
