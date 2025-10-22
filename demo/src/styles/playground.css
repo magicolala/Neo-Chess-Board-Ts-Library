@@ -747,41 +747,6 @@
   overflow-x: auto;
 }
 
-@media (max-width: 1024px) {
-  .playground__content {
-    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(200px, 240px);
-  }
-}
-
-@media (max-width: 768px) {
-  .playground {
-    padding: clamp(0.75rem, 4vw, 1.5rem);
-  }
-
-  .playground__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .playground__content {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .playground__panel {
-    display: none;
-  }
-
-  .playground__board-frame {
-    width: 100%;
-    padding: clamp(0.5rem, 3vw, 1rem);
-  }
-
-  .playground__mobile-panels {
-    display: flex;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
