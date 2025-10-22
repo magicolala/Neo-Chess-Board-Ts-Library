@@ -500,6 +500,75 @@ export const Playground: React.FC = () => {
   }, [permalinkSnapshot.state, updateBoardOptions]);
 
   useEffect(() => {
+    const fenFromPermalink =
+      typeof permalinkSnapshot.fen === 'string' && permalinkSnapshot.fen.trim().length > 0
+        ? permalinkSnapshot.fen.trim()
+        : undefined;
+
+    if (!fenFromPermalink) {
+      return;
+    }
+
+    setCurrentFen((current) => (current === fenFromPermalink ? current : fenFromPermalink));
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const applyFenToBoard = (): boolean => {
+      const boardInstance = boardRef.current?.getBoard?.();
+      if (!boardInstance) {
+        return false;
+      }
+
+      const setFen =
+        (boardInstance as { setFEN?: (value: string) => void }).setFEN ??
+        (boardInstance as { setPosition?: (value: string) => void }).setPosition;
+
+      if (typeof setFen !== 'function') {
+        return true;
+      }
+
+      try {
+        setFen.call(boardInstance, fenFromPermalink);
+      } catch (error) {
+        console.error(error);
+      }
+
+      return true;
+    };
+
+    if (applyFenToBoard()) {
+      return;
+    }
+
+    let frameId: number | null = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 10;
+
+    const scheduleAttempt = () => {
+      if (attempts >= MAX_ATTEMPTS) {
+        return;
+      }
+
+      attempts += 1;
+      frameId = window.requestAnimationFrame(() => {
+        if (!applyFenToBoard()) {
+          scheduleAttempt();
+        }
+      });
+    };
+
+    scheduleAttempt();
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [permalinkSnapshot.fen]);
+
+  useEffect(() => {
     syncPlaygroundPermalink({
       orientation,
       state: boardOptions,
