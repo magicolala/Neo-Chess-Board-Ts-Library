@@ -581,6 +581,8 @@ Contributions are welcome! Here's how to get started:
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
+For demo QA expectations and release polish steps, follow the [Demo QA & Release Checklist](./demo/README.md).
+
 ### Report Issues
 
 - 🐛 [Report bugs](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/issues)
