@@ -1,0 +1,136 @@
+@media (max-width: 1024px) {
+  .playground__content {
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(200px, 240px);
+  }
+}
+
+@media (max-width: 768px) {
+  .playground {
+    padding: clamp(0.75rem, 4vw, 1.65rem);
+  }
+
+  .playground__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .playground__sticky-header-inner {
+    padding: clamp(0.9rem, 4vw, 1.35rem);
+    gap: 1.1rem;
+  }
+
+  .playground__badge-list {
+    gap: 0.65rem;
+  }
+
+  .playground__content {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 5vw, 1.85rem);
+  }
+
+  .playground__panel {
+    display: none;
+  }
+
+  .playground__board-frame {
+    width: 100%;
+    padding: clamp(0.65rem, 4vw, 1.15rem);
+    border-radius: 20px;
+  }
+
+  .playground__board-frame canvas,
+  .playground__board-frame > div {
+    border-radius: 16px;
+  }
+
+  .playground__mobile-panels {
+    display: flex;
+  }
+
+  .playground__accordion + .playground__accordion {
+    margin-top: 0.95rem;
+  }
+
+  .playground__accordion summary {
+    padding: 1rem 1.1rem;
+    font-size: 1rem;
+  }
+
+  .playground__accordion summary::after {
+    font-size: 1rem;
+  }
+
+  .playground__accordion-body {
+    padding: 0 1.1rem 1.25rem;
+    font-size: 0.98rem;
+  }
+
+  .playground__cta-links {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .playground__cta-link {
+    width: 100%;
+    justify-content: center;
+    border-radius: 14px;
+    padding: 0.85rem 1.1rem;
+  }
+
+  .playground__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .playground__actions button {
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 14px;
+    padding: 0.9rem 1.1rem;
+    font-size: 1rem;
+  }
+
+  .playground__share-copy-button,
+  .playground__export-button,
+  .playground__example-button {
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 14px;
+    padding: 0.9rem 1.1rem;
+    font-size: 1rem;
+  }
+
+  .playground__share-section {
+    gap: 0.85rem;
+  }
+
+  .playground__share-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .playground__share-title {
+    font-size: 1rem;
+  }
+
+  .playground__share-copy-button {
+    justify-content: center;
+  }
+
+  .playground__share-description {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .playground__pgn-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .playground__pgn-actions > * {
+    width: 100%;
+  }
+}

@@ -10,6 +10,7 @@ import {
 import { playgroundThemeMetadata } from '../themes/customThemes';
 import type { PlaygroundThemeMetadata } from '../themes/customThemes';
 import '../styles/playground.css';
+import '../styles/mobile.css';
 import {
   DEFAULT_ORIENTATION,
   clearPlaygroundPermalink,
