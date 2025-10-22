@@ -25,6 +25,7 @@ import PerfPanel from '../components/PerfPanel';
 import AppearancePanel from '../components/AppearancePanel';
 import SharePanel, { type SharePanelProps } from '../components/SharePanel';
 import StickyHeader, { type StickyHeaderCtaLinks } from '../components/StickyHeader';
+import OptionHelp from '../components/OptionHelp';
 import { buildPlaygroundSnippets } from '../utils/snippetBuilder';
 import { createFpsMeter } from '../utils/fpsMeter';
 import type {
@@ -96,6 +97,12 @@ const toggleTextBlockStyles: React.CSSProperties = {
   flex: '1 1 auto',
 };
 
+const toggleTitleRowStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+};
+
 const toggleTitleStyles: React.CSSProperties = {
   fontWeight: 600,
   color: 'var(--playground-text)',
@@ -128,6 +135,12 @@ const sliderHeaderStyles: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: '0.75rem',
+};
+
+const sliderTitleGroupStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.4rem',
 };
 
 const sliderValueStyles: React.CSSProperties = {
@@ -165,10 +178,14 @@ const renderToggle = (
   description: string,
   checked: boolean,
   onChange: React.ChangeEventHandler<HTMLInputElement>,
+  docsHref: string,
 ): React.ReactElement => (
   <label style={toggleRowStyles}>
     <span style={toggleTextBlockStyles}>
-      <span style={toggleTitleStyles}>{label}</span>
+      <span style={toggleTitleRowStyles}>
+        <span style={toggleTitleStyles}>{label}</span>
+        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+      </span>
       <span style={toggleDescriptionStyles}>{description}</span>
     </span>
     <input type="checkbox" style={checkboxInputStyles} checked={checked} onChange={onChange} />
@@ -182,10 +199,14 @@ const renderSlider = (
   value: number,
   options: { min: number; max: number; step: number },
   onChange: React.ChangeEventHandler<HTMLInputElement>,
+  docsHref: string,
 ): React.ReactElement => (
   <label style={sliderContainerStyles}>
     <span style={sliderHeaderStyles}>
-      <span style={toggleTitleStyles}>{label}</span>
+      <span style={sliderTitleGroupStyles}>
+        <span style={toggleTitleStyles}>{label}</span>
+        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+      </span>
       <span style={sliderValueStyles}>{valueLabel}</span>
     </span>
     <span style={toggleDescriptionStyles}>{description}</span>
@@ -227,6 +248,7 @@ const buildOptionsSections = ({
           'Display algebraic notation along the board borders.',
           state.showCoordinates,
           handlers.onShowCoordinatesChange,
+          `${PLAYGROUND_CTA_LINKS.docs}integration/#highlighting-coordinates`,
         )}
       </div>
     ),
@@ -241,24 +263,28 @@ const buildOptionsSections = ({
           'Allow pointer interactions such as dragging pieces and hovering.',
           state.interactive,
           handlers.onInteractiveChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
         {renderToggle(
           'Highlight legal moves',
           'Emphasize the valid destinations for the selected piece.',
           state.highlightLegal,
           handlers.onHighlightLegalChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
         {renderToggle(
           'Auto flip orientation',
           'Rotate the board automatically after every move turn.',
           state.autoFlip,
           handlers.onAutoFlipChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
         {renderToggle(
           'Allow drawing arrows',
           'Enable training annotations by holding the right mouse button.',
           state.allowDrawingArrows,
           handlers.onAllowDrawingArrowsChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
       </div>
     ),
@@ -275,6 +301,7 @@ const buildOptionsSections = ({
           state.animationDurationInMs,
           { min: 0, max: 2000, step: 50 },
           handlers.onAnimationDurationChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
         {renderSlider(
           'Drag activation distance',
@@ -283,6 +310,7 @@ const buildOptionsSections = ({
           state.dragActivationDistance,
           { min: 0, max: 48, step: 1 },
           handlers.onDragActivationDistanceChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
         )}
       </div>
     ),
