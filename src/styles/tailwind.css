@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './theme.css';
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-canvas);
+    color: var(--color-text-primary);
+  }
+
+  body {
+    min-height: 100%;
+    background-color: var(--color-bg-canvas);
+    color: var(--color-text-primary);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer components {
+  .landing-body {
+    @apply min-h-screen flex items-center justify-center bg-canvas-base text-ink-primary;
+    background-image: var(--bg-repeating-diagonal);
+    background-size: 20px 20px;
+    padding: var(--space-xl);
+  }
+
+  .landing-card {
+    @apply bg-surface-1 text-center rounded-[1.75rem] shadow-xl max-w-xl w-full;
+    padding: var(--space-3xl) var(--space-4xl);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  }
+
+  .landing-title {
+    @apply text-4xl font-semibold tracking-tight text-ink-primary mb-sm;
+  }
+
+  .landing-copy {
+    @apply text-lg text-ink-secondary leading-relaxed mb-xl;
+  }
+
+  .landing-actions {
+    @apply flex flex-wrap items-center justify-center gap-sm;
+  }
+
+  .landing-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-xl py-sm font-semibold text-white shadow-lg transition-all duration-200 ease-out;
+  }
+
+  .landing-button-primary {
+    background: linear-gradient(135deg, var(--color-human-4), var(--color-human-5));
+    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.35);
+  }
+
+  .landing-button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(79, 70, 229, 0.38);
+  }
+
+  .landing-button-secondary {
+    background: linear-gradient(135deg, var(--color-engine-4), var(--color-engine-5));
+    box-shadow: 0 12px 24px rgba(14, 165, 233, 0.3);
+  }
+
+  .landing-button-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(14, 165, 233, 0.34);
+  }
+
+  .demo-body {
+    @apply min-h-screen overflow-x-hidden font-sans;
+    background-image: var(--bg-hero-orbit);
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  .playground-body {
+    @apply min-h-screen font-sans;
+    background-color: #030712;
+  }
+
+  .theme-creator-body {
+    @apply min-h-screen font-sans bg-canvas-base;
+  }
+
+  .glass-panel {
+    @apply rounded-glass border border-glass-border bg-glass backdrop-blur-xl shadow-glass;
+  }
+
+  .prose strong {
+    color: var(--color-text-primary);
+  }
+
+  .prose a {
+    color: var(--color-accent-primary);
+    text-decoration: none;
+  }
+
+  .prose a:hover {
+    color: var(--color-accent-secondary);
+    text-decoration: underline;
+  }
+
+  .prose code {
+    @apply rounded-md px-2 py-[0.125rem] font-medium;
+    background-color: var(--color-surface-2);
+    color: var(--color-engine-5);
+  }
+}
+
+@layer utilities {
+  .bg-glass-glint {
+    background-image: var(--bg-glass-glint);
+  }
+}

@@ -4,81 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neo Chess Board</title>
-    <style>
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-          'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        background-color: #f0f2f5;
-        color: #333;
-        text-align: center;
-      }
-      .container {
-        background-color: #fff;
-        padding: 40px 60px;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        max-width: 600px;
-        width: 90%;
-      }
-      h1 {
-        color: #2c3e50;
-        font-size: 2.8em;
-        margin-bottom: 20px;
-        font-weight: 700;
-      }
-      p {
-        font-size: 1.1em;
-        line-height: 1.6;
-        margin-bottom: 30px;
-        color: #555;
-      }
-      .buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .button {
-        display: inline-block;
-        padding: 15px 30px;
-        font-size: 1.1em;
-        font-weight: 600;
-        color: #fff;
-        background-color: #007bff;
-        border: none;
-        border-radius: 8px;
-        text-decoration: none;
-        transition:
-          background-color 0.3s ease,
-          transform 0.2s ease;
-        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
-      }
-      .button:hover {
-        background-color: #0056b3;
-        transform: translateY(-3px);
-      }
-      .button.docs {
-        background-color: #28a745;
-        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
-      }
-      .button.docs:hover {
-        background-color: #218838;
-      }
-    </style>
+    <link rel="stylesheet" href="/assets/tailwind.css" />
   </head>
-  <body>
-    <div class="container">
-      <h1>Welcome to Neo Chess Board</h1>
-      <p>A modern, interactive canvas chessboard library with React bindings and PGN recorder.</p>
-      <div class="buttons">
-        <a href="./demo" class="button">View Demo</a>
-        <a href="./docs" class="button docs">Read Documentation</a>
+  <body class="landing-body">
+    <div class="landing-card">
+      <h1 class="landing-title">Welcome to Neo Chess Board</h1>
+      <p class="landing-copy">
+        A modern, interactive canvas chessboard library with React bindings, PGN tooling, and polished theming tokens.
+      </p>
+      <div class="landing-actions">
+        <a href="./demo" class="landing-button landing-button-primary">View Demo</a>
+        <a href="./docs" class="landing-button landing-button-secondary">Read Documentation</a>
       </div>
     </div>
   </body>
