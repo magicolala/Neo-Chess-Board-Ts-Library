@@ -53,11 +53,14 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
+    "predev": "npm run build:css",
     "dev": "vite",
+    "prebuild": "npm run build:css",
     "build": "tsc -p tsconfig.json && vite build",
     "dev:css": "tailwindcss -i ./src/styles/tailwind.css -o ./public/assets/tailwind.css --watch",
     "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./public/assets/tailwind.css --minify",
     "build:lib": "tsc -p tsconfig.json",
+    "prebuild:demo": "npm run build:css",
     "build:demo": "cd demo && vite build --mode production",
     "preview": "vite preview",
     "test": "jest",
