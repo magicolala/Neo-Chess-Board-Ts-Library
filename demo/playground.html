@@ -14,8 +14,21 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♞</text></svg>"
     />
+    <link rel="stylesheet" href="./chess-ui-framework.css" />
+    <style>
+      body {
+        margin: 0;
+        min-block-size: 100vh;
+        background:
+          radial-gradient(circle at top left, hsl(var(--h-accent) 83% 66% / 0.24), transparent 55%),
+          radial-gradient(circle at bottom right, hsl(var(--h-error) 86% 58% / 0.16), transparent 55%),
+          var(--bg-0);
+        color: var(--text-0);
+        font-family: var(--font-sans);
+      }
+    </style>
   </head>
-  <body style="margin: 0; padding: 0; background: #030712;">
+  <body>
     <div id="root"></div>
     <script type="module" src="./playground-main.tsx"></script>
   </body>
