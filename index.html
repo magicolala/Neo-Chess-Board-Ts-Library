@@ -1,21 +1,295 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neo Chess Board</title>
     <link rel="stylesheet" href="/assets/tailwind.css" />
   </head>
-  <body class="landing-body">
-    <div class="landing-card">
-      <h1 class="landing-title">Welcome to Neo Chess Board</h1>
-      <p class="landing-copy">
-        A modern, interactive canvas chessboard library with React bindings, PGN tooling, and polished theming tokens.
-      </p>
-      <div class="landing-actions">
-        <a href="./demo" class="landing-button landing-button-primary">View Demo</a>
-        <a href="./docs" class="landing-button landing-button-secondary">Read Documentation</a>
+  <body class="bg-canvas-base text-ink-primary min-h-full antialiased">
+    <div class="relative min-h-screen overflow-hidden">
+      <div class="pointer-events-none absolute inset-0 bg-hero-orbit opacity-80"></div>
+      <div class="pointer-events-none absolute inset-0 bg-repeating-diagonal opacity-40 mix-blend-overlay"></div>
+      <div class="relative z-10 flex min-h-screen flex-col">
+        <header class="border-b border-border-subtle bg-surface-1 backdrop-blur">
+          <nav class="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-6">
+            <a href="./" class="flex items-center gap-3 text-lg font-semibold text-ink-primary">
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-glass text-2xl shadow-glass">♘</span>
+              Neo Chess Board
+            </a>
+            <div class="flex items-center gap-3 text-sm font-medium">
+              <a
+                href="./docs"
+                class="rounded-full border border-border-subtle px-4 py-2 text-ink-secondary transition hover:border-border-strong hover:text-ink-primary"
+                >Documentation</a
+              >
+              <a
+                href="https://github.com/magicolala/Neo-Chess-Board-Ts-Library"
+                class="hidden items-center gap-2 rounded-full border border-transparent bg-ink-primary px-4 py-2 text-sm font-semibold text-ink-inverted shadow-glass transition hover:brightness-110 sm:flex"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  class="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.35-1.76-1.35-1.76-1.1-.75.08-.74.08-.74 1.22.09 1.86 1.25 1.86 1.25 1.08 1.85 2.82 1.32 3.5 1.01.11-.78.42-1.32.76-1.62-2.67-.3-5.48-1.33-5.48-5.92 0-1.31.47-2.39 1.24-3.23-.13-.3-.54-1.52.12-3.16 0 0 1.01-.32 3.3 1.23a11.48 11.48 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.64.25 2.86.12 3.16.77.84 1.24 1.92 1.24 3.23 0 4.6-2.81 5.62-5.5 5.92.43.37.81 1.1.81 2.23v3.31c0 .32.21.7.83.58A12 12 0 0 0 12 .5Z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                GitHub
+              </a>
+              <button
+                id="theme-toggle"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-full border border-border-subtle px-4 py-2 text-ink-secondary transition hover:border-border-strong hover:text-ink-primary"
+                aria-label="Toggle theme"
+              >
+                <span class="hidden sm:inline">Mode</span>
+                <span aria-hidden="true" class="font-medium">🌙</span>
+              </button>
+            </div>
+          </nav>
+        </header>
+        <main class="flex-1">
+          <section class="px-6 pb-24 pt-16 sm:pt-24">
+            <div class="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_minmax(0,1fr)]">
+              <div class="space-y-8">
+                <p class="inline-flex items-center gap-2 rounded-full border border-glass-highlight bg-glass px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary shadow-glass backdrop-blur">
+                  Version 1.0.1 &middot; TypeScript-first
+                </p>
+                <h1 class="text-balance text-4xl font-semibold leading-tight text-ink-primary sm:text-5xl lg:text-6xl">
+                  L'échiquier moderne pour des expériences interactives haut de gamme.
+                </h1>
+                <p class="max-w-2xl text-lg text-ink-secondary">
+                  Neo Chess Board combine un moteur canvas performant, un thème adaptable clair/sombre et des utilitaires
+                  ergonomiques pour piloter vos analyses PGN, vos interfaces pédagogiques ou vos dashboards de parties.
+                </p>
+                <div class="flex flex-col gap-4 text-sm font-medium sm:flex-row sm:items-center">
+                  <a
+                    href="./demo"
+                    class="inline-flex items-center justify-center gap-2 rounded-full bg-ink-primary px-6 py-3 text-base font-semibold text-ink-inverted shadow-glass transition hover:brightness-110"
+                  >
+                    Essayer la démo
+                    <span aria-hidden="true">→</span>
+                  </a>
+                  <a
+                    href="./docs"
+                    class="inline-flex items-center justify-center gap-2 rounded-full border border-border-subtle px-6 py-3 text-base text-ink-primary transition hover:border-border-strong hover:text-ink-primary"
+                  >
+                    Explorer la documentation
+                  </a>
+                </div>
+                <dl class="grid gap-6 sm:grid-cols-3">
+                  <div class="rounded-2xl border border-border-subtle bg-surface-1 p-6 shadow-glass backdrop-blur">
+                    <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Animations fluides</dt>
+                    <dd class="mt-3 text-3xl font-semibold text-ink-primary">60 fps</dd>
+                  </div>
+                  <div class="rounded-2xl border border-border-subtle bg-surface-1 p-6 shadow-glass backdrop-blur">
+                    <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Extensions React</dt>
+                    <dd class="mt-3 text-3xl font-semibold text-ink-primary">Hooks &amp; refs</dd>
+                  </div>
+                  <div class="rounded-2xl border border-border-subtle bg-surface-1 p-6 shadow-glass backdrop-blur">
+                    <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">PGN &amp; FEN</dt>
+                    <dd class="mt-3 text-3xl font-semibold text-ink-primary">Parés au chargement</dd>
+                  </div>
+                </dl>
+              </div>
+              <div class="relative">
+                <div class="absolute -inset-6 rounded-3xl bg-gradient-to-br from-human-4 via-glass to-engine-4 opacity-40 blur-3xl"></div>
+                <div class="relative overflow-hidden rounded-3xl border border-glass-border bg-surface-1 shadow-glass">
+                  <div class="border-b border-border-subtle bg-surface-2 px-6 py-4">
+                    <div class="flex items-center gap-2 text-sm text-ink-secondary">
+                      <span class="h-2 w-2 rounded-full bg-human-3"></span>
+                      <span class="h-2 w-2 rounded-full bg-engine-4"></span>
+                      <span class="h-2 w-2 rounded-full bg-glass-highlight"></span>
+                      <span class="ml-3 font-medium text-ink-primary">Analyse en direct</span>
+                    </div>
+                  </div>
+                  <div class="grid gap-px bg-border-subtle p-6 sm:grid-cols-2">
+                    <div class="rounded-xl border border-border-subtle bg-surface-2 p-4">
+                      <p class="text-xs font-semibold uppercase tracking-[0.25em] text-ink-secondary">Evaluation</p>
+                      <p class="mt-4 text-4xl font-semibold text-human-4">+1.27</p>
+                      <p class="mt-3 text-sm text-ink-secondary">Les blancs pressent l'avantage sur l'aile roi.</p>
+                    </div>
+                    <div class="flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-4">
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.25em] text-ink-secondary">Derniers coups</p>
+                        <ol class="mt-4 space-y-2 text-sm text-ink-secondary">
+                          <li class="flex items-center justify-between rounded-lg border border-transparent bg-glass px-3 py-2 text-ink-primary">
+                            <span>32. ...</span>
+                            <span>♞f4+</span>
+                          </li>
+                          <li class="flex items-center justify-between rounded-lg px-3 py-2">
+                            <span>33. ♕xf4</span>
+                            <span>♛xf4</span>
+                          </li>
+                          <li class="flex items-center justify-between rounded-lg px-3 py-2">
+                            <span>34. ♗xh7+</span>
+                            <span>♚xh7</span>
+                          </li>
+                        </ol>
+                      </div>
+                      <div class="rounded-lg border border-border-subtle bg-surface-3 px-3 py-2 text-xs text-ink-secondary">
+                        <span class="font-semibold text-ink-primary">Traductions :</span> FR, EN, ES, IT
+                      </div>
+                    </div>
+                    <div class="sm:col-span-2 rounded-xl border border-border-subtle bg-surface-2 p-4">
+                      <p class="text-xs font-semibold uppercase tracking-[0.25em] text-ink-secondary">Intégration React</p>
+                      <pre class="mt-3 overflow-x-auto rounded-xl border border-border-subtle bg-surface-3 p-4 text-sm text-ink-secondary"><code>import { NeoChessBoard } from '@magicolala/neo-chess-board';
+
+&lt;NeoChessBoard
+  theme="midnight"
+  fen="r3k2r/ppp2ppp/2n2n2/3qp3/2B1P3/2N5/PPP2PPP/R2Q1RK1 w kq - 4 12"
+  onMove={handleMove}
+/&gt;</code></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="border-t border-border-subtle bg-surface-1 py-24 backdrop-blur">
+            <div class="mx-auto flex max-w-6xl flex-col gap-16 px-6 lg:flex-row">
+              <div class="max-w-xl space-y-6">
+                <h2 class="text-3xl font-semibold text-ink-primary sm:text-4xl">Pensé pour vos produits et vos communautés</h2>
+                <p class="text-lg text-ink-secondary">
+                  Neo Chess Board embarque un moteur de règles compatible Chess.js, des extensions configurables et une palette
+                  de composants React prêts pour la production. Combinez-les pour bâtir des expériences immersives en un temps
+                  record.
+                </p>
+                <ul class="space-y-4 text-sm text-ink-secondary">
+                  <li class="flex items-start gap-3">
+                    <span class="mt-1 text-lg">⚡</span>
+                    <span>
+                      <span class="font-semibold text-ink-primary">Performances natives.</span> Canvas, workerisation et caches
+                      intelligents pour un rendu fluide même sur des positions complexes.
+                    </span>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <span class="mt-1 text-lg">🎯</span>
+                    <span>
+                      <span class="font-semibold text-ink-primary">Accessibilité intégrée.</span> Navigation clavier, annonces ARIA
+                      et préférences utilisateurs respectées dès le départ.
+                    </span>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <span class="mt-1 text-lg">🧩</span>
+                    <span>
+                      <span class="font-semibold text-ink-primary">API extensible.</span> Hooks React, events personnalisés et
+                      persistance pour coller à vos workflows.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+              <div class="flex-1 space-y-6">
+                <div class="rounded-3xl border border-border-subtle bg-surface-2 p-6 shadow-glass backdrop-blur">
+                  <h3 class="text-lg font-semibold text-ink-primary">Panneau de contrôle</h3>
+                  <p class="mt-2 text-sm text-ink-secondary">
+                    Ajustez thèmes, moteurs de règles et interactions direct depuis votre UI grâce aux hooks fournis.
+                  </p>
+                  <div class="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div class="rounded-2xl border border-border-subtle bg-surface-3 p-4 text-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Options rapides</p>
+                      <ul class="mt-3 space-y-2">
+                        <li class="flex items-center justify-between">
+                          <span>Arrows</span>
+                          <span class="rounded-full border border-human-3 bg-human-1 px-2 py-1 text-xs font-semibold text-human-4">ON</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                          <span>Highlights</span>
+                          <span class="rounded-full border border-engine-3 bg-engine-1 px-2 py-1 text-xs font-semibold text-engine-5">AUTO</span>
+                        </li>
+                        <li class="flex items-center justify-between">
+                          <span>Animations</span>
+                          <span class="rounded-full border border-glass-highlight bg-glass-highlight px-2 py-1 text-xs font-semibold text-ink-primary">300ms</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-3 p-4 text-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Plugins actifs</p>
+                      <div class="mt-3 space-y-2">
+                        <div class="flex items-center justify-between rounded-xl bg-glass px-3 py-2 text-ink-primary">
+                          <span>Promotion Dialog</span>
+                          <span class="text-xs font-semibold text-ink-secondary">React</span>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl bg-glass px-3 py-2 text-ink-primary">
+                          <span>Evaluation Bar</span>
+                          <span class="text-xs font-semibold text-ink-secondary">Custom</span>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl bg-glass px-3 py-2 text-ink-primary">
+                          <span>Keyboard Shortcuts</span>
+                          <span class="text-xs font-semibold text-ink-secondary">Core</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="rounded-3xl border border-border-subtle bg-surface-2 p-6 shadow-glass backdrop-blur">
+                  <h3 class="text-lg font-semibold text-ink-primary">Livré avec de la documentation Premium</h3>
+                  <p class="mt-2 text-sm text-ink-secondary">
+                    Guides d'intégration, exemples de configuration et recettes prêtes à copier-coller pour démarrer en moins de
+                    5 minutes.
+                  </p>
+                  <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div class="rounded-2xl border border-border-subtle bg-surface-3 p-4 text-center text-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">React</p>
+                      <p class="mt-2 text-ink-primary">Composants contrôlés</p>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-3 p-4 text-center text-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Vanilla</p>
+                      <p class="mt-2 text-ink-primary">API évènementielle</p>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-3 p-4 text-center text-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Tooling</p>
+                      <p class="mt-2 text-ink-primary">Scripts CLI intégrés</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer class="border-t border-border-subtle bg-surface-1 py-8">
+          <div class="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-sm text-ink-secondary sm:flex-row sm:items-center sm:justify-between">
+            <p class="font-medium text-ink-primary">© <span id="current-year"></span> Neo Chess Board. Toutes les pièces sont prêtes.</p>
+            <div class="flex items-center gap-4">
+              <a href="https://github.com/magicolala/Neo-Chess-Board-Ts-Library" class="transition hover:text-ink-primary">GitHub</a>
+              <a href="./CHANGELOG" class="transition hover:text-ink-primary">Changelog</a>
+              <a href="./demo" class="transition hover:text-ink-primary">Démos</a>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
+    <script>
+      const toggle = document.getElementById('theme-toggle');
+      const root = document.documentElement;
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const stored = window.localStorage.getItem('neo-theme');
+      const applyTheme = (mode) => {
+        if (mode === 'dark') {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      };
+      let current = stored || (prefersDark ? 'dark' : 'light');
+      applyTheme(current);
+      toggle?.addEventListener('click', () => {
+        current = current === 'dark' ? 'light' : 'dark';
+        window.localStorage.setItem('neo-theme', current);
+        applyTheme(current);
+        toggle.querySelector('span[aria-hidden="true"]').textContent = current === 'dark' ? '🌙' : '☀️';
+      });
+      toggle?.querySelector('span[aria-hidden="true"]').textContent = current === 'dark' ? '🌙' : '☀️';
+      const currentYearEl = document.getElementById('current-year');
+      if (currentYearEl) {
+        currentYearEl.textContent = String(new Date().getFullYear());
+      }
+    </script>
   </body>
 </html>

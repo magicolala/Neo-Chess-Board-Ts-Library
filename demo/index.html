@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -9,6 +9,16 @@
     />
     <meta name="theme-color" content="#4f46e5" />
     <title>NeoChessBoard – Demo Interactive</title>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const stored = window.localStorage.getItem('neo-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          root.classList.add('dark');
+        }
+      })();
+    </script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,8 +36,38 @@
     />
   </head>
 
-  <body class="demo-body">
-    <div id="root"></div>
+  <body class="bg-canvas-base text-ink-primary min-h-full antialiased">
+    <div class="relative min-h-screen overflow-hidden">
+      <div class="pointer-events-none absolute inset-0 bg-hero-orbit opacity-40"></div>
+      <div class="pointer-events-none absolute inset-0 bg-repeating-diagonal opacity-20 mix-blend-overlay"></div>
+      <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-10">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-secondary">Neo Chess Board</p>
+            <h1 class="text-3xl font-semibold text-ink-primary sm:text-4xl">Démonstration interactive</h1>
+            <p class="mt-2 text-sm text-ink-secondary">
+              Configurez l'échiquier en direct, testez les extensions et mesurez les performances en conditions réelles.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <a
+              href="../index.html"
+              class="inline-flex items-center gap-2 rounded-full border border-border-subtle px-4 py-2 text-ink-secondary transition hover:border-border-strong hover:text-ink-primary"
+              >Retour accueil</a
+            >
+            <a
+              href="../docs"
+              class="inline-flex items-center gap-2 rounded-full bg-ink-primary px-4 py-2 font-semibold text-ink-inverted shadow-glass transition hover:brightness-110"
+              >Documentation</a
+            >
+          </div>
+        </header>
+        <div
+          id="root"
+          class="flex-1 rounded-3xl border border-border-subtle bg-surface-1 shadow-glass backdrop-blur"
+        ></div>
+      </div>
+    </div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>
