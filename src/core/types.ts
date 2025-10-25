@@ -363,6 +363,13 @@ export interface BoardDragConfig {
 }
 
 export interface BoardAnimationConfig {
+  /**
+   * Preferred animation duration in milliseconds.
+   */
+  duration?: number;
+  /**
+   * Legacy alias for {@link duration}.
+   */
   durationMs?: number;
   easing?: AnimationEasing;
 }
@@ -446,6 +453,7 @@ export interface BoardOptions {
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
   showCoordinates?: boolean;
+  animation?: BoardAnimationConfig;
   animationMs?: number;
   animationDurationInMs?: number;
   animationEasing?: AnimationEasing;

@@ -7,15 +7,13 @@ import {
   sqToFR,
   clamp,
   lerp,
-  easeOutCubic,
-  easeInCubic,
-  easeInOutCubic,
-  easeLinear,
   START_FEN,
   generateFileLabels,
   generateRankLabels,
   resolveBoardGeometry,
   fenStringToPositionObject,
+  DEFAULT_ANIMATION_EASING as DEFAULT_ANIMATION_EASING_NAME,
+  resolveAnimationEasing,
 } from './utils';
 import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
@@ -65,6 +63,7 @@ import type {
   ClockSideState,
   ThemeOverrides,
   BoardConfiguration,
+  BoardAnimationConfig,
   AnimationEasing,
   AnimationEasingName,
   StatusHighlight,
@@ -81,7 +80,6 @@ const SPRITE_SIZE = 128;
 const DEFAULT_BOARD_RANKS = 8;
 const DEFAULT_BOARD_FILES = 8;
 const DEFAULT_GHOST_OPACITY = 0.35;
-const DEFAULT_ANIMATION_EASING: AnimationEasingName = 'ease-out';
 const DRAG_SCALE = 1.05;
 const LEGAL_MOVE_DOT_RADIUS = 0.12;
 const ARROW_HEAD_SIZE_FACTOR = 0.25;
@@ -91,14 +89,6 @@ const MIN_ARROW_THICKNESS = 6;
 const ARROW_OPACITY = 0.95;
 const PREMOVE_EXECUTION_DELAY = 150;
 const POST_MOVE_PREMOVE_DELAY = 50;
-
-const ANIMATION_EASING_FUNCTIONS: Record<AnimationEasingName, (t: number) => number> = {
-  linear: easeLinear,
-  ease: easeInOutCubic,
-  'ease-in': easeInCubic,
-  'ease-out': easeOutCubic,
-  'ease-in-out': easeInOutCubic,
-};
 
 type AnimationEasingId = AnimationEasingName | 'custom';
 
@@ -387,15 +377,20 @@ export class NeoChessBoard {
       : undefined;
     this.customSquareRenderer = options.squareRenderer;
     this.customPieceRenderers = options.pieces ? { ...options.pieces } : undefined;
-    const resolvedAnimationDuration =
-      typeof options.animationDurationInMs === 'number'
-        ? options.animationDurationInMs
-        : options.animationMs;
-    const sanitizedAnimationDuration =
-      typeof resolvedAnimationDuration === 'number' && Number.isFinite(resolvedAnimationDuration)
+    const animationOptions = options.animation;
+    const animationDurationCandidates = [
+      animationOptions?.duration,
+      animationOptions?.durationMs,
+      options.animationDurationInMs,
+      options.animationMs,
+    ];
+    const resolvedAnimationDuration = animationDurationCandidates.find(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value),
+    );
+    this.animationMs =
+      typeof resolvedAnimationDuration === 'number'
         ? Math.max(0, resolvedAnimationDuration)
-        : undefined;
-    this.animationMs = sanitizedAnimationDuration ?? DEFAULT_ANIMATION_MS;
+        : DEFAULT_ANIMATION_MS;
     this.showAnimations = options.showAnimations !== false;
 
     // Initialize feature flags
@@ -430,9 +425,13 @@ export class NeoChessBoard {
         ? clamp(ghostOpacityOption, 0, 1)
         : DEFAULT_GHOST_OPACITY;
     this.dragCancelOnEsc = options.dragCancelOnEsc !== false;
-    this.animationEasingName = DEFAULT_ANIMATION_EASING;
-    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[DEFAULT_ANIMATION_EASING];
-    this._setAnimationEasing(options.animationEasing);
+    const defaultEasing = resolveAnimationEasing(undefined, DEFAULT_ANIMATION_EASING_NAME);
+    this.animationEasingName = defaultEasing.name;
+    this.animationEasingFn = defaultEasing.fn;
+    const hasAnimationEasing =
+      animationOptions && Object.prototype.hasOwnProperty.call(animationOptions, 'easing');
+    const initialEasing = hasAnimationEasing ? animationOptions?.easing : options.animationEasing;
+    this._setAnimationEasing(initialEasing);
     this.arrowOptions = options.arrowOptions;
     this.onArrowsChange = options.onArrowsChange;
     this.controlledArrows = options.arrows;
@@ -1013,13 +1012,7 @@ export class NeoChessBoard {
     }
 
     if (configuration.animation) {
-      const { animation } = configuration;
-      if (typeof animation.durationMs === 'number' && Number.isFinite(animation.durationMs)) {
-        this.animationMs = Math.max(0, animation.durationMs);
-      }
-      if (typeof animation.easing !== 'undefined') {
-        this._setAnimationEasing(animation.easing);
-      }
+      this.setAnimation(configuration.animation);
     }
 
     if (shouldRender) {
@@ -1035,10 +1028,32 @@ export class NeoChessBoard {
   }
 
   public setAnimationDuration(duration: number | undefined): void {
-    if (typeof duration !== 'number' || !Number.isFinite(duration)) {
+    if (typeof duration === 'undefined') {
       return;
     }
-    this.animationMs = Math.max(0, duration);
+    this.setAnimation({ duration });
+  }
+
+  public setAnimation(animation: BoardAnimationConfig | undefined): void {
+    if (!animation) {
+      return;
+    }
+
+    const { duration, durationMs, easing } = animation;
+    const resolvedDuration =
+      typeof duration === 'number' && Number.isFinite(duration)
+        ? duration
+        : typeof durationMs === 'number' && Number.isFinite(durationMs)
+          ? durationMs
+          : undefined;
+
+    if (typeof resolvedDuration === 'number') {
+      this.animationMs = Math.max(0, resolvedDuration);
+    }
+
+    if (typeof easing !== 'undefined') {
+      this._setAnimationEasing(easing);
+    }
   }
 
   public setShowAnimations(show: boolean): void {
@@ -1050,19 +1065,14 @@ export class NeoChessBoard {
   }
 
   private _setAnimationEasing(easing: AnimationEasing | undefined): void {
-    if (typeof easing === 'function') {
-      this.animationEasingFn = (value: number) => clamp(easing(clamp(value, 0, 1)), 0, 1);
-      this.animationEasingName = 'custom';
-      return;
-    }
+    const fallbackName: AnimationEasingName =
+      this.animationEasingName === 'custom'
+        ? DEFAULT_ANIMATION_EASING_NAME
+        : this.animationEasingName;
+    const resolved = resolveAnimationEasing(easing, fallbackName);
 
-    const requested = typeof easing === 'string' ? easing : this.animationEasingName;
-    const normalized = (
-      requested in ANIMATION_EASING_FUNCTIONS ? requested : DEFAULT_ANIMATION_EASING
-    ) as AnimationEasingName;
-
-    this.animationEasingName = normalized;
-    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[normalized];
+    this.animationEasingName = resolved.name;
+    this.animationEasingFn = resolved.fn;
   }
 
   public setDraggingEnabled(enabled: boolean): void {

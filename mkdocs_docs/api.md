@@ -733,8 +733,10 @@ interface BoardOptions {
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
   showCoordinates?: boolean;
-  animationMs?: number;
+  animation?: { duration?: number; easing?: AnimationEasing };
   animationDurationInMs?: number;
+  animationEasing?: AnimationEasing;
+  animationMs?: number;
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
@@ -768,6 +770,8 @@ interface BoardOptions {
   onPromotionRequired?: (request: PromotionRequest) => void;
 }
 ```
+
+> **Tip:** Use the `animation` object to configure move animations. `AnimationEasing` accepts the built-in names (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`) or a custom function that receives progress from 0 to 1.
 
 > **Note:** When `showSquareNames` is enabled, the file letters and rank numbers remain on the bottom and left edges even when the board flips orientation, mirroring the behaviour of chess.com.
 

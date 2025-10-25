@@ -265,7 +265,12 @@ interface NeoChessProps {
   
   // Animations
   showAnimations?: boolean;        // Toggle animations
-  animationDurationInMs?: number;  // Animation speed (default: 200)
+  animation?: {                    // Animation configuration
+    duration?: number;             // Duration in milliseconds
+    easing?: AnimationEasing;      // Name or custom easing function
+  };
+  animationDurationInMs?: number;  // Legacy duration alias
+  animationEasing?: AnimationEasing; // Legacy easing alias
   
   // Arrows & Annotations
   allowDrawingArrows?: boolean;    // Enable right-click arrows
@@ -332,7 +337,11 @@ class NeoChessBoard {
   
   // Event System
   on<T>(event: string, handler: (data: T) => void): () => void;
-  
+
+  // Animation
+  setAnimation(animation: { duration?: number; easing?: AnimationEasing }): void;
+  setAnimationDuration(duration: number): void;
+
   // Rendering
   resize(): void;
   renderAll(): void;
@@ -341,6 +350,9 @@ class NeoChessBoard {
   destroy(): void;
 }
 ```
+
+Use the `animation` board option or `setAnimation` method to adjust duration and easing at runtime.
+`AnimationEasing` accepts one of the built-in easing names (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`) or a custom `(t: number) => number` function.
 
 ### Pawn Promotion
 
