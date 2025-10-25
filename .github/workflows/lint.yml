@@ -25,5 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
+      - name: Run ESLint (auto-fix)
+        run: npm run lint:fix
+
+      - name: Run ESLint (verify)
         run: npm run lint
