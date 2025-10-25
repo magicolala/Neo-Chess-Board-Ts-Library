@@ -16,6 +16,7 @@ const mockBoard = {
   setPieceSet: jest.fn(),
   setSoundEnabled: jest.fn(),
   setSoundUrls: jest.fn(),
+  setSoundEventUrls: jest.fn(),
   setAutoFlip: jest.fn(),
   setOrientation: jest.fn(),
   setShowArrows: jest.fn(),

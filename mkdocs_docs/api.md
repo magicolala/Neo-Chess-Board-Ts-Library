@@ -126,6 +126,14 @@ Swap the audio clips used for move sounds. When sounds are enabled the board rei
 
 - `soundUrls: BoardOptions['soundUrls']` - Optional map with `white` and/or `black` entries that override the default clip
 
+##### `setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void`
+
+Update the per-event audio configuration (move, capture, check, checkmate). Individual entries may be a single clip or a per-color map. Missing events automatically fall back to the move configuration and then to the legacy sound options.
+
+**Parameters:**
+
+- `soundEventUrls: BoardOptions['soundEventUrls']` - Optional map of event names to clip URLs or `{ white, black }` overrides
+
 ##### `setBoardStyle(style?: InlineStyle): void`
 
 Apply inline CSS to the board wrapper. Passing `undefined` clears previously assigned keys while leaving other styles untouched.
@@ -693,6 +701,9 @@ interface BoardOptions {
   autoFlip?: boolean;
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
+  soundEventUrls?: Partial<
+    Record<'move' | 'capture' | 'check' | 'checkmate', string | Partial<Record<'white' | 'black', string>>>
+  >;
   onPromotionRequired?: (request: PromotionRequest) => void;
 }
 ```

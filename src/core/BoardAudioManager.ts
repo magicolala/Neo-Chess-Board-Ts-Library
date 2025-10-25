@@ -1,26 +1,43 @@
-import type { BoardOptions } from './types';
+import type { BoardOptions, BoardSoundEventUrls } from './types';
 
 const DEFAULT_AUDIO_VOLUME = 0.3;
 
 type Color = 'white' | 'black';
+export type BoardSoundEventType = 'move' | 'capture' | 'check' | 'checkmate';
+
+type LoadedSoundMap = {
+  default?: HTMLAudioElement;
+  byColor?: Partial<Record<Color, HTMLAudioElement>>;
+};
+
+const SOUND_EVENT_FALLBACK: Record<BoardSoundEventType, BoardSoundEventType[]> = {
+  move: ['move'],
+  capture: ['capture', 'move'],
+  check: ['check', 'move'],
+  checkmate: ['checkmate', 'check', 'move'],
+};
 
 export interface BoardAudioConfig {
   enabled: boolean;
   soundUrl?: string;
   soundUrls?: BoardOptions['soundUrls'];
+  soundEventUrls?: BoardSoundEventUrls;
 }
 
 export class BoardAudioManager {
   private enabled: boolean;
   private soundUrl?: string;
   private soundUrls?: BoardOptions['soundUrls'];
-  private moveSound: HTMLAudioElement | null = null;
-  private moveSounds: Partial<Record<Color, HTMLAudioElement>> = {};
+  private soundEventUrls?: BoardSoundEventUrls;
+  private defaultSound: HTMLAudioElement | null = null;
+  private defaultColorSounds: Partial<Record<Color, HTMLAudioElement>> = {};
+  private eventSounds: Partial<Record<BoardSoundEventType, LoadedSoundMap>> = {};
 
   constructor(config: BoardAudioConfig) {
     this.enabled = config.enabled;
     this.soundUrl = config.soundUrl;
     this.soundUrls = config.soundUrls;
+    this.soundEventUrls = config.soundEventUrls;
   }
 
   public setEnabled(enabled: boolean): void {
@@ -42,66 +59,62 @@ export class BoardAudioManager {
     this.refresh();
   }
 
+  public setSoundEventUrls(soundEventUrls?: BoardSoundEventUrls): void {
+    this.soundEventUrls = soundEventUrls;
+    this.refresh();
+  }
+
   public initialize(): void {
-    this.moveSound = null;
-    this.moveSounds = {};
+    this.clear();
 
     if (!this.enabled || typeof Audio === 'undefined') {
       return;
     }
 
-    const defaultUrl = this.soundUrl;
-    const whiteUrl = this.soundUrls?.white;
-    const blackUrl = this.soundUrls?.black;
-
-    if (!defaultUrl && !whiteUrl && !blackUrl) {
-      return;
-    }
-
-    if (whiteUrl) {
-      const whiteSound = this.createAudioElement(whiteUrl);
-      if (whiteSound) {
-        this.moveSounds.white = whiteSound;
-      }
-    }
-
-    if (blackUrl) {
-      const blackSound = this.createAudioElement(blackUrl);
-      if (blackSound) {
-        this.moveSounds.black = blackSound;
-      }
-    }
-
-    if (defaultUrl) {
-      this.moveSound = this.createAudioElement(defaultUrl);
-    }
+    this.loadDefaultSounds();
+    this.loadEventSounds();
   }
 
-  public playMoveSound(nextTurn: 'w' | 'b'): void {
+  public playSound(eventType: BoardSoundEventType, activeColor: Color): void {
     if (!this.enabled) {
       return;
     }
 
-    const movedColor: Color = nextTurn === 'w' ? 'black' : 'white';
-    const sound = this.moveSounds[movedColor] ?? this.moveSound;
+    const searchOrder = SOUND_EVENT_FALLBACK[eventType] ?? ['move'];
 
-    if (!sound) {
+    for (const type of searchOrder) {
+      const collection = this.eventSounds[type];
+      const colorSound = collection?.byColor?.[activeColor];
+      if (colorSound) {
+        this.playAudioElement(colorSound);
+        return;
+      }
+      if (collection?.default) {
+        this.playAudioElement(collection.default);
+        return;
+      }
+    }
+
+    const fallbackColorSound = this.defaultColorSounds[activeColor];
+    if (fallbackColorSound) {
+      this.playAudioElement(fallbackColorSound);
       return;
     }
 
-    try {
-      sound.currentTime = 0;
-      void sound.play().catch((error) => {
-        console.debug('Sound not played:', error?.message ?? error);
-      });
-    } catch (error) {
-      console.debug('Error playing sound:', error);
+    if (this.defaultSound) {
+      this.playAudioElement(this.defaultSound);
     }
   }
 
+  public playMoveSound(nextTurn: 'w' | 'b'): void {
+    const movedColor: Color = nextTurn === 'w' ? 'black' : 'white';
+    this.playSound('move', movedColor);
+  }
+
   public clear(): void {
-    this.moveSound = null;
-    this.moveSounds = {};
+    this.defaultSound = null;
+    this.defaultColorSounds = {};
+    this.eventSounds = {};
   }
 
   private refresh(): void {
@@ -109,6 +122,98 @@ export class BoardAudioManager {
       this.initialize();
     } else {
       this.clear();
+    }
+  }
+
+  private loadDefaultSounds(): void {
+    if (this.soundUrl) {
+      const sound = this.createAudioElement(this.soundUrl);
+      if (sound) {
+        this.defaultSound = sound;
+      }
+    }
+
+    const whiteUrl = this.soundUrls?.white;
+    const blackUrl = this.soundUrls?.black;
+
+    if (whiteUrl) {
+      const sound = this.createAudioElement(whiteUrl);
+      if (sound) {
+        this.defaultColorSounds.white = sound;
+      }
+    }
+
+    if (blackUrl) {
+      const sound = this.createAudioElement(blackUrl);
+      if (sound) {
+        this.defaultColorSounds.black = sound;
+      }
+    }
+  }
+
+  private loadEventSounds(): void {
+    if (!this.soundEventUrls) {
+      return;
+    }
+
+    for (const [eventKey, url] of Object.entries(this.soundEventUrls)) {
+      if (!url) {
+        continue;
+      }
+
+      const type = eventKey as BoardSoundEventType;
+      const collection: LoadedSoundMap = {};
+      let hasSound = false;
+
+      if (typeof url === 'string') {
+        const sound = this.createAudioElement(url);
+        if (sound) {
+          collection.default = sound;
+          hasSound = true;
+        }
+      } else {
+        const colorSounds: Partial<Record<Color, HTMLAudioElement>> = {};
+        let hasColorSound = false;
+
+        const whiteUrl = url.white;
+        const blackUrl = url.black;
+
+        if (whiteUrl) {
+          const sound = this.createAudioElement(whiteUrl);
+          if (sound) {
+            colorSounds.white = sound;
+            hasColorSound = true;
+          }
+        }
+
+        if (blackUrl) {
+          const sound = this.createAudioElement(blackUrl);
+          if (sound) {
+            colorSounds.black = sound;
+            hasColorSound = true;
+          }
+        }
+
+        if (hasColorSound) {
+          collection.byColor = colorSounds;
+          hasSound = true;
+        }
+      }
+
+      if (hasSound) {
+        this.eventSounds[type] = collection;
+      }
+    }
+  }
+
+  private playAudioElement(sound: HTMLAudioElement): void {
+    try {
+      sound.currentTime = 0;
+      void sound.play().catch((error) => {
+        console.debug('Sound not played:', error?.message ?? error);
+      });
+    } catch (error) {
+      console.debug('Error playing sound:', error);
     }
   }
 

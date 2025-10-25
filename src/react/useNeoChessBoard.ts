@@ -203,6 +203,11 @@ export function useNeoChessBoard({
     [],
   );
 
+  const applySoundEventUrls = useCallback(
+    (board: Chessboard, urls: BoardOptions['soundEventUrls']) => board.setSoundEventUrls(urls),
+    [],
+  );
+
   const applyAutoFlip = useCallback((board: Chessboard, autoFlip: BoardOptions['autoFlip']) => {
     if (typeof autoFlip === 'undefined') {
       return;
@@ -453,6 +458,7 @@ export function useNeoChessBoard({
     pieceSet,
     soundEnabled,
     soundUrls,
+    soundEventUrls,
     autoFlip,
     allowAutoScroll,
     allowDragging,
@@ -490,6 +496,7 @@ export function useNeoChessBoard({
 
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
   const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
+  const hasSoundEventUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundEventUrls');
   const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
   const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
   const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
@@ -535,6 +542,7 @@ export function useNeoChessBoard({
     applySoundEnabled,
   );
   useBoardOption(boardRef, isReady, soundUrls, hasSoundUrls, applySoundUrls);
+  useBoardOption(boardRef, isReady, soundEventUrls, hasSoundEventUrls, applySoundEventUrls);
   useBoardOption(boardRef, isReady, autoFlip, typeof autoFlip !== 'undefined', applyAutoFlip);
   const hasAnimationMs = Object.prototype.hasOwnProperty.call(resolvedOptions, 'animationMs');
   const hasAnimationDuration = Object.prototype.hasOwnProperty.call(

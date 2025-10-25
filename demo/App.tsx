@@ -769,6 +769,12 @@ const AppContent: React.FC = () => {
               showAnimations={boardOptions.showAnimations}
               animationDurationInMs={boardOptions.animationDuration}
               soundUrl={moveSound}
+              soundEventUrls={{
+                move: moveSound,
+                capture: moveSound,
+                check: moveSound,
+                checkmate: moveSound,
+              }}
               orientation={boardOptions.orientation}
               highlightLegal={boardOptions.highlightLegal}
               autoFlip={boardOptions.autoFlip}

@@ -166,6 +166,13 @@ board.setSoundUrls({
   white: '/sounds/light-move.mp3',
   black: '/sounds/dark-move.mp3',
 });
+board.setSoundEventUrls({
+  capture: {
+    white: '/sounds/white-capture.mp3',
+    black: '/sounds/black-capture.mp3',
+  },
+  check: '/sounds/check.mp3',
+});
 
 // Apply inline CSS to the layered root element
 board.setBoardStyle({
