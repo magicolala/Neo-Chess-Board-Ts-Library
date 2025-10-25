@@ -302,35 +302,68 @@ class ClockExtensionInstance {
       return;
     }
 
+    const timestamp = this.now();
     const nextTurn = this.context.board.getTurn() as Color;
     const movedColor: Color = nextTurn === 'w' ? 'b' : 'w';
-    const updates: ClockStateUpdate = {
-      active: nextTurn,
-      timestamp: this.now(),
-    };
-
     const movedKey = movedColor === 'w' ? 'white' : 'black';
     const movedSide = state[movedKey];
-    if (movedSide.increment > 0 && !movedSide.isFlagged) {
-      const nextRemaining = movedSide.remaining + movedSide.increment;
-      if (movedColor === 'w') {
-        updates.white = { remaining: nextRemaining, isFlagged: false };
-      } else {
-        updates.black = { remaining: nextRemaining, isFlagged: false };
+
+    let remaining = movedSide.remaining;
+    let isFlagged = movedSide.isFlagged;
+
+    if (state.isRunning && !state.isPaused && state.active === movedColor && !movedSide.isFlagged) {
+      const lastTick = this.lastTick ?? state.lastUpdatedAt ?? timestamp;
+      let elapsed = timestamp - lastTick;
+      if (!Number.isFinite(elapsed) || elapsed < 0) {
+        elapsed = 0;
+      }
+      if (elapsed > 0) {
+        remaining = Math.max(0, remaining - elapsed);
+        if (remaining === 0) {
+          isFlagged = true;
+        }
       }
     }
 
+    if (!isFlagged && movedSide.increment > 0) {
+      remaining += movedSide.increment;
+    }
+
+    const sideUpdate: Partial<ClockState['white']> = { remaining };
+    if (isFlagged !== movedSide.isFlagged) {
+      sideUpdate.isFlagged = isFlagged;
+    }
+
+    const updates: ClockStateUpdate = {
+      active: nextTurn,
+      timestamp,
+    };
+
+    if (movedKey === 'white') {
+      updates.white = sideUpdate;
+    } else {
+      updates.black = sideUpdate;
+    }
+
     const nextSide = nextTurn === 'w' ? state.white : state.black;
-    if (nextSide.isFlagged) {
+    if (isFlagged) {
       updates.running = false;
       updates.paused = true;
       updates.active = null;
+      this.lastTick = null;
+    } else if (nextSide.isFlagged) {
+      updates.running = false;
+      updates.paused = true;
+      updates.active = null;
+      this.lastTick = null;
     } else if (!state.isPaused) {
       updates.running = true;
       updates.paused = false;
+      this.lastTick = timestamp;
     } else {
       updates.running = false;
       updates.paused = true;
+      this.lastTick = null;
     }
 
     this.context.board.updateClockState(updates);
