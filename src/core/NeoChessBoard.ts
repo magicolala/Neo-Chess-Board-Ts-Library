@@ -2360,8 +2360,12 @@ export class NeoChessBoard {
 
     if (!handled && pt) {
       if (this.drawingManager?.getPremove()) {
-        this.drawingManager.clearPremove();
-        this._premove = null;
+        const activeColor = this.drawingManager.getActivePremoveColor?.();
+        if (activeColor) {
+          this.clearPremove(activeColor === 'w' ? 'white' : 'black');
+        } else {
+          this.clearPremove();
+        }
         console.log('Premove cancelled by right-click');
         handled = true;
       } else if (this.rightClickHighlights) {
