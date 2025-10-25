@@ -5,6 +5,10 @@ import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
 import type {
   BoardEventMap,
   BoardOptions,
+  ClockCallbacks,
+  ClockState,
+  ClockStateUpdate,
+  Color,
   Piece,
   PieceRendererMap,
   PieceRendererParams,
@@ -151,6 +155,10 @@ export interface NeoChessProps
   onPieceClick?: (e: BoardEventMap['pieceClick']) => void;
   onPieceDrag?: (e: BoardEventMap['pieceDrag']) => void;
   onPieceDrop?: (e: BoardEventMap['pieceDrop']) => void;
+  onClockChange?: (state: ClockState) => void;
+  onClockStart?: (state: ClockState) => void;
+  onClockPause?: (state: ClockState) => void;
+  onClockFlag?: (e: BoardEventMap['clockFlag']) => void;
 }
 
 export interface NeoChessRef {
@@ -162,6 +170,13 @@ export interface NeoChessRef {
   addHighlight: (square: Square, type: string) => void;
   clearArrows: () => void;
   clearHighlights: () => void;
+  getClockState: () => ClockState | null;
+  setClockConfig: (clock?: BoardOptions['clock']) => void;
+  updateClockState: (update: ClockStateUpdate) => void;
+  setClockCallbacks: (callbacks?: ClockCallbacks | null) => void;
+  startClock: (color?: Color | null) => void;
+  pauseClock: () => void;
+  setClockTime: (color: Color, milliseconds: number) => void;
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
@@ -188,6 +203,10 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onPieceClick,
       onPieceDrag,
       onPieceDrop,
+      onClockChange,
+      onClockStart,
+      onClockPause,
+      onClockFlag,
       size,
       ...restOptions
     },
@@ -344,6 +363,10 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onPieceClick,
       onPieceDrag,
       onPieceDrop,
+      onClockChange,
+      onClockStart,
+      onClockPause,
+      onClockFlag,
     });
 
     useEffect(() => {

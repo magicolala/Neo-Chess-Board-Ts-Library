@@ -390,6 +390,76 @@ const board = new NeoChessBoard(element, {
 });
 ```
 
+## ⏱️ Integrated Game Clocks
+
+Neo Chess Board ships with a battle-tested game clock so you can add time controls without wiring a separate timer. Configure the
+`clock` option with global or per-side times, increments, an initial active color, and lifecycle callbacks:
+
+```ts
+import { NeoChessBoard, createClockExtension } from '@magicolala/neo-chess-board';
+
+const board = new NeoChessBoard(element, {
+  soundEnabled: false,
+  clock: {
+    initial: { w: 300_000, b: 300_000 }, // 5 minutes each
+    increment: 2_000,
+    active: 'w',
+    paused: true,
+    callbacks: {
+      onClockChange: (state) => console.log('tick', state.white.remaining, state.black.remaining),
+      onFlag: ({ color }) => console.warn(`${color} flagged`),
+    },
+  },
+  extensions: [
+    createClockExtension({
+      labels: { w: 'White', b: 'Black' },
+      formatTime: (ms) => {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
+      },
+      onReady(api) {
+        (window as typeof window & { clock?: typeof api }).clock = api;
+      },
+    }),
+  ],
+});
+```
+
+The board keeps the current `ClockState` internally. You can inspect it at any time via `board.getClockState()` and mutate it
+with `board.updateClockState()` or `board.setClockConfig()`. Every change triggers strongly typed bus events so other systems can
+react:
+
+- `clockChange` – fires on every update with the full `ClockState`
+- `clockStart` / `clockPause` – emitted when the clock transitions between running and paused states
+- `clockFlag` – dispatched once per side when a timer reaches zero
+
+### React integration
+
+The React component exposes the same functionality:
+
+```tsx
+import { NeoChessBoard, type NeoChessRef } from '@magicolala/neo-chess-board/react';
+import { useRef } from 'react';
+
+const ref = useRef<NeoChessRef>(null);
+
+<NeoChessBoard
+  ref={ref}
+  clock={{ initial: 600_000, increment: 5_000 }}
+  onClockChange={(state) => console.log('remaining', state.white.remaining)}
+/>;
+
+ref.current?.startClock();
+ref.current?.setClockTime('w', 90_000);
+```
+
+The React bindings keep the clock configuration stable across renders—passing the same values will not reset the timers, while changes to the configuration or callbacks are propagated automatically.
+
+`NeoChessRef` now includes helpers such as `getClockState`, `startClock`, `pauseClock`, `setClockTime`, `setClockConfig`, and
+`updateClockState`, while the component accepts `onClockChange`, `onClockStart`, `onClockPause`, and `onClockFlag` props for reactive
+UIs.
+
 ## 📝 PGN Support
 
 ### Recording Games

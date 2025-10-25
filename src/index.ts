@@ -10,4 +10,5 @@ export * from './core/utils';
 export * from './core/NeoChessBoard';
 export * from './extensions/ArrowHighlightExtension';
 export * from './extensions/PromotionDialogExtension';
+export * from './extensions/ClockExtension';
 export * from './core/extensions/AccessibilityExtension';
