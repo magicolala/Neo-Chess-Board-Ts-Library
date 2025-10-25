@@ -222,6 +222,23 @@ export function useNeoChessBoard({
     board.setAnimationDuration(duration);
   }, []);
 
+  const applyAnimation = useCallback((board: Chessboard, animation: BoardOptions['animation']) => {
+    if (!animation) {
+      return;
+    }
+    board.setAnimation(animation);
+  }, []);
+
+  const applyAnimationEasing = useCallback(
+    (board: Chessboard, easing: BoardOptions['animationEasing']) => {
+      if (typeof easing === 'undefined') {
+        return;
+      }
+      board.setAnimation({ easing });
+    },
+    [],
+  );
+
   const applyShowAnimations = useCallback(
     (board: Chessboard, show: BoardOptions['showAnimations']) => {
       if (typeof show === 'undefined') {
@@ -466,8 +483,10 @@ export function useNeoChessBoard({
     canDragPiece,
     dragActivationDistance,
     showAnimations,
+    animation,
     animationMs,
     animationDurationInMs,
+    animationEasing,
     orientation,
     showArrows,
     showHighlights,
@@ -497,6 +516,7 @@ export function useNeoChessBoard({
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
   const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
   const hasSoundEventUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundEventUrls');
+  const hasAnimation = typeof animation !== 'undefined';
   const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
   const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
   const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
@@ -520,6 +540,7 @@ export function useNeoChessBoard({
     resolvedOptions,
     'darkSquareNotationStyle',
   );
+  const hasAnimationEasing = typeof animationEasing !== 'undefined';
   const hasAlphaNotationStyle = Object.prototype.hasOwnProperty.call(
     resolvedOptions,
     'alphaNotationStyle',
@@ -544,18 +565,27 @@ export function useNeoChessBoard({
   useBoardOption(boardRef, isReady, soundUrls, hasSoundUrls, applySoundUrls);
   useBoardOption(boardRef, isReady, soundEventUrls, hasSoundEventUrls, applySoundEventUrls);
   useBoardOption(boardRef, isReady, autoFlip, typeof autoFlip !== 'undefined', applyAutoFlip);
+  useBoardOption(boardRef, isReady, animation, hasAnimation, applyAnimation);
   const hasAnimationMs = Object.prototype.hasOwnProperty.call(resolvedOptions, 'animationMs');
   const hasAnimationDuration = Object.prototype.hasOwnProperty.call(
     resolvedOptions,
     'animationDurationInMs',
   );
   const animationDuration = hasAnimationDuration ? animationDurationInMs : animationMs;
+  const shouldApplyLegacyAnimation = !hasAnimation && (hasAnimationDuration || hasAnimationMs);
   useBoardOption(
     boardRef,
     isReady,
     animationDuration,
-    hasAnimationDuration || hasAnimationMs,
+    shouldApplyLegacyAnimation,
     applyAnimationDuration,
+  );
+  useBoardOption(
+    boardRef,
+    isReady,
+    animationEasing,
+    !hasAnimation && hasAnimationEasing,
+    applyAnimationEasing,
   );
   useBoardOption(
     boardRef,

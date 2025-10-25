@@ -166,8 +166,10 @@ interface NeoChessProps {
   chessboardColumns?: number; // Number of files to render
   interactive?: boolean; // Enable drag & drop
   showCoordinates?: boolean; // Show file/rank labels
-  animationMs?: number; // Animation duration (legacy alias)
-  animationDurationInMs?: number; // Preferred animation duration alias
+  animation?: { duration?: number; easing?: AnimationEasing }; // Animation configuration
+  animationDurationInMs?: number; // Legacy duration alias
+  animationEasing?: AnimationEasing; // Legacy easing alias
+  animationMs?: number; // Legacy duration alias
   showAnimations?: boolean; // Toggle move animations
   highlightLegal?: boolean; // Highlight legal moves
   allowDragging?: boolean; // Enable pointer dragging
@@ -186,6 +188,8 @@ interface NeoChessProps {
   className?: string; // CSS class
 }
 ```
+
+> Configure animations with the `animation` prop or call `board.setAnimation({ duration, easing })` at runtime. Easing accepts `'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`, or a custom `(t: number) => number` function.
 
 #### Core Chess Engine
 

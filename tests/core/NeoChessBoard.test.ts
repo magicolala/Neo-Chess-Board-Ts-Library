@@ -392,11 +392,18 @@ describe('NeoChessBoard Core', () => {
       expect(typeof fen).toBe('string');
     });
 
-    it('applies animationDurationInMs when provided', () => {
+    it('applies animation.duration when provided', () => {
       board.destroy();
-      board = new NeoChessBoard(container, { animationDurationInMs: 150 });
+      board = new NeoChessBoard(container, { animation: { duration: 150 } });
 
       expect(getPrivate<number>(board, 'animationMs')).toBe(150);
+    });
+
+    it('supports legacy animationDurationInMs when provided', () => {
+      board.destroy();
+      board = new NeoChessBoard(container, { animationDurationInMs: 160 });
+
+      expect(getPrivate<number>(board, 'animationMs')).toBe(160);
     });
 
     it('configures pointer bindings based on allowDragging option', () => {
@@ -411,6 +418,26 @@ describe('NeoChessBoard Core', () => {
 
       expect(getPrivate<boolean>(eventManager, 'globalPointerEventsAttached')).toBe(true);
       expect(getPrivate<boolean>(eventManager, 'localPointerEventsAttached')).toBe(false);
+    });
+  });
+
+  describe('Animation configuration', () => {
+    it('updates duration and easing through setAnimation', () => {
+      board.setAnimation({ duration: 180, easing: 'linear' });
+
+      expect(getPrivate<number>(board, 'animationMs')).toBe(180);
+      expect(getPrivate(board, 'animationEasingName')).toBe('linear');
+    });
+
+    it('supports custom easing functions when configuring animation', () => {
+      const easing = (t: number) => t * t;
+
+      board.setAnimation({ easing });
+
+      expect(getPrivate(board, 'animationEasingName')).toBe('custom');
+      const easingFn = getPrivate<(value: number) => number>(board, 'animationEasingFn');
+      expect(easingFn(0.5)).toBeCloseTo(0.25);
+      expect(easingFn(1.5)).toBe(1);
     });
   });
 

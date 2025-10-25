@@ -7,6 +7,8 @@ import type {
   Piece,
   PieceDataType,
   PositionDataType,
+  AnimationEasing,
+  AnimationEasingName,
 } from './types';
 
 const DEFAULT_LABEL_COUNT = 26;
@@ -661,4 +663,44 @@ export function easeInOutCubic(t: number): number {
   }
   const factor = -2 * t + 2;
   return 1 - Math.pow(factor, 3) / 2;
+}
+
+const NAMED_ANIMATION_EASINGS: Record<AnimationEasingName, (t: number) => number> = {
+  linear: easeLinear,
+  ease: easeInOutCubic,
+  'ease-in': easeInCubic,
+  'ease-out': easeOutCubic,
+  'ease-in-out': easeInOutCubic,
+};
+
+export const DEFAULT_ANIMATION_EASING: AnimationEasingName = 'ease-out';
+
+export interface ResolvedAnimationEasing {
+  name: AnimationEasingName | 'custom';
+  fn: (t: number) => number;
+}
+
+export function resolveAnimationEasing(
+  easing: AnimationEasing | undefined,
+  fallbackName: AnimationEasingName = DEFAULT_ANIMATION_EASING,
+): ResolvedAnimationEasing {
+  if (typeof easing === 'function') {
+    return {
+      name: 'custom',
+      fn: (value: number) => clamp(easing(clamp(value, 0, 1)), 0, 1),
+    };
+  }
+
+  const safeFallback = NAMED_ANIMATION_EASINGS[fallbackName]
+    ? fallbackName
+    : DEFAULT_ANIMATION_EASING;
+  const requested = typeof easing === 'string' ? easing : safeFallback;
+  const normalized = (
+    requested in NAMED_ANIMATION_EASINGS ? requested : safeFallback
+  ) as AnimationEasingName;
+
+  return {
+    name: normalized,
+    fn: NAMED_ANIMATION_EASINGS[normalized],
+  };
 }

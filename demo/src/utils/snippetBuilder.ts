@@ -54,7 +54,7 @@ const buildReactProps = (
     formatReactBooleanProp('interactive', state.interactive),
     formatReactBooleanProp('autoFlip', state.autoFlip),
     formatReactBooleanProp('allowDrawingArrows', state.allowDrawingArrows),
-    formatReactNumberProp('animationDurationInMs', state.animationDurationInMs),
+    `animation={{ duration: ${state.animationDurationInMs} }}`,
     formatReactNumberProp('dragActivationDistance', state.dragActivationDistance),
   ];
 
@@ -98,7 +98,7 @@ const buildVanillaSnippet = ({ state, orientation }: PlaygroundSnippetArgs): str
     `  interactive: ${formatBoolean(state.interactive)},`,
     `  autoFlip: ${formatBoolean(state.autoFlip)},`,
     `  allowDrawingArrows: ${formatBoolean(state.allowDrawingArrows)},`,
-    `  animationDurationInMs: ${state.animationDurationInMs},`,
+    `  animation: { duration: ${state.animationDurationInMs} },`,
     `  dragActivationDistance: ${state.dragActivationDistance},`,
   ];
 
