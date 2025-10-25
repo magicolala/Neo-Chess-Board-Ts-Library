@@ -67,6 +67,8 @@ export type PromotionPiece = Required<Move>['promotion'];
 
 export type PromotionMode = 'move' | 'premove';
 
+export type MoveNotation = 'san' | 'uci' | 'coord';
+
 export interface PromotionRequest {
   from: Square;
   to: Square;
@@ -75,6 +77,80 @@ export interface PromotionRequest {
   choices: PromotionPiece[];
   resolve: (choice: PromotionPiece) => void;
   cancel: () => void;
+}
+
+export interface ClockCallbacks {
+  onClockStart?: (state: ClockState) => void;
+  onClockPause?: (state: ClockState) => void;
+  onClockChange?: (state: ClockState) => void;
+  onFlag?: (payload: { color: Color; state: ClockState }) => void;
+}
+
+export interface ClockSideConfig {
+  /**
+   * Initial time in milliseconds for the side.
+   */
+  initial?: number;
+  /**
+   * Increment in milliseconds to add after each completed move.
+   */
+  increment?: number;
+  /**
+   * Override of the remaining time. Defaults to the initial value.
+   */
+  remaining?: number;
+}
+
+export interface ClockConfig {
+  /**
+   * Global initial time in milliseconds for both players or per-side overrides.
+   */
+  initial?: number | Partial<Record<Color, number>>;
+  /**
+   * Increment in milliseconds applied after each move (global or per-side).
+   */
+  increment?: number | Partial<Record<Color, number>>;
+  /**
+   * Explicit configuration overrides for each side.
+   */
+  sides?: Partial<Record<Color, ClockSideConfig>>;
+  /**
+   * Color whose clock is currently running. Defaults to the FEN turn.
+   */
+  active?: Color | null;
+  /**
+   * Whether the clock should start in a paused state.
+   */
+  paused?: boolean;
+  /**
+   * Callback hooks triggered when the board updates the clock state.
+   */
+  callbacks?: ClockCallbacks;
+}
+
+export interface ClockSideState {
+  initial: number;
+  increment: number;
+  remaining: number;
+  isFlagged: boolean;
+}
+
+export interface ClockState {
+  white: ClockSideState;
+  black: ClockSideState;
+  active: Color | null;
+  isPaused: boolean;
+  isRunning: boolean;
+  lastUpdatedAt: number | null;
+}
+
+export interface ClockStateUpdate {
+  active?: Color | null;
+  paused?: boolean;
+  running?: boolean;
+  white?: Partial<ClockSideState>;
+  black?: Partial<ClockSideState>;
+  timestamp?: number | null;
 }
 
 // New types for advanced features
@@ -162,6 +238,10 @@ export interface BoardEventMap {
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
   promotion: PromotionRequest;
+  clockChange: ClockState;
+  clockStart: ClockState;
+  clockPause: ClockState;
+  clockFlag: { color: Color; state: ClockState };
   squareClick: SquarePointerEventPayload;
   squareMouseDown: SquarePointerEventPayload;
   squareMouseUp: SquarePointerEventPayload;
@@ -416,6 +496,7 @@ export interface BoardOptions {
   showNotation?: boolean;
   squareRenderer?: SquareRenderer;
   pieces?: PieceRendererMap;
+  clock?: ClockConfig;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

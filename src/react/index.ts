@@ -18,6 +18,10 @@ export type {
   Theme,
   RulesAdapter,
   SquareDataType,
+  ClockState,
+  ClockStateUpdate,
+  ClockCallbacks,
+  ClockConfig,
 } from '../core/types';
 
 export {
