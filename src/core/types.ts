@@ -108,10 +108,16 @@ export interface Premove {
   promotion?: 'q' | 'r' | 'b' | 'n';
 }
 
+export interface QueuedPremove extends Premove {
+  color: Color;
+}
+
 export interface DrawingState {
   arrows: Arrow[];
   highlights: SquareHighlight[];
   premove?: Premove;
+  premoves?: Partial<Record<Color, Premove[]>>;
+  activePremoveColor?: Color;
   promotionPreview?: {
     square: Square;
     color: Color;
@@ -156,11 +162,28 @@ export type BoardSoundEventColor = 'white' | 'black';
 export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
 export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
 
+export interface PremoveAppliedEvent {
+  from: Square;
+  to: Square;
+  fen: string;
+  color: 'white' | 'black';
+  promotion?: PromotionPiece;
+  remaining: number;
+}
+
+export interface PremoveInvalidatedEvent {
+  color: 'white' | 'black';
+  premove: Premove;
+  reason?: string;
+}
+
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
   promotion: PromotionRequest;
+  premoveApplied: PremoveAppliedEvent;
+  premoveInvalidated: PremoveInvalidatedEvent;
   squareClick: SquarePointerEventPayload;
   squareMouseDown: SquarePointerEventPayload;
   squareMouseUp: SquarePointerEventPayload;
@@ -375,6 +398,7 @@ export interface BoardOptions {
   dragGhostOpacity?: number;
   dragCancelOnEsc?: boolean;
   allowPremoves?: boolean;
+  premove?: BoardPremoveSettings;
   showArrows?: boolean;
   showHighlights?: boolean;
   rightClickHighlights?: boolean;
@@ -406,6 +430,37 @@ export interface BoardOptions {
   showNotation?: boolean;
   squareRenderer?: SquareRenderer;
   pieces?: PieceRendererMap;
+}
+
+export interface BoardPremoveSettings {
+  enabled?: boolean;
+  multi?: boolean;
+  color?: 'white' | 'black' | 'both';
+  colors?: Partial<Record<'white' | 'black', boolean>>;
+}
+
+export interface BoardPremoveEnableOptions {
+  multi?: boolean;
+  color?: 'white' | 'black' | 'both';
+  colors?: Partial<Record<'white' | 'black', boolean>>;
+}
+
+export interface BoardPremoveControllerConfig {
+  enabled: boolean;
+  multi: boolean;
+  colors: Record<'white' | 'black', boolean>;
+}
+
+export interface BoardPremoveController {
+  enable(options?: BoardPremoveEnableOptions): void;
+  disable(color?: 'white' | 'black' | 'both'): void;
+  clear(color?: 'white' | 'black' | 'both'): void;
+  getQueue(color?: 'white' | 'black'): Premove[];
+  getQueues(): Record<'white' | 'black', Premove[]>;
+  isEnabled(): boolean;
+  isMulti(): boolean;
+  setMulti(enabled: boolean): void;
+  config(): BoardPremoveControllerConfig;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

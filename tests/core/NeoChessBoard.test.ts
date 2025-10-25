@@ -12,6 +12,7 @@ import type {
   RulesAdapter,
   RulesMoveResponse,
   Move,
+  Premove,
 } from '../../src/core/types';
 import {
   START_FEN,
@@ -532,9 +533,12 @@ describe('NeoChessBoard Core', () => {
 
       const drawingManager = getPrivate<{
         setPremove: (from: Square, to: Square, promotion?: Move['promotion']) => void;
-        clearPremove: () => void;
+        setPremoveQueues: (
+          queues: Partial<Record<'w' | 'b', Premove[]>> | undefined,
+          active?: unknown,
+        ) => void;
       }>(board, 'drawingManager');
-      const clearPremoveSpy = jest.spyOn(drawingManager, 'clearPremove');
+      const setQueuesSpy = jest.spyOn(drawingManager, 'setPremoveQueues');
 
       drawingManager.setPremove('a2', 'a3');
       Reflect.set(board as unknown as Record<string, unknown>, '_premove', {
@@ -552,7 +556,7 @@ describe('NeoChessBoard Core', () => {
       expect(getPrivate<Square | null>(board, '_selected')).toBeNull();
       expect(getPrivate<unknown>(board, '_premove')).toBeNull();
       expect(getPrivate<unknown>(board, '_lastMove')).toBeNull();
-      expect(clearPremoveSpy).toHaveBeenCalled();
+      expect(setQueuesSpy).toHaveBeenCalled();
       expect(updateSpy).toHaveBeenCalledTimes(1);
       expect(updateSpy).toHaveBeenCalledWith({ fen: initialFen });
     });
@@ -1002,22 +1006,22 @@ describe('NeoChessBoard Core', () => {
 
     it('should clear premoves when disabling them', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
-      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+      const setQueuesSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       renderSpy.mockClear();
 
       board.setAllowPremoves(false);
 
       expect(getPrivate<boolean>(board, 'allowPremoves')).toBe(false);
-      expect(clearSpy).toHaveBeenCalled();
+      expect(setQueuesSpy).toHaveBeenCalledWith(undefined, undefined);
       expect(renderSpy).toHaveBeenCalled();
 
-      clearSpy.mockRestore();
+      setQueuesSpy.mockRestore();
       renderSpy.mockRestore();
     });
 
     it('should not set premove when premoves are disabled', () => {
-      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       board.setAllowPremoves(false);
       setSpy.mockClear();
@@ -1031,15 +1035,19 @@ describe('NeoChessBoard Core', () => {
 
     it('should forward premove operations to drawing manager when enabled', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
-      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
-      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       renderSpy.mockClear();
 
       board.setAllowPremoves(true);
-      board.setPremove({ from: 'e2', to: 'e4' });
+      board.setPremove({ from: 'e7', to: 'e5' });
 
-      expect(setSpy).toHaveBeenCalledWith({ from: 'e2', to: 'e4' });
+      expect(setSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          b: [expect.objectContaining({ from: 'e7', to: 'e5' })],
+        }),
+        expect.any(Object),
+      );
       expect(renderSpy).toHaveBeenCalled();
 
       board.drawingManager.setPremove('e7', 'e5');
@@ -1048,10 +1056,9 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(clearSpy).toHaveBeenCalled();
+      expect(setSpy).toHaveBeenLastCalledWith(undefined, undefined);
       expect(renderSpy).toHaveBeenCalled();
 
-      clearSpy.mockRestore();
       setSpy.mockRestore();
       renderSpy.mockRestore();
     });
