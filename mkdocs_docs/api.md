@@ -825,6 +825,9 @@ interface Theme {
   moveTo: string;
   lastMove: string;
   premove: string;
+  check?: string;
+  checkmate?: string;
+  stalemate?: string;
   dot: string;
   arrow: string;
   squareNameColor: string;
