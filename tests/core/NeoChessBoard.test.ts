@@ -466,6 +466,16 @@ describe('NeoChessBoard Core', () => {
         board.setFEN(testFEN, true);
       }).not.toThrow();
     });
+
+    it('provides loadFEN alias for loadPosition', () => {
+      const testFEN = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+      const loadPositionSpy = jest.spyOn(board, 'loadPosition');
+
+      board.loadFEN(testFEN, false);
+
+      expect(loadPositionSpy).toHaveBeenCalledWith(testFEN, false);
+      loadPositionSpy.mockRestore();
+    });
   });
 
   describe('Piece lookup', () => {
@@ -515,6 +525,101 @@ describe('NeoChessBoard Core', () => {
       );
 
       coordinateOnlyBoard.destroy();
+    });
+  });
+
+  describe('PGN export options', () => {
+    let originalRules: RulesAdapter;
+    let buildStubRules: (overrides?: Partial<RulesAdapter>) => RulesAdapter;
+
+    beforeEach(() => {
+      originalRules = getPrivate<RulesAdapter>(board, 'rules');
+      buildStubRules = (overrides: Partial<RulesAdapter> = {}): RulesAdapter => {
+        const boundMove = originalRules.move.bind(originalRules) as RulesAdapter['move'];
+        return {
+          setFEN: originalRules.setFEN.bind(originalRules),
+          getFEN: originalRules.getFEN.bind(originalRules),
+          turn: originalRules.turn.bind(originalRules),
+          movesFrom: originalRules.movesFrom.bind(originalRules),
+          move: boundMove,
+          undo: originalRules.undo.bind(originalRules),
+          isDraw: originalRules.isDraw.bind(originalRules),
+          isInsufficientMaterial: originalRules.isInsufficientMaterial.bind(originalRules),
+          isThreefoldRepetition: originalRules.isThreefoldRepetition.bind(originalRules),
+          ...overrides,
+        };
+      };
+    });
+
+    afterEach(() => {
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', originalRules);
+    });
+
+    it('passes includeHeaders to adapters that support toPgn', () => {
+      const samplePgn = '[Event "Test"]\n\n1. e4 e5 1-0';
+      const toPgn = jest.fn((includeHeaders?: boolean) =>
+        includeHeaders === false ? '1. e4 e5 1-0' : samplePgn,
+      );
+      const stubRules = buildStubRules({ toPgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeHeaders: false });
+
+      expect(toPgn).toHaveBeenCalledWith(false);
+      expect(output).toBe('1. e4 e5 1-0');
+    });
+
+    it('removes comments when includeComments is false', () => {
+      const samplePgn = '[Event "Test"]\n\n1. e4 {comment} e5 {reply} 1-0';
+      const toPgn = jest.fn(() => samplePgn);
+      const stubRules = buildStubRules({ toPgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeComments: false });
+
+      expect(output).toBe('[Event "Test"]\n\n1. e4 e5 1-0');
+    });
+
+    it('strips headers when falling back to getPGN', () => {
+      const samplePgn = '[Event "Test"]\n[Site "Somewhere"]\n\n1. e4 e5 1-0';
+      const stubRules = buildStubRules({ toPgn: undefined, getPGN: () => samplePgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeHeaders: false });
+
+      expect(output).toBe('1. e4 e5 1-0');
+    });
+  });
+
+  describe('Notation conversion', () => {
+    it('converts SAN moves to UCI and coordinate notation', () => {
+      board.setFEN(START_FEN, true);
+
+      expect(board.sanToUci('e4')).toBe('e2e4');
+      expect(board.sanToCoordinates('e4')).toBe('e2e4');
+    });
+
+    it('converts coordinate notation to SAN', () => {
+      board.setFEN(START_FEN, true);
+
+      expect(board.coordinatesToSan('e2e4')).toBe('e4');
+      expect(board.uciToSan('g1f3')).toBe('Nf3');
+    });
+
+    it('handles promotions when translating between notations', () => {
+      const promotionFen = '7k/4P3/8/8/8/8/8/4K3 w - - 0 1';
+      board.setFEN(promotionFen, true);
+
+      expect(board.coordinatesToSan('e7e8q')).toBe('e8=Q+');
+      expect(board.sanToUci('e8=Q+')).toBe('e7e8q');
+    });
+
+    it('returns null for invalid notation', () => {
+      expect(board.convertMoveNotation('invalid', 'san', 'uci')).toBeNull();
+      expect(board.convertMoveNotation('a1a9', 'uci', 'san')).toBeNull();
     });
   });
 
