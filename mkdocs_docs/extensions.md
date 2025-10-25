@@ -64,6 +64,33 @@ const board = new NeoChessBoard(container, {
 
 Internally the extension uses `context.registerExtensionPoint('update', ...)` to reapply drawings whenever the board position changes. Move hooks are handled through the `onMove` lifecycle and produce the animated last-move arrow.【F:src/extensions/ArrowHighlightExtension.ts†L1-L109】【F:src/core/types.ts†L74-L107】
 
+## Clock overlay extension
+
+`createClockExtension` renders a lightweight clock UI that synchronises with the board's built-in timers. It listens to `clockChange`, `clockStart`, and `clockPause` events, applies increments after every move, and exposes a small imperative API for manual control.【F:src/extensions/ClockExtension.ts†L1-L409】
+
+```ts
+import { NeoChessBoard, createClockExtension } from '@magicolala/neo-chess-board';
+
+const board = new NeoChessBoard(container, {
+  clock: {
+    initial: 300_000,
+    increment: 2_000,
+    active: 'w',
+    paused: true,
+  },
+  extensions: [
+    createClockExtension({
+      labels: { w: 'You', b: 'Opponent' },
+      onReady(api) {
+        api.startClock();
+      },
+    }),
+  ],
+});
+```
+
+The returned API mirrors the board helpers so you can pause, resume, or set the remaining time programmatically. When the extension is not available you can still drive the timers through `board.updateClockState()` as demonstrated in `examples/clock-demo.html`.
+
 ## Subscribing to board events
 
 Use `registerExtensionPoint` when you need to react to events emitted through the board's `EventBus`:

@@ -25,6 +25,7 @@ import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventMana
 import type { PgnNotation } from './PgnNotation';
 import type {
   Square,
+  Color,
   BoardOptions,
   Move,
   RulesAdapter,
@@ -53,6 +54,11 @@ import type {
   SquareRenderer,
   PieceRendererMap,
   PieceRenderer,
+  ClockState,
+  ClockStateUpdate,
+  ClockConfig,
+  ClockCallbacks,
+  ClockSideState,
 } from './types';
 
 // ============================================================================
@@ -267,6 +273,10 @@ export class NeoChessBoard {
   private _pendingPromotion: PendingPromotionState | null = null;
   private _promotionToken = 0;
 
+  // ---- Clock ----
+  private clockState: ClockState | null = null;
+  private clockCallbacks?: ClockCallbacks;
+
   // ---- Extensions ----
   private extensionStates: ExtensionState[] = [];
   private readonly initialOptions: BoardOptions;
@@ -379,8 +389,13 @@ export class NeoChessBoard {
     this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(true);
 
+    this._initializeClock(options.clock);
+
     // Initialize extensions
     this._initializeExtensions(options.extensions);
+    if (this.clockState) {
+      this._emitClockNotifications(null, this.clockState);
+    }
 
     // Build and setup
     this.domManager = new BoardDomManager({
@@ -560,6 +575,7 @@ export class NeoChessBoard {
     this.rules.setFEN(fen);
     this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(false);
+    this._syncClockFromTurn(oldTurn);
     this._lastMove = null;
 
     // Execute premove if turn changed
@@ -1110,6 +1126,41 @@ export class NeoChessBoard {
   }
 
   // ============================================================================
+  // Public API - Clock
+  // ============================================================================
+
+  public getClockState(): ClockState | null {
+    if (!this.clockState) {
+      return null;
+    }
+    return this._cloneClockState(this.clockState);
+  }
+
+  public setClockConfig(clock?: ClockConfig): void {
+    this._initializeClock(clock);
+    if (this.clockState) {
+      this._emitClockNotifications(null, this.clockState);
+    }
+  }
+
+  public setClockCallbacks(callbacks?: ClockCallbacks | null): void {
+    this.clockCallbacks = callbacks ?? undefined;
+  }
+
+  public updateClockState(update: ClockStateUpdate): ClockState | null {
+    if (!this.clockState) {
+      return null;
+    }
+
+    const previous = this._cloneClockState(this.clockState);
+    const next = this._mergeClockState(previous, update);
+    this.clockState = next;
+    this._emitClockNotifications(previous, next);
+
+    return this._cloneClockState(next);
+  }
+
+  // ============================================================================
   // Public API - Event Management
   // ============================================================================
 
@@ -1184,6 +1235,257 @@ export class NeoChessBoard {
 
   private _rasterize(): void {
     this.sprites = new FlatSprites(SPRITE_SIZE, this.theme);
+  }
+
+  // ============================================================================
+  // Private - Clock Management
+  // ============================================================================
+
+  private _initializeClock(clockConfig: ClockConfig | undefined): void {
+    if (!clockConfig) {
+      this.clockState = null;
+      this.clockCallbacks = undefined;
+      return;
+    }
+
+    this.clockCallbacks = clockConfig.callbacks ?? undefined;
+    this.clockState = this._resolveClockState(clockConfig);
+  }
+
+  private _resolveClockState(clockConfig: ClockConfig): ClockState {
+    const white = this._createClockSideState('w', clockConfig);
+    const black = this._createClockSideState('b', clockConfig);
+
+    const defaultTurn = this.state?.turn ?? 'w';
+    const requestedActive = clockConfig.active;
+    let active: Color | null;
+
+    if (requestedActive === 'w' || requestedActive === 'b') {
+      active = requestedActive;
+    } else if (requestedActive === null) {
+      active = null;
+    } else {
+      active = defaultTurn;
+    }
+
+    let isPaused = clockConfig.paused === true;
+    if (active === null) {
+      isPaused = true;
+    }
+
+    let isRunning = !isPaused && active !== null;
+
+    if ((active === 'w' && white.isFlagged) || (active === 'b' && black.isFlagged)) {
+      active = null;
+      isRunning = false;
+      isPaused = true;
+    }
+
+    return {
+      white,
+      black,
+      active,
+      isPaused,
+      isRunning,
+      lastUpdatedAt: null,
+    };
+  }
+
+  private _createClockSideState(color: Color, clockConfig: ClockConfig): ClockSideState {
+    const sideConfig = clockConfig.sides?.[color];
+    const baseInitial = this._resolveClockValue(clockConfig.initial, color) ?? 0;
+    const baseIncrement = this._resolveClockValue(clockConfig.increment, color) ?? 0;
+
+    const initial = this._sanitizeMillis(sideConfig?.initial, baseInitial);
+    const increment = this._sanitizeMillis(sideConfig?.increment, baseIncrement);
+    const remainingFallback =
+      typeof sideConfig?.initial === 'number' ? sideConfig.initial : baseInitial;
+    const remaining = this._sanitizeMillis(sideConfig?.remaining, remainingFallback ?? initial);
+    const clampedRemaining = Math.max(0, remaining);
+
+    return {
+      initial,
+      increment,
+      remaining: clampedRemaining,
+      isFlagged: clampedRemaining <= 0,
+    };
+  }
+
+  private _resolveClockValue(
+    source: number | Partial<Record<Color, number>> | undefined,
+    color: Color,
+  ): number | undefined {
+    if (typeof source === 'number' && Number.isFinite(source)) {
+      return this._sanitizeMillis(source);
+    }
+    if (source && typeof source === 'object') {
+      const candidate = source[color];
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return this._sanitizeMillis(candidate);
+      }
+    }
+    return undefined;
+  }
+
+  private _mergeClockState(current: ClockState, update: ClockStateUpdate): ClockState {
+    const white = this._mergeClockSideState(current.white, update.white);
+    const black = this._mergeClockSideState(current.black, update.black);
+
+    let active =
+      typeof update.active !== 'undefined'
+        ? this._sanitizeActiveColor(update.active)
+        : current.active;
+    let isPaused = typeof update.paused === 'boolean' ? update.paused : current.isPaused;
+    let lastUpdatedAt =
+      typeof update.timestamp !== 'undefined' ? (update.timestamp ?? null) : current.lastUpdatedAt;
+
+    let isRunning: boolean;
+    if (typeof update.running === 'boolean') {
+      isRunning = update.running;
+      if (isRunning && typeof update.paused === 'undefined') {
+        isPaused = false;
+      }
+      if (!isRunning && typeof update.paused === 'undefined') {
+        isPaused = true;
+      }
+    } else {
+      isRunning = !isPaused && active !== null;
+    }
+
+    if (active === null) {
+      isRunning = false;
+      isPaused = true;
+    }
+
+    if ((active === 'w' && white.isFlagged) || (active === 'b' && black.isFlagged)) {
+      active = null;
+      isRunning = false;
+      isPaused = true;
+    }
+
+    if (!isRunning) {
+      lastUpdatedAt = null;
+    }
+
+    return {
+      white,
+      black,
+      active,
+      isPaused,
+      isRunning,
+      lastUpdatedAt,
+    };
+  }
+
+  private _mergeClockSideState(
+    base: ClockSideState,
+    update: Partial<ClockSideState> | undefined,
+  ): ClockSideState {
+    if (!update) {
+      return { ...base };
+    }
+
+    const next: ClockSideState = {
+      initial: base.initial,
+      increment: base.increment,
+      remaining: base.remaining,
+      isFlagged: base.isFlagged,
+    };
+
+    if (typeof update.initial === 'number') {
+      next.initial = this._sanitizeMillis(update.initial);
+    }
+
+    if (typeof update.increment === 'number') {
+      next.increment = this._sanitizeMillis(update.increment);
+    }
+
+    if (typeof update.remaining === 'number') {
+      next.remaining = this._sanitizeMillis(update.remaining);
+      if (next.remaining > 0 && typeof update.isFlagged === 'undefined') {
+        next.isFlagged = false;
+      }
+    }
+
+    if (typeof update.isFlagged === 'boolean') {
+      next.isFlagged = update.isFlagged;
+    }
+
+    if (next.remaining <= 0 && typeof update.isFlagged === 'undefined') {
+      next.remaining = 0;
+      next.isFlagged = true;
+    }
+
+    return next;
+  }
+
+  private _sanitizeMillis(value: unknown, fallback = 0): number {
+    const candidate = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    if (!Number.isFinite(candidate)) {
+      return 0;
+    }
+    return Math.max(0, Math.floor(candidate));
+  }
+
+  private _sanitizeActiveColor(value: Color | null | undefined): Color | null {
+    if (value === 'w' || value === 'b') {
+      return value;
+    }
+    return null;
+  }
+
+  private _cloneClockState(state: ClockState): ClockState {
+    return {
+      white: { ...state.white },
+      black: { ...state.black },
+      active: state.active,
+      isPaused: state.isPaused,
+      isRunning: state.isRunning,
+      lastUpdatedAt: state.lastUpdatedAt,
+    };
+  }
+
+  private _emitClockNotifications(previous: ClockState | null, next: ClockState): void {
+    const changeState = this._cloneClockState(next);
+    this.bus.emit('clockChange', changeState);
+    this.clockCallbacks?.onClockChange?.(this._cloneClockState(next));
+
+    const wasRunning = previous?.isRunning ?? false;
+    if (wasRunning !== next.isRunning) {
+      const eventState = this._cloneClockState(next);
+      if (next.isRunning) {
+        this.bus.emit('clockStart', eventState);
+        this.clockCallbacks?.onClockStart?.(this._cloneClockState(next));
+      } else {
+        this.bus.emit('clockPause', eventState);
+        this.clockCallbacks?.onClockPause?.(this._cloneClockState(next));
+      }
+    }
+
+    const flaggedColors: Color[] = [];
+    if (!previous || (!previous.white.isFlagged && next.white.isFlagged)) {
+      flaggedColors.push('w');
+    }
+    if (!previous || (!previous.black.isFlagged && next.black.isFlagged)) {
+      flaggedColors.push('b');
+    }
+
+    for (const color of flaggedColors) {
+      const payloadState = this._cloneClockState(next);
+      this.bus.emit('clockFlag', { color, state: payloadState });
+      this.clockCallbacks?.onFlag?.({ color, state: this._cloneClockState(next) });
+    }
+  }
+
+  private _syncClockFromTurn(previousTurn: Color): void {
+    if (!this.clockState) {
+      return;
+    }
+    const currentTurn = this.state.turn;
+    if (previousTurn === currentTurn || this.clockState.active === currentTurn) {
+      return;
+    }
+    this.updateClockState({ active: currentTurn });
   }
 
   // ============================================================================

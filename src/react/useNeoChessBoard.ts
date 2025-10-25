@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
-import type { BoardEventMap, BoardOptions } from '../core/types';
+import type {
+  BoardEventMap,
+  BoardOptions,
+  ClockCallbacks,
+  ClockConfig,
+  ClockSideConfig,
+  ClockState,
+  ClockStateUpdate,
+  Color,
+} from '../core/types';
 import type { NeoChessRef } from './NeoChessBoard';
 
 export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
@@ -22,6 +31,10 @@ export interface UseNeoChessBoardOptions {
   onPieceClick?: (event: BoardEventMap['pieceClick']) => void;
   onPieceDrag?: (event: BoardEventMap['pieceDrag']) => void;
   onPieceDrop?: (event: BoardEventMap['pieceDrop']) => void;
+  onClockChange?: (state: ClockState) => void;
+  onClockStart?: (state: ClockState) => void;
+  onClockPause?: (state: ClockState) => void;
+  onClockFlag?: (event: BoardEventMap['clockFlag']) => void;
 }
 
 export interface UseNeoChessBoardResult {
@@ -39,6 +52,127 @@ function useLatestRef<T>(value: T) {
   }, [value]);
 
   return ref;
+}
+
+const CLOCK_COLORS: Color[] = ['w', 'b'];
+
+function normalizeClockValue(
+  value: ClockConfig['initial'],
+): number | Partial<Record<Color, number>> | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.floor(value);
+  }
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const normalized: Partial<Record<Color, number>> = {};
+  for (const color of CLOCK_COLORS) {
+    const candidate = value[color];
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      normalized[color] = Math.floor(candidate);
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeClockSideConfig(side?: ClockSideConfig): Record<string, number> | undefined {
+  if (!side || typeof side !== 'object') {
+    return undefined;
+  }
+
+  const normalized: Record<string, number> = {};
+
+  if (typeof side.initial === 'number' && Number.isFinite(side.initial)) {
+    normalized.initial = Math.floor(side.initial);
+  }
+  if (typeof side.increment === 'number' && Number.isFinite(side.increment)) {
+    normalized.increment = Math.floor(side.increment);
+  }
+  if (typeof side.remaining === 'number' && Number.isFinite(side.remaining)) {
+    normalized.remaining = Math.floor(side.remaining);
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeClockSides(
+  sides: ClockConfig['sides'],
+): Partial<Record<Color, Record<string, number>>> | undefined {
+  if (!sides || typeof sides !== 'object') {
+    return undefined;
+  }
+
+  const normalized: Partial<Record<Color, Record<string, number>>> = {};
+  for (const color of CLOCK_COLORS) {
+    const side = normalizeClockSideConfig(sides[color]);
+    if (side) {
+      normalized[color] = side;
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeClockConfig(clock?: ClockConfig): Record<string, unknown> | null {
+  if (!clock) {
+    return null;
+  }
+
+  const normalized: Record<string, unknown> = {};
+
+  const initial = normalizeClockValue(clock.initial);
+  if (typeof initial !== 'undefined') {
+    normalized.initial = initial;
+  }
+
+  const increment = normalizeClockValue(clock.increment);
+  if (typeof increment !== 'undefined') {
+    normalized.increment = increment;
+  }
+
+  const sides = normalizeClockSides(clock.sides);
+  if (sides) {
+    normalized.sides = sides;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(clock, 'active')) {
+    normalized.active = clock.active ?? null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(clock, 'paused')) {
+    normalized.paused = clock.paused === true;
+  }
+
+  return normalized;
+}
+
+function serializeClockConfig(clock?: ClockConfig): string | null {
+  const normalized = normalizeClockConfig(clock);
+  if (!normalized) {
+    return null;
+  }
+  if (Object.keys(normalized).length === 0) {
+    return '{}';
+  }
+  const ordered: Record<string, unknown> = {};
+  if (typeof normalized.initial !== 'undefined') {
+    ordered.initial = normalized.initial;
+  }
+  if (typeof normalized.increment !== 'undefined') {
+    ordered.increment = normalized.increment;
+  }
+  if (typeof normalized.sides !== 'undefined') {
+    ordered.sides = normalized.sides;
+  }
+  if (Object.prototype.hasOwnProperty.call(normalized, 'active')) {
+    ordered.active = normalized.active;
+  }
+  if (Object.prototype.hasOwnProperty.call(normalized, 'paused')) {
+    ordered.paused = normalized.paused;
+  }
+  return JSON.stringify(ordered);
 }
 
 function useBoardOption<T>(
@@ -78,6 +212,10 @@ export function useNeoChessBoard({
   onPieceClick,
   onPieceDrag,
   onPieceDrop,
+  onClockChange,
+  onClockStart,
+  onClockPause,
+  onClockFlag,
 }: UseNeoChessBoardOptions): UseNeoChessBoardResult {
   const resolvedOptions = options ?? {};
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -100,7 +238,16 @@ export function useNeoChessBoard({
     onPieceClick,
     onPieceDrag,
     onPieceDrop,
+    onClockChange,
+    onClockStart,
+    onClockPause,
+    onClockFlag,
   });
+
+  const lastClockConfigRef = useRef<string | null>(serializeClockConfig(resolvedOptions.clock));
+  const lastClockCallbacksRef = useRef<ClockCallbacks | null>(
+    resolvedOptions.clock?.callbacks ?? null,
+  );
 
   useEffect(() => {
     const element = containerRef.current;
@@ -115,6 +262,8 @@ export function useNeoChessBoard({
       position: positionRef.current ?? optionsRef.current.position,
     });
     boardRef.current = board;
+    lastClockConfigRef.current = serializeClockConfig(optionsRef.current.clock);
+    lastClockCallbacksRef.current = optionsRef.current.clock?.callbacks ?? null;
     setIsReady(true);
 
     return () => {
@@ -147,6 +296,10 @@ export function useNeoChessBoard({
       board.on('pieceClick', (event) => handlersRef.current.onPieceClick?.(event)),
       board.on('pieceDrag', (event) => handlersRef.current.onPieceDrag?.(event)),
       board.on('pieceDrop', (event) => handlersRef.current.onPieceDrop?.(event)),
+      board.on('clockChange', (event) => handlersRef.current.onClockChange?.(event)),
+      board.on('clockStart', (event) => handlersRef.current.onClockStart?.(event)),
+      board.on('clockPause', (event) => handlersRef.current.onClockPause?.(event)),
+      board.on('clockFlag', (event) => handlersRef.current.onClockFlag?.(event)),
     ];
 
     return () => {
@@ -186,6 +339,20 @@ export function useNeoChessBoard({
 
   const applyPieceSet = useCallback((board: Chessboard, nextPieceSet: BoardOptions['pieceSet']) => {
     void board.setPieceSet(nextPieceSet ?? undefined);
+  }, []);
+
+  const applyClockConfig = useCallback((board: Chessboard, clock: BoardOptions['clock']) => {
+    const serialized = serializeClockConfig(clock as ClockConfig | undefined);
+    if (serialized !== lastClockConfigRef.current) {
+      board.setClockConfig(clock);
+      lastClockConfigRef.current = serialized;
+    }
+
+    const nextCallbacks = (clock?.callbacks ?? null) as ClockCallbacks | null;
+    if (nextCallbacks !== lastClockCallbacksRef.current) {
+      board.setClockCallbacks(nextCallbacks);
+    }
+    lastClockCallbacksRef.current = nextCallbacks;
   }, []);
 
   const applySoundEnabled = useCallback(
@@ -454,6 +621,7 @@ export function useNeoChessBoard({
     soundEnabled,
     soundUrls,
     autoFlip,
+    clock,
     allowAutoScroll,
     allowDragging,
     allowDragOffBoard,
@@ -490,6 +658,7 @@ export function useNeoChessBoard({
 
   const hasPieceSet = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieceSet');
   const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
+  const hasClock = Object.prototype.hasOwnProperty.call(resolvedOptions, 'clock');
   const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
   const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
   const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
@@ -527,6 +696,7 @@ export function useNeoChessBoard({
 
   useBoardOption(boardRef, isReady, theme, typeof theme !== 'undefined', applyTheme);
   useBoardOption(boardRef, isReady, pieceSet, hasPieceSet, applyPieceSet);
+  useBoardOption(boardRef, isReady, clock, hasClock, applyClockConfig);
   useBoardOption(
     boardRef,
     isReady,
@@ -677,6 +847,13 @@ export function useNeoChessBoard({
   useBoardOption(boardRef, isReady, squareRenderer, hasSquareRenderer, applySquareRenderer);
   useBoardOption(boardRef, isReady, pieces, hasPieces, applyPieceRenderers);
 
+  const getTimestamp = useCallback(() => {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+    return Date.now();
+  }, []);
+
   const getBoard = useCallback(() => boardRef.current, [boardRef]);
 
   const addArrow = useCallback<NeoChessRef['addArrow']>(
@@ -701,6 +878,80 @@ export function useNeoChessBoard({
     return boardRef.current?.clearHighlights?.();
   }, [boardRef]);
 
+  const getClockState = useCallback(() => boardRef.current?.getClockState() ?? null, [boardRef]);
+
+  const setClockConfigRef = useCallback(
+    (clock?: BoardOptions['clock']) => {
+      boardRef.current?.setClockConfig(clock);
+    },
+    [boardRef],
+  );
+
+  const updateClockState = useCallback(
+    (update: ClockStateUpdate) => {
+      boardRef.current?.updateClockState(update);
+    },
+    [boardRef],
+  );
+
+  const setClockCallbacksRef = useCallback(
+    (callbacks?: ClockCallbacks | null) => {
+      boardRef.current?.setClockCallbacks(callbacks ?? undefined);
+    },
+    [boardRef],
+  );
+
+  const startClock = useCallback(
+    (color?: Color | null) => {
+      const board = boardRef.current;
+      if (!board) {
+        return;
+      }
+      const state = board.getClockState();
+      const targetColor: Color | null =
+        typeof color === 'undefined' || color === null
+          ? (state?.active ?? (board.getTurn() as Color))
+          : color;
+      board.updateClockState({
+        active: targetColor,
+        running: true,
+        paused: false,
+        timestamp: getTimestamp(),
+      });
+    },
+    [boardRef, getTimestamp],
+  );
+
+  const pauseClock = useCallback(() => {
+    const board = boardRef.current;
+    if (!board) {
+      return;
+    }
+    board.updateClockState({ running: false, paused: true, active: null, timestamp: null });
+  }, [boardRef]);
+
+  const setClockTime = useCallback(
+    (color: Color, milliseconds: number) => {
+      const board = boardRef.current;
+      if (!board) {
+        return;
+      }
+      const clamped = Math.max(0, Math.floor(milliseconds));
+      const update: ClockStateUpdate = { timestamp: getTimestamp() };
+      const sideUpdate: Partial<ClockState['white']> = {
+        remaining: clamped,
+        isFlagged: clamped === 0,
+      };
+      if (color === 'w') {
+        update.white = sideUpdate;
+      } else {
+        update.black = sideUpdate;
+      }
+      board.updateClockState(update);
+    },
+    [boardRef, getTimestamp],
+  );
+
   const api = useMemo<NeoChessRef>(
     () => ({
       getBoard,
@@ -708,8 +959,28 @@ export function useNeoChessBoard({
       addHighlight,
       clearArrows,
       clearHighlights,
+      getClockState,
+      setClockConfig: setClockConfigRef,
+      updateClockState,
+      setClockCallbacks: setClockCallbacksRef,
+      startClock,
+      pauseClock,
+      setClockTime,
     }),
-    [addArrow, addHighlight, clearArrows, clearHighlights, getBoard],
+    [
+      addArrow,
+      addHighlight,
+      clearArrows,
+      clearHighlights,
+      getBoard,
+      getClockState,
+      pauseClock,
+      setClockCallbacksRef,
+      setClockConfigRef,
+      setClockTime,
+      startClock,
+      updateClockState,
+    ],
   );
 
   return {
