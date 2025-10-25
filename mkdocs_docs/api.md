@@ -34,6 +34,15 @@ Load a chess position from FEN notation.
 board.loadPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 ```
 
+##### `loadFEN(fen: string, immediate?: boolean): void`
+
+Alias for `loadPosition` that mirrors popular chessboard APIs. Accepts the same parameters and clears interaction state by default.
+
+**Parameters:**
+
+- `fen: string` - Valid FEN string representing the position
+- `immediate?: boolean` - Optional flag forwarded to `loadPosition`
+
 ##### `submitMove(notation: string): boolean`
 
 Play a move using SAN (`"Nf3"`, `"exd5"`) or coordinate (`"e2e4"`) notation. The move is validated by the underlying rules
@@ -150,9 +159,15 @@ Reset the board to the initial chess position.
 
 - `immediate?: boolean` - Set to `false` to animate the reset instead of snapping instantly (defaults to `true`)
 
-##### `exportPGN(): string`
+##### `exportPGN(options?: { includeHeaders?: boolean; includeComments?: boolean }): string`
 
-Export the current game as PGN format.
+Export the current game in PGN format with optional control over headers and in-line comments.
+
+**Parameters:**
+
+- `options?: { includeHeaders?: boolean; includeComments?: boolean }`
+  - `includeHeaders` (default `true`) – Pass `false` to omit the metadata header section
+  - `includeComments` (default `true`) – Pass `false` to strip `{...}` move comments from the output
 
 **Returns:**
 
@@ -186,6 +201,29 @@ Returns `true` when the game cannot be won due to insufficient mating material.
 ##### `isThreefoldRepetition(): boolean`
 
 Returns `true` when the current position has occurred at least three times.
+
+##### `convertMoveNotation(notation: string, from: 'san' | 'uci' | 'coord', to: 'san' | 'uci' | 'coord'): string | null`
+
+Translate a move between SAN, UCI, and coordinate styles using the current board position for context.
+
+**Parameters:**
+
+- `notation: string` - Source notation string
+- `from: 'san' | 'uci' | 'coord'` - The notation of the input
+- `to: 'san' | 'uci' | 'coord'` - Desired output notation
+
+**Returns:**
+
+- `string | null` - Converted notation, or `null` when parsing fails or the move is illegal in the current position
+
+**Related helpers:**
+
+- `sanToUci(san: string): string | null`
+- `sanToCoordinates(san: string): string | null`
+- `uciToSan(uci: string): string | null`
+- `uciToCoordinates(uci: string): string | null`
+- `coordinatesToSan(coord: string): string | null`
+- `coordinatesToUci(coord: string): string | null`
 
 ## Utility Functions
 

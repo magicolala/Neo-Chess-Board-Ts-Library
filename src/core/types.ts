@@ -67,6 +67,8 @@ export type PromotionPiece = Required<Move>['promotion'];
 
 export type PromotionMode = 'move' | 'premove';
 
+export type MoveNotation = 'san' | 'uci' | 'coord';
+
 export interface PromotionRequest {
   from: Square;
   to: Square;
