@@ -952,9 +952,9 @@ export class NeoChessBoard {
     }
 
     const requested = typeof easing === 'string' ? easing : this.animationEasingName;
-    const normalized = (requested in ANIMATION_EASING_FUNCTIONS
-      ? requested
-      : DEFAULT_ANIMATION_EASING) as AnimationEasingName;
+    const normalized = (
+      requested in ANIMATION_EASING_FUNCTIONS ? requested : DEFAULT_ANIMATION_EASING
+    ) as AnimationEasingName;
 
     this.animationEasingName = normalized;
     this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[normalized];
@@ -1971,7 +1971,7 @@ export class NeoChessBoard {
       highlightSquares.push(...this.getPieceSquares('K'), ...this.getPieceSquares('k'));
     } else {
       const targetColor = this.state.turn;
-      const kingPiece: Piece = (targetColor === 'w' ? 'K' : 'k');
+      const kingPiece: Piece = targetColor === 'w' ? 'K' : 'k';
       const [kingSquare] = this.getPieceSquares(kingPiece);
       if (kingSquare) {
         highlightSquares.push(kingSquare);
