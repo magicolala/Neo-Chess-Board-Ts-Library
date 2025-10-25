@@ -14,180 +14,154 @@
         }
       }
     </script>
-    <title>Neo Chess Board - Vanilla JS Example</title>
+        <title>Neo Chess Board - Vanilla JS Example</title>
+    <link rel="stylesheet" href="./chess-ui-framework.css" />
     <style>
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
+        min-block-size: 100vh;
         display: flex;
-        justify-content: center;
         align-items: center;
+        justify-content: center;
+        padding: var(--sp-xl) var(--sp-lg);
+        background:
+          radial-gradient(circle at top left, hsl(var(--h-accent) 83% 66% / 0.2), transparent 55%),
+          radial-gradient(circle at bottom right, hsl(var(--h-success) 65% 47% / 0.18), transparent 55%),
+          var(--bg-0);
+        color: var(--text-0);
       }
 
       .container {
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        max-width: 800px;
-        width: 100%;
-      }
-
-      h1 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 30px;
+        inline-size: min(960px, 100%);
+        background: var(--bg-card);
+        border-radius: var(--r-xl);
+        padding: var(--sp-xl);
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--bd-0);
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-lg);
       }
 
       .language-row {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 12px;
       }
 
-      .language-toggle {
-        background: rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(0, 0, 0, 0.12);
-        border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .language-toggle:hover {
-        background: rgba(0, 0, 0, 0.16);
+      h1 {
+        text-align: center;
+        margin: 0;
       }
 
       .game-area {
         display: flex;
-        gap: 30px;
-        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: var(--sp-xl);
+        justify-content: center;
       }
 
       #chess-board {
-        border: 2px solid #333;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--bd-0);
+        background: var(--bg-1);
       }
 
       .controls {
+        flex: 1 1 280px;
         display: flex;
         flex-direction: column;
-        gap: 15px;
-        min-width: 200px;
+        gap: var(--sp-md);
       }
 
       .control-group {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: var(--sp-xs);
+        background: var(--bg-1);
+        border-radius: var(--r-lg);
+        border: 1px solid var(--bd-1);
+        padding: var(--sp-md);
+        box-shadow: var(--shadow-sm);
       }
 
-      label {
+      .control-group label {
         font-weight: 600;
-        color: #555;
-      }
-
-      select,
-      button {
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-
-      button {
-        background: #4ecdc4;
-        color: white;
-        border: none;
-        font-weight: 600;
-      }
-
-      button:hover {
-        background: #45b7aa;
-        transform: translateY(-1px);
-      }
-
-      button:active {
-        transform: translateY(0);
-      }
-
-      select:focus,
-      button:focus {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.3);
+        color: var(--text-1);
       }
 
       .game-info {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
+        background: var(--bg-1);
+        border-radius: var(--r-xl);
+        border: 1px solid var(--bd-0);
+        padding: var(--sp-lg);
+        box-shadow: var(--shadow-lg);
       }
 
       .status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-xs);
+        padding: var(--sp-xs) var(--sp-sm);
+        border-radius: var(--r-full);
         font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 4px;
-        display: inline-block;
-        margin-left: 10px;
       }
 
       .status.playing {
-        background: #e6ffe6;
-        color: #2d5016;
+        background: hsl(var(--h-success) 65% 47% / 0.18);
+        color: var(--accent-success);
       }
       .status.check {
-        background: #ffe6e6;
-        color: #8b0000;
+        background: hsl(var(--h-warning) 95% 52% / 0.18);
+        color: var(--accent-warning);
       }
       .status.checkmate {
-        background: #ffcccc;
-        color: #8b0000;
+        background: hsl(var(--h-error) 86% 58% / 0.18);
+        color: var(--accent-error);
       }
 
-      #moves-list {
-        max-height: 150px;
+      .moves-log {
+        max-block-size: 180px;
         overflow-y: auto;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 10px;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        line-height: 1.4;
+        background: var(--bg-input);
+        border: 1px solid var(--bd-1);
+        border-radius: var(--r-lg);
+        padding: var(--sp-sm);
+        font-family: var(--font-mono);
+        font-size: var(--fs-400);
+        line-height: 1.5;
       }
 
       .move-entry {
-        margin-bottom: 2px;
-        padding: 2px 4px;
-        border-radius: 3px;
+        padding: var(--sp-2xs) var(--sp-xs);
+        border-radius: var(--r-sm);
+        transition: background var(--t-fast);
       }
 
       .move-entry:hover {
-        background: #f0f0f0;
+        background: var(--bg-hover);
+      }
+
+      .info-block {
+        margin-block-start: var(--sp-sm);
       }
 
       @media (max-width: 768px) {
+        body {
+          padding: var(--sp-lg) var(--sp-md);
+        }
+
+        .container {
+          padding: var(--sp-lg);
+        }
+
         .game-area {
           flex-direction: column;
         }
 
-        .container {
-          padding: 20px;
-        }
-
         #chess-board {
-          max-width: 100%;
-          height: auto;
+          inline-size: min(100%, 420px);
+          block-size: auto;
         }
       }
     </style>
@@ -195,7 +169,11 @@
   <body>
     <div class="container">
       <div class="language-row">
-        <button id="language-toggle" class="language-toggle" data-i18n="language.toggle.fr"></button>
+        <button
+          id="language-toggle"
+          class="chess-btn chess-btn--secondary chess-btn--sm"
+          data-i18n="language.toggle.fr"
+        ></button>
       </div>
       <h1 data-i18n="heading.title"></h1>
 
@@ -207,7 +185,7 @@
         <div class="controls">
           <div class="control-group">
             <label for="theme-select" data-i18n="label.theme"></label>
-            <select id="theme-select">
+            <select id="theme-select" class="chess-input">
               <option value="light" data-i18n="theme.light"></option>
               <option value="dark" data-i18n="theme.dark"></option>
               <option value="wood" data-i18n="theme.wood"></option>
@@ -219,27 +197,27 @@
 
           <div class="control-group">
             <label for="orientation-select" data-i18n="label.orientation"></label>
-            <select id="orientation-select">
+            <select id="orientation-select" class="chess-input">
               <option value="white" data-i18n="orientation.white"></option>
               <option value="black" data-i18n="orientation.black"></option>
             </select>
           </div>
 
           <div class="control-group">
-            <button id="new-game-btn" data-i18n="button.newGame"></button>
-            <button id="flip-board-btn" data-i18n="button.flip"></button>
-            <button id="export-pgn-btn" data-i18n="button.export"></button>
+            <button id="new-game-btn" class="chess-btn chess-btn--primary" data-i18n="button.newGame"></button>
+            <button id="flip-board-btn" class="chess-btn chess-btn--secondary" data-i18n="button.flip"></button>
+            <button id="export-pgn-btn" class="chess-btn chess-btn--secondary" data-i18n="button.export"></button>
           </div>
 
           <div class="control-group">
             <label for="fen-input" data-i18n="label.fen"></label>
             <textarea
               id="fen-input"
+              class="chess-input chess-textarea"
               data-i18n-attr="placeholder:placeholder.fen"
               rows="3"
-              style="font-family: monospace; font-size: 11px"
             ></textarea>
-            <button id="load-position-btn" data-i18n="button.loadPosition"></button>
+            <button id="load-position-btn" class="chess-btn chess-btn--secondary" data-i18n="button.loadPosition"></button>
           </div>
         </div>
       </div>
@@ -250,14 +228,14 @@
           <span id="game-status" class="status playing" data-i18n="status.playing"></span>
         </div>
 
-        <div style="margin-top: 10px">
+        <div class="info-block">
           <strong data-i18n="status.current"></strong>
           <span id="current-player" data-i18n="status.turn.white"></span>
         </div>
 
-        <div style="margin-top: 15px">
+        <div class="info-block">
           <strong data-i18n="history.label"></strong>
-          <div id="moves-list">
+          <div id="moves-list" class="moves-log">
             <em data-i18n="history.empty"></em>
           </div>
         </div>
