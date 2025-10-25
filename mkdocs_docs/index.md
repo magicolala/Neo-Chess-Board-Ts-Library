@@ -112,6 +112,8 @@ Neo Chess Board comes with beautiful built-in themes:
 <NeoChessBoard theme="classic" />
 ```
 
+Themes also control board-state overlays. Customize the `check`, `checkmate`, and `stalemate` colors to style how the board reacts when the game reaches those statuses.
+
 Use `registerTheme('sunset', customTheme)` to add reusable presets. Custom theme objects can also be passed directly to constructors, `setTheme`, or the React component.
 
 ### 🌐 Theme Creator Web App

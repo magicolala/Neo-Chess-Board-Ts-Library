@@ -60,6 +60,7 @@ import type {
   BoardConfiguration,
   AnimationEasing,
   AnimationEasingName,
+  StatusHighlight,
 } from './types';
 
 // ============================================================================
@@ -1957,42 +1958,73 @@ export class NeoChessBoard {
   }
 
   private _drawCheckStatusHighlight(): void {
+    const highlight = this._computeStatusHighlight();
+
+    if (this.drawingManager) {
+      if (highlight) {
+        this.drawingManager.setStatusHighlight(highlight);
+      } else {
+        this.drawingManager.clearStatusHighlight();
+      }
+    }
+
+    if (!highlight || this.drawingManager) {
+      return;
+    }
+
+    this.ctxO.save();
+    this.ctxO.fillStyle = highlight.color;
+    this.ctxO.globalAlpha = highlight.opacity ?? 1;
+
+    if (highlight.mode === 'board') {
+      this._fillCanvas(
+        this.ctxO,
+        'overlay',
+        0,
+        0,
+        this.square * this.filesCount,
+        this.square * this.ranksCount,
+      );
+    } else {
+      for (const sqr of highlight.squares ?? []) {
+        const { x, y } = this._sqToXY(sqr);
+        this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
+      }
+    }
+
+    this.ctxO.restore();
+  }
+
+  private _computeStatusHighlight(): StatusHighlight | null {
     const inCheck = this.rules.inCheck?.() ?? false;
     const checkmate = this.rules.isCheckmate?.() ?? false;
     const stalemate = this.rules.isStalemate?.() ?? false;
 
     if (!inCheck && !checkmate && !stalemate) {
-      return;
+      return null;
     }
-
-    const highlightSquares: Square[] = [];
 
     if (stalemate) {
-      highlightSquares.push(...this.getPieceSquares('K'), ...this.getPieceSquares('k'));
-    } else {
-      const targetColor = this.state.turn;
-      const kingPiece: Piece = targetColor === 'w' ? 'K' : 'k';
-      const [kingSquare] = this.getPieceSquares(kingPiece);
-      if (kingSquare) {
-        highlightSquares.push(kingSquare);
-      }
+      return {
+        mode: 'board',
+        color: this._resolveStatusColor('stalemate'),
+      };
     }
 
-    if (highlightSquares.length === 0) {
-      return;
+    const defendingColor = this.state.turn;
+    const kingPiece: Piece = defendingColor === 'w' ? 'K' : 'k';
+    const [kingSquare] = this.getPieceSquares(kingPiece);
+
+    if (!kingSquare) {
+      return null;
     }
 
-    const fill = checkmate
-      ? this.theme.checkmate
-      : stalemate
-        ? this.theme.stalemate
-        : this.theme.check;
-
-    this.ctxO.fillStyle = fill;
-    for (const sqr of highlightSquares) {
-      const { x, y } = this._sqToXY(sqr);
-      this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
-    }
+    const status: 'check' | 'checkmate' = checkmate ? 'checkmate' : 'check';
+    return {
+      mode: 'squares',
+      squares: [kingSquare],
+      color: this._resolveStatusColor(status),
+    };
   }
 
   private _drawHoverHighlight(): void {
@@ -2007,9 +2039,21 @@ export class NeoChessBoard {
     return this.theme.moveHighlight || this.theme.moveTo;
   }
 
+  private _resolveStatusColor(status: 'check' | 'checkmate' | 'stalemate'): string {
+    const color = this.theme[status];
+    if (typeof color === 'string' && color.length > 0) {
+      return color;
+    }
+    if (status === 'stalemate') {
+      return this.theme.lastMove;
+    }
+    return this._getMoveHighlightColor();
+  }
+
   private _drawDrawingManagerElements(): void {
     if (!this.drawingManager) return;
 
+    this.drawingManager.renderStatusHighlight();
     if (this.showArrows) {
       this.drawingManager.renderArrows();
     }

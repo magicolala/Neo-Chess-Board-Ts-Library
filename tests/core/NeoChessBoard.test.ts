@@ -1,6 +1,7 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import type { BoardAudioManager } from '../../src/core/BoardAudioManager';
 import type { BoardEventManager } from '../../src/core/BoardEventManager';
+import type { DrawingManager } from '../../src/core/DrawingManager';
 import { BoardDomManager } from '../../src/core/BoardDomManager';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
@@ -12,6 +13,8 @@ import type {
   RulesAdapter,
   RulesMoveResponse,
   Move,
+  StatusHighlight,
+  Theme,
 } from '../../src/core/types';
 import {
   START_FEN,
@@ -939,6 +942,99 @@ describe('NeoChessBoard Core', () => {
         expect(playSpy).toHaveBeenCalledWith('checkmate', 'white');
 
         playSpy.mockRestore();
+      });
+    });
+
+    describe('status highlights', () => {
+      const resolveStatusColor = (status: 'check' | 'checkmate' | 'stalemate'): string => {
+        const theme = getPrivate<Theme>(board, 'theme');
+        switch (status) {
+          case 'stalemate':
+            return theme.stalemate ?? theme.lastMove;
+          case 'checkmate':
+            return theme.checkmate ?? theme.moveHighlight ?? theme.moveTo;
+          default:
+            return theme.check ?? theme.moveHighlight ?? theme.moveTo;
+        }
+      };
+
+      it('highlights the defending king when the side to move is in check', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+
+        board.setFEN('4k3/8/8/8/8/8/4Q3/4K3 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('squares');
+        expect(highlight.squares).toEqual(['e8']);
+        expect(highlight.color).toBe(resolveStatusColor('check'));
+
+        setStatusHighlightSpy.mockRestore();
+      });
+
+      it('uses the checkmate color when the current player is checkmated', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+
+        const rules = getPrivate<RulesAdapter>(board, 'rules') as RulesAdapter & {
+          inCheck?: () => boolean;
+          isCheckmate?: () => boolean;
+        };
+        const originalInCheck = rules.inCheck;
+        const originalIsCheckmate = rules.isCheckmate;
+        rules.inCheck = () => true;
+        rules.isCheckmate = () => true;
+
+        board.setFEN('6k1/8/6K1/8/8/8/8/8 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('squares');
+        expect(highlight.squares).toEqual(['g8']);
+        expect(highlight.color).toBe(resolveStatusColor('checkmate'));
+
+        if (originalInCheck) {
+          rules.inCheck = originalInCheck;
+        }
+        if (originalIsCheckmate) {
+          rules.isCheckmate = originalIsCheckmate;
+        }
+
+        setStatusHighlightSpy.mockRestore();
+      });
+
+      it('fills the board during stalemate and clears the highlight afterwards', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+        const clearStatusHighlightSpy = jest.spyOn(drawingManager, 'clearStatusHighlight');
+
+        board.setFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('board');
+        expect(highlight.color).toBe(resolveStatusColor('stalemate'));
+
+        clearStatusHighlightSpy.mockClear();
+        setStatusHighlightSpy.mockClear();
+
+        board.setFEN(START_FEN, true);
+
+        expect(clearStatusHighlightSpy).toHaveBeenCalled();
+        expect(setStatusHighlightSpy).not.toHaveBeenCalled();
+
+        setStatusHighlightSpy.mockRestore();
+        clearStatusHighlightSpy.mockRestore();
       });
     });
 

@@ -117,6 +117,7 @@ export interface DrawingState {
     color: Color;
     piece?: PromotionPiece;
   };
+  statusHighlight?: StatusHighlight | null;
 }
 
 export interface SquarePointerEventPayload {
@@ -251,15 +252,24 @@ export interface Theme {
   moveHighlight: string;
   lastMove: string;
   premove: string;
-  check: string;
-  checkmate: string;
-  stalemate: string;
+  check?: string;
+  checkmate?: string;
+  stalemate?: string;
   dot: string;
   arrow: string;
   squareNameColor: string;
 }
 
 export type ThemeOverrides = Partial<Theme>;
+
+export type StatusHighlightMode = 'squares' | 'board';
+
+export interface StatusHighlight {
+  mode: StatusHighlightMode;
+  color: string;
+  squares?: Square[];
+  opacity?: number;
+}
 
 export type AnimationEasingName = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
 export type AnimationEasing = AnimationEasingName | ((t: number) => number);
