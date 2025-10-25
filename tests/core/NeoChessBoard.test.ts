@@ -857,14 +857,14 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         whiteSound.currentTime = 2;
-        audioManager.playMoveSound('b');
+        audioManager.playSound('move', 'white');
 
         expect(whiteSound.play).toHaveBeenCalledTimes(1);
         expect(whiteSound.currentTime).toBe(0);
         expect(blackSound.play).not.toHaveBeenCalled();
 
         blackSound.currentTime = 3;
-        audioManager.playMoveSound('w');
+        audioManager.playSound('move', 'black');
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
@@ -889,18 +889,56 @@ describe('NeoChessBoard Core', () => {
         expect(blackSound).toBeDefined();
 
         defaultSound.currentTime = 5;
-        audioManager.playMoveSound('b');
+        audioManager.playSound('move', 'white');
 
         expect(defaultSound.play).toHaveBeenCalledTimes(1);
         expect(defaultSound.currentTime).toBe(0);
 
         blackSound.currentTime = 4;
-        audioManager.playMoveSound('w');
+        audioManager.playSound('move', 'black');
 
         expect(blackSound.play).toHaveBeenCalledTimes(1);
         expect(blackSound.currentTime).toBe(0);
 
         soundBoard.destroy();
+      });
+    });
+
+    describe('sound event selection', () => {
+      it('selects capture sounds when a piece is taken', () => {
+        const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+        const playSpy = jest.spyOn(audioManager, 'playSound');
+
+        board.attemptMove('e2', 'e4');
+        playSpy.mockClear();
+        board.attemptMove('d7', 'd5');
+        playSpy.mockClear();
+
+        const result = board.attemptMove('e4', 'd5');
+
+        expect(result).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('capture', 'white');
+
+        playSpy.mockRestore();
+      });
+
+      it('detects check and checkmate events', () => {
+        const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+        const playSpy = jest.spyOn(audioManager, 'playSound');
+
+        board.setFEN('4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1');
+        playSpy.mockClear();
+        const checkResult = board.attemptMove('e2', 'e7');
+        expect(checkResult).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('check', 'white');
+
+        playSpy.mockClear();
+        board.setFEN('6k1/5Q2/6K1/8/8/8/8/8 w - - 0 1');
+        const mateResult = board.attemptMove('f7', 'g7');
+        expect(mateResult).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('checkmate', 'white');
+
+        playSpy.mockRestore();
       });
     });
 
@@ -1061,7 +1099,7 @@ describe('NeoChessBoard Core', () => {
 
     it('invokes the audio manager when moves succeed', () => {
       const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
-      const playSpy = jest.spyOn(audioManager, 'playMoveSound');
+      const playSpy = jest.spyOn(audioManager, 'playSound');
 
       const originalAudio = globalThis.Audio;
       const audioFactory = jest.fn(() => ({
@@ -1077,7 +1115,7 @@ describe('NeoChessBoard Core', () => {
       try {
         const result = board.attemptMove('e2', 'e4');
         expect(result).toBe(true);
-        expect(playSpy).toHaveBeenCalledWith('b');
+        expect(playSpy).toHaveBeenCalledWith('move', 'white');
       } finally {
         playSpy.mockRestore();
         if (originalAudio) {

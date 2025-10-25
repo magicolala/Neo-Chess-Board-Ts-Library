@@ -20,7 +20,7 @@ import { FlatSprites } from './FlatSprites';
 import { ChessJsRules } from './ChessJsRules';
 import type { DrawingManager } from './DrawingManager';
 import { BoardDomManager } from './BoardDomManager';
-import { BoardAudioManager } from './BoardAudioManager';
+import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager';
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import type { PgnNotation } from './PgnNotation';
 import type {
@@ -366,6 +366,7 @@ export class NeoChessBoard {
       enabled: this.soundEnabled,
       soundUrl: options.soundUrl,
       soundUrls: options.soundUrls,
+      soundEventUrls: options.soundEventUrls,
     });
     this.audioManager.initialize();
     this.promotionHandler = options.onPromotionRequired;
@@ -610,7 +611,7 @@ export class NeoChessBoard {
       if (sanResult?.ok) {
         const move = sanResult.move;
         if (move?.from && move?.to) {
-          this._processMoveSuccess(move.from as Square, move.to as Square);
+          this._processMoveSuccess(move.from as Square, move.to as Square, sanResult);
         } else {
           const fen = sanResult.fen ?? this.rules.getFEN();
           this.setFEN(fen, true);
@@ -767,6 +768,10 @@ export class NeoChessBoard {
 
   public setSoundUrls(soundUrls: BoardOptions['soundUrls']): void {
     this.audioManager.setSoundUrls(soundUrls);
+  }
+
+  public setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void {
+    this.audioManager.setSoundEventUrls(soundEventUrls);
   }
 
   public setAutoFlip(autoFlip: boolean): void {
@@ -2420,7 +2425,7 @@ export class NeoChessBoard {
     const legal = this.rules.move({ from, to, promotion });
 
     if (legal?.ok) {
-      this._processMoveSuccess(from, to);
+      this._processMoveSuccess(from, to, legal);
       return true;
     }
 
@@ -2428,10 +2433,11 @@ export class NeoChessBoard {
     return false;
   }
 
-  private _processMoveSuccess(from: Square, to: Square): void {
+  private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {
     const fen = this.rules.getFEN();
     const oldState = this.state;
     const newState = this._parseFEN(fen);
+    const movingColor = oldState.turn === 'w' ? 'white' : 'black';
 
     this.state = newState;
     this._syncOrientationFromTurn(false);
@@ -2442,13 +2448,42 @@ export class NeoChessBoard {
       this.drawingManager.clearArrows();
     }
 
-    this.audioManager.playMoveSound(this.state.turn);
+    const eventType = this._determineSoundEventType(legal);
+    this.audioManager.playSound(eventType, movingColor);
     this._animateTo(newState, oldState);
     this._emitMoveEvent(from, to, fen);
 
     setTimeout(() => {
       this._executePremoveIfValid();
     }, this.animationMs + POST_MOVE_PREMOVE_DELAY);
+  }
+
+  private _determineSoundEventType(legal: RulesMoveResponse): BoardSoundEventType {
+    if (this.rules.isCheckmate?.()) {
+      return 'checkmate';
+    }
+
+    const moveDetail = legal.move as { captured?: unknown; san?: string } | undefined;
+    const capturedPiece = moveDetail?.captured;
+    const san = moveDetail?.san;
+
+    if (typeof san === 'string' && san.includes('#')) {
+      return 'checkmate';
+    }
+
+    if (this.rules.inCheck?.()) {
+      return 'check';
+    }
+
+    if (typeof san === 'string' && san.includes('+')) {
+      return 'check';
+    }
+
+    if (capturedPiece) {
+      return 'capture';
+    }
+
+    return 'move';
   }
 
   private _processMoveFailure(

@@ -49,6 +49,7 @@
 - 🧩 **Custom piece sets** – Bring your own SVG, PNG, or Canvas images
 - ✨ **Fluid animations** with configurable duration
 - 🎯 **Legal move highlighting** with dots and indicators
+- 🔊 **Event-aware audio** with per-color overrides for moves, captures, checks, and mates
 - 📈 **Evaluation bar** that reads PGN `[%eval]` annotations
 - 🔄 **Auto-flip board** to follow the active player
 - 🏹 **Visual annotations** – Draw arrows and highlight squares
@@ -131,6 +132,28 @@ board.on('move', ({ from, to, fen }) => {
   console.log(`Move: ${from} → ${to}`);
 });
 ```
+
+### 🔊 Event-aware sound cues
+
+Customize the audio feedback per event or per side. Provide a single clip for all moves or tailor captures, checks, and mates for each color:
+
+```ts
+const board = new NeoChessBoard(container, {
+  soundEnabled: true,
+  soundUrl: '/sounds/default-move.mp3',
+  soundEventUrls: {
+    move: '/sounds/quiet-move.mp3',
+    capture: {
+      white: '/sounds/white-capture.mp3',
+      black: '/sounds/black-capture.mp3',
+    },
+    check: '/sounds/check.mp3',
+    checkmate: '/sounds/mate.mp3',
+  },
+});
+```
+
+When a specific clip is missing the board gracefully falls back to the move configuration (`soundEventUrls.move`), the color-specific defaults (`soundUrls`), and finally the legacy `soundUrl`.
 
 ## 🎨 Themes
 

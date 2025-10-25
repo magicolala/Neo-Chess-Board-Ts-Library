@@ -151,6 +151,11 @@ export interface PieceDropEventPayload {
   event: PointerEvent;
 }
 
+export type BoardSoundEventType = 'move' | 'capture' | 'check' | 'checkmate';
+export type BoardSoundEventColor = 'white' | 'black';
+export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
+export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
+
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
@@ -216,6 +221,8 @@ export interface RulesAdapter {
   }): RulesMoveResponse | null | undefined;
   move(notation: string): RulesMoveResponse | null | undefined;
   undo(): boolean;
+  isCheckmate?(): boolean;
+  inCheck?(): boolean;
   isDraw(): boolean;
   isInsufficientMaterial(): boolean;
   isThreefoldRepetition(): boolean;
@@ -345,6 +352,7 @@ export interface BoardOptions {
   autoFlip?: boolean;
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
+  soundEventUrls?: BoardSoundEventUrls;
   extensions?: ExtensionConfig[];
   onPromotionRequired?: (request: PromotionRequest) => void | Promise<void>;
   allowDrawingArrows?: boolean;
