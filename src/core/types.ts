@@ -225,6 +225,11 @@ export interface PieceDropEventPayload {
   event: PointerEvent;
 }
 
+export type BoardSoundEventType = 'move' | 'capture' | 'check' | 'checkmate';
+export type BoardSoundEventColor = 'white' | 'black';
+export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
+export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
+
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
@@ -294,6 +299,9 @@ export interface RulesAdapter {
   }): RulesMoveResponse | null | undefined;
   move(notation: string): RulesMoveResponse | null | undefined;
   undo(): boolean;
+  isCheckmate?(): boolean;
+  inCheck?(): boolean;
+  isStalemate?(): boolean;
   isDraw(): boolean;
   isInsufficientMaterial(): boolean;
   isThreefoldRepetition(): boolean;
@@ -318,11 +326,38 @@ export interface Theme {
   pieceHighlight?: string;
   moveFrom: string;
   moveTo: string;
+  moveHighlight: string;
   lastMove: string;
   premove: string;
+  check: string;
+  checkmate: string;
+  stalemate: string;
   dot: string;
   arrow: string;
   squareNameColor: string;
+}
+
+export type ThemeOverrides = Partial<Theme>;
+
+export type AnimationEasingName = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+export type AnimationEasing = AnimationEasingName | ((t: number) => number);
+
+export interface BoardDragConfig {
+  threshold?: number;
+  snap?: boolean;
+  ghost?: boolean;
+  ghostOpacity?: number;
+  cancelOnEsc?: boolean;
+}
+
+export interface BoardAnimationConfig {
+  durationMs?: number;
+  easing?: AnimationEasing;
+}
+
+export interface BoardConfiguration {
+  drag?: BoardDragConfig;
+  animation?: BoardAnimationConfig;
 }
 
 export type PieceSpriteImage =
@@ -401,6 +436,7 @@ export interface BoardOptions {
   showCoordinates?: boolean;
   animationMs?: number;
   animationDurationInMs?: number;
+  animationEasing?: AnimationEasing;
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
@@ -412,6 +448,10 @@ export interface BoardOptions {
   allowDragOffBoard?: boolean;
   canDragPiece?: (params: PieceCanDragHandlerArgs) => boolean;
   dragActivationDistance?: number;
+  dragSnapToSquare?: boolean;
+  dragGhostPiece?: boolean;
+  dragGhostOpacity?: number;
+  dragCancelOnEsc?: boolean;
   allowPremoves?: boolean;
   showArrows?: boolean;
   showHighlights?: boolean;
@@ -423,6 +463,7 @@ export interface BoardOptions {
   autoFlip?: boolean;
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
+  soundEventUrls?: BoardSoundEventUrls;
   extensions?: ExtensionConfig[];
   onPromotionRequired?: (request: PromotionRequest) => void | Promise<void>;
   allowDrawingArrows?: boolean;

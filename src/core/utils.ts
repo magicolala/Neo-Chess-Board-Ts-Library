@@ -643,6 +643,22 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+export function easeLinear(t: number): number {
+  return t;
+}
+
+export function easeInCubic(t: number): number {
+  return t * t * t;
+}
+
 export function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
+}
+
+export function easeInOutCubic(t: number): number {
+  if (t < 0.5) {
+    return 4 * t * t * t;
+  }
+  const factor = -2 * t + 2;
+  return 1 - Math.pow(factor, 3) / 2;
 }

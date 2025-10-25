@@ -1,7 +1,10 @@
 import { THEMES, registerTheme, resolveTheme } from '../../src/core/themes';
-import type { Theme } from '../../src/core/types';
+import type { Theme, ThemeOverrides } from '../../src/core/types';
 import type { ThemeName } from '../../src/core/themes';
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+
+const getPrivate = <T>(instance: unknown, key: string): T =>
+  Reflect.get(instance as Record<string, unknown>, key) as T;
 
 describe('Themes', () => {
   const requiredThemeProperties: (keyof Theme)[] = [
@@ -13,8 +16,12 @@ describe('Themes', () => {
     'pieceShadow',
     'moveFrom',
     'moveTo',
+    'moveHighlight',
     'lastMove',
     'premove',
+    'check',
+    'checkmate',
+    'stalemate',
     'dot',
     'arrow',
   ];
@@ -60,6 +67,10 @@ describe('Themes', () => {
       expect(classic.moveFrom).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
       expect(classic.moveTo).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
       expect(classic.lastMove).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(classic.moveHighlight).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(classic.check).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(classic.checkmate).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(classic.stalemate).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
     });
 
     it('should have valid CSS color values in midnight theme', () => {
@@ -75,6 +86,10 @@ describe('Themes', () => {
       expect(midnight.moveFrom).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
       expect(midnight.moveTo).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
       expect(midnight.lastMove).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(midnight.moveHighlight).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(midnight.check).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(midnight.checkmate).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+      expect(midnight.stalemate).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
     });
   });
 
@@ -137,8 +152,12 @@ describe('Themes', () => {
       pieceShadow: 'rgba(0,0,0,0.2)',
       moveFrom: 'rgba(248, 113, 113, 0.45)',
       moveTo: 'rgba(74, 222, 128, 0.45)',
+      moveHighlight: 'rgba(74, 222, 128, 0.45)',
       lastMove: 'rgba(59, 130, 246, 0.45)',
       premove: 'rgba(236, 72, 153, 0.35)',
+      check: 'rgba(248, 113, 113, 0.55)',
+      checkmate: 'rgba(220, 38, 38, 0.6)',
+      stalemate: 'rgba(249, 115, 22, 0.55)',
       dot: 'rgba(15, 23, 42, 0.35)',
       arrow: 'rgba(59, 130, 246, 0.9)',
       squareNameColor: '#1F2937',
@@ -159,12 +178,20 @@ describe('Themes', () => {
       expect(normalized.light).toBe(customTheme.light);
       expect(normalized.pieceStroke).toBe(THEMES.classic.pieceStroke);
       expect(normalized.pieceHighlight).toBe(THEMES.classic.pieceHighlight);
+      expect(normalized.moveHighlight).toBe(customTheme.moveHighlight);
+      expect(normalized.check).toBe(customTheme.check);
+      expect(normalized.checkmate).toBe(customTheme.checkmate);
+      expect(normalized.stalemate).toBe(customTheme.stalemate);
       expect(resolveTheme(CUSTOM_THEME_KEY as unknown as ThemeName)).toBe(THEMES[CUSTOM_THEME_KEY]);
 
       const serialized = JSON.parse(JSON.stringify(THEMES[CUSTOM_THEME_KEY]));
       expect(serialized.light).toBe(customTheme.light);
       expect(serialized.dark).toBe(customTheme.dark);
       expect(serialized.pieceHighlight).toBe(THEMES.classic.pieceHighlight);
+      expect(serialized.moveHighlight).toBe(customTheme.moveHighlight);
+      expect(serialized.check).toBe(customTheme.check);
+      expect(serialized.checkmate).toBe(customTheme.checkmate);
+      expect(serialized.stalemate).toBe(customTheme.stalemate);
     });
 
     it('should resolve theme objects without registration', () => {
@@ -172,6 +199,10 @@ describe('Themes', () => {
 
       expect(resolved.light).toBe(customTheme.light);
       expect(resolved.pieceHighlight).toBe(THEMES.classic.pieceHighlight);
+      expect(resolved.moveHighlight).toBe(customTheme.moveHighlight);
+      expect(resolved.check).toBe(customTheme.check);
+      expect(resolved.checkmate).toBe(customTheme.checkmate);
+      expect(resolved.stalemate).toBe(customTheme.stalemate);
     });
 
     it('should allow applying theme objects via setTheme', () => {
@@ -184,7 +215,32 @@ describe('Themes', () => {
       expect(appliedTheme.light).toBe(customTheme.light);
       expect(appliedTheme.dark).toBe(customTheme.dark);
       expect(appliedTheme.pieceHighlight).toBe(THEMES.classic.pieceHighlight);
+      expect(appliedTheme.moveHighlight).toBe(customTheme.moveHighlight);
+      expect(appliedTheme.check).toBe(customTheme.check);
+      expect(appliedTheme.checkmate).toBe(customTheme.checkmate);
+      expect(appliedTheme.stalemate).toBe(customTheme.stalemate);
       expect(() => JSON.stringify(appliedTheme)).not.toThrow();
+
+      board.destroy();
+    });
+
+    it('should allow partial overrides via setTheme', () => {
+      const container = document.createElement('div');
+      const board = new NeoChessBoard(container);
+
+      const overrides = {
+        moveHighlight: '#77ccbb',
+        lastMove: '#ff99cc',
+        check: '#ff6666',
+      } satisfies ThemeOverrides;
+
+      board.setTheme(overrides);
+      const appliedTheme = getPrivate<Theme>(board, 'theme');
+
+      expect(appliedTheme.moveHighlight).toBe(overrides.moveHighlight);
+      expect(appliedTheme.lastMove).toBe(overrides.lastMove);
+      expect(appliedTheme.check).toBe(overrides.check);
+      expect(typeof appliedTheme.moveTo).toBe('string');
 
       board.destroy();
     });

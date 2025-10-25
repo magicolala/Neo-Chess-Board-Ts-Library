@@ -7,6 +7,9 @@ import {
   clamp,
   lerp,
   easeOutCubic,
+  easeInCubic,
+  easeInOutCubic,
+  easeLinear,
   START_FEN,
   generateFileLabels,
   generateRankLabels,
@@ -20,7 +23,7 @@ import { FlatSprites } from './FlatSprites';
 import { ChessJsRules } from './ChessJsRules';
 import type { DrawingManager } from './DrawingManager';
 import { BoardDomManager } from './BoardDomManager';
-import { BoardAudioManager } from './BoardAudioManager';
+import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager';
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import type { PgnNotation } from './PgnNotation';
 import type {
@@ -59,6 +62,10 @@ import type {
   ClockConfig,
   ClockCallbacks,
   ClockSideState,
+  ThemeOverrides,
+  BoardConfiguration,
+  AnimationEasing,
+  AnimationEasingName,
 } from './types';
 
 // ============================================================================
@@ -70,6 +77,8 @@ const DEFAULT_ANIMATION_MS = 300;
 const SPRITE_SIZE = 128;
 const DEFAULT_BOARD_RANKS = 8;
 const DEFAULT_BOARD_FILES = 8;
+const DEFAULT_GHOST_OPACITY = 0.35;
+const DEFAULT_ANIMATION_EASING: AnimationEasingName = 'ease-out';
 const DRAG_SCALE = 1.05;
 const LEGAL_MOVE_DOT_RADIUS = 0.12;
 const ARROW_HEAD_SIZE_FACTOR = 0.25;
@@ -79,6 +88,36 @@ const MIN_ARROW_THICKNESS = 6;
 const ARROW_OPACITY = 0.95;
 const PREMOVE_EXECUTION_DELAY = 150;
 const POST_MOVE_PREMOVE_DELAY = 50;
+
+const ANIMATION_EASING_FUNCTIONS: Record<AnimationEasingName, (t: number) => number> = {
+  linear: easeLinear,
+  ease: easeInOutCubic,
+  'ease-in': easeInCubic,
+  'ease-out': easeOutCubic,
+  'ease-in-out': easeInOutCubic,
+};
+
+type AnimationEasingId = AnimationEasingName | 'custom';
+
+const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
+  'light',
+  'dark',
+  'boardBorder',
+  'whitePiece',
+  'blackPiece',
+  'pieceShadow',
+  'moveFrom',
+  'moveTo',
+  'moveHighlight',
+  'lastMove',
+  'premove',
+  'check',
+  'checkmate',
+  'stalemate',
+  'dot',
+  'arrow',
+  'squareNameColor',
+];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
 
@@ -222,6 +261,12 @@ export class NeoChessBoard {
   private showAnimations: boolean;
   private canDragPiece?: BoardOptions['canDragPiece'];
   private dragActivationDistance: number;
+  private dragSnapToSquare: boolean;
+  private dragGhostPiece: boolean;
+  private dragGhostOpacity: number;
+  private dragCancelOnEsc: boolean;
+  private animationEasingName: AnimationEasingId;
+  private animationEasingFn: (t: number) => number;
   private arrowOptions?: ArrowStyleOptions;
   private onArrowsChange?: BoardOptions['onArrowsChange'];
   private controlledArrows?: Arrow[];
@@ -367,6 +412,17 @@ export class NeoChessBoard {
         ? options.dragActivationDistance
         : 0;
     this.dragActivationDistance = Math.max(0, activationDistance);
+    this.dragSnapToSquare = options.dragSnapToSquare ?? false;
+    this.dragGhostPiece = options.dragGhostPiece !== false;
+    const ghostOpacityOption = options.dragGhostOpacity;
+    this.dragGhostOpacity =
+      typeof ghostOpacityOption === 'number' && Number.isFinite(ghostOpacityOption)
+        ? clamp(ghostOpacityOption, 0, 1)
+        : DEFAULT_GHOST_OPACITY;
+    this.dragCancelOnEsc = options.dragCancelOnEsc !== false;
+    this.animationEasingName = DEFAULT_ANIMATION_EASING;
+    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[DEFAULT_ANIMATION_EASING];
+    this._setAnimationEasing(options.animationEasing);
     this.arrowOptions = options.arrowOptions;
     this.onArrowsChange = options.onArrowsChange;
     this.controlledArrows = options.arrows;
@@ -376,6 +432,7 @@ export class NeoChessBoard {
       enabled: this.soundEnabled,
       soundUrl: options.soundUrl,
       soundUrls: options.soundUrls,
+      soundEventUrls: options.soundEventUrls,
     });
     this.audioManager.initialize();
     this.promotionHandler = options.onPromotionRequired;
@@ -626,7 +683,7 @@ export class NeoChessBoard {
       if (sanResult?.ok) {
         const move = sanResult.move;
         if (move?.from && move?.to) {
-          this._processMoveSuccess(move.from as Square, move.to as Square);
+          this._processMoveSuccess(move.from as Square, move.to as Square, sanResult);
         } else {
           const fen = sanResult.fen ?? this.rules.getFEN();
           this.setFEN(fen, true);
@@ -741,14 +798,49 @@ export class NeoChessBoard {
   // Public API - Visual Configuration
   // ============================================================================
 
-  public setTheme(theme: ThemeName | Theme): void {
-    this.applyTheme(theme);
+  public setTheme(theme: ThemeName | ThemeOverrides): void {
+    if (typeof theme === 'string') {
+      this.applyTheme(theme);
+      return;
+    }
+
+    if (this._isCompleteTheme(theme)) {
+      this.applyTheme(theme);
+      return;
+    }
+
+    const merged: Theme = { ...this.theme, ...theme } as Theme;
+
+    if (typeof theme.moveHighlight === 'string') {
+      merged.moveHighlight = theme.moveHighlight;
+    }
+    if (typeof theme.moveTo === 'string') {
+      merged.moveTo = theme.moveTo;
+    }
+    if (typeof theme.check === 'string') {
+      merged.check = theme.check;
+    }
+    if (typeof theme.checkmate === 'string') {
+      merged.checkmate = theme.checkmate;
+    }
+    if (typeof theme.stalemate === 'string') {
+      merged.stalemate = theme.stalemate;
+    }
+
+    this.applyTheme(merged);
   }
 
   public applyTheme(theme: ThemeName | Theme): void {
     this.theme = resolveTheme(theme);
     this._rasterize();
     this.renderAll();
+  }
+
+  private _isCompleteTheme(theme: ThemeOverrides): theme is Theme {
+    return REQUIRED_THEME_KEYS.every((key) => {
+      const value = theme[key];
+      return typeof value === 'string' && value.length > 0;
+    });
   }
 
   public async setPieceSet(pieceSet?: PieceSet | null): Promise<void> {
@@ -785,6 +877,67 @@ export class NeoChessBoard {
     this.audioManager.setSoundUrls(soundUrls);
   }
 
+  public setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void {
+    this.audioManager.setSoundEventUrls(soundEventUrls);
+  }
+
+  public configure(configuration: BoardConfiguration): void {
+    if (!configuration || typeof configuration !== 'object') {
+      return;
+    }
+
+    let shouldRender = false;
+
+    if (configuration.drag) {
+      const { drag } = configuration;
+      if (typeof drag.threshold === 'number' && Number.isFinite(drag.threshold)) {
+        this.setDragActivationDistance(drag.threshold);
+      }
+      if (typeof drag.snap === 'boolean') {
+        const snapChanged = this.dragSnapToSquare !== drag.snap;
+        this.dragSnapToSquare = drag.snap;
+        if (snapChanged && this._dragging) {
+          if (drag.snap && this._hoverSq) {
+            const center = this._squareCenter(this._hoverSq);
+            this._dragging.x = center.x;
+            this._dragging.y = center.y;
+          }
+          shouldRender = true;
+        }
+      }
+      if (typeof drag.ghost === 'boolean') {
+        if (this.dragGhostPiece !== drag.ghost) {
+          this.dragGhostPiece = drag.ghost;
+          shouldRender = true;
+        }
+      }
+      if (typeof drag.ghostOpacity === 'number' && Number.isFinite(drag.ghostOpacity)) {
+        const clampedOpacity = clamp(drag.ghostOpacity, 0, 1);
+        if (this.dragGhostOpacity !== clampedOpacity) {
+          this.dragGhostOpacity = clampedOpacity;
+          shouldRender = true;
+        }
+      }
+      if (typeof drag.cancelOnEsc === 'boolean') {
+        this.dragCancelOnEsc = drag.cancelOnEsc;
+      }
+    }
+
+    if (configuration.animation) {
+      const { animation } = configuration;
+      if (typeof animation.durationMs === 'number' && Number.isFinite(animation.durationMs)) {
+        this.animationMs = Math.max(0, animation.durationMs);
+      }
+      if (typeof animation.easing !== 'undefined') {
+        this._setAnimationEasing(animation.easing);
+      }
+    }
+
+    if (shouldRender) {
+      this.renderAll();
+    }
+  }
+
   public setAutoFlip(autoFlip: boolean): void {
     this.autoFlip = autoFlip;
     if (autoFlip) {
@@ -805,6 +958,22 @@ export class NeoChessBoard {
       this._clearAnimation();
       this.renderAll();
     }
+  }
+
+  private _setAnimationEasing(easing: AnimationEasing | undefined): void {
+    if (typeof easing === 'function') {
+      this.animationEasingFn = (value: number) => clamp(easing(clamp(value, 0, 1)), 0, 1);
+      this.animationEasingName = 'custom';
+      return;
+    }
+
+    const requested = typeof easing === 'string' ? easing : this.animationEasingName;
+    const normalized = (
+      requested in ANIMATION_EASING_FUNCTIONS ? requested : DEFAULT_ANIMATION_EASING
+    ) as AnimationEasingName;
+
+    this.animationEasingName = normalized;
+    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[normalized];
   }
 
   public setDraggingEnabled(enabled: boolean): void {
@@ -1752,6 +1921,9 @@ export class NeoChessBoard {
         this._removeDomPiece(square);
 
         if (draggingSq === square) {
+          if (this._dragging && this.dragGhostPiece) {
+            this._drawGhostPiece(piece, square);
+          }
           continue;
         }
 
@@ -1767,6 +1939,15 @@ export class NeoChessBoard {
     if (this._dragging) {
       this._drawDraggingPiece();
     }
+  }
+
+  private _drawGhostPiece(piece: string, square: Square): void {
+    const ctx = this.ctxP;
+    ctx.save();
+    ctx.globalAlpha = clamp(this.dragGhostOpacity, 0, 1);
+    const { x, y } = this._sqToXY(square);
+    this._drawPieceSprite(piece, x, y, 1);
+    ctx.restore();
   }
 
   private _drawDraggingPiece(): void {
@@ -1995,6 +2176,7 @@ export class NeoChessBoard {
     this._drawLegalMoves();
     this._drawLegacyArrows();
     this._drawPremoveHighlight();
+    this._drawCheckStatusHighlight();
     this._drawHoverHighlight();
     this._drawDrawingManagerElements();
   }
@@ -2029,7 +2211,7 @@ export class NeoChessBoard {
   private _drawCustomHighlights(): void {
     if (!this._customHighlights?.squares) return;
 
-    this.ctxO.fillStyle = this.theme.moveTo;
+    this.ctxO.fillStyle = this._getMoveHighlightColor();
     for (const sqr of this._customHighlights.squares) {
       const { x, y } = this._sqToXY(sqr);
       this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
@@ -2076,12 +2258,55 @@ export class NeoChessBoard {
     this._fillCanvas(this.ctxO, 'overlay', B.x, B.y, s, s);
   }
 
+  private _drawCheckStatusHighlight(): void {
+    const inCheck = this.rules.inCheck?.() ?? false;
+    const checkmate = this.rules.isCheckmate?.() ?? false;
+    const stalemate = this.rules.isStalemate?.() ?? false;
+
+    if (!inCheck && !checkmate && !stalemate) {
+      return;
+    }
+
+    const highlightSquares: Square[] = [];
+
+    if (stalemate) {
+      highlightSquares.push(...this.getPieceSquares('K'), ...this.getPieceSquares('k'));
+    } else {
+      const targetColor = this.state.turn;
+      const kingPiece: Piece = targetColor === 'w' ? 'K' : 'k';
+      const [kingSquare] = this.getPieceSquares(kingPiece);
+      if (kingSquare) {
+        highlightSquares.push(kingSquare);
+      }
+    }
+
+    if (highlightSquares.length === 0) {
+      return;
+    }
+
+    const fill = checkmate
+      ? this.theme.checkmate
+      : stalemate
+        ? this.theme.stalemate
+        : this.theme.check;
+
+    this.ctxO.fillStyle = fill;
+    for (const sqr of highlightSquares) {
+      const { x, y } = this._sqToXY(sqr);
+      this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
+    }
+  }
+
   private _drawHoverHighlight(): void {
     if (!this._hoverSq || !this._dragging) return;
 
     const { x, y } = this._sqToXY(this._hoverSq);
-    this.ctxO.fillStyle = this.theme.moveTo;
+    this.ctxO.fillStyle = this._getMoveHighlightColor();
     this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
+  }
+
+  private _getMoveHighlightColor(): string {
+    return this.theme.moveHighlight || this.theme.moveTo;
   }
 
   private _drawDrawingManagerElements(): void {
@@ -2159,6 +2384,11 @@ export class NeoChessBoard {
   private _sqToXY(square: Square): Point {
     const { f, r } = this._squareToIndices(square);
     return this._calculateSquarePosition(f, r);
+  }
+
+  private _squareCenter(square: Square): Point {
+    const origin = this._sqToXY(square);
+    return { x: origin.x + this.square / 2, y: origin.y + this.square / 2 };
   }
 
   private _calculateSquarePosition(file: number, rank: number): Point {
@@ -2444,8 +2674,14 @@ export class NeoChessBoard {
     }
 
     if (this._dragging && pt) {
-      this._dragging.x = pt.x;
-      this._dragging.y = pt.y;
+      if (this.dragSnapToSquare && square) {
+        const center = this._squareCenter(square);
+        this._dragging.x = center.x;
+        this._dragging.y = center.y;
+      } else {
+        this._dragging.x = pt.x;
+        this._dragging.y = pt.y;
+      }
       this._hoverSq = square;
       this._autoScrollDuringDrag(e);
       this._renderPiecesAndOverlayLayers();
@@ -2467,9 +2703,19 @@ export class NeoChessBoard {
     }
 
     const { from, piece } = this._pendingDrag;
-    this._dragging = { from, piece, x: pt.x, y: pt.y };
+    const hoverSquare = this._xyToSquare(pt.x, pt.y);
+    let dragX = pt.x;
+    let dragY = pt.y;
+
+    if (this.dragSnapToSquare && hoverSquare) {
+      const center = this._squareCenter(hoverSquare);
+      dragX = center.x;
+      dragY = center.y;
+    }
+
+    this._dragging = { from, piece, x: dragX, y: dragY };
     this._pendingDrag = null;
-    this._hoverSq = this._xyToSquare(pt.x, pt.y);
+    this._hoverSq = hoverSquare;
 
     if (this.allowAutoScroll) {
       this._ensureScrollContainer();
@@ -2556,6 +2802,9 @@ export class NeoChessBoard {
   }
 
   private _handleEscapeKey(): void {
+    if (!this.dragCancelOnEsc && this._dragging) {
+      return;
+    }
     this._clearInteractionState();
     if (this.drawingManager) {
       this.drawingManager.cancelCurrentAction();
@@ -2722,7 +2971,7 @@ export class NeoChessBoard {
     const legal = this.rules.move({ from, to, promotion });
 
     if (legal?.ok) {
-      this._processMoveSuccess(from, to);
+      this._processMoveSuccess(from, to, legal);
       return true;
     }
 
@@ -2730,10 +2979,11 @@ export class NeoChessBoard {
     return false;
   }
 
-  private _processMoveSuccess(from: Square, to: Square): void {
+  private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {
     const fen = this.rules.getFEN();
     const oldState = this.state;
     const newState = this._parseFEN(fen);
+    const movingColor = oldState.turn === 'w' ? 'white' : 'black';
 
     this.state = newState;
     this._syncOrientationFromTurn(false);
@@ -2744,13 +2994,42 @@ export class NeoChessBoard {
       this.drawingManager.clearArrows();
     }
 
-    this.audioManager.playMoveSound(this.state.turn);
+    const eventType = this._determineSoundEventType(legal);
+    this.audioManager.playSound(eventType, movingColor);
     this._animateTo(newState, oldState);
     this._emitMoveEvent(from, to, fen);
 
     setTimeout(() => {
       this._executePremoveIfValid();
     }, this.animationMs + POST_MOVE_PREMOVE_DELAY);
+  }
+
+  private _determineSoundEventType(legal: RulesMoveResponse): BoardSoundEventType {
+    if (this.rules.isCheckmate?.()) {
+      return 'checkmate';
+    }
+
+    const moveDetail = legal.move as { captured?: unknown; san?: string } | undefined;
+    const capturedPiece = moveDetail?.captured;
+    const san = moveDetail?.san;
+
+    if (typeof san === 'string' && san.includes('#')) {
+      return 'checkmate';
+    }
+
+    if (this.rules.inCheck?.()) {
+      return 'check';
+    }
+
+    if (typeof san === 'string' && san.includes('+')) {
+      return 'check';
+    }
+
+    if (capturedPiece) {
+      return 'capture';
+    }
+
+    return 'move';
   }
 
   private _processMoveFailure(
@@ -2981,7 +3260,7 @@ export class NeoChessBoard {
 
     const tick = () => {
       const progress = clamp((performance.now() - startTime) / this.animationMs, 0, 1);
-      const eased = easeOutCubic(progress);
+      const eased = this.animationEasingFn(progress);
 
       this._renderAnimationFrame(target, moving, eased);
 
