@@ -47,6 +47,7 @@ import type {
   PromotionRequest,
   PromotionMode,
   PromotionPiece,
+  PromotionOptions,
   RulesMoveResponse,
   PgnMoveAnnotations,
   ArrowStyleOptions,
@@ -311,6 +312,13 @@ export class NeoChessBoard {
   private promotionHandler?: BoardOptions['onPromotionRequired'];
   private _pendingPromotion: PendingPromotionState | null = null;
   private _promotionToken = 0;
+  private promotionOptions: { autoQueen: boolean; ui: 'dialog' | 'inline' } = {
+    autoQueen: false,
+    ui: 'dialog',
+  };
+  private inlinePromotionContainer?: HTMLDivElement;
+  private inlinePromotionButtons: HTMLButtonElement[] = [];
+  private inlinePromotionToken: number | null = null;
 
   // ---- Extensions ----
   private extensionStates: ExtensionState[] = [];
@@ -426,6 +434,7 @@ export class NeoChessBoard {
     });
     this.audioManager.initialize();
     this.promotionHandler = options.onPromotionRequired;
+    this._updatePromotionOptions(options.promotion);
 
     // Initialize rules and state
     this.rules = options.rulesAdapter || new ChessJsRules();
@@ -917,8 +926,14 @@ export class NeoChessBoard {
       }
     }
 
+    if ('promotion' in configuration) {
+      this._updatePromotionOptions(configuration.promotion);
+    }
+
     if (shouldRender) {
       this.renderAll();
+    } else {
+      this._updateInlinePromotionPosition();
     }
   }
 
@@ -1320,6 +1335,7 @@ export class NeoChessBoard {
     this._renderPiecesAndOverlayLayers();
     this._flushRenderCaptureFrame();
     this._invokeExtensionHook('onAfterRender');
+    this._updateInlinePromotionPosition();
   }
 
   public destroy(): void {
@@ -1327,12 +1343,16 @@ export class NeoChessBoard {
     this.eventManager?.detach();
     this.domManager.disconnect();
     this._disposeExtensions();
+    this._hideInlinePromotion();
     this.root.innerHTML = '';
     this.domOverlay = undefined;
     this.squareLayer = undefined;
     this.pieceLayer = undefined;
     this.squareElements.clear();
     this.pieceElements.clear();
+    this.inlinePromotionContainer = undefined;
+    this.inlinePromotionButtons = [];
+    this.inlinePromotionToken = null;
   }
 
   // ============================================================================
@@ -2634,6 +2654,9 @@ export class NeoChessBoard {
     }
 
     if (this._isPromotionMove(piece, to, side) && !promotion) {
+      if (this.promotionOptions.autoQueen) {
+        return this._executeMove(from, to, 'q');
+      }
       return this._beginPromotionRequest(from, to, side, 'move');
     }
 
@@ -2658,6 +2681,10 @@ export class NeoChessBoard {
 
     const piece = this._pieceAt(from)!;
     if (this._isPromotionMove(piece, to, side) && !promotion) {
+      if (this.promotionOptions.autoQueen) {
+        this._setPremove(from, to, 'q');
+        return true;
+      }
       return this._beginPromotionRequest(from, to, side, 'premove');
     }
 
@@ -2835,6 +2862,7 @@ export class NeoChessBoard {
     };
 
     pending.request = request;
+    this._handlePromotionRequestUI(pending);
     this._emitPromotionRequest(request);
     return 'pending';
   }
@@ -2847,6 +2875,7 @@ export class NeoChessBoard {
 
     const { from, to, mode } = pending;
     this._pendingPromotion = null;
+    this._hideInlinePromotion();
 
     if (mode === 'move') {
       this._attemptMove(from, to, { promotion: piece });
@@ -2862,6 +2891,7 @@ export class NeoChessBoard {
     if (!pending || pending.token !== token) return;
 
     this._pendingPromotion = null;
+    this._hideInlinePromotion();
     this.clearPromotionPreview();
   }
 
@@ -2886,6 +2916,278 @@ export class NeoChessBoard {
     }
 
     this.bus.emit('promotion', request);
+  }
+
+  private _handlePromotionRequestUI(pending: PendingPromotionState): void {
+    if (this.promotionOptions.autoQueen) {
+      this._hideInlinePromotion();
+      return;
+    }
+
+    if (this.promotionOptions.ui === 'inline') {
+      this._showInlinePromotion(pending);
+    } else {
+      this._hideInlinePromotion();
+    }
+  }
+
+  private _updatePromotionOptions(options?: PromotionOptions): void {
+    const previous = this.promotionOptions;
+    const next: { autoQueen: boolean; ui: 'dialog' | 'inline' } = {
+      autoQueen: options?.autoQueen === true,
+      ui: options?.ui === 'inline' ? 'inline' : 'dialog',
+    };
+
+    this.promotionOptions = next;
+
+    const pending = this._pendingPromotion;
+    if (!pending) {
+      if (previous.ui === 'inline' && next.ui !== 'inline') {
+        this._hideInlinePromotion();
+      }
+      return;
+    }
+
+    if (next.autoQueen) {
+      const token = pending.token;
+      this._hideInlinePromotion();
+      this._resolvePromotion(token, 'q');
+      return;
+    }
+
+    if (next.ui === 'inline') {
+      this._showInlinePromotion(pending);
+    } else if (previous.ui === 'inline') {
+      this._hideInlinePromotion();
+    }
+  }
+
+  private _ensureInlinePromotionContainer(): HTMLDivElement | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    if (this.inlinePromotionContainer && this.inlinePromotionContainer.isConnected) {
+      return this.inlinePromotionContainer;
+    }
+
+    const doc = this.root.ownerDocument ?? document;
+    const container = doc.createElement('div');
+    container.className = 'ncb-inline-promotion';
+    Object.assign(container.style, {
+      position: 'absolute',
+      left: '0',
+      top: '0',
+      display: 'none',
+      pointerEvents: 'auto',
+      zIndex: '40',
+    });
+    container.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    container.addEventListener('pointerup', (event) => {
+      event.stopPropagation();
+    });
+    container.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+
+    (this.domOverlay ?? this.root).appendChild(container);
+    this.inlinePromotionContainer = container;
+    return container;
+  }
+
+  private _calculateInlinePromotionMetrics(): {
+    buttonSize: number;
+    padding: number;
+    gap: number;
+    containerWidth: number;
+    containerHeight: number;
+  } {
+    const cssSquare = this.dpr ? this.square / this.dpr : this.square;
+    const buttonSize = Math.max(28, Math.min(72, Math.round(cssSquare * 0.82)));
+    const padding = Math.max(4, Math.round(buttonSize * 0.24));
+    const gap = Math.max(4, Math.round(buttonSize * 0.2));
+    const count = Math.max(1, this.inlinePromotionButtons.length || 4);
+    const containerWidth = buttonSize + padding * 2;
+    const containerHeight = padding * 2 + buttonSize * count + gap * Math.max(0, count - 1);
+    return { buttonSize, padding, gap, containerWidth, containerHeight };
+  }
+
+  private _styleInlinePromotionButtons(): { containerWidth: number; containerHeight: number } {
+    if (!this.inlinePromotionContainer) {
+      return { containerWidth: 0, containerHeight: 0 };
+    }
+
+    const metrics = this._calculateInlinePromotionMetrics();
+    const { buttonSize, padding, gap, containerWidth, containerHeight } = metrics;
+    const container = this.inlinePromotionContainer;
+
+    Object.assign(container.style, {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      padding: `${padding}px`,
+      gap: `${gap}px`,
+      width: `${containerWidth}px`,
+      borderRadius: `${Math.max(8, Math.round(buttonSize * 0.28))}px`,
+      background: 'rgba(15, 23, 42, 0.92)',
+      boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
+      backdropFilter: 'blur(6px)',
+    });
+
+    for (const button of this.inlinePromotionButtons) {
+      Object.assign(button.style, {
+        width: `${buttonSize}px`,
+        height: `${buttonSize}px`,
+        borderRadius: `${Math.max(6, Math.round(buttonSize * 0.28))}px`,
+        border: '1px solid rgba(148, 163, 184, 0.45)',
+        background: 'rgba(30, 41, 59, 0.85)',
+        color: '#f8fafc',
+        fontWeight: '600',
+        fontSize: `${Math.round(buttonSize * 0.5)}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        padding: '0',
+        transition: 'transform 120ms ease, background 120ms ease',
+      });
+    }
+
+    return { containerWidth, containerHeight };
+  }
+
+  private _showInlinePromotion(pending: PendingPromotionState): void {
+    const request = pending.request;
+    if (!request) {
+      return;
+    }
+
+    const container = this._ensureInlinePromotionContainer();
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = '';
+    container.dataset.square = pending.to;
+    container.setAttribute('data-color', pending.color);
+    container.setAttribute('data-mode', pending.mode);
+
+    const doc = container.ownerDocument ?? document;
+    const pieces =
+      request.choices && request.choices.length > 0 ? request.choices : [...PROMOTION_CHOICES];
+
+    this.inlinePromotionButtons = pieces.map((piece) => {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'ncb-inline-promotion__choice';
+      button.dataset.piece = piece;
+      button.title = `Promote to ${piece.toUpperCase()}`;
+      button.textContent = piece.toUpperCase();
+      button.addEventListener('pointerenter', () => {
+        this.previewPromotionPiece(piece);
+      });
+      button.addEventListener('pointerleave', () => {
+        this.previewPromotionPiece(null);
+      });
+      button.addEventListener('focus', () => {
+        this.previewPromotionPiece(piece);
+      });
+      button.addEventListener('blur', () => {
+        this.previewPromotionPiece(null);
+      });
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!this._pendingPromotion || this._pendingPromotion.token !== pending.token) {
+          return;
+        }
+        request.resolve(piece);
+      });
+      button.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!this._pendingPromotion || this._pendingPromotion.token !== pending.token) {
+            return;
+          }
+          request.resolve(piece);
+        }
+      });
+      button.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+        button.style.transform = 'scale(0.97)';
+      });
+      button.addEventListener('pointerup', (event) => {
+        event.stopPropagation();
+        button.style.transform = 'scale(1)';
+      });
+      button.addEventListener('pointerleave', () => {
+        button.style.transform = 'scale(1)';
+      });
+      container.appendChild(button);
+      return button;
+    });
+
+    container.style.display = 'flex';
+    this.inlinePromotionToken = pending.token;
+    this._styleInlinePromotionButtons();
+    this._updateInlinePromotionPosition();
+  }
+
+  private _hideInlinePromotion(): void {
+    if (!this.inlinePromotionContainer) {
+      return;
+    }
+    this.inlinePromotionContainer.style.display = 'none';
+    this.inlinePromotionContainer.removeAttribute('data-square');
+    this.inlinePromotionContainer.removeAttribute('data-color');
+    this.inlinePromotionContainer.removeAttribute('data-mode');
+    this.inlinePromotionContainer.innerHTML = '';
+    this.inlinePromotionButtons = [];
+    this.inlinePromotionToken = null;
+  }
+
+  private _updateInlinePromotionPosition(): void {
+    const container = this.inlinePromotionContainer;
+    const pending = this._pendingPromotion;
+
+    if (!container || !pending) {
+      return;
+    }
+    if (container.style.display === 'none') {
+      return;
+    }
+    if (this.inlinePromotionToken !== pending.token) {
+      return;
+    }
+
+    const { containerWidth, containerHeight } = this._styleInlinePromotionButtons();
+    const boardWidth = this.cOverlay ? this.cOverlay.width / (this.dpr || 1) : this.sizePx;
+    const boardHeight = this.cOverlay ? this.cOverlay.height / (this.dpr || 1) : this.sizePx;
+    const { x, y } = this._sqToXY(pending.to);
+    const cssX = this.dpr ? x / this.dpr : x;
+    const cssY = this.dpr ? y / this.dpr : y;
+    const cssSquare = this.dpr ? this.square / this.dpr : this.square;
+
+    let left = cssX + cssSquare;
+    if (left + containerWidth > boardWidth) {
+      left = cssX - containerWidth;
+    }
+    if (left < 0) {
+      left = 0;
+    }
+
+    let top = cssY + cssSquare / 2 - containerHeight / 2;
+    if (top < 0) {
+      top = 0;
+    }
+    if (top + containerHeight > boardHeight) {
+      top = boardHeight - containerHeight;
+    }
+
+    container.style.left = `${Math.round(left)}px`;
+    container.style.top = `${Math.round(top)}px`;
   }
 
   // ============================================================================
