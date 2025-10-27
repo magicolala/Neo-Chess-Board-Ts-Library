@@ -1047,6 +1047,10 @@ export class NeoChessBoard {
       this._updatePromotionOptions(configuration.promotion);
     }
 
+    if ('promotion' in configuration) {
+      this._updatePromotionOptions(configuration.promotion);
+    }
+
     if (shouldRender) {
       this.renderAll();
     } else {
