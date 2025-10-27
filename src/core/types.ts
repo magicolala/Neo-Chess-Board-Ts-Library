@@ -188,6 +188,53 @@ export interface PremoveInvalidatedEvent {
   reason?: string;
 }
 
+export interface ClockSideState {
+  initial: number;
+  increment: number;
+  remaining: number;
+  isFlagged: boolean;
+}
+
+export interface ClockState {
+  white: ClockSideState;
+  black: ClockSideState;
+  active: Color | null;
+  isPaused: boolean;
+  isRunning: boolean;
+  lastUpdatedAt: number | null;
+}
+
+export interface ClockStateUpdate {
+  active?: Color | null;
+  paused?: boolean;
+  running?: boolean;
+  timestamp?: number | null;
+  white?: Partial<ClockSideState>;
+  black?: Partial<ClockSideState>;
+}
+
+export interface ClockCallbacks {
+  onClockStart?(state: ClockState): void;
+  onClockPause?(state: ClockState): void;
+  onClockChange?(state: ClockState): void;
+  onFlag?(payload: { color: Color; state: ClockState }): void;
+}
+
+export interface ClockSideConfig {
+  initial?: number;
+  increment?: number;
+  remaining?: number;
+}
+
+export interface ClockConfig {
+  initial?: number | Partial<Record<Color, number>>;
+  increment?: number | Partial<Record<Color, number>>;
+  sides?: Partial<Record<Color, ClockSideConfig>>;
+  active?: Color | null;
+  paused?: boolean;
+  callbacks?: ClockCallbacks;
+}
+
 export interface BoardEventMap {
   move: { from: Square; to: Square; fen: string };
   illegal: { from: Square; to: Square; reason: string };
