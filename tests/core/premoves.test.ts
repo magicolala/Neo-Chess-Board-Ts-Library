@@ -19,6 +19,14 @@ import type { Square, Move, RulesAdapter, RulesMoveResponse, Premove } from '../
 const createMockEngine = (): RulesAdapter => {
   let position = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+  const scriptedMoves: Record<string, string> = {
+    e2e4: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
+    e7e5: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
+    g1f3: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2',
+    g8f6: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',
+    b8c6: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',
+  };
+
   const moveMock = jest.fn<
     RulesMoveResponse | null | undefined,
     [
@@ -34,16 +42,10 @@ const createMockEngine = (): RulesAdapter => {
       return { ok: false, reason: 'unsupported' };
     }
 
-    if (move.from === 'e2' && move.to === 'e4') {
-      position = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
-      return { ok: true, fen: position };
-    }
-    if (move.from === 'e7' && move.to === 'e5') {
-      position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2';
-      return { ok: true, fen: position };
-    }
-    if (move.from === 'g1' && move.to === 'f3') {
-      position = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
+    const key = `${move.from}${move.to}${move.promotion ?? ''}`.toLowerCase();
+    const nextPosition = scriptedMoves[key];
+    if (nextPosition) {
+      position = nextPosition;
       return { ok: true, fen: position };
     }
     return { ok: false, reason: 'illegal move' };
@@ -89,6 +91,8 @@ const createMockEngine = (): RulesAdapter => {
     isThreefoldRepetition: jest.fn(() => false),
   };
 };
+
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Test Suite for Premoves ---
 
@@ -136,6 +140,7 @@ describe('Premoves', () => {
 
     const currentPremove = board.getPremove();
     expect(currentPremove).toEqual(premove);
+    expect(board.premove.getQueue('black')).toEqual([premove]);
   });
 
   /**
@@ -150,6 +155,7 @@ describe('Premoves', () => {
 
     board.clearPremove();
     expect(board.getPremove()).toBeNull();
+    expect(board.premove.getQueue('black')).toHaveLength(0);
   });
 
   /**
@@ -157,55 +163,101 @@ describe('Premoves', () => {
    * and it becomes the turn of the player who set the premove.
    * It also verifies that the premove is cleared after successful execution.
    */
-  it('should execute premove automatically when position changes', (done) => {
+  it('should execute premove automatically when position changes', async () => {
     const premove: Premove = { from: 'e7', to: 'e5' };
 
-    // Set a premove for black
     board.setPremove(premove);
-
-    // Verify that the premove is stored
     expect(board.getPremove()).toEqual(premove);
 
-    // Listen for move events to confirm premove execution
-    board.on('move', ({ from, to }) => {
-      // This move should be the automatic premove for black
-      expect(from).toBe('e7');
-      expect(to).toBe('e5');
-
-      // The premove should be cleared after execution
-      // A small delay is added to ensure the asynchronous clear operation completes.
-      const ASYNC_OPERATION_DELAY = 200; // Milliseconds
-      setTimeout(() => {
-        expect(board.getPremove()).toBeNull();
-        done();
-      }, ASYNC_OPERATION_DELAY);
+    const movePromise = new Promise<void>((resolve) => {
+      board.on('move', ({ from, to }) => {
+        expect(from).toBe('e7');
+        expect(to).toBe('e5');
+        resolve();
+      });
     });
 
-    // Simulate a white move that triggers the premove execution
-    // Change the position to make it black's turn
+    const appliedPromise = new Promise<void>((resolve) => {
+      board.on('premoveApplied', ({ from, to, color, remaining }) => {
+        expect(from).toBe('e7');
+        expect(to).toBe('e5');
+        expect(color).toBe('black');
+        expect(remaining).toBe(0);
+        resolve();
+      });
+    });
+
     board.setPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
+
+    await Promise.all([movePromise, appliedPromise]);
+    await wait(200);
+    expect(board.getPremove()).toBeNull();
+    expect(board.premove.getQueue('black')).toHaveLength(0);
   });
 
   /**
    * Verifies that an invalid premove is automatically cleared when the board position changes
    * and the premove cannot be executed.
    */
-  it('should clear invalid premoves when position changes', (done) => {
-    const invalidPremove: Premove = { from: 'e7', to: 'e3' }; // Invalid move for black from initial position
+  it('should clear invalid premoves when position changes', async () => {
+    const invalidPremove: Premove = { from: 'e7', to: 'e3' };
+
+    const invalidatedPromise = new Promise<void>((resolve) => {
+      board.on('premoveInvalidated', ({ premove, reason }) => {
+        expect(premove).toEqual(invalidPremove);
+        expect(reason).toBe('illegal move');
+        resolve();
+      });
+    });
 
     board.setPremove(invalidPremove);
     expect(board.getPremove()).toEqual(invalidPremove);
 
-    // Change the position (which should try to execute the invalid premove)
     board.setPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
 
-    // The invalid premove should be cleared
-    // A small delay is added to ensure the asynchronous clear operation completes.
-    const ASYNC_OPERATION_DELAY = 200; // Milliseconds
-    setTimeout(() => {
-      expect(board.getPremove()).toBeNull();
-      done();
-    }, ASYNC_OPERATION_DELAY);
+    await invalidatedPromise;
+    await wait(200);
+    expect(board.getPremove()).toBeNull();
+    expect(board.premove.getQueue('black')).toHaveLength(0);
+  });
+
+  it('should support multiple queued premoves when multi enabled', async () => {
+    board.premove.enable({ multi: true });
+
+    board.setPremove({ from: 'e7', to: 'e5' });
+    board.setPremove({ from: 'g8', to: 'f6' });
+
+    expect(board.premove.getQueue('black')).toHaveLength(2);
+
+    const appliedMoves: string[] = [];
+    board.on('premoveApplied', ({ from, to }) => {
+      appliedMoves.push(`${from}${to}`);
+    });
+
+    board.setPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
+    await wait(200);
+    expect(appliedMoves).toContain('e7e5');
+    expect(board.premove.getQueue('black')).toHaveLength(1);
+
+    board.setPosition('rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2');
+    await wait(200);
+
+    expect(appliedMoves).toEqual(['e7e5', 'g8f6']);
+    expect(board.premove.getQueue('black')).toHaveLength(0);
+  });
+
+  it('should honor color filters when enabling premoves', () => {
+    board.premove.enable({ color: 'white' });
+
+    board.setPremove({ from: 'e7', to: 'e5' });
+    expect(board.premove.getQueue('black')).toHaveLength(0);
+
+    board.setPremove({ from: 'g2', to: 'g3' }, 'white');
+    expect(board.premove.getQueue('white')).toHaveLength(1);
+
+    board.premove.disable('white');
+    expect(board.premove.config().colors.white).toBe(false);
+    expect(board.premove.getQueue('white')).toHaveLength(0);
   });
 
   /**
@@ -226,6 +278,7 @@ describe('Premoves', () => {
 
     // The premove should not be set because they are disabled
     expect(board.getPremove()).toBeNull();
+    expect(board.premove.getQueue('black')).toHaveLength(0);
   });
 
   /**
@@ -243,8 +296,10 @@ describe('Premoves', () => {
     // Clear the premove and then re-import to verify
     board.clearPremove();
     expect(board.getPremove()).toBeNull();
+    expect(board.premove.getQueue('black')).toHaveLength(0);
 
     board.importDrawings(exported!); // The '!' asserts that exported is not null
     expect(board.getPremove()).toEqual(premove);
+    expect(board.premove.getQueue('black')).toEqual([premove]);
   });
 });
