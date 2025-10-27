@@ -14,6 +14,8 @@ export interface PlaygroundState {
   allowDrawingArrows: boolean;
   animationDurationInMs: number;
   dragActivationDistance: number;
+  promotionUi: 'dialog' | 'inline';
+  autoQueen: boolean;
 }
 
 export const PLAYGROUND_DEFAULT_STATE: PlaygroundState = {
@@ -26,6 +28,8 @@ export const PLAYGROUND_DEFAULT_STATE: PlaygroundState = {
   allowDrawingArrows: true,
   animationDurationInMs: 300,
   dragActivationDistance: 0,
+  promotionUi: 'dialog',
+  autoQueen: false,
 };
 
 type PlaygroundStoreListener = () => void;
@@ -119,6 +123,22 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
     !Object.is(nextState.dragActivationDistance, partial.dragActivationDistance)
   ) {
     nextState.dragActivationDistance = partial.dragActivationDistance;
+    changed = true;
+  }
+
+  if (
+    typeof partial.promotionUi !== 'undefined' &&
+    !Object.is(nextState.promotionUi, partial.promotionUi)
+  ) {
+    nextState.promotionUi = partial.promotionUi;
+    changed = true;
+  }
+
+  if (
+    typeof partial.autoQueen !== 'undefined' &&
+    !Object.is(nextState.autoQueen, partial.autoQueen)
+  ) {
+    nextState.autoQueen = partial.autoQueen;
     changed = true;
   }
 

@@ -77,6 +77,11 @@ export interface PromotionRequest {
   cancel: () => void;
 }
 
+export interface PromotionOptions {
+  autoQueen?: boolean;
+  ui?: 'dialog' | 'inline';
+}
+
 // New types for advanced features
 export interface Arrow {
   from: Square;
@@ -280,6 +285,7 @@ export interface BoardAnimationConfig {
 export interface BoardConfiguration {
   drag?: BoardDragConfig;
   animation?: BoardAnimationConfig;
+  promotion?: PromotionOptions;
 }
 
 export type PieceSpriteImage =
@@ -406,6 +412,7 @@ export interface BoardOptions {
   showNotation?: boolean;
   squareRenderer?: SquareRenderer;
   pieces?: PieceRendererMap;
+  promotion?: PromotionOptions;
 }
 
 export interface ExtensionContext<TOptions = unknown> {

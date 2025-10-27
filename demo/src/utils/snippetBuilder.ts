@@ -62,6 +62,14 @@ const buildReactProps = (
     props.unshift(`pieceSet={${snippet.importName}}`);
   }
 
+  if (state.promotionUi !== 'dialog' || state.autoQueen) {
+    const promotionParts = [`ui: '${state.promotionUi}'`];
+    if (state.autoQueen) {
+      promotionParts.push('autoQueen: true');
+    }
+    props.push(`promotion={{ ${promotionParts.join(', ')} }}`);
+  }
+
   return props;
 };
 
@@ -104,6 +112,14 @@ const buildVanillaSnippet = ({ state, orientation }: PlaygroundSnippetArgs): str
 
   if (snippet) {
     optionsLines.unshift(`  pieceSet: ${snippet.importName},`);
+  }
+
+  if (state.promotionUi !== 'dialog' || state.autoQueen) {
+    const promotionParts = [`ui: '${state.promotionUi}'`];
+    if (state.autoQueen) {
+      promotionParts.push(`autoQueen: ${formatBoolean(state.autoQueen)}`);
+    }
+    optionsLines.push(`  promotion: { ${promotionParts.join(', ')} },`);
   }
 
   const importLines = ["import { NeoChessBoard } from '@magicolala/neo-chess-board';"];

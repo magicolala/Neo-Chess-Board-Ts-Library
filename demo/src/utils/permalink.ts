@@ -21,6 +21,8 @@ const PARAM_KEYS = {
   allowDrawingArrows: 'arrows',
   animationDurationInMs: 'anim',
   dragActivationDistance: 'drag',
+  promotionUi: 'promo',
+  autoQueen: 'autoq',
   fen: 'fen',
 } as const;
 
@@ -86,7 +88,9 @@ const isDefaultState = (state: PlaygroundState): boolean =>
   state.autoFlip === PLAYGROUND_DEFAULT_STATE.autoFlip &&
   state.allowDrawingArrows === PLAYGROUND_DEFAULT_STATE.allowDrawingArrows &&
   state.animationDurationInMs === PLAYGROUND_DEFAULT_STATE.animationDurationInMs &&
-  state.dragActivationDistance === PLAYGROUND_DEFAULT_STATE.dragActivationDistance;
+  state.dragActivationDistance === PLAYGROUND_DEFAULT_STATE.dragActivationDistance &&
+  state.promotionUi === PLAYGROUND_DEFAULT_STATE.promotionUi &&
+  state.autoQueen === PLAYGROUND_DEFAULT_STATE.autoQueen;
 
 export interface PlaygroundPermalinkPayload {
   orientation: PlaygroundOrientation;
@@ -143,6 +147,14 @@ export const serializePlaygroundPermalink = (
 
   if (payload.state.dragActivationDistance !== PLAYGROUND_DEFAULT_STATE.dragActivationDistance) {
     params.set(PARAM_KEYS.dragActivationDistance, String(payload.state.dragActivationDistance));
+  }
+
+  if (payload.state.promotionUi !== PLAYGROUND_DEFAULT_STATE.promotionUi) {
+    params.set(PARAM_KEYS.promotionUi, payload.state.promotionUi);
+  }
+
+  if (payload.state.autoQueen !== PLAYGROUND_DEFAULT_STATE.autoQueen) {
+    params.set(PARAM_KEYS.autoQueen, encodeBoolean(payload.state.autoQueen));
   }
 
   if (typeof payload.fen === 'string' && payload.fen.trim().length > 0) {
@@ -220,6 +232,18 @@ export const parsePlaygroundPermalink = (search: string): PlaygroundPermalinkSna
   const dragActivationDistance = parseNumberParam(params.get(PARAM_KEYS.dragActivationDistance));
   if (typeof dragActivationDistance === 'number') {
     state.dragActivationDistance = dragActivationDistance;
+    hasState = true;
+  }
+
+  const promotionUi = params.get(PARAM_KEYS.promotionUi);
+  if (promotionUi === 'inline' || promotionUi === 'dialog') {
+    state.promotionUi = promotionUi;
+    hasState = true;
+  }
+
+  const autoQueen = parseBooleanParam(params.get(PARAM_KEYS.autoQueen));
+  if (typeof autoQueen === 'boolean') {
+    state.autoQueen = autoQueen;
     hasState = true;
   }
 
