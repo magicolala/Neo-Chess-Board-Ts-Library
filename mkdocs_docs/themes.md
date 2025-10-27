@@ -20,13 +20,16 @@ interface Theme {
   moveTo: string;          // Highlight for the destination square / legal moves
   lastMove: string;        // Overlay for the most recent move
   premove: string;         // Highlight when a premove is set
+  check?: string;          // Tint used when the active player is in check
+  checkmate?: string;      // Tint used when a checkmate occurs
+  stalemate?: string;      // Tint used to indicate stalemate positions
   dot: string;             // Small circle rendered for legal moves
   arrow: string;           // Default arrow color
   squareNameColor: string; // Coordinate labels drawn on the board
 }
 ```
 
-All properties accept any valid CSS color string. `pieceStroke` and `pieceHighlight` are optional; when omitted they fall back to the values from the default `classic` theme.
+All properties accept any valid CSS color string. `pieceStroke`, `pieceHighlight`, and the three status colors (`check`, `checkmate`, `stalemate`) are optional; when omitted they inherit the values from the default `classic` palette so existing themes remain compatible.
 
 ## 🌈 Built-in themes
 

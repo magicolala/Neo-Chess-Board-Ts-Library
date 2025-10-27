@@ -1,3 +1,4 @@
+import { Chess } from 'chess.js';
 import { EventBus } from './EventBus';
 import {
   parseFEN,
@@ -6,15 +7,13 @@ import {
   sqToFR,
   clamp,
   lerp,
-  easeOutCubic,
-  easeInCubic,
-  easeInOutCubic,
-  easeLinear,
   START_FEN,
   generateFileLabels,
   generateRankLabels,
   resolveBoardGeometry,
   fenStringToPositionObject,
+  DEFAULT_ANIMATION_EASING as DEFAULT_ANIMATION_EASING_NAME,
+  resolveAnimationEasing,
 } from './utils';
 import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
@@ -28,6 +27,7 @@ import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventMana
 import type { PgnNotation } from './PgnNotation';
 import type {
   Square,
+  Color,
   BoardOptions,
   Move,
   RulesAdapter,
@@ -57,10 +57,18 @@ import type {
   SquareRenderer,
   PieceRendererMap,
   PieceRenderer,
+  ClockState,
+  ClockStateUpdate,
+  ClockConfig,
+  ClockCallbacks,
+  ClockSideState,
   ThemeOverrides,
   BoardConfiguration,
+  BoardAnimationConfig,
   AnimationEasing,
   AnimationEasingName,
+  StatusHighlight,
+  MoveNotation,
 } from './types';
 
 // ============================================================================
@@ -73,7 +81,6 @@ const SPRITE_SIZE = 128;
 const DEFAULT_BOARD_RANKS = 8;
 const DEFAULT_BOARD_FILES = 8;
 const DEFAULT_GHOST_OPACITY = 0.35;
-const DEFAULT_ANIMATION_EASING: AnimationEasingName = 'ease-out';
 const DRAG_SCALE = 1.05;
 const LEGAL_MOVE_DOT_RADIUS = 0.12;
 const ARROW_HEAD_SIZE_FACTOR = 0.25;
@@ -83,14 +90,6 @@ const MIN_ARROW_THICKNESS = 6;
 const ARROW_OPACITY = 0.95;
 const PREMOVE_EXECUTION_DELAY = 150;
 const POST_MOVE_PREMOVE_DELAY = 50;
-
-const ANIMATION_EASING_FUNCTIONS: Record<AnimationEasingName, (t: number) => number> = {
-  linear: easeLinear,
-  ease: easeInOutCubic,
-  'ease-in': easeInCubic,
-  'ease-out': easeOutCubic,
-  'ease-in-out': easeInOutCubic,
-};
 
 type AnimationEasingId = AnimationEasingName | 'custom';
 
@@ -115,6 +114,13 @@ const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
 ];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
+
+type NormalizedNotationMove = {
+  from: Square;
+  to: Square;
+  promotion?: PromotionPiece;
+  san?: string;
+};
 
 const PIECE_INDEX_MAP: Record<string, number> = {
   k: 0,
@@ -320,6 +326,10 @@ export class NeoChessBoard {
   private inlinePromotionButtons: HTMLButtonElement[] = [];
   private inlinePromotionToken: number | null = null;
 
+  // ---- Clock ----
+  private clockState: ClockState | null = null;
+  private clockCallbacks?: ClockCallbacks;
+
   // ---- Extensions ----
   private extensionStates: ExtensionState[] = [];
   private readonly initialOptions: BoardOptions;
@@ -375,15 +385,20 @@ export class NeoChessBoard {
       : undefined;
     this.customSquareRenderer = options.squareRenderer;
     this.customPieceRenderers = options.pieces ? { ...options.pieces } : undefined;
-    const resolvedAnimationDuration =
-      typeof options.animationDurationInMs === 'number'
-        ? options.animationDurationInMs
-        : options.animationMs;
-    const sanitizedAnimationDuration =
-      typeof resolvedAnimationDuration === 'number' && Number.isFinite(resolvedAnimationDuration)
+    const animationOptions = options.animation;
+    const animationDurationCandidates = [
+      animationOptions?.duration,
+      animationOptions?.durationMs,
+      options.animationDurationInMs,
+      options.animationMs,
+    ];
+    const resolvedAnimationDuration = animationDurationCandidates.find(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value),
+    );
+    this.animationMs =
+      typeof resolvedAnimationDuration === 'number'
         ? Math.max(0, resolvedAnimationDuration)
-        : undefined;
-    this.animationMs = sanitizedAnimationDuration ?? DEFAULT_ANIMATION_MS;
+        : DEFAULT_ANIMATION_MS;
     this.showAnimations = options.showAnimations !== false;
 
     // Initialize feature flags
@@ -418,9 +433,13 @@ export class NeoChessBoard {
         ? clamp(ghostOpacityOption, 0, 1)
         : DEFAULT_GHOST_OPACITY;
     this.dragCancelOnEsc = options.dragCancelOnEsc !== false;
-    this.animationEasingName = DEFAULT_ANIMATION_EASING;
-    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[DEFAULT_ANIMATION_EASING];
-    this._setAnimationEasing(options.animationEasing);
+    const defaultEasing = resolveAnimationEasing(undefined, DEFAULT_ANIMATION_EASING_NAME);
+    this.animationEasingName = defaultEasing.name;
+    this.animationEasingFn = defaultEasing.fn;
+    const hasAnimationEasing =
+      animationOptions && Object.prototype.hasOwnProperty.call(animationOptions, 'easing');
+    const initialEasing = hasAnimationEasing ? animationOptions?.easing : options.animationEasing;
+    this._setAnimationEasing(initialEasing);
     this.arrowOptions = options.arrowOptions;
     this.onArrowsChange = options.onArrowsChange;
     this.controlledArrows = options.arrows;
@@ -445,8 +464,13 @@ export class NeoChessBoard {
     this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(true);
 
+    this._initializeClock(options.clock);
+
     // Initialize extensions
     this._initializeExtensions(options.extensions);
+    if (this.clockState) {
+      this._emitClockNotifications(null, this.clockState);
+    }
 
     // Build and setup
     this.domManager = new BoardDomManager({
@@ -611,6 +635,10 @@ export class NeoChessBoard {
     this._clearInteractionState();
   }
 
+  public loadFEN(fen: string, immediate = true): void {
+    this.loadPosition(fen, immediate);
+  }
+
   public reset(immediate = true): void {
     this._resetRulesAdapter();
     this.loadPosition(this.rules.getFEN(), immediate);
@@ -626,6 +654,7 @@ export class NeoChessBoard {
     this.rules.setFEN(fen);
     this.state = this._parseFEN(this.rules.getFEN());
     this._syncOrientationFromTurn(false);
+    this._syncClockFromTurn(oldTurn);
     this._lastMove = null;
 
     // Execute premove if turn changed
@@ -739,17 +768,31 @@ export class NeoChessBoard {
   // Public API - PGN Management
   // ============================================================================
 
-  public exportPGN(): string {
+  public exportPGN(options: { includeHeaders?: boolean; includeComments?: boolean } = {}): string {
+    const { includeHeaders = true, includeComments = true } = options;
+
+    let pgn = '';
+
     if (typeof this.rules.toPgn === 'function') {
-      return this.rules.toPgn(true);
+      pgn = this.rules.toPgn(includeHeaders);
+    } else if (this.rules.getPGN) {
+      pgn = this.rules.getPGN();
+
+      if (!includeHeaders) {
+        const headerSplitIndex = pgn.indexOf('\n\n');
+        if (headerSplitIndex >= 0) {
+          pgn = pgn.slice(headerSplitIndex + 2);
+        }
+      }
+    } else {
+      console.warn('[NeoChessBoard] The current rules adapter does not support PGN export.');
     }
 
-    if (this.rules.getPGN) {
-      return this.rules.getPGN();
+    if (!includeComments && pgn) {
+      pgn = this._stripPgnComments(pgn);
     }
 
-    console.warn('[NeoChessBoard] The current rules adapter does not support PGN export.');
-    return '';
+    return pgn.trim();
   }
 
   public loadPgnWithAnnotations(pgnString: string): boolean {
@@ -785,6 +828,67 @@ export class NeoChessBoard {
     this._saveAnnotationsToPgn(arrows, circles, comment);
     this._displayAnnotations(arrows, circles);
     this.renderAll();
+  }
+
+  // ============================================================================
+  // Public API - Notation Conversion
+  // ============================================================================
+
+  public convertMoveNotation(
+    notation: string,
+    from: MoveNotation,
+    to: MoveNotation,
+  ): string | null {
+    const normalizedFrom = from.toLowerCase() as MoveNotation;
+    const normalizedTo = to.toLowerCase() as MoveNotation;
+
+    if (!notation.trim()) {
+      return null;
+    }
+
+    if (normalizedFrom === normalizedTo) {
+      return notation.trim();
+    }
+
+    const normalizedMove = this._normalizeNotationInput(notation, normalizedFrom);
+    if (!normalizedMove) {
+      return null;
+    }
+
+    switch (normalizedTo) {
+      case 'san':
+        return this._resolveSanFromMove(normalizedMove);
+      case 'uci':
+        return this._formatUciFromMove(normalizedMove);
+      case 'coord':
+        return this._formatCoordinateFromMove(normalizedMove);
+      default:
+        return null;
+    }
+  }
+
+  public sanToUci(san: string): string | null {
+    return this.convertMoveNotation(san, 'san', 'uci');
+  }
+
+  public sanToCoordinates(san: string): string | null {
+    return this.convertMoveNotation(san, 'san', 'coord');
+  }
+
+  public uciToSan(uci: string): string | null {
+    return this.convertMoveNotation(uci, 'uci', 'san');
+  }
+
+  public uciToCoordinates(uci: string): string | null {
+    return this.convertMoveNotation(uci, 'uci', 'coord');
+  }
+
+  public coordinatesToSan(coordinates: string): string | null {
+    return this.convertMoveNotation(coordinates, 'coord', 'san');
+  }
+
+  public coordinatesToUci(coordinates: string): string | null {
+    return this.convertMoveNotation(coordinates, 'coord', 'uci');
   }
 
   // ============================================================================
@@ -917,13 +1021,7 @@ export class NeoChessBoard {
     }
 
     if (configuration.animation) {
-      const { animation } = configuration;
-      if (typeof animation.durationMs === 'number' && Number.isFinite(animation.durationMs)) {
-        this.animationMs = Math.max(0, animation.durationMs);
-      }
-      if (typeof animation.easing !== 'undefined') {
-        this._setAnimationEasing(animation.easing);
-      }
+      this.setAnimation(configuration.animation);
     }
 
     if ('promotion' in configuration) {
@@ -945,10 +1043,32 @@ export class NeoChessBoard {
   }
 
   public setAnimationDuration(duration: number | undefined): void {
-    if (typeof duration !== 'number' || !Number.isFinite(duration)) {
+    if (typeof duration === 'undefined') {
       return;
     }
-    this.animationMs = Math.max(0, duration);
+    this.setAnimation({ duration });
+  }
+
+  public setAnimation(animation: BoardAnimationConfig | undefined): void {
+    if (!animation) {
+      return;
+    }
+
+    const { duration, durationMs, easing } = animation;
+    const resolvedDuration =
+      typeof duration === 'number' && Number.isFinite(duration)
+        ? duration
+        : typeof durationMs === 'number' && Number.isFinite(durationMs)
+          ? durationMs
+          : undefined;
+
+    if (typeof resolvedDuration === 'number') {
+      this.animationMs = Math.max(0, resolvedDuration);
+    }
+
+    if (typeof easing !== 'undefined') {
+      this._setAnimationEasing(easing);
+    }
   }
 
   public setShowAnimations(show: boolean): void {
@@ -960,19 +1080,14 @@ export class NeoChessBoard {
   }
 
   private _setAnimationEasing(easing: AnimationEasing | undefined): void {
-    if (typeof easing === 'function') {
-      this.animationEasingFn = (value: number) => clamp(easing(clamp(value, 0, 1)), 0, 1);
-      this.animationEasingName = 'custom';
-      return;
-    }
+    const fallbackName: AnimationEasingName =
+      this.animationEasingName === 'custom'
+        ? DEFAULT_ANIMATION_EASING_NAME
+        : this.animationEasingName;
+    const resolved = resolveAnimationEasing(easing, fallbackName);
 
-    const requested = typeof easing === 'string' ? easing : this.animationEasingName;
-    const normalized = (
-      requested in ANIMATION_EASING_FUNCTIONS ? requested : DEFAULT_ANIMATION_EASING
-    ) as AnimationEasingName;
-
-    this.animationEasingName = normalized;
-    this.animationEasingFn = ANIMATION_EASING_FUNCTIONS[normalized];
+    this.animationEasingName = resolved.name;
+    this.animationEasingFn = resolved.fn;
   }
 
   public setDraggingEnabled(enabled: boolean): void {
@@ -1294,6 +1409,41 @@ export class NeoChessBoard {
   }
 
   // ============================================================================
+  // Public API - Clock
+  // ============================================================================
+
+  public getClockState(): ClockState | null {
+    if (!this.clockState) {
+      return null;
+    }
+    return this._cloneClockState(this.clockState);
+  }
+
+  public setClockConfig(clock?: ClockConfig): void {
+    this._initializeClock(clock);
+    if (this.clockState) {
+      this._emitClockNotifications(null, this.clockState);
+    }
+  }
+
+  public setClockCallbacks(callbacks?: ClockCallbacks | null): void {
+    this.clockCallbacks = callbacks ?? undefined;
+  }
+
+  public updateClockState(update: ClockStateUpdate): ClockState | null {
+    if (!this.clockState) {
+      return null;
+    }
+
+    const previous = this._cloneClockState(this.clockState);
+    const next = this._mergeClockState(previous, update);
+    this.clockState = next;
+    this._emitClockNotifications(previous, next);
+
+    return this._cloneClockState(next);
+  }
+
+  // ============================================================================
   // Public API - Event Management
   // ============================================================================
 
@@ -1373,6 +1523,257 @@ export class NeoChessBoard {
 
   private _rasterize(): void {
     this.sprites = new FlatSprites(SPRITE_SIZE, this.theme);
+  }
+
+  // ============================================================================
+  // Private - Clock Management
+  // ============================================================================
+
+  private _initializeClock(clockConfig: ClockConfig | undefined): void {
+    if (!clockConfig) {
+      this.clockState = null;
+      this.clockCallbacks = undefined;
+      return;
+    }
+
+    this.clockCallbacks = clockConfig.callbacks ?? undefined;
+    this.clockState = this._resolveClockState(clockConfig);
+  }
+
+  private _resolveClockState(clockConfig: ClockConfig): ClockState {
+    const white = this._createClockSideState('w', clockConfig);
+    const black = this._createClockSideState('b', clockConfig);
+
+    const defaultTurn = this.state?.turn ?? 'w';
+    const requestedActive = clockConfig.active;
+    let active: Color | null;
+
+    if (requestedActive === 'w' || requestedActive === 'b') {
+      active = requestedActive;
+    } else if (requestedActive === null) {
+      active = null;
+    } else {
+      active = defaultTurn;
+    }
+
+    let isPaused = clockConfig.paused === true;
+    if (active === null) {
+      isPaused = true;
+    }
+
+    let isRunning = !isPaused && active !== null;
+
+    if ((active === 'w' && white.isFlagged) || (active === 'b' && black.isFlagged)) {
+      active = null;
+      isRunning = false;
+      isPaused = true;
+    }
+
+    return {
+      white,
+      black,
+      active,
+      isPaused,
+      isRunning,
+      lastUpdatedAt: null,
+    };
+  }
+
+  private _createClockSideState(color: Color, clockConfig: ClockConfig): ClockSideState {
+    const sideConfig = clockConfig.sides?.[color];
+    const baseInitial = this._resolveClockValue(clockConfig.initial, color) ?? 0;
+    const baseIncrement = this._resolveClockValue(clockConfig.increment, color) ?? 0;
+
+    const initial = this._sanitizeMillis(sideConfig?.initial, baseInitial);
+    const increment = this._sanitizeMillis(sideConfig?.increment, baseIncrement);
+    const remainingFallback =
+      typeof sideConfig?.initial === 'number' ? sideConfig.initial : baseInitial;
+    const remaining = this._sanitizeMillis(sideConfig?.remaining, remainingFallback ?? initial);
+    const clampedRemaining = Math.max(0, remaining);
+
+    return {
+      initial,
+      increment,
+      remaining: clampedRemaining,
+      isFlagged: clampedRemaining <= 0,
+    };
+  }
+
+  private _resolveClockValue(
+    source: number | Partial<Record<Color, number>> | undefined,
+    color: Color,
+  ): number | undefined {
+    if (typeof source === 'number' && Number.isFinite(source)) {
+      return this._sanitizeMillis(source);
+    }
+    if (source && typeof source === 'object') {
+      const candidate = source[color];
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return this._sanitizeMillis(candidate);
+      }
+    }
+    return undefined;
+  }
+
+  private _mergeClockState(current: ClockState, update: ClockStateUpdate): ClockState {
+    const white = this._mergeClockSideState(current.white, update.white);
+    const black = this._mergeClockSideState(current.black, update.black);
+
+    let active =
+      typeof update.active !== 'undefined'
+        ? this._sanitizeActiveColor(update.active)
+        : current.active;
+    let isPaused = typeof update.paused === 'boolean' ? update.paused : current.isPaused;
+    let lastUpdatedAt =
+      typeof update.timestamp !== 'undefined' ? (update.timestamp ?? null) : current.lastUpdatedAt;
+
+    let isRunning: boolean;
+    if (typeof update.running === 'boolean') {
+      isRunning = update.running;
+      if (isRunning && typeof update.paused === 'undefined') {
+        isPaused = false;
+      }
+      if (!isRunning && typeof update.paused === 'undefined') {
+        isPaused = true;
+      }
+    } else {
+      isRunning = !isPaused && active !== null;
+    }
+
+    if (active === null) {
+      isRunning = false;
+      isPaused = true;
+    }
+
+    if ((active === 'w' && white.isFlagged) || (active === 'b' && black.isFlagged)) {
+      active = null;
+      isRunning = false;
+      isPaused = true;
+    }
+
+    if (!isRunning) {
+      lastUpdatedAt = null;
+    }
+
+    return {
+      white,
+      black,
+      active,
+      isPaused,
+      isRunning,
+      lastUpdatedAt,
+    };
+  }
+
+  private _mergeClockSideState(
+    base: ClockSideState,
+    update: Partial<ClockSideState> | undefined,
+  ): ClockSideState {
+    if (!update) {
+      return { ...base };
+    }
+
+    const next: ClockSideState = {
+      initial: base.initial,
+      increment: base.increment,
+      remaining: base.remaining,
+      isFlagged: base.isFlagged,
+    };
+
+    if (typeof update.initial === 'number') {
+      next.initial = this._sanitizeMillis(update.initial);
+    }
+
+    if (typeof update.increment === 'number') {
+      next.increment = this._sanitizeMillis(update.increment);
+    }
+
+    if (typeof update.remaining === 'number') {
+      next.remaining = this._sanitizeMillis(update.remaining);
+      if (next.remaining > 0 && typeof update.isFlagged === 'undefined') {
+        next.isFlagged = false;
+      }
+    }
+
+    if (typeof update.isFlagged === 'boolean') {
+      next.isFlagged = update.isFlagged;
+    }
+
+    if (next.remaining <= 0 && typeof update.isFlagged === 'undefined') {
+      next.remaining = 0;
+      next.isFlagged = true;
+    }
+
+    return next;
+  }
+
+  private _sanitizeMillis(value: unknown, fallback = 0): number {
+    const candidate = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    if (!Number.isFinite(candidate)) {
+      return 0;
+    }
+    return Math.max(0, Math.floor(candidate));
+  }
+
+  private _sanitizeActiveColor(value: Color | null | undefined): Color | null {
+    if (value === 'w' || value === 'b') {
+      return value;
+    }
+    return null;
+  }
+
+  private _cloneClockState(state: ClockState): ClockState {
+    return {
+      white: { ...state.white },
+      black: { ...state.black },
+      active: state.active,
+      isPaused: state.isPaused,
+      isRunning: state.isRunning,
+      lastUpdatedAt: state.lastUpdatedAt,
+    };
+  }
+
+  private _emitClockNotifications(previous: ClockState | null, next: ClockState): void {
+    const changeState = this._cloneClockState(next);
+    this.bus.emit('clockChange', changeState);
+    this.clockCallbacks?.onClockChange?.(this._cloneClockState(next));
+
+    const wasRunning = previous?.isRunning ?? false;
+    if (wasRunning !== next.isRunning) {
+      const eventState = this._cloneClockState(next);
+      if (next.isRunning) {
+        this.bus.emit('clockStart', eventState);
+        this.clockCallbacks?.onClockStart?.(this._cloneClockState(next));
+      } else {
+        this.bus.emit('clockPause', eventState);
+        this.clockCallbacks?.onClockPause?.(this._cloneClockState(next));
+      }
+    }
+
+    const flaggedColors: Color[] = [];
+    if (!previous || (!previous.white.isFlagged && next.white.isFlagged)) {
+      flaggedColors.push('w');
+    }
+    if (!previous || (!previous.black.isFlagged && next.black.isFlagged)) {
+      flaggedColors.push('b');
+    }
+
+    for (const color of flaggedColors) {
+      const payloadState = this._cloneClockState(next);
+      this.bus.emit('clockFlag', { color, state: payloadState });
+      this.clockCallbacks?.onFlag?.({ color, state: this._cloneClockState(next) });
+    }
+  }
+
+  private _syncClockFromTurn(previousTurn: Color): void {
+    if (!this.clockState) {
+      return;
+    }
+    const currentTurn = this.state.turn;
+    if (previousTurn === currentTurn || this.clockState.active === currentTurn) {
+      return;
+    }
+    this.updateClockState({ active: currentTurn });
   }
 
   // ============================================================================
@@ -1977,42 +2378,73 @@ export class NeoChessBoard {
   }
 
   private _drawCheckStatusHighlight(): void {
+    const highlight = this._computeStatusHighlight();
+
+    if (this.drawingManager) {
+      if (highlight) {
+        this.drawingManager.setStatusHighlight(highlight);
+      } else {
+        this.drawingManager.clearStatusHighlight();
+      }
+    }
+
+    if (!highlight || this.drawingManager) {
+      return;
+    }
+
+    this.ctxO.save();
+    this.ctxO.fillStyle = highlight.color;
+    this.ctxO.globalAlpha = highlight.opacity ?? 1;
+
+    if (highlight.mode === 'board') {
+      this._fillCanvas(
+        this.ctxO,
+        'overlay',
+        0,
+        0,
+        this.square * this.filesCount,
+        this.square * this.ranksCount,
+      );
+    } else {
+      for (const sqr of highlight.squares ?? []) {
+        const { x, y } = this._sqToXY(sqr);
+        this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
+      }
+    }
+
+    this.ctxO.restore();
+  }
+
+  private _computeStatusHighlight(): StatusHighlight | null {
     const inCheck = this.rules.inCheck?.() ?? false;
     const checkmate = this.rules.isCheckmate?.() ?? false;
     const stalemate = this.rules.isStalemate?.() ?? false;
 
     if (!inCheck && !checkmate && !stalemate) {
-      return;
+      return null;
     }
-
-    const highlightSquares: Square[] = [];
 
     if (stalemate) {
-      highlightSquares.push(...this.getPieceSquares('K'), ...this.getPieceSquares('k'));
-    } else {
-      const targetColor = this.state.turn;
-      const kingPiece: Piece = targetColor === 'w' ? 'K' : 'k';
-      const [kingSquare] = this.getPieceSquares(kingPiece);
-      if (kingSquare) {
-        highlightSquares.push(kingSquare);
-      }
+      return {
+        mode: 'board',
+        color: this._resolveStatusColor('stalemate'),
+      };
     }
 
-    if (highlightSquares.length === 0) {
-      return;
+    const defendingColor = this.state.turn;
+    const kingPiece: Piece = defendingColor === 'w' ? 'K' : 'k';
+    const [kingSquare] = this.getPieceSquares(kingPiece);
+
+    if (!kingSquare) {
+      return null;
     }
 
-    const fill = checkmate
-      ? this.theme.checkmate
-      : stalemate
-        ? this.theme.stalemate
-        : this.theme.check;
-
-    this.ctxO.fillStyle = fill;
-    for (const sqr of highlightSquares) {
-      const { x, y } = this._sqToXY(sqr);
-      this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
-    }
+    const status: 'check' | 'checkmate' = checkmate ? 'checkmate' : 'check';
+    return {
+      mode: 'squares',
+      squares: [kingSquare],
+      color: this._resolveStatusColor(status),
+    };
   }
 
   private _drawHoverHighlight(): void {
@@ -2027,9 +2459,21 @@ export class NeoChessBoard {
     return this.theme.moveHighlight || this.theme.moveTo;
   }
 
+  private _resolveStatusColor(status: 'check' | 'checkmate' | 'stalemate'): string {
+    const color = this.theme[status];
+    if (typeof color === 'string' && color.length > 0) {
+      return color;
+    }
+    if (status === 'stalemate') {
+      return this.theme.lastMove;
+    }
+    return this._getMoveHighlightColor();
+  }
+
   private _drawDrawingManagerElements(): void {
     if (!this.drawingManager) return;
 
+    this.drawingManager.renderStatusHighlight();
     if (this.showArrows) {
       this.drawingManager.renderArrows();
     }
@@ -2601,6 +3045,106 @@ export class NeoChessBoard {
       to: match[2] as Square,
       promotion: match[3]?.toLowerCase() as PromotionPiece | undefined,
     };
+  }
+
+  private _stripPgnComments(pgn: string): string {
+    return pgn
+      .replace(/\s*\{[^}]*\}\s*/g, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/ ?\n ?/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  private _normalizeNotationInput(
+    notation: string,
+    from: MoveNotation,
+  ): NormalizedNotationMove | null {
+    if (from === 'san') {
+      return this._normalizeMoveFromSan(notation);
+    }
+
+    if (from === 'uci' || from === 'coord') {
+      const parsed = this._parseCoordinateNotation(notation);
+      if (!parsed) {
+        return null;
+      }
+
+      return {
+        from: parsed.from.toLowerCase() as Square,
+        to: parsed.to.toLowerCase() as Square,
+        promotion: parsed.promotion,
+      };
+    }
+
+    return null;
+  }
+
+  private _resolveSanFromMove(move: NormalizedNotationMove): string | null {
+    if (move.san) {
+      return move.san;
+    }
+
+    const chess = this._createNotationChess();
+    if (!chess) {
+      return null;
+    }
+
+    try {
+      const result = chess.move({
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion,
+      });
+
+      return result?.san ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private _formatUciFromMove(move: NormalizedNotationMove): string | null {
+    if (!move.from || !move.to) {
+      return null;
+    }
+
+    const promotion = move.promotion ? move.promotion.toLowerCase() : '';
+    return `${move.from}${move.to}${promotion}`;
+  }
+
+  private _formatCoordinateFromMove(move: NormalizedNotationMove): string | null {
+    return this._formatUciFromMove(move);
+  }
+
+  private _createNotationChess(): Chess | null {
+    try {
+      return new Chess(this.rules.getFEN());
+    } catch {
+      return null;
+    }
+  }
+
+  private _normalizeMoveFromSan(san: string): NormalizedNotationMove | null {
+    const chess = this._createNotationChess();
+    if (!chess) {
+      return null;
+    }
+
+    try {
+      const move = chess.move(san);
+      if (!move) {
+        return null;
+      }
+
+      return {
+        from: move.from as Square,
+        to: move.to as Square,
+        promotion: (move.promotion as PromotionPiece | undefined) ?? undefined,
+        san: move.san,
+      };
+    } catch {
+      return null;
+    }
   }
 
   private _handleClickMove(target: Square): void {

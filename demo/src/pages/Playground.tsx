@@ -1613,7 +1613,7 @@ const PlaygroundView: React.FC = () => {
                 interactive={interactive}
                 autoFlip={autoFlip}
                 allowDrawingArrows={allowDrawingArrows}
-                animationDurationInMs={animationDurationInMs}
+                animation={{ duration: animationDurationInMs }}
                 dragActivationDistance={dragActivationDistance}
                 showArrows
                 showHighlights

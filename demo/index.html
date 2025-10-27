@@ -17,6 +17,19 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="./chess-ui-framework.css" />
+    <style>
+      body {
+        margin: 0;
+        min-block-size: 100vh;
+        background:
+          radial-gradient(circle at top left, hsl(var(--h-accent) 83% 66% / 0.22), transparent 55%),
+          radial-gradient(circle at bottom right, hsl(var(--h-info) 92% 60% / 0.18), transparent 55%),
+          var(--bg-0);
+        color: var(--text-0);
+        font-family: var(--font-sans);
+      }
+    </style>
 
     <!-- Favicon emoji -->
     <link
@@ -25,23 +38,7 @@
     />
   </head>
 
-  <body
-    style="
-      margin: 0;
-      padding: 0;
-      font-family:
-        'Inter',
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        Roboto,
-        sans-serif;
-      overflow-x: hidden;
-      background:
-        radial-gradient(ellipse at top, rgba(79, 70, 229, 0.12) 0%, transparent 60%),
-        linear-gradient(135deg, #0b1426 0%, #0f172a 100%);
-    "
-  >
+  <body>
     <div id="root"></div>
     <script type="module" src="./main.tsx"></script>
   </body>

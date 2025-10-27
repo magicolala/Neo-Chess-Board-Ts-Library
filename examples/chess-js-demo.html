@@ -16,224 +16,299 @@
         }
       }
     </script>
-    <title>Neo Chess Board - Chess.js Integration Demo</title>
+                <title>Neo Chess Board - Chess.js Integration Demo</title>
+    <link rel="stylesheet" href="./chess-ui-framework.css" />
     <style>
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 20px;
-        background: #f5f5f5;
+        padding: var(--sp-xl) var(--sp-lg);
+        background:
+          radial-gradient(circle at top left, hsl(var(--h-accent) 83% 66% / 0.16), transparent 55%),
+          radial-gradient(circle at bottom right, hsl(var(--h-info) 92% 60% / 0.12), transparent 55%),
+          var(--bg-0);
+        color: var(--text-0);
+        min-block-size: 100vh;
       }
 
       .container {
-        max-width: 1400px;
-        margin: 0 auto;
+        max-inline-size: 1280px;
+        margin-inline: auto;
         display: flex;
-        gap: 20px;
         flex-wrap: wrap;
+        gap: var(--sp-lg);
       }
 
       .language-row {
         flex-basis: 100%;
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 10px;
       }
 
       .language-toggle {
-        background: #ffffff;
-        border: 1px solid #d0d0d0;
-        color: #333333;
-        border-radius: 999px;
-        padding: 6px 16px;
-        font-size: 14px;
+        background: var(--bg-input);
+        color: var(--text-0);
+        border: 1px solid var(--bd-accent);
+        border-radius: var(--r-full);
+        padding: var(--sp-xs) var(--sp-md);
+        font-size: var(--fs-400);
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        transition: background 0.2s ease, transform 0.2s ease;
+        transition: transform var(--t-base), box-shadow var(--t-base), background var(--t-base);
+        box-shadow: var(--shadow-sm);
       }
 
       .language-toggle:hover {
-        background: #f0f0f0;
         transform: translateY(-1px);
+        background: var(--bg-hover);
+        box-shadow: var(--shadow-md);
       }
 
       .language-toggle:active {
         transform: translateY(0);
       }
 
-      .board-container {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        flex: 1;
-        min-width: 480px;
+      .board-container,
+      .controls {
+        background: var(--bg-card);
+        border-radius: var(--r-xl);
+        padding: var(--sp-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--bd-0);
       }
 
-      .demo-board {
-        width: min(100%, 520px);
-        margin: 0 auto 24px;
+      .board-container {
+        flex: 1 1 540px;
+        min-inline-size: min(100%, 360px);
       }
 
       .controls {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        width: 350px;
+        flex: 0 0 360px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-md);
       }
 
       h1 {
         text-align: center;
-        color: #333;
-        margin-bottom: 10px;
+        margin-block-end: var(--sp-xs);
       }
 
       .subtitle {
         text-align: center;
-        color: #666;
-        margin-bottom: 30px;
+        color: var(--text-1);
+        margin-block-end: var(--sp-lg);
+      }
+
+      .demo-board {
+        inline-size: min(100%, 520px);
+        margin-inline: auto;
+        margin-block-end: var(--sp-lg);
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
       }
 
       .feature-box {
-        background: #e7f3ff;
-        border-left: 4px solid #2196f3;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 4px;
+        background: hsl(var(--h-info) 92% 60% / 0.14);
+        border-inline-start: 4px solid var(--accent-info);
+        border-radius: var(--r-lg);
+        padding: var(--sp-md);
       }
 
       .feature-box h3 {
-        margin-top: 0;
-        color: #1976d2;
+        margin-block-start: 0;
+        color: var(--accent-info);
       }
 
       .status-box {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 20px;
+        background: var(--bg-1);
+        border: 1px solid var(--bd-1);
+        border-radius: var(--r-lg);
+        padding: var(--sp-md);
+        margin-block-end: var(--sp-md);
       }
 
       .status-box h3 {
-        margin-top: 0;
-        color: #333;
+        margin-block-start: 0;
+        margin-block-end: var(--sp-sm);
+      }
+
+      .move-counter {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: var(--sp-sm);
+        background: hsl(var(--h-accent) 83% 66% / 0.18);
+        border-radius: var(--r-lg);
+        padding: var(--sp-sm) var(--sp-md);
+        margin-block-end: var(--sp-md);
+        border: 1px solid var(--bd-accent);
+      }
+
+      .move-counter strong {
+        display: block;
+        font-size: var(--fs-400);
+        color: var(--text-1);
+      }
+
+      .move-counter span:last-child {
+        font-size: var(--fs-600);
+        font-weight: 700;
+        color: var(--text-0);
       }
 
       .status-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
+        align-items: center;
+        gap: var(--sp-sm);
+        margin-block-end: var(--sp-xs);
       }
 
       .status-value {
-        font-weight: bold;
-      }
-
-      .check {
-        color: #dc3545;
-      }
-
-      .checkmate {
-        color: #dc3545;
-        font-weight: bold;
-      }
-
-      .stalemate {
-        color: #ffc107;
-        font-weight: bold;
-      }
-
-      .normal {
-        color: #28a745;
-      }
-
-      .fifty-warning {
-        color: #ff9800;
         font-weight: 600;
+        color: var(--text-0);
       }
 
-      .fifty-limit {
-        color: #dc3545;
-        font-weight: bold;
+      textarea,
+      input,
+      select {
+        border: 1px solid var(--bd-0);
+        border-radius: var(--r-md);
+        padding: var(--sp-sm);
+        font-size: var(--fs-400);
+        background: var(--bg-input);
+        color: var(--text-0);
+        transition: border-color var(--t-base), box-shadow var(--t-base), background var(--t-base);
       }
 
-      button {
-        background: #2196f3;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin: 5px;
-        font-size: 14px;
-        width: calc(50% - 10px);
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--accent-0);
+        box-shadow: 0 0 0 3px hsl(var(--h-accent) 83% 66% / 0.2);
+        background: var(--bg-hover);
       }
 
-      button:hover {
-        background: #1976d2;
+      textarea {
+        min-block-size: 120px;
+        resize: vertical;
+        font-family: var(--font-mono);
       }
 
-      button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
+      .game-info {
+        background: var(--bg-input);
+        padding: var(--sp-md);
+        border-radius: var(--r-lg);
+        border: 1px solid var(--bd-1);
+        margin-block-start: var(--sp-md);
+      }
+
+      .status {
+        font-weight: 600;
+        padding: var(--sp-xs) var(--sp-sm);
+        border-radius: var(--r-full);
+        margin-inline-start: var(--sp-xs);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-xs);
+      }
+
+      .status.playing {
+        background: hsl(var(--h-success) 65% 47% / 0.18);
+        color: var(--accent-success);
+      }
+      .status.check {
+        background: hsl(var(--h-warning) 95% 52% / 0.18);
+        color: var(--accent-warning);
+      }
+      .status.checkmate {
+        background: hsl(var(--h-error) 86% 58% / 0.18);
+        color: var(--accent-error);
       }
 
       .moves-list {
-        max-height: 150px;
+        max-block-size: 180px;
         overflow-y: auto;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        padding: 10px;
-        font-family: monospace;
-        font-size: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--bd-1);
+        border-radius: var(--r-lg);
+        padding: var(--sp-sm);
+        margin-block-start: var(--sp-sm);
       }
 
-      .move-counter {
-        text-align: center;
-        padding: 10px;
-        background: #007bff;
-        color: white;
-        border-radius: 4px;
-        margin-bottom: 15px;
+      .controls h3 {
+        margin: 0;
       }
 
       .comparison {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 20px;
+        background: hsl(var(--h-warning) 95% 52% / 0.18);
+        border: 1px solid hsl(var(--h-warning) 95% 52% / 0.35);
+        border-radius: var(--r-lg);
+        padding: var(--sp-md);
+        margin-block-end: var(--sp-md);
       }
 
       .comparison h3 {
-        margin-top: 0;
-        color: #856404;
+        margin: 0 0 var(--sp-xs) 0;
+        color: var(--accent-warning);
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: hsl(233 40% 8% / 0.65);
+        backdrop-filter: blur(4px);
+        z-index: var(--z-3);
+      }
+
+      .modal-dialog {
+        position: absolute;
+        inset-block-start: 50%;
+        inset-inline-start: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--bg-card);
+        border-radius: var(--r-xl);
+        border: 1px solid var(--bd-0);
+        padding: var(--sp-lg);
+        inline-size: min(90vw, 600px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--sp-sm);
+        margin-block-start: var(--sp-md);
+      }
+
+      .modal-footer button {
+        inline-size: auto;
       }
 
       @media (max-width: 1024px) {
-        .board-container {
-          min-width: 100%;
-        }
-
-        .controls {
-          width: 100%;
-        }
-
-        button {
-          width: calc(50% - 10px);
-        }
-      }
-
-      @media (max-width: 640px) {
         .container {
           flex-direction: column;
         }
 
-        button {
-          width: 100%;
+        .controls {
+          flex: 1 1 auto;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: var(--sp-lg) var(--sp-md);
+        }
+
+        .board-container,
+        .controls {
+          padding: var(--sp-md);
+        }
+
+        .modal-dialog {
+          inline-size: min(92vw, 520px);
         }
       }
     </style>
@@ -312,80 +387,41 @@
         </div>
 
         <h3 data-i18n="actions.heading">Quick actions:</h3>
-        <button onclick="resetGame()" data-i18n="actions.reset">🔄 New game</button>
-        <button onclick="undoMove()" id="undo-btn" data-i18n="actions.undo">↶ Undo</button>
-        <button onclick="loadPosition('scholar')" data-i18n="actions.scholar">🎓 Scholar's mate</button>
-        <button onclick="loadPosition('stalemate')" data-i18n="actions.stalemate">⚖️ Stalemate scenario</button>
-        <button onclick="loadPosition('endgame')" data-i18n="actions.endgame">♔ Endgame practice</button>
-        <button onclick="loadPosition('castling')" data-i18n="actions.castling">🏰 Castle test</button>
-        <button onclick="loadFamousGame()" data-i18n="actions.famous">🌟 Immortal Game</button>
+        <button class="chess-btn chess-btn--primary" onclick="resetGame()" data-i18n="actions.reset">🔄 New game</button>
+        <button class="chess-btn chess-btn--secondary" onclick="undoMove()" id="undo-btn" data-i18n="actions.undo">↶ Undo</button>
+        <button class="chess-btn chess-btn--secondary" onclick="loadPosition('scholar')" data-i18n="actions.scholar">🎓 Scholar's mate</button>
+        <button class="chess-btn chess-btn--secondary" onclick="loadPosition('stalemate')" data-i18n="actions.stalemate">⚖️ Stalemate scenario</button>
+        <button class="chess-btn chess-btn--secondary" onclick="loadPosition('endgame')" data-i18n="actions.endgame">♔ Endgame practice</button>
+        <button class="chess-btn chess-btn--secondary" onclick="loadPosition('castling')" data-i18n="actions.castling">🏰 Castle test</button>
+        <button class="chess-btn chess-btn--secondary" onclick="loadFamousGame()" data-i18n="actions.famous">🌟 Immortal Game</button>
 
         <h3 data-i18n="export.heading">PGN export:</h3>
-        <button onclick="exportPgn()" data-i18n="export.view">📄 View PGN</button>
-        <button onclick="downloadPgn()" data-i18n="export.download">💾 Download PGN</button>
-        <button onclick="showLoadPgnDialog()" data-i18n="export.load">📂 Load PGN</button>
-        <button onclick="copyPgnToClipboard()" data-i18n="export.copy">📋 Copy PGN</button>
+        <button class="chess-btn chess-btn--secondary" onclick="exportPgn()" data-i18n="export.view">📄 View PGN</button>
+        <button class="chess-btn chess-btn--secondary" onclick="downloadPgn()" data-i18n="export.download">💾 Download PGN</button>
+        <button class="chess-btn chess-btn--secondary" onclick="showLoadPgnDialog()" data-i18n="export.load">📂 Load PGN</button>
+        <button class="chess-btn chess-btn--secondary" onclick="copyPgnToClipboard()" data-i18n="export.copy">📋 Copy PGN</button>
 
         <h3 data-i18n="history.heading">Move history:</h3>
         <div class="moves-list" id="moves-history" data-i18n="history.initial">Initial position</div>
 
-        <div
-          id="pgn-modal"
-          style="
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-          "
-        >
-          <div
-            style="
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              background: white;
-              padding: 20px;
-              border-radius: 8px;
-              max-width: 600px;
-              width: 90%;
-            "
-          >
+        <div id="pgn-modal" class="modal-overlay">
+          <div class="modal-dialog">
             <h3 id="modal-title" data-i18n="modal.title.default">PGN viewer</h3>
-            <textarea
-              id="pgn-content"
-              style="
-                width: 100%;
-                height: 200px;
-                font-family: monospace;
-                font-size: 12px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 10px;
-                resize: vertical;
-              "
-            ></textarea>
-            <div style="margin-top: 15px; text-align: right">
-              <button
-                onclick="closePgnModal()"
-                style="background: #6c757d; margin-right: 10px"
-                data-i18n="modal.button.close"
-              >
+            <textarea id="pgn-content" class="chess-input chess-textarea"></textarea>
+            <div class="modal-footer">
+              <button class="chess-btn chess-btn--secondary" onclick="closePgnModal()" data-i18n="modal.button.close">
                 Close
               </button>
               <button
                 id="load-pgn-btn"
+                class="chess-btn chess-btn--success"
                 onclick="loadFromPgn()"
-                style="display: none; background: #28a745"
+                hidden
                 data-i18n="modal.button.load"
               >
                 Load
               </button>
-              <button onclick="copyPgnToClipboard()" style="background: #007bff" data-i18n="modal.button.copy">
+              <button class="chess-btn chess-btn--primary" onclick="copyPgnToClipboard()" data-i18n="modal.button.copy">
                 Copy
               </button>
             </div>
@@ -642,7 +678,7 @@
           modalTitle.textContent = translate('modal.title.exportCurrent');
           document.getElementById('pgn-content').value = pgn;
           const loadButton = document.getElementById('load-pgn-btn');
-          loadButton.style.display = 'none';
+          loadButton.hidden = true;
           document.getElementById('pgn-modal').style.display = 'block';
         };
 
@@ -657,7 +693,7 @@
           modalTitle.textContent = translate('modal.title.loadPrompt');
           document.getElementById('pgn-content').value = '';
           const loadButton = document.getElementById('load-pgn-btn');
-          loadButton.style.display = 'inline-block';
+          loadButton.hidden = false;
           document.getElementById('pgn-modal').style.display = 'block';
         };
 
@@ -713,7 +749,7 @@
           modalTitle.dataset.i18n = 'modal.title.famous';
           modalTitle.textContent = translate('modal.title.famous');
           const loadButton = document.getElementById('load-pgn-btn');
-          loadButton.style.display = 'inline-block';
+          loadButton.hidden = false;
           document.getElementById('pgn-modal').style.display = 'block';
         };
 

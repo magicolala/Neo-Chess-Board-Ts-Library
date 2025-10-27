@@ -767,7 +767,7 @@ const AppContent: React.FC = () => {
               allowPremoves={boardOptions.allowPremoves}
               soundEnabled={boardOptions.soundEnabled}
               showAnimations={boardOptions.showAnimations}
-              animationDurationInMs={boardOptions.animationDuration}
+              animation={{ duration: boardOptions.animationDuration }}
               soundUrl={moveSound}
               soundEventUrls={{
                 move: moveSound,

@@ -3,6 +3,7 @@ import builtinThumbnail from './thumbnails/builtin.svg';
 import { flatPieceSet, flatPieceSetMetadata } from './flat';
 import { glossyPieceSet, glossyPieceSetMetadata } from './glossy';
 import { pixelPieceSet, pixelPieceSetMetadata } from './pixel';
+import { customPieceSet, customPieceSetMetadata } from './custom';
 import type { PlaygroundPieceSetMetadata } from './types';
 
 export type { PlaygroundPieceSetMetadata } from './types';
@@ -21,6 +22,7 @@ export const playgroundPieceSets: PlaygroundPieceSetMetadata[] = [
   flatPieceSetMetadata,
   glossyPieceSetMetadata,
   pixelPieceSetMetadata,
+  customPieceSetMetadata,
 ];
 
 export const pieceSetById = new Map<string, PlaygroundPieceSetMetadata>(
@@ -32,6 +34,7 @@ export const pieceSetValueById = new Map<string, PieceSet | undefined>([
   [flatPieceSetMetadata.id, flatPieceSet],
   [glossyPieceSetMetadata.id, glossyPieceSet],
   [pixelPieceSetMetadata.id, pixelPieceSet],
+  [customPieceSetMetadata.id, customPieceSet],
 ]);
 
 export const pieceSetSnippetById = new Map<string, PlaygroundPieceSetMetadata['snippet']>(

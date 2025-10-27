@@ -9,6 +9,7 @@ import type {
   PromotionPiece,
   ArrowStyleOptions,
   NotationStyleOptions,
+  StatusHighlight,
 } from './types';
 import {
   FILES,
@@ -28,7 +29,10 @@ type ModifierState = Partial<Record<ModifierKey, boolean>>;
 type ManagedHighlightType = Exclude<HighlightType, 'circle'>;
 type ArrowInput = Pick<Arrow, 'from' | 'to'> & Partial<Omit<Arrow, 'from' | 'to'>>;
 type NormalizedArrow = Arrow & Required<Pick<Arrow, 'width' | 'opacity' | 'knightMove'>>;
-type DrawingStateInternal = Omit<DrawingState, 'arrows'> & { arrows: NormalizedArrow[] };
+type DrawingStateInternal = Omit<DrawingState, 'arrows' | 'statusHighlight'> & {
+  arrows: NormalizedArrow[];
+  statusHighlight: StatusHighlight | null;
+};
 type DrawingAction =
   | { type: 'none' }
   | ({ type: 'drawing_arrow'; startSquare: Square } & ModifierState);
@@ -115,6 +119,7 @@ export class DrawingManager {
     highlights: [],
     premove: undefined,
     promotionPreview: undefined,
+    statusHighlight: null,
   };
 
   private readonly canvas: HTMLCanvasElement;
@@ -420,6 +425,28 @@ export class DrawingManager {
 
   public clearHighlights(): void {
     this.state.highlights = [];
+  }
+
+  public setStatusHighlight(highlight: StatusHighlight): void {
+    this.state.statusHighlight = {
+      ...highlight,
+      squares: highlight.squares ? [...highlight.squares] : undefined,
+    };
+  }
+
+  public clearStatusHighlight(): void {
+    this.state.statusHighlight = null;
+  }
+
+  public getStatusHighlight(): StatusHighlight | null {
+    const highlight = this.state.statusHighlight;
+    if (!highlight) {
+      return null;
+    }
+    return {
+      ...highlight,
+      squares: highlight.squares ? [...highlight.squares] : undefined,
+    };
   }
 
   /**
@@ -800,6 +827,29 @@ export class DrawingManager {
   }
 
   // Highlight rendering
+  private drawStatusHighlight(ctx: CanvasRenderingContext2D): void {
+    const highlight = this.state.statusHighlight;
+    if (!highlight) {
+      return;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = highlight.opacity ?? 1;
+    ctx.fillStyle = highlight.color;
+
+    if (highlight.mode === 'board') {
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    } else {
+      const squares = highlight.squares ?? [];
+      for (const square of squares) {
+        const [x, y] = this.squareToCoords(square);
+        ctx.fillRect(x, y, this.squareSize, this.squareSize);
+      }
+    }
+
+    ctx.restore();
+  }
+
   public drawHighlights(ctx: CanvasRenderingContext2D): void {
     ctx.save();
 
@@ -981,6 +1031,14 @@ export class DrawingManager {
       promotionPreview: this.state.promotionPreview
         ? { ...this.state.promotionPreview }
         : undefined,
+      statusHighlight: this.state.statusHighlight
+        ? {
+            ...this.state.statusHighlight,
+            squares: this.state.statusHighlight.squares
+              ? [...this.state.statusHighlight.squares]
+              : undefined,
+          }
+        : undefined,
     };
   }
 
@@ -999,6 +1057,16 @@ export class DrawingManager {
         this.state.promotionPreview = state.promotionPreview
           ? { ...state.promotionPreview }
           : undefined;
+      }
+      if (state.statusHighlight !== undefined) {
+        this.state.statusHighlight = state.statusHighlight
+          ? {
+              ...state.statusHighlight,
+              squares: state.statusHighlight.squares
+                ? [...state.statusHighlight.squares]
+                : undefined,
+            }
+          : null;
       }
     });
   }
@@ -1224,6 +1292,10 @@ export class DrawingManager {
     this.addHighlight(square, highlightType);
   }
 
+  public renderStatusHighlight(): void {
+    this.withContext((ctx) => this.drawStatusHighlight(ctx));
+  }
+
   public renderPremove(): void {
     this.withContext((ctx) => this.drawPremove(ctx));
   }
@@ -1328,6 +1400,7 @@ export class DrawingManager {
     this.state.highlights = [];
     this.state.premove = undefined;
     this.state.promotionPreview = undefined;
+    this.state.statusHighlight = null;
     if (hadArrows) {
       this.notifyArrowsChange();
     }
