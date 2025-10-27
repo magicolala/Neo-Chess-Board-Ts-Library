@@ -96,4 +96,24 @@ describe('NeoChessBoard.configure', () => {
 
     renderSpy.mockRestore();
   });
+
+  it('updates promotion configuration', () => {
+    board.configure({ promotion: { autoQueen: true, ui: 'inline' } });
+
+    const promotionOptions = getPrivate<{ autoQueen: boolean; ui: 'dialog' | 'inline' }>(
+      board,
+      'promotionOptions',
+    );
+    expect(promotionOptions).toEqual({ autoQueen: true, ui: 'inline' });
+  });
+
+  it('resolves pending promotions when enabling autoQueen via configure', () => {
+    board.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
+    board.attemptMove('e7', 'e8');
+
+    board.configure({ promotion: { autoQueen: true } });
+
+    expect(board.getPieceAt('e8')).toBe('Q');
+    expect(board.isPromotionPending()).toBe(false);
+  });
 });
