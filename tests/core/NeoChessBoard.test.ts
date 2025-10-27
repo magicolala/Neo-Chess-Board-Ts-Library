@@ -1,6 +1,7 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import type { BoardAudioManager } from '../../src/core/BoardAudioManager';
 import type { BoardEventManager } from '../../src/core/BoardEventManager';
+import type { DrawingManager } from '../../src/core/DrawingManager';
 import { BoardDomManager } from '../../src/core/BoardDomManager';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
@@ -12,6 +13,9 @@ import type {
   RulesAdapter,
   RulesMoveResponse,
   Move,
+  Premove,
+  StatusHighlight,
+  Theme,
 } from '../../src/core/types';
 import {
   START_FEN,
@@ -392,11 +396,18 @@ describe('NeoChessBoard Core', () => {
       expect(typeof fen).toBe('string');
     });
 
-    it('applies animationDurationInMs when provided', () => {
+    it('applies animation.duration when provided', () => {
       board.destroy();
-      board = new NeoChessBoard(container, { animationDurationInMs: 150 });
+      board = new NeoChessBoard(container, { animation: { duration: 150 } });
 
       expect(getPrivate<number>(board, 'animationMs')).toBe(150);
+    });
+
+    it('supports legacy animationDurationInMs when provided', () => {
+      board.destroy();
+      board = new NeoChessBoard(container, { animationDurationInMs: 160 });
+
+      expect(getPrivate<number>(board, 'animationMs')).toBe(160);
     });
 
     it('configures pointer bindings based on allowDragging option', () => {
@@ -411,6 +422,26 @@ describe('NeoChessBoard Core', () => {
 
       expect(getPrivate<boolean>(eventManager, 'globalPointerEventsAttached')).toBe(true);
       expect(getPrivate<boolean>(eventManager, 'localPointerEventsAttached')).toBe(false);
+    });
+  });
+
+  describe('Animation configuration', () => {
+    it('updates duration and easing through setAnimation', () => {
+      board.setAnimation({ duration: 180, easing: 'linear' });
+
+      expect(getPrivate<number>(board, 'animationMs')).toBe(180);
+      expect(getPrivate(board, 'animationEasingName')).toBe('linear');
+    });
+
+    it('supports custom easing functions when configuring animation', () => {
+      const easing = (t: number) => t * t;
+
+      board.setAnimation({ easing });
+
+      expect(getPrivate(board, 'animationEasingName')).toBe('custom');
+      const easingFn = getPrivate<(value: number) => number>(board, 'animationEasingFn');
+      expect(easingFn(0.5)).toBeCloseTo(0.25);
+      expect(easingFn(1.5)).toBe(1);
     });
   });
 
@@ -466,6 +497,16 @@ describe('NeoChessBoard Core', () => {
         board.setFEN(testFEN, true);
       }).not.toThrow();
     });
+
+    it('provides loadFEN alias for loadPosition', () => {
+      const testFEN = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+      const loadPositionSpy = jest.spyOn(board, 'loadPosition');
+
+      board.loadFEN(testFEN, false);
+
+      expect(loadPositionSpy).toHaveBeenCalledWith(testFEN, false);
+      loadPositionSpy.mockRestore();
+    });
   });
 
   describe('Piece lookup', () => {
@@ -518,6 +559,101 @@ describe('NeoChessBoard Core', () => {
     });
   });
 
+  describe('PGN export options', () => {
+    let originalRules: RulesAdapter;
+    let buildStubRules: (overrides?: Partial<RulesAdapter>) => RulesAdapter;
+
+    beforeEach(() => {
+      originalRules = getPrivate<RulesAdapter>(board, 'rules');
+      buildStubRules = (overrides: Partial<RulesAdapter> = {}): RulesAdapter => {
+        const boundMove = originalRules.move.bind(originalRules) as RulesAdapter['move'];
+        return {
+          setFEN: originalRules.setFEN.bind(originalRules),
+          getFEN: originalRules.getFEN.bind(originalRules),
+          turn: originalRules.turn.bind(originalRules),
+          movesFrom: originalRules.movesFrom.bind(originalRules),
+          move: boundMove,
+          undo: originalRules.undo.bind(originalRules),
+          isDraw: originalRules.isDraw.bind(originalRules),
+          isInsufficientMaterial: originalRules.isInsufficientMaterial.bind(originalRules),
+          isThreefoldRepetition: originalRules.isThreefoldRepetition.bind(originalRules),
+          ...overrides,
+        };
+      };
+    });
+
+    afterEach(() => {
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', originalRules);
+    });
+
+    it('passes includeHeaders to adapters that support toPgn', () => {
+      const samplePgn = '[Event "Test"]\n\n1. e4 e5 1-0';
+      const toPgn = jest.fn((includeHeaders?: boolean) =>
+        includeHeaders === false ? '1. e4 e5 1-0' : samplePgn,
+      );
+      const stubRules = buildStubRules({ toPgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeHeaders: false });
+
+      expect(toPgn).toHaveBeenCalledWith(false);
+      expect(output).toBe('1. e4 e5 1-0');
+    });
+
+    it('removes comments when includeComments is false', () => {
+      const samplePgn = '[Event "Test"]\n\n1. e4 {comment} e5 {reply} 1-0';
+      const toPgn = jest.fn(() => samplePgn);
+      const stubRules = buildStubRules({ toPgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeComments: false });
+
+      expect(output).toBe('[Event "Test"]\n\n1. e4 e5 1-0');
+    });
+
+    it('strips headers when falling back to getPGN', () => {
+      const samplePgn = '[Event "Test"]\n[Site "Somewhere"]\n\n1. e4 e5 1-0';
+      const stubRules = buildStubRules({ toPgn: undefined, getPGN: () => samplePgn });
+
+      Reflect.set(board as unknown as Record<string, unknown>, 'rules', stubRules);
+
+      const output = board.exportPGN({ includeHeaders: false });
+
+      expect(output).toBe('1. e4 e5 1-0');
+    });
+  });
+
+  describe('Notation conversion', () => {
+    it('converts SAN moves to UCI and coordinate notation', () => {
+      board.setFEN(START_FEN, true);
+
+      expect(board.sanToUci('e4')).toBe('e2e4');
+      expect(board.sanToCoordinates('e4')).toBe('e2e4');
+    });
+
+    it('converts coordinate notation to SAN', () => {
+      board.setFEN(START_FEN, true);
+
+      expect(board.coordinatesToSan('e2e4')).toBe('e4');
+      expect(board.uciToSan('g1f3')).toBe('Nf3');
+    });
+
+    it('handles promotions when translating between notations', () => {
+      const promotionFen = '7k/4P3/8/8/8/8/8/4K3 w - - 0 1';
+      board.setFEN(promotionFen, true);
+
+      expect(board.coordinatesToSan('e7e8q')).toBe('e8=Q+');
+      expect(board.sanToUci('e8=Q+')).toBe('e7e8q');
+    });
+
+    it('returns null for invalid notation', () => {
+      expect(board.convertMoveNotation('invalid', 'san', 'uci')).toBeNull();
+      expect(board.convertMoveNotation('a1a9', 'uci', 'san')).toBeNull();
+    });
+  });
+
   describe('Undo functionality', () => {
     it('should undo the last move, reset selections, and emit update', () => {
       const initialFen = board.getCurrentFEN();
@@ -532,9 +668,12 @@ describe('NeoChessBoard Core', () => {
 
       const drawingManager = getPrivate<{
         setPremove: (from: Square, to: Square, promotion?: Move['promotion']) => void;
-        clearPremove: () => void;
+        setPremoveQueues: (
+          queues: Partial<Record<'w' | 'b', Premove[]>> | undefined,
+          active?: unknown,
+        ) => void;
       }>(board, 'drawingManager');
-      const clearPremoveSpy = jest.spyOn(drawingManager, 'clearPremove');
+      const setQueuesSpy = jest.spyOn(drawingManager, 'setPremoveQueues');
 
       drawingManager.setPremove('a2', 'a3');
       Reflect.set(board as unknown as Record<string, unknown>, '_premove', {
@@ -552,7 +691,7 @@ describe('NeoChessBoard Core', () => {
       expect(getPrivate<Square | null>(board, '_selected')).toBeNull();
       expect(getPrivate<unknown>(board, '_premove')).toBeNull();
       expect(getPrivate<unknown>(board, '_lastMove')).toBeNull();
-      expect(clearPremoveSpy).toHaveBeenCalled();
+      expect(setQueuesSpy).toHaveBeenCalled();
       expect(updateSpy).toHaveBeenCalledTimes(1);
       expect(updateSpy).toHaveBeenCalledWith({ fen: initialFen });
     });
@@ -942,6 +1081,99 @@ describe('NeoChessBoard Core', () => {
       });
     });
 
+    describe('status highlights', () => {
+      const resolveStatusColor = (status: 'check' | 'checkmate' | 'stalemate'): string => {
+        const theme = getPrivate<Theme>(board, 'theme');
+        switch (status) {
+          case 'stalemate':
+            return theme.stalemate ?? theme.lastMove;
+          case 'checkmate':
+            return theme.checkmate ?? theme.moveHighlight ?? theme.moveTo;
+          default:
+            return theme.check ?? theme.moveHighlight ?? theme.moveTo;
+        }
+      };
+
+      it('highlights the defending king when the side to move is in check', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+
+        board.setFEN('4k3/8/8/8/8/8/4Q3/4K3 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('squares');
+        expect(highlight.squares).toEqual(['e8']);
+        expect(highlight.color).toBe(resolveStatusColor('check'));
+
+        setStatusHighlightSpy.mockRestore();
+      });
+
+      it('uses the checkmate color when the current player is checkmated', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+
+        const rules = getPrivate<RulesAdapter>(board, 'rules') as RulesAdapter & {
+          inCheck?: () => boolean;
+          isCheckmate?: () => boolean;
+        };
+        const originalInCheck = rules.inCheck;
+        const originalIsCheckmate = rules.isCheckmate;
+        rules.inCheck = () => true;
+        rules.isCheckmate = () => true;
+
+        board.setFEN('6k1/8/6K1/8/8/8/8/8 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('squares');
+        expect(highlight.squares).toEqual(['g8']);
+        expect(highlight.color).toBe(resolveStatusColor('checkmate'));
+
+        if (originalInCheck) {
+          rules.inCheck = originalInCheck;
+        }
+        if (originalIsCheckmate) {
+          rules.isCheckmate = originalIsCheckmate;
+        }
+
+        setStatusHighlightSpy.mockRestore();
+      });
+
+      it('fills the board during stalemate and clears the highlight afterwards', () => {
+        const drawingManager = getPrivate<DrawingManager>(board, 'drawingManager');
+        const setStatusHighlightSpy = jest.spyOn(drawingManager, 'setStatusHighlight');
+        const clearStatusHighlightSpy = jest.spyOn(drawingManager, 'clearStatusHighlight');
+
+        board.setFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1', true);
+
+        expect(setStatusHighlightSpy).toHaveBeenCalled();
+        const lastCall =
+          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const highlight = lastCall[0] as StatusHighlight;
+
+        expect(highlight.mode).toBe('board');
+        expect(highlight.color).toBe(resolveStatusColor('stalemate'));
+
+        clearStatusHighlightSpy.mockClear();
+        setStatusHighlightSpy.mockClear();
+
+        board.setFEN(START_FEN, true);
+
+        expect(clearStatusHighlightSpy).toHaveBeenCalled();
+        expect(setStatusHighlightSpy).not.toHaveBeenCalled();
+
+        setStatusHighlightSpy.mockRestore();
+        clearStatusHighlightSpy.mockRestore();
+      });
+    });
+
     it('should toggle arrow visibility and trigger rerender', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
       renderSpy.mockClear();
@@ -1002,22 +1234,22 @@ describe('NeoChessBoard Core', () => {
 
     it('should clear premoves when disabling them', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
-      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+      const setQueuesSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       renderSpy.mockClear();
 
       board.setAllowPremoves(false);
 
       expect(getPrivate<boolean>(board, 'allowPremoves')).toBe(false);
-      expect(clearSpy).toHaveBeenCalled();
+      expect(setQueuesSpy).toHaveBeenCalledWith(undefined, undefined);
       expect(renderSpy).toHaveBeenCalled();
 
-      clearSpy.mockRestore();
+      setQueuesSpy.mockRestore();
       renderSpy.mockRestore();
     });
 
     it('should not set premove when premoves are disabled', () => {
-      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       board.setAllowPremoves(false);
       setSpy.mockClear();
@@ -1031,15 +1263,19 @@ describe('NeoChessBoard Core', () => {
 
     it('should forward premove operations to drawing manager when enabled', () => {
       const renderSpy = jest.spyOn(board, 'renderAll');
-      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveFromObject');
-      const clearSpy = jest.spyOn(board.drawingManager, 'clearPremove');
+      const setSpy = jest.spyOn(board.drawingManager, 'setPremoveQueues');
 
       renderSpy.mockClear();
 
       board.setAllowPremoves(true);
-      board.setPremove({ from: 'e2', to: 'e4' });
+      board.setPremove({ from: 'e7', to: 'e5' });
 
-      expect(setSpy).toHaveBeenCalledWith({ from: 'e2', to: 'e4' });
+      expect(setSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          b: [expect.objectContaining({ from: 'e7', to: 'e5' })],
+        }),
+        expect.any(Object),
+      );
       expect(renderSpy).toHaveBeenCalled();
 
       board.drawingManager.setPremove('e7', 'e5');
@@ -1048,10 +1284,9 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(clearSpy).toHaveBeenCalled();
+      expect(setSpy).toHaveBeenLastCalledWith(undefined, undefined);
       expect(renderSpy).toHaveBeenCalled();
 
-      clearSpy.mockRestore();
       setSpy.mockRestore();
       renderSpy.mockRestore();
     });
@@ -1435,6 +1670,21 @@ describe('NeoChessBoard Core', () => {
       rightDownSpy.mockRestore();
       rightUpSpy.mockRestore();
       highlightSpy.mockRestore();
+    });
+
+    it('clears queued premoves when cancelling with a right-click', () => {
+      board.premove.enable({ multi: true, color: 'white' });
+      board.setPremove({ from: 'e2', to: 'e4' }, 'white');
+      board.setPremove({ from: 'd2', to: 'd4' }, 'white');
+
+      expect(board.premove.getQueue('white')).toHaveLength(2);
+
+      const rightDown = createPointerEventForSquare(2, 'e4');
+      onPointerDown(rightDown.event);
+      onPointerUp(createPointerEventForSquare(2, 'e4').event);
+
+      expect(board.premove.getQueue('white')).toHaveLength(0);
+      expect(board.getPremove()).toBeNull();
     });
 
     it('allows moving a piece by selecting it and clicking the destination square', () => {

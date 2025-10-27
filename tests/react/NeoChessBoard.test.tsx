@@ -42,6 +42,7 @@ const mockBoard = {
   setArrowOptions: jest.fn(),
   setArrows: jest.fn(),
   setOnArrowsChange: jest.fn(),
+  setAnimation: jest.fn(),
   setAnimationDuration: jest.fn(),
   setShowAnimations: jest.fn(),
   setDraggingEnabled: jest.fn(),
@@ -237,7 +238,7 @@ describe('NeoChessBoard React Component', () => {
 
       unmount();
 
-      expect(unsubscribe).toHaveBeenCalledTimes(12); // All registered events
+      expect(unsubscribe).toHaveBeenCalledTimes(16); // All registered events including clock listeners
     });
 
     it.each([
@@ -447,6 +448,7 @@ describe('NeoChessBoard React Component', () => {
         mockBoard.setAllowDragOffBoard,
         mockBoard.setShowAnimations,
         mockBoard.setDragActivationDistance,
+        mockBoard.setAnimation,
         mockBoard.setAnimationDuration,
         mockBoard.setCanDragPiece,
         mockBoard.setAllowDrawingArrows,
@@ -494,6 +496,7 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.setAllowDragOffBoard).toHaveBeenCalledWith(true);
       expect(mockBoard.setShowAnimations).toHaveBeenCalledWith(true);
       expect(mockBoard.setDragActivationDistance).toHaveBeenCalledWith(4);
+      expect(mockBoard.setAnimation).not.toHaveBeenCalled();
       expect(mockBoard.setAnimationDuration).toHaveBeenCalledWith(350);
       expect(mockBoard.setCanDragPiece).toHaveBeenCalledWith(nextCanDragPiece);
       expect(mockBoard.setAllowDrawingArrows).toHaveBeenCalledWith(true);
@@ -501,6 +504,25 @@ describe('NeoChessBoard React Component', () => {
       expect(mockBoard.setArrowOptions).toHaveBeenCalledWith({ width: 5, opacity: 0.7 });
       expect(mockBoard.setArrows).toHaveBeenCalledWith(nextArrows);
       expect(mockBoard.setOnArrowsChange).toHaveBeenCalledWith(nextArrowsChange);
+    });
+
+    it('forwards animation configuration changes', async () => {
+      const initialAnimation = { duration: 180, easing: 'ease-in' as const };
+      const nextAnimation = { duration: 220, easing: 'ease-out' as const };
+
+      const { rerender } = render(<NeoChessBoard animation={initialAnimation} />);
+
+      await waitFor(() => {
+        expect(mockBoard.setAnimation).toHaveBeenCalledWith(initialAnimation);
+      });
+
+      mockBoard.setAnimation.mockClear();
+
+      rerender(<NeoChessBoard animation={nextAnimation} />);
+
+      await waitFor(() => {
+        expect(mockBoard.setAnimation).toHaveBeenCalledWith(nextAnimation);
+      });
     });
 
     it('should call applyTheme when theme prop is a custom object', () => {

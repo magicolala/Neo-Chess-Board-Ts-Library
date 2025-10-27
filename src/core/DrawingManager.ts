@@ -9,6 +9,7 @@ import type {
   PromotionPiece,
   ArrowStyleOptions,
   NotationStyleOptions,
+  StatusHighlight,
 } from './types';
 import {
   FILES,
@@ -28,7 +29,10 @@ type ModifierState = Partial<Record<ModifierKey, boolean>>;
 type ManagedHighlightType = Exclude<HighlightType, 'circle'>;
 type ArrowInput = Pick<Arrow, 'from' | 'to'> & Partial<Omit<Arrow, 'from' | 'to'>>;
 type NormalizedArrow = Arrow & Required<Pick<Arrow, 'width' | 'opacity' | 'knightMove'>>;
-type DrawingStateInternal = Omit<DrawingState, 'arrows'> & { arrows: NormalizedArrow[] };
+type DrawingStateInternal = Omit<DrawingState, 'arrows' | 'statusHighlight'> & {
+  arrows: NormalizedArrow[];
+  statusHighlight: StatusHighlight | null;
+};
 type DrawingAction =
   | { type: 'none' }
   | ({ type: 'drawing_arrow'; startSquare: Square } & ModifierState);
@@ -114,7 +118,10 @@ export class DrawingManager {
     arrows: [],
     highlights: [],
     premove: undefined,
+    premoves: undefined,
+    activePremoveColor: undefined,
     promotionPreview: undefined,
+    statusHighlight: null,
   };
 
   private readonly canvas: HTMLCanvasElement;
@@ -422,6 +429,28 @@ export class DrawingManager {
     this.state.highlights = [];
   }
 
+  public setStatusHighlight(highlight: StatusHighlight): void {
+    this.state.statusHighlight = {
+      ...highlight,
+      squares: highlight.squares ? [...highlight.squares] : undefined,
+    };
+  }
+
+  public clearStatusHighlight(): void {
+    this.state.statusHighlight = null;
+  }
+
+  public getStatusHighlight(): StatusHighlight | null {
+    const highlight = this.state.statusHighlight;
+    if (!highlight) {
+      return null;
+    }
+    return {
+      ...highlight,
+      squares: highlight.squares ? [...highlight.squares] : undefined,
+    };
+  }
+
   /**
    * Get the pixel coordinates of the top-left corner of a square
    * @param square The square in algebraic notation (e.g., 'a1', 'h8')
@@ -452,16 +481,91 @@ export class DrawingManager {
   }
 
   // Premove management
-  public setPremove(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): void {
+  public setPremove(
+    from: Square,
+    to: Square,
+    promotion?: 'q' | 'r' | 'b' | 'n',
+    color?: Color,
+  ): void {
     this.state.premove = { from, to, promotion };
+    this.state.activePremoveColor = color;
+    if (color) {
+      if (!this.state.premoves) {
+        this.state.premoves = {};
+      }
+      this.state.premoves[color] = [{ from, to, promotion }];
+    }
   }
 
-  public clearPremove(): void {
-    this.state.premove = undefined;
+  public setPremoveQueues(
+    queues: Partial<Record<Color, Premove[]>> | undefined,
+    active?: { color: Color; premove?: Premove },
+  ): void {
+    if (queues) {
+      const cloned: Partial<Record<Color, Premove[]>> = {};
+      for (const color of Object.keys(queues) as Color[]) {
+        const list = queues[color];
+        if (list && list.length) {
+          cloned[color] = list.map((entry) => ({ ...entry }));
+        }
+      }
+      this.state.premoves = Object.keys(cloned).length ? cloned : undefined;
+    } else {
+      this.state.premoves = undefined;
+    }
+
+    if (active && active.premove) {
+      this.state.premove = { ...active.premove };
+      this.state.activePremoveColor = active.color;
+    } else {
+      this.state.premove = undefined;
+      this.state.activePremoveColor = undefined;
+    }
+  }
+
+  public clearPremove(color?: Color): void {
+    if (!color) {
+      this.state.premove = undefined;
+      this.state.activePremoveColor = undefined;
+      this.state.premoves = undefined;
+      return;
+    }
+
+    if (this.state.premoves?.[color]) {
+      delete this.state.premoves[color];
+      if (!Object.values(this.state.premoves).some((queue) => queue && queue.length > 0)) {
+        this.state.premoves = undefined;
+      }
+    }
+
+    if (this.state.activePremoveColor === color) {
+      this.state.premove = undefined;
+      this.state.activePremoveColor = undefined;
+    }
   }
 
   public getPremove(): Premove | undefined {
     return this.state.premove;
+  }
+
+  public getPremoveQueues(): Partial<Record<Color, Premove[]>> | undefined {
+    if (!this.state.premoves) {
+      return undefined;
+    }
+
+    const cloned: Partial<Record<Color, Premove[]>> = {};
+    for (const color of Object.keys(this.state.premoves) as Color[]) {
+      const list = this.state.premoves[color];
+      if (list && list.length) {
+        cloned[color] = list.map((entry) => ({ ...entry }));
+      }
+    }
+
+    return Object.keys(cloned).length ? cloned : undefined;
+  }
+
+  public getActivePremoveColor(): Color | undefined {
+    return this.state.activePremoveColor;
   }
 
   public setPromotionPreview(square: Square, color: Color, piece?: PromotionPiece): void {
@@ -800,6 +904,29 @@ export class DrawingManager {
   }
 
   // Highlight rendering
+  private drawStatusHighlight(ctx: CanvasRenderingContext2D): void {
+    const highlight = this.state.statusHighlight;
+    if (!highlight) {
+      return;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = highlight.opacity ?? 1;
+    ctx.fillStyle = highlight.color;
+
+    if (highlight.mode === 'board') {
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    } else {
+      const squares = highlight.squares ?? [];
+      for (const square of squares) {
+        const [x, y] = this.squareToCoords(square);
+        ctx.fillRect(x, y, this.squareSize, this.squareSize);
+      }
+    }
+
+    ctx.restore();
+  }
+
   public drawHighlights(ctx: CanvasRenderingContext2D): void {
     ctx.save();
 
@@ -978,8 +1105,25 @@ export class DrawingManager {
       arrows: this.getArrows(),
       highlights: this.getHighlights(),
       premove: this.state.premove ? { ...this.state.premove } : undefined,
+      premoves: this.state.premoves
+        ? Object.fromEntries(
+            Object.entries(this.state.premoves).map(([color, queue]) => [
+              color,
+              queue?.map((entry) => ({ ...entry })) ?? [],
+            ]),
+          )
+        : undefined,
+      activePremoveColor: this.state.activePremoveColor,
       promotionPreview: this.state.promotionPreview
         ? { ...this.state.promotionPreview }
+        : undefined,
+      statusHighlight: this.state.statusHighlight
+        ? {
+            ...this.state.statusHighlight,
+            squares: this.state.statusHighlight.squares
+              ? [...this.state.statusHighlight.squares]
+              : undefined,
+          }
         : undefined,
     };
   }
@@ -995,10 +1139,36 @@ export class DrawingManager {
       if (state.premove !== undefined) {
         this.state.premove = state.premove ? { ...state.premove } : undefined;
       }
+      if (state.premoves !== undefined) {
+        if (state.premoves) {
+          const queues: Partial<Record<Color, Premove[]>> = {};
+          for (const [color, queue] of Object.entries(state.premoves) as [Color, Premove[]][]) {
+            if (queue && queue.length) {
+              queues[color] = queue.map((entry) => ({ ...entry }));
+            }
+          }
+          this.state.premoves = Object.keys(queues).length ? queues : undefined;
+        } else {
+          this.state.premoves = undefined;
+        }
+      }
+      if (state.activePremoveColor !== undefined) {
+        this.state.activePremoveColor = state.activePremoveColor ?? undefined;
+      }
       if (state.promotionPreview !== undefined) {
         this.state.promotionPreview = state.promotionPreview
           ? { ...state.promotionPreview }
           : undefined;
+      }
+      if (state.statusHighlight !== undefined) {
+        this.state.statusHighlight = state.statusHighlight
+          ? {
+              ...state.statusHighlight,
+              squares: state.statusHighlight.squares
+                ? [...state.statusHighlight.squares]
+                : undefined,
+            }
+          : null;
       }
     });
   }
@@ -1224,6 +1394,10 @@ export class DrawingManager {
     this.addHighlight(square, highlightType);
   }
 
+  public renderStatusHighlight(): void {
+    this.withContext((ctx) => this.drawStatusHighlight(ctx));
+  }
+
   public renderPremove(): void {
     this.withContext((ctx) => this.drawPremove(ctx));
   }
@@ -1327,7 +1501,10 @@ export class DrawingManager {
     this.state.arrows = [];
     this.state.highlights = [];
     this.state.premove = undefined;
+    this.state.premoves = undefined;
+    this.state.activePremoveColor = undefined;
     this.state.promotionPreview = undefined;
+    this.state.statusHighlight = null;
     if (hadArrows) {
       this.notifyArrowsChange();
     }
