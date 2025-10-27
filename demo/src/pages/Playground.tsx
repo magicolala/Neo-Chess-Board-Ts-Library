@@ -19,6 +19,7 @@ import {
   type PlaygroundOrientation,
 } from '../utils/permalink';
 import type { BoardEventMap } from '../../../src/core/types';
+import { createPromotionDialogExtension } from '../../../src/extensions/PromotionDialogExtension';
 import PgnPanel from '../components/PgnPanel';
 import LogsPanel from '../components/LogsPanel';
 import CodePanel from '../components/CodePanel';
@@ -60,6 +61,8 @@ interface PlaygroundControlHandlers {
   onAllowDrawingArrowsChange: React.ChangeEventHandler<HTMLInputElement>;
   onAnimationDurationChange: React.ChangeEventHandler<HTMLInputElement>;
   onDragActivationDistanceChange: React.ChangeEventHandler<HTMLInputElement>;
+  onPromotionUiChange: React.ChangeEventHandler<HTMLSelectElement>;
+  onAutoQueenChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 interface BuildOptionsArgs {
@@ -120,6 +123,17 @@ const checkboxInputStyles: React.CSSProperties = {
   width: '1.25rem',
   height: '1.25rem',
   accentColor: '#6366f1',
+};
+
+const selectInputStyles: React.CSSProperties = {
+  flex: '0 0 auto',
+  minWidth: '9rem',
+  padding: '0.45rem 0.65rem',
+  borderRadius: '0.6rem',
+  border: '1px solid var(--playground-border)',
+  backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  color: 'var(--playground-text)',
+  fontSize: '0.85rem',
 };
 
 const sliderContainerStyles: React.CSSProperties = {
@@ -191,6 +205,32 @@ const renderToggle = (
       <span style={toggleDescriptionStyles}>{description}</span>
     </span>
     <input type="checkbox" style={checkboxInputStyles} checked={checked} onChange={onChange} />
+  </label>
+);
+
+const renderSelect = (
+  label: string,
+  description: string,
+  value: string,
+  options: Array<{ value: string; label: string }>,
+  onChange: React.ChangeEventHandler<HTMLSelectElement>,
+  docsHref: string,
+): React.ReactElement => (
+  <label style={toggleRowStyles}>
+    <span style={toggleTextBlockStyles}>
+      <span style={toggleTitleRowStyles}>
+        <span style={toggleTitleStyles}>{label}</span>
+        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+      </span>
+      <span style={toggleDescriptionStyles}>{description}</span>
+    </span>
+    <select value={value} onChange={onChange} style={selectInputStyles}>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   </label>
 );
 
@@ -287,6 +327,24 @@ const buildOptionsSections = ({
           state.allowDrawingArrows,
           handlers.onAllowDrawingArrowsChange,
           `${PLAYGROUND_CTA_LINKS.docs}api/#neochessboard-react`,
+        )}
+        {renderSelect(
+          'Promotion UI',
+          'Choose whether promotions open the dialog extension or the inline picker.',
+          state.promotionUi,
+          [
+            { value: 'dialog', label: 'Dialog (extension)' },
+            { value: 'inline', label: 'Inline overlay' },
+          ],
+          handlers.onPromotionUiChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#boardconfiguration`,
+        )}
+        {renderToggle(
+          'Auto-queen promotions',
+          'Skip the selection step and immediately promote pawns to queens.',
+          state.autoQueen,
+          handlers.onAutoQueenChange,
+          `${PLAYGROUND_CTA_LINKS.docs}api/#boardconfiguration`,
         )}
       </div>
     ),
@@ -703,7 +761,11 @@ const PlaygroundView: React.FC = () => {
     allowDrawingArrows,
     animationDurationInMs,
     dragActivationDistance,
+    promotionUi,
+    autoQueen,
   } = boardOptions;
+
+  const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const selectedPieceSet = useMemo(
     () => pieceSetValueById.get(pieceSetId) ?? pieceSetValueById.get(BUILTIN_PIECE_SET_ID),
@@ -1101,6 +1163,30 @@ const PlaygroundView: React.FC = () => {
     [updateBoardOptions],
   );
 
+  const handlePromotionUiChange = useCallback<React.ChangeEventHandler<HTMLSelectElement>>(
+    (event) => {
+      const nextUi = event.target.value === 'inline' ? 'inline' : 'dialog';
+      updateBoardOptions({ promotionUi: nextUi });
+      pushLog(
+        `Promotion UI switched to ${nextUi === 'inline' ? 'inline overlay' : 'dialog extension'}.`,
+      );
+    },
+    [updateBoardOptions, pushLog],
+  );
+
+  const handleAutoQueenChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (event) => {
+      const nextValue = event.target.checked;
+      updateBoardOptions({ autoQueen: nextValue });
+      pushLog(
+        nextValue
+          ? 'Auto-queen enabled: promotions will resolve to queens automatically.'
+          : 'Auto-queen disabled: promotions now require a manual choice.',
+      );
+    },
+    [updateBoardOptions, pushLog],
+  );
+
   const optionSections = useMemo(
     () =>
       buildOptionsSections({
@@ -1118,6 +1204,8 @@ const PlaygroundView: React.FC = () => {
           onAllowDrawingArrowsChange: handleAllowDrawingArrowsChange,
           onAnimationDurationChange: handleAnimationDurationChange,
           onDragActivationDistanceChange: handleDragActivationDistanceChange,
+          onPromotionUiChange: handlePromotionUiChange,
+          onAutoQueenChange: handleAutoQueenChange,
         },
       }),
     [
@@ -1134,6 +1222,8 @@ const PlaygroundView: React.FC = () => {
       handleAllowDrawingArrowsChange,
       handleAnimationDurationChange,
       handleDragActivationDistanceChange,
+      handlePromotionUiChange,
+      handleAutoQueenChange,
     ],
   );
 
@@ -1441,16 +1531,14 @@ const PlaygroundView: React.FC = () => {
 
   const handlePromotionRequired = useCallback(
     (request: BoardEventMap['promotion']) => {
-      const fallbackChoice = request.choices[0] ?? 'q';
-      const choice = request.choices.includes('q') ? 'q' : fallbackChoice;
-      const pieceLabel = choice.toUpperCase();
-      pushLog(
-        `Promotion required for ${request.color === 'w' ? 'White' : 'Black'} pawn on ${request.to}. Auto-selecting ${pieceLabel}.`,
-      );
-      request.resolve(choice);
-      pushLog(`Promotion resolved with ${pieceLabel}.`);
+      const colorLabel = request.color === 'w' ? 'White' : 'Black';
+      const prompt =
+        promotionUi === 'inline'
+          ? 'Use the inline picker to choose a promotion piece.'
+          : 'Select a piece in the dialog to finish the move.';
+      pushLog(`Promotion required for ${colorLabel} pawn on ${request.to}. ${prompt}`);
     },
-    [pushLog],
+    [promotionUi, pushLog],
   );
 
   const fpsStatusColor = useMemo(() => {
@@ -1532,6 +1620,8 @@ const PlaygroundView: React.FC = () => {
                 allowPremoves
                 soundEnabled
                 size={boardSize}
+                promotion={{ ui: promotionUi, autoQueen }}
+                extensions={promotionUi === 'dialog' ? promotionExtensions : undefined}
                 onMove={handleBoardMove}
                 onIllegal={handleBoardIllegal}
                 onUpdate={handleBoardUpdate}

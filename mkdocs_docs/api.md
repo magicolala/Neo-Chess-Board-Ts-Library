@@ -161,6 +161,14 @@ Update the per-event audio configuration (move, capture, check, checkmate). Indi
 
 - `soundEventUrls: BoardOptions['soundEventUrls']` - Optional map of event names to clip URLs or `{ white, black }` overrides
 
+##### `configure(configuration: BoardConfiguration): void`
+
+Update the board's runtime configuration without recreating the instance. You can tweak drag sensitivity, animation easing, or promotion behaviour (including inline UI and auto-queen) even while a promotion request is pending.
+
+**Parameters:**
+
+- `configuration: BoardConfiguration` - Partial configuration object. Supports `drag`, `animation`, and `promotion` keys.
+
 ##### `setBoardStyle(style?: InlineStyle): void`
 
 Apply inline CSS to the board wrapper. Passing `undefined` clears previously assigned keys while leaving other styles untouched.
@@ -768,6 +776,7 @@ interface BoardOptions {
     Record<'move' | 'capture' | 'check' | 'checkmate', string | Partial<Record<'white' | 'black', string>>>
   >;
   onPromotionRequired?: (request: PromotionRequest) => void;
+  promotion?: { autoQueen?: boolean; ui?: 'dialog' | 'inline' };
 }
 ```
 
@@ -775,6 +784,25 @@ interface BoardOptions {
 
 > **Note:** When `showSquareNames` is enabled, the file letters and rank numbers remain on the bottom and left edges even when the board flips orientation, mirroring the behaviour of chess.com.
 
+### BoardConfiguration
+
+```typescript
+interface BoardConfiguration {
+  drag?: {
+    threshold?: number;
+    snap?: boolean;
+    ghost?: boolean;
+    ghostOpacity?: number;
+    cancelOnEsc?: boolean;
+  };
+  animation?: {
+    durationMs?: number;
+    easing?: AnimationEasing;
+  };
+  promotion?: {
+    autoQueen?: boolean;
+    ui?: 'dialog' | 'inline';
+  };
 ### ClockConfig
 
 ```typescript

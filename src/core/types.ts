@@ -79,6 +79,9 @@ export interface PromotionRequest {
   cancel: () => void;
 }
 
+export interface PromotionOptions {
+  autoQueen?: boolean;
+  ui?: 'dialog' | 'inline';
 export interface ClockCallbacks {
   onClockStart?: (state: ClockState) => void;
   onClockPause?: (state: ClockState) => void;
@@ -400,6 +403,7 @@ export interface BoardAnimationConfig {
 export interface BoardConfiguration {
   drag?: BoardDragConfig;
   animation?: BoardAnimationConfig;
+  promotion?: PromotionOptions;
 }
 
 export type PieceSpriteImage =
@@ -528,6 +532,7 @@ export interface BoardOptions {
   showNotation?: boolean;
   squareRenderer?: SquareRenderer;
   pieces?: PieceRendererMap;
+  promotion?: PromotionOptions;
   clock?: ClockConfig;
 }
 

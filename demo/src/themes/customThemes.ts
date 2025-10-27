@@ -83,6 +83,28 @@ const neonThemeDefinition: Theme = {
   squareNameColor: '#e0f2fe',
 };
 
+const neonThemeDefinition: Theme = {
+  light: '#22d3ee',
+  dark: '#1d1b4b',
+  boardBorder: 'rgba(56, 189, 248, 0.35)',
+  whitePiece: '#f0f9ff',
+  blackPiece: '#0f172a',
+  pieceShadow: 'rgba(8, 145, 178, 0.35)',
+  pieceStroke: 'rgba(12, 74, 110, 0.7)',
+  pieceHighlight: 'rgba(255, 255, 255, 0.6)',
+  moveFrom: 'rgba(244, 114, 182, 0.5)',
+  moveTo: 'rgba(59, 130, 246, 0.55)',
+  moveHighlight: 'rgba(59, 130, 246, 0.55)',
+  lastMove: 'rgba(168, 85, 247, 0.45)',
+  premove: 'rgba(34, 211, 238, 0.35)',
+  check: 'rgba(248, 113, 113, 0.6)',
+  checkmate: 'rgba(220, 38, 38, 0.65)',
+  stalemate: 'rgba(249, 115, 22, 0.55)',
+  dot: 'rgba(15, 23, 42, 0.45)',
+  arrow: 'rgba(236, 72, 153, 0.95)',
+  squareNameColor: '#e0f2fe',
+};
+
 const sandTheme = registerTheme('sand', sandThemeDefinition);
 const forestTheme = registerTheme('forest', forestThemeDefinition);
 const neonTheme = registerTheme('neon', neonThemeDefinition);

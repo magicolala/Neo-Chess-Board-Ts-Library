@@ -345,7 +345,14 @@ class NeoChessBoard {
   // Rendering
   resize(): void;
   renderAll(): void;
-  
+
+  // Runtime configuration
+  configure(configuration: {
+    drag?: { threshold?: number; snap?: boolean; ghost?: boolean; ghostOpacity?: number; cancelOnEsc?: boolean };
+    animation?: { durationMs?: number; easing?: AnimationEasing };
+    promotion?: { autoQueen?: boolean; ui?: 'dialog' | 'inline' };
+  }): void;
+
   // Lifecycle
   destroy(): void;
 }
@@ -390,6 +397,23 @@ const board = new NeoChessBoard(element, {
 });
 ```
 
+#### 4. Inline Overlay & Auto-Queen Controls
+
+You can control the promotion experience directly from the board without writing a custom handler.
+
+```typescript
+const board = new NeoChessBoard(element, {
+  promotion: {
+    ui: 'inline', // show a compact overlay next to the target square
+    autoQueen: false, // set to true to always promote to a queen
+  },
+});
+
+// Update at runtime using the configure API
+board.configure({ promotion: { autoQueen: true } });
+```
+
+`promotion.ui` defaults to `'dialog'`, which preserves the event/callback behaviour above. When set to `'inline'` the board renders a lightweight picker on top of the board, integrated with the existing promotion preview pipeline. `autoQueen` resolves promotions immediately with a queen, skipping any UI or callbacks.
 ## ⏱️ Integrated Game Clocks
 
 Neo Chess Board ships with a battle-tested game clock so you can add time controls without wiring a separate timer. Configure the
