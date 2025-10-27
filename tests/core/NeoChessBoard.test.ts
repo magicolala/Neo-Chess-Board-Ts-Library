@@ -1444,6 +1444,21 @@ describe('NeoChessBoard Core', () => {
       highlightSpy.mockRestore();
     });
 
+    it('clears queued premoves when cancelling with a right-click', () => {
+      board.premove.enable({ multi: true, color: 'white' });
+      board.setPremove({ from: 'e2', to: 'e4' }, 'white');
+      board.setPremove({ from: 'd2', to: 'd4' }, 'white');
+
+      expect(board.premove.getQueue('white')).toHaveLength(2);
+
+      const rightDown = createPointerEventForSquare(2, 'e4');
+      onPointerDown(rightDown.event);
+      onPointerUp(createPointerEventForSquare(2, 'e4').event);
+
+      expect(board.premove.getQueue('white')).toHaveLength(0);
+      expect(board.getPremove()).toBeNull();
+    });
+
     it('allows moving a piece by selecting it and clicking the destination square', () => {
       const moveSpy = jest.fn();
       board.on('move', moveSpy);

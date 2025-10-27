@@ -2359,14 +2359,21 @@ export class NeoChessBoard {
     }
 
     if (!handled && pt) {
-      if (this.drawingManager?.getPremove()) {
-        const activeColor = this.drawingManager.getActivePremoveColor?.();
-        if (activeColor) {
-          this.clearPremove(activeColor === 'w' ? 'white' : 'black');
+      const activePremove = this.drawingManager?.getPremove();
+      const queuedForWhite = this._premoveQueues.w.length > 0;
+      const queuedForBlack = this._premoveQueues.b.length > 0;
+
+      if (activePremove || queuedForWhite || queuedForBlack) {
+        const activeColor = this.drawingManager?.getActivePremoveColor?.();
+        if (activeColor === 'w') {
+          this.clearPremove('white');
+        } else if (activeColor === 'b') {
+          this.clearPremove('black');
+        } else if (queuedForWhite || queuedForBlack) {
+          this.clearPremove(queuedForWhite ? 'white' : 'black');
         } else {
           this.clearPremove();
         }
-        console.log('Premove cancelled by right-click');
         handled = true;
       } else if (this.rightClickHighlights) {
         const square = this._xyToSquare(pt.x, pt.y);
