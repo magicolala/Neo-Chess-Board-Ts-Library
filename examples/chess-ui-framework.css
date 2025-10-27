@@ -1,0 +1,356 @@
+/* ===================================
+   CHESS UI FRAMEWORK — v2
+   Maia‑inspired • Dark/Light • A11y • Motion‑safe • Theming API
+   =================================== */
+
+/* ===================================
+   0) BASELINE & OPT‑IN COLOR SCHEMES
+   =================================== */
+:root {
+  color-scheme: dark light;
+}
+
+/* Reduce motion by default when user requests it */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Modern reset with logical properties */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html:focus-within { scroll-behavior: smooth; }
+html, body { block-size: 100%; }
+body { line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+img, picture, video, canvas, svg { display: block; max-inline-size: 100%; }
+input, button, textarea, select { font: inherit; }
+
+/* ===================================
+   1) DESIGN TOKENS (HSL for better theming)
+   – Dark is default; Light provided via [data-theme="light"]
+   – Scales: color, radius, spacing, z-index, shadow, motion
+   =================================== */
+:root {
+  /* Base hue anchors */
+  --h-accent: 244;   /* indigo/violet */
+  --h-info: 216;     /* blue */
+  --h-success: 142;  /* green */
+  --h-warning: 40;   /* amber */
+  --h-error: 0;      /* red */
+
+  /* Backgrounds */
+  --bg-0: hsl(233 36% 12%);        /* primary */
+  --bg-1: hsl(233 45% 16%);        /* secondary */
+  --bg-2: hsl(210 22% 10%);        /* tertiary */
+  --bg-card: hsl(236 26% 16%);
+  --bg-hover: hsl(236 26% 22%);
+  --bg-input: hsl(237 20% 20%);
+
+  /* Text */
+  --text-0: hsl(240 10% 92%);
+  --text-1: hsl(240 6% 70%);
+  --text-2: hsl(240 4% 55%);
+  --text-accent: hsl(var(--h-info) 92% 72%);
+
+  /* Accents */
+  --accent-0: hsl(var(--h-accent) 83% 66%);
+  --accent-1: hsl(262 83% 70%);
+  --accent-success: hsl(var(--h-success) 65% 47%);
+  --accent-warning: hsl(var(--h-warning) 95% 52%);
+  --accent-error: hsl(var(--h-error) 86% 58%);
+  --accent-info: hsl(var(--h-info) 92% 60%);
+
+  /* Chessboard */
+  --board-light: #e8dab2; /* kept for continuity */
+  --board-dark: #c49a6c;
+  --board-highlight: hsl(55 100% 50% / .4);
+  --board-selected: hsl(var(--h-info) 92% 56% / .5);
+
+  /* Borders & Shadows */
+  --bd-0: hsl(215 20% 58% / .30);
+  --bd-1: hsl(215 20% 74% / .20);
+  --bd-accent: hsl(var(--h-accent) 83% 66% / .40);
+  --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / .30);
+  --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / .35);
+  --shadow-lg: 0 12px 20px -6px hsl(0 0% 0% / .40);
+  --shadow-xl: 0 20px 35px -8px hsl(0 0% 0% / .45);
+  --shadow-glow: 0 0 24px hsl(var(--h-accent) 83% 66% / .35);
+
+  /* Typography scale (fluid) */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --fs-900: clamp(1.75rem, 2.2vw + 1rem, 2.5rem);
+  --fs-800: clamp(1.5rem, 1.8vw + .9rem, 2rem);
+  --fs-700: clamp(1.25rem, 1.2vw + .8rem, 1.5rem);
+  --fs-600: 1.125rem;
+  --fs-500: 1rem;
+  --fs-400: .9375rem;
+  --fs-300: .875rem;
+
+  /* Spacing scale */
+  --sp-2xs:.25rem; --sp-xs:.5rem; --sp-sm:.75rem; --sp-md:1rem; --sp-lg:1.5rem; --sp-xl:2rem; --sp-2xl:3rem;
+
+  /* Radius scale */
+  --r-sm:.375rem; --r-md:.5rem; --r-lg:.75rem; --r-xl:.9rem; --r-full:999px;
+
+  /* Z‑index scale */
+  --z-1: 10; --z-2: 100; --z-3: 1000; --z-4: 10000;
+
+  /* Motion */
+  --t-fast: 150ms ease; --t-base: 200ms ease; --t-slow: 300ms ease;
+}
+
+/* Light theme */
+:root[data-theme="light"] {
+  --bg-0: hsl(0 0% 100%);
+  --bg-1: hsl(240 11% 98%);
+  --bg-2: hsl(220 14% 96%);
+  --bg-card: hsl(0 0% 100%);
+  --bg-hover: hsl(240 11% 94%);
+  --bg-input: hsl(240 11% 96%);
+  --text-0: hsl(240 10% 10%);
+  --text-1: hsl(240 6% 30%);
+  --text-2: hsl(240 4% 45%);
+  --bd-0: hsl(215 20% 28% / .25);
+  --bd-1: hsl(215 20% 28% / .15);
+  --shadow-md: 0 6px 12px -4px hsl(220 5% 50% / .2);
+  --shadow-lg: 0 18px 28px -8px hsl(220 5% 40% / .25);
+}
+
+/* Density toggle */
+:root[data-density="compact"] { --sp-sm:.5rem; --sp-md:.75rem; --sp-lg:1rem; --sp-xl:1.5rem; }
+
+/* ===================================
+   2) BASE TYPOGRAPHY & PAGE
+   =================================== */
+body { font-family: var(--font-sans); background: var(--bg-0); color: var(--text-0); }
+
+h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.2; color: var(--text-0); }
+ h1{font-size:var(--fs-900)} h2{font-size:var(--fs-800)} h3{font-size:var(--fs-700)}
+ h4{font-size:var(--fs-600)} h5{font-size:var(--fs-500)} h6{font-size:var(--fs-400)}
+
+p { margin-block-end: var(--sp-sm); color: var(--text-1); }
+
+a { color: var(--text-accent); text-underline-offset: .15em; text-decoration-thickness: .08em; }
+ a:hover { color: var(--accent-0); }
+
+code, kbd, samp { font-family: var(--font-mono); font-size: .875em; background: var(--bg-input); padding: .125rem .375rem; border-radius: var(--r-sm); }
+.kbd { border: 1px solid var(--bd-1); border-bottom-width: 2px; padding: .125rem .4rem; }
+
+/* Focus visibility & outlines */
+:where(button,[role="button"],a,input,select,textarea) { outline: none; }
+:where(button,[role="button"],a,input,select,textarea):focus-visible {
+  box-shadow: 0 0 0 3px hsl(var(--h-accent) 83% 66% / .25), 0 0 0 1.5px var(--accent-0);
+  border-radius: .5rem;
+}
+
+/* Screen‑reader utility */
+.visually-hidden { position: absolute !important; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+
+/* ===================================
+   3) LAYOUT
+   =================================== */
+.chess-container { max-inline-size: 1280px; margin-inline: auto; padding: var(--sp-lg); }
+
+/* Auto grid that collapses gracefully */
+.chess-grid { display: grid; gap: var(--sp-lg); grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.chess-grid--2col { grid-template-columns: 4fr 8fr; }
+.chess-grid--3col { grid-template-columns: 3fr 6fr 3fr; }
+@media (max-width: 1024px) { .chess-grid--2col, .chess-grid--3col { grid-template-columns: 1fr; } }
+
+/* Container queries ready */
+.chess-card { container-type: inline-size; container-name: card; }
+
+/* ===================================
+   4) CARD
+   =================================== */
+.chess-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bd-0);
+  border-radius: var(--r-xl);
+  padding: var(--sp-lg);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--t-base), box-shadow var(--t-base), border-color var(--t-base);
+}
+.chess-card:hover { border-color: var(--bd-accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.chess-card--highlight { border-color: var(--accent-0); box-shadow: var(--shadow-glow); }
+.chess-card__header { display:flex; align-items:center; justify-content:space-between; gap:var(--sp-md); margin-block-end:var(--sp-lg); padding-block-end:var(--sp-md); border-block-end:1px solid var(--bd-1); }
+.chess-card__title { font-size: var(--fs-600); font-weight: 700; }
+.chess-card__body { color: var(--text-1); }
+
+/* ===================================
+   5) BUTTONS
+   =================================== */
+.chess-btn { appearance:none; border:1px solid var(--bd-accent); border-radius: var(--r-full); padding:.55rem 1.15rem; font-weight:700; letter-spacing:.01em; cursor:pointer; transition: transform var(--t-base), box-shadow var(--t-base), background var(--t-base), border-color var(--t-base); font-size:.9rem; display:inline-flex; align-items:center; gap:.5rem; text-decoration:none; user-select:none; }
+.chess-btn:is(:hover,:focus-visible) { transform: translateY(-1px); }
+.chess-btn:active { transform: translateY(0); }
+.chess-btn:disabled { opacity:.55; cursor:not-allowed; }
+
+.chess-btn--primary { background: hsl(var(--h-accent) 83% 66% / .22); color: var(--text-0); border-color: var(--accent-0); }
+.chess-btn--primary:hover { background: hsl(var(--h-accent) 83% 66% / .32); box-shadow: var(--shadow-glow); }
+
+.chess-btn--secondary { background: var(--bg-input); color: var(--text-0); border-color: var(--bd-0); }
+.chess-btn--secondary:hover { background: var(--bg-hover); border-color: var(--bd-accent); }
+
+.chess-btn--success { background: hsl(var(--h-success) 65% 47% / .18); color: var(--accent-success); border-color: var(--accent-success); }
+.chess-btn--danger  { background: hsl(var(--h-error) 86% 58% / .18);   color: var(--accent-error);   border-color: var(--accent-error); }
+
+.chess-btn--sm { padding:.35rem .9rem; font-size:.82rem; }
+.chess-btn--lg { padding:.75rem 1.75rem; font-size:1rem; }
+
+/* Icon‑only button */
+.chess-icon-btn { inline-size:2.25rem; block-size:2.25rem; display:inline-grid; place-items:center; border-radius: var(--r-full); border:1px solid var(--bd-0); background: var(--bg-input); }
+
+/* ===================================
+   6) BADGES
+   =================================== */
+.chess-badge { display:inline-flex; align-items:center; padding:.25rem .7rem; border-radius: var(--r-full); font-size:.75rem; font-weight:700; letter-spacing:.02em; border:1px solid transparent; }
+.chess-badge--primary { background:hsl(var(--h-accent) 83% 66% / .20); color: var(--accent-0); border-color:hsl(var(--h-accent) 83% 66% / .35); }
+.chess-badge--success { background:hsl(var(--h-success) 65% 47% / .18); color: var(--accent-success); }
+.chess-badge--warning { background:hsl(var(--h-warning) 95% 52% / .18); color: var(--accent-warning); }
+.chess-badge--error { background:hsl(var(--h-error) 86% 58% / .18); color: var(--accent-error); }
+
+/* ===================================
+   7) FORM ELEMENTS
+   =================================== */
+.chess-input { inline-size:100%; padding:.75rem 1rem; background: var(--bg-input); border:1px solid var(--bd-0); border-radius: var(--r-md); color: var(--text-0); font-size:.95rem; transition: box-shadow var(--t-base), border-color var(--t-base), background var(--t-base); }
+.chess-input::placeholder { color: var(--text-2); }
+.chess-input:focus { outline:none; border-color: var(--accent-0); box-shadow: 0 0 0 3px hsl(var(--h-accent) 83% 66% / .15); }
+
+.chess-textarea { min-block-size:120px; resize: vertical; font-family: var(--font-mono); }
+
+.chess-checkbox { inline-size:1.15rem; block-size:1.15rem; accent-color: var(--accent-0); cursor:pointer; }
+
+.chess-range { inline-size:100%; block-size:.5rem; background: var(--bg-input); border-radius: var(--r-full); outline:none; accent-color: var(--accent-0); }
+
+/* Floating label (optional) */
+.chess-field { position: relative; }
+.chess-field > label { position:absolute; inset-block-start:.55rem; inset-inline-start:1rem; color: var(--text-2); pointer-events:none; transition: transform var(--t-base), color var(--t-base); background: transparent; }
+.chess-field:has(.chess-input:focus), .chess-field:has(.chess-input:not(:placeholder-shown)) > label { transform: translateY(-1.25rem) scale(.9); color: var(--text-1); }
+
+/* ===================================
+   8) ACCORDION
+   =================================== */
+.chess-accordion { border:1px solid var(--bd-0); border-radius: var(--r-xl); background: var(--bg-card); margin-block-end: var(--sp-sm); overflow:hidden; }
+.chess-accordion__header { padding: var(--sp-lg); cursor:pointer; display:flex; justify-content:space-between; align-items:center; background: var(--bg-1); transition: background var(--t-base); user-select:none; }
+.chess-accordion__header:hover { background: var(--bg-hover); }
+.chess-accordion__title { font-weight:700; }
+.chess-accordion__icon { transition: transform var(--t-base); }
+.chess-accordion[aria-expanded="true"] .chess-accordion__icon { transform: rotate(180deg); }
+.chess-accordion__content { padding: var(--sp-lg); display: none; }
+.chess-accordion[aria-expanded="true"] .chess-accordion__content { display:block; }
+
+/* ===================================
+   9) MOVE NOTATION
+   =================================== */
+.chess-move { display:inline-block; padding:.25rem .5rem; border-radius: var(--r-sm); font-family: var(--font-mono); font-size:.9rem; margin:.125rem; cursor:pointer; transition: transform var(--t-fast), box-shadow var(--t-fast); border:1px solid transparent; }
+.chess-move:hover { transform: scale(1.05); box-shadow: var(--shadow-sm); }
+.chess-move--best { background:hsl(var(--h-success) 65% 47% / .18); color: var(--accent-success); border-color: var(--accent-success); }
+.chess-move--good { background:hsl(var(--h-success) 55% 52% / .18); color:hsl(var(--h-success) 55% 52%); }
+.chess-move--ok { background:hsl(var(--h-warning) 95% 52% / .18); color: var(--accent-warning); }
+.chess-move--blunder { background:hsl(var(--h-error) 86% 58% / .18); color: var(--accent-error); border-color: var(--accent-error); }
+
+/* ===================================
+   10) EVALUATION BAR (set --eval: 0–100)
+   =================================== */
+.chess-eval-bar { inline-size:100%; block-size:1.5rem; border-radius: var(--r-sm); position:relative; overflow:hidden; border:1px solid var(--bd-0); background:
+  linear-gradient(to right, var(--text-0) calc(var(--eval,50)*1%), var(--bg-2) calc(var(--eval,50)*1%)); }
+.chess-eval-bar__value { position:absolute; inset-block-start:50%; inset-inline-start:50%; transform: translate(-50%, -50%); font-weight:800; font-size:.75rem; color: var(--text-0); text-shadow: 0 0 4px hsl(0 0% 0% /.8); }
+
+/* ===================================
+   11) STATS
+   =================================== */
+.chess-stat { display:flex; flex-direction:column; gap: var(--sp-2xs); padding: var(--sp-sm); background: var(--bg-input); border-radius: var(--r-md); border:1px solid var(--bd-1); }
+.chess-stat__label { font-size:.75rem; color: var(--text-2); text-transform:uppercase; letter-spacing:.05em; }
+.chess-stat__value { font-size:1.5rem; font-weight:800; color: var(--text-0); }
+.chess-stat--positive .chess-stat__value { color: var(--accent-success); }
+.chess-stat--negative .chess-stat__value { color: var(--accent-error); }
+
+/* ===================================
+   12) NAVIGATION
+   =================================== */
+.chess-nav { display:flex; flex-wrap:wrap; gap: var(--sp-md); padding: var(--sp-lg); background: var(--bg-1); border-block-end:1px solid var(--bd-0); }
+.chess-nav__item { padding:.5rem 1rem; color: var(--text-1); border-radius: var(--r-md); transition: background var(--t-base), color var(--t-base); cursor:pointer; }
+.chess-nav__item:hover { background: var(--bg-hover); color: var(--text-0); }
+.chess-nav__item--active { background:hsl(var(--h-accent) 83% 66% / .20); color: var(--accent-0); }
+
+/* ===================================
+   13) CHESSBOARD PRIMITIVES (overlay, coords, ghost)
+   =================================== */
+.chess-board { position:relative; aspect-ratio: 1 / 1; background:
+  linear-gradient(90deg, var(--board-light) 12.5%, var(--board-dark) 12.5% 25%, var(--board-light) 25% 37.5%, var(--board-dark) 37.5% 50%, var(--board-light) 50% 62.5%, var(--board-dark) 62.5% 75%, var(--board-light) 75% 87.5%, var(--board-dark) 87.5%),
+  linear-gradient(0deg,  var(--board-light) 12.5%, var(--board-dark) 12.5% 25%, var(--board-light) 25% 37.5%, var(--board-dark) 37.5% 50%, var(--board-light) 50% 62.5%, var(--board-dark) 62.5% 75%, var(--board-light) 75% 87.5%, var(--board-dark) 87.5%);
+  background-size: 12.5% 100%, 100% 12.5%; border-radius: var(--r-lg); overflow:hidden; border: 1px solid var(--bd-0);
+}
+
+/* Highlight rings */
+.chess-board__highlight { position:absolute; inset:0; pointer-events:none; }
+.chess-board__highlight .square { position:absolute; inline-size:12.5%; block-size:12.5%; box-shadow: inset 0 0 0 4px var(--board-highlight); border-radius: .25rem; }
+
+/* Selection */
+.chess-board__selected .square { box-shadow: inset 0 0 0 4px var(--board-selected); }
+
+/* Coordinates */
+.chess-board__coords { position:absolute; inset:0; pointer-events:none; font: 600 .75rem var(--font-mono); color: hsl(0 0% 0% / .65); mix-blend-mode: multiply; }
+.chess-board__coords .file { position:absolute; inset-inline-start:0; inset-block-end:0; inline-size:12.5%; text-align:center; padding-block-end:.25rem; }
+.chess-board__coords .rank { position:absolute; inset-inline-start:0; inline-size: fit-content; padding-inline-start:.25rem; }
+
+/* Ghost piece (drag preview) */
+.chess-ghost { position:absolute; inset-inline-start:0; inset-block-start:0; inline-size:12.5%; block-size:12.5%; opacity:.55; filter: drop-shadow(0 8px 18px hsl(0 0% 0% /.45)); pointer-events:none; }
+
+/* Drop target indicator */
+.chess-drop-target { outline: 3px dashed hsl(var(--h-info) 92% 60% / .5); outline-offset: -3px; }
+
+/* ===================================
+   14) UTILITIES (expanded)
+   =================================== */
+.text-center{ text-align:center; } .text-right{ text-align:right; }
+.text-muted{ color: var(--text-2); } .text-primary{ color: var(--text-0); }
+.text-accent{ color: var(--text-accent); } .text-success{ color: var(--accent-success); } .text-error{ color: var(--accent-error); }
+
+.flex{ display:flex; } .flex-col{ flex-direction:column; } .items-center{ align-items:center; } .justify-center{ justify-content:center; } .justify-between{ justify-content:space-between; }
+.gap-xs{ gap: var(--sp-xs);} .gap-sm{ gap: var(--sp-sm);} .gap-md{ gap: var(--sp-md);} .gap-lg{ gap: var(--sp-lg);} .gap-xl{ gap: var(--sp-xl);} 
+
+.p-xs{ padding: var(--sp-xs);} .p-sm{ padding: var(--sp-sm);} .p-md{ padding: var(--sp-md);} .p-lg{ padding: var(--sp-lg);} .p-xl{ padding: var(--sp-xl);} 
+.m-xs{ margin: var(--sp-xs);} .m-sm{ margin: var(--sp-sm);} .m-md{ margin: var(--sp-md);} .m-lg{ margin: var(--sp-lg);} .m-xl{ margin: var(--sp-xl);} 
+
+.rounded-sm{ border-radius: var(--r-sm);} .rounded-md{ border-radius: var(--r-md);} .rounded-lg{ border-radius: var(--r-lg);} .rounded-full{ border-radius: var(--r-full);} 
+
+.shadow-sm{ box-shadow: var(--shadow-sm);} .shadow-md{ box-shadow: var(--shadow-md);} .shadow-lg{ box-shadow: var(--shadow-lg);} .shadow-xl{ box-shadow: var(--shadow-xl);} 
+
+/***** Width/Height *****/
+.w-full{ inline-size:100%; } .h-full{ block-size:100%; }
+.max-w-prose{ max-inline-size: 65ch; }
+
+/* Hide scrollbars but keep scrollability (only if needed) */
+.scroll-smooth{ scroll-behavior:smooth; }
+
+/* ===================================
+   15) ANIMATIONS & SKELETON
+   =================================== */
+@keyframes fade-in { from { opacity:0 } to { opacity:1 } }
+@keyframes slide-in { from { transform: translateY(-10px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+@keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.7 } }
+.fade-in{ animation: fade-in var(--t-base); }
+.slide-in{ animation: slide-in var(--t-base); }
+.pulse{ animation: pulse 2s infinite; }
+
+/* Skeleton loader */
+.skeleton { position:relative; overflow:hidden; background: linear-gradient(90deg, transparent, hsl(0 0% 100% / .05), transparent); background-color: var(--bg-input); }
+.skeleton::after { content:""; position:absolute; inset:0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, hsl(0 0% 100% / .08), transparent); animation: shimmer 1.35s infinite; }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* ===================================
+   16) TOOLTIP (simple, no JS)
+   =================================== */
+[data-tooltip] { position:relative; }
+[data-tooltip]::after { content: attr(data-tooltip); position:absolute; inset-inline-start:50%; inset-block-end: calc(100% + .5rem); transform: translateX(-50%); background: var(--bg-2); color: var(--text-0); border:1px solid var(--bd-0); padding:.35rem .5rem; border-radius: var(--r-sm); font-size:.75rem; white-space:nowrap; box-shadow: var(--shadow-sm); opacity:0; pointer-events:none; transition: opacity var(--t-base), transform var(--t-base); }
+[data-tooltip]:hover::after, [data-tooltip]:focus-visible::after { opacity:1; transform: translateX(-50%) translateY(-2px); }
+
+/* ===================================
+   17) SCROLLBARS
+   =================================== */
+:root { scrollbar-color: var(--bg-hover) var(--bg-1); scrollbar-width: thin; }
+::-webkit-scrollbar { inline-size: 8px; block-size: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: var(--r-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--bd-0); }

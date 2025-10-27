@@ -34,6 +34,15 @@ Load a chess position from FEN notation.
 board.loadPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 ```
 
+##### `loadFEN(fen: string, immediate?: boolean): void`
+
+Alias for `loadPosition` that mirrors popular chessboard APIs. Accepts the same parameters and clears interaction state by default.
+
+**Parameters:**
+
+- `fen: string` - Valid FEN string representing the position
+- `immediate?: boolean` - Optional flag forwarded to `loadPosition`
+
 ##### `submitMove(notation: string): boolean`
 
 Play a move using SAN (`"Nf3"`, `"exd5"`) or coordinate (`"e2e4"`) notation. The move is validated by the underlying rules
@@ -126,6 +135,24 @@ Swap the audio clips used for move sounds. When sounds are enabled the board rei
 
 - `soundUrls: BoardOptions['soundUrls']` - Optional map with `white` and/or `black` entries that override the default clip
 
+##### `getClockState(): ClockState | null`
+
+Return the current clock snapshot or `null` when no `clock` configuration has been provided.
+
+##### `setClockConfig(clock?: ClockConfig): void`
+
+Initialise or update the game clock. Passing `undefined` removes the active clock configuration.
+
+##### `updateClockState(update: ClockStateUpdate): ClockState | null`
+
+Apply a partial state update (for example decrementing the active side or toggling the running flag). The method returns the
+normalised `ClockState` or `null` when the board is not clock-enabled.
+
+##### `setClockCallbacks(callbacks?: ClockCallbacks | null): void`
+
+Update the callback hooks fired alongside the `clockChange`, `clockStart`, `clockPause`, and `clockFlag` bus events without
+reinitialising the timer values.
+
 ##### `setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void`
 
 Update the per-event audio configuration (move, capture, check, checkmate). Individual entries may be a single clip or a per-color map. Missing events automatically fall back to the move configuration and then to the legacy sound options.
@@ -150,9 +177,15 @@ Reset the board to the initial chess position.
 
 - `immediate?: boolean` - Set to `false` to animate the reset instead of snapping instantly (defaults to `true`)
 
-##### `exportPGN(): string`
+##### `exportPGN(options?: { includeHeaders?: boolean; includeComments?: boolean }): string`
 
-Export the current game as PGN format.
+Export the current game in PGN format with optional control over headers and in-line comments.
+
+**Parameters:**
+
+- `options?: { includeHeaders?: boolean; includeComments?: boolean }`
+  - `includeHeaders` (default `true`) – Pass `false` to omit the metadata header section
+  - `includeComments` (default `true`) – Pass `false` to strip `{...}` move comments from the output
 
 **Returns:**
 
@@ -186,6 +219,29 @@ Returns `true` when the game cannot be won due to insufficient mating material.
 ##### `isThreefoldRepetition(): boolean`
 
 Returns `true` when the current position has occurred at least three times.
+
+##### `convertMoveNotation(notation: string, from: 'san' | 'uci' | 'coord', to: 'san' | 'uci' | 'coord'): string | null`
+
+Translate a move between SAN, UCI, and coordinate styles using the current board position for context.
+
+**Parameters:**
+
+- `notation: string` - Source notation string
+- `from: 'san' | 'uci' | 'coord'` - The notation of the input
+- `to: 'san' | 'uci' | 'coord'` - Desired output notation
+
+**Returns:**
+
+- `string | null` - Converted notation, or `null` when parsing fails or the move is illegal in the current position
+
+**Related helpers:**
+
+- `sanToUci(san: string): string | null`
+- `sanToCoordinates(san: string): string | null`
+- `uciToSan(uci: string): string | null`
+- `uciToCoordinates(uci: string): string | null`
+- `coordinatesToSan(coord: string): string | null`
+- `coordinatesToUci(coord: string): string | null`
 
 ## Utility Functions
 
@@ -599,10 +655,14 @@ interface NeoChessProps extends Omit<BoardOptions, 'fen' | 'rulesAdapter'> {
   onMove?: (event: { from: Square; to: Square; fen: string }) => void;
   onIllegal?: (event: { from: Square; to: Square; reason: string }) => void;
   onUpdate?: (event: { fen: string }) => void;
+  onClockChange?: (state: ClockState) => void;
+  onClockStart?: (state: ClockState) => void;
+  onClockPause?: (state: ClockState) => void;
+  onClockFlag?: (event: BoardEventMap['clockFlag']) => void;
 }
 ```
 
-The component accepts every interactive option defined on [`BoardOptions`](#boardoptions) — such as `interactive`, `theme`, `allowPremoves`, `showHighlights`, `showArrows`, `soundEnabled`, or `autoFlip` — in addition to the props above. Use a [`ref`](https://react.dev/reference/react/forwardRef) to access the imperative helpers exposed through `NeoChessRef` (`getBoard`, `addArrow`, `clearHighlights`, ...).
+The component accepts every interactive option defined on [`BoardOptions`](#boardoptions) — such as `interactive`, `theme`, `allowPremoves`, `showHighlights`, `showArrows`, `soundEnabled`, `clock`, or `autoFlip` — in addition to the props above. Use a [`ref`](https://react.dev/reference/react/forwardRef) to access the imperative helpers exposed through `NeoChessRef` (`getBoard`, `addArrow`, `startClock`, `setClockTime`, `clearHighlights`, ...).
 
 #### Usage
 
@@ -656,7 +716,7 @@ function App() {
 }
 ```
 
-Because the board itself only emits the `move`, `illegal`, `update`, and `promotion` events, combine it with `ChessJsRules` (or another rules adapter) if you need richer game-state insights such as detecting checks or stalemates.
+When the clock option is enabled the board also emits `clockChange`, `clockStart`, `clockPause`, and `clockFlag` events. Combine the chessboard with `ChessJsRules` (or another rules adapter) if you need richer game-state insights such as detecting checks or stalemates.
 
 ## Type Definitions
 
@@ -673,13 +733,16 @@ interface BoardOptions {
   theme?: ThemeName | Theme;
   pieceSet?: PieceSet;
   showCoordinates?: boolean;
-  animationMs?: number;
+  animation?: { duration?: number; easing?: AnimationEasing };
   animationDurationInMs?: number;
+  animationEasing?: AnimationEasing;
+  animationMs?: number;
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
   position?: string;
   rulesAdapter?: RulesAdapter;
+  clock?: ClockConfig;
   allowAutoScroll?: boolean;
   allowDragging?: boolean;
   allowDragOffBoard?: boolean;
@@ -708,7 +771,47 @@ interface BoardOptions {
 }
 ```
 
+> **Tip:** Use the `animation` object to configure move animations. `AnimationEasing` accepts the built-in names (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`) or a custom function that receives progress from 0 to 1.
+
 > **Note:** When `showSquareNames` is enabled, the file letters and rank numbers remain on the bottom and left edges even when the board flips orientation, mirroring the behaviour of chess.com.
+
+### ClockConfig
+
+```typescript
+interface ClockConfig {
+  initial?: number | Partial<Record<Color, number>>;
+  increment?: number | Partial<Record<Color, number>>;
+  sides?: Partial<Record<Color, { initial?: number; increment?: number; remaining?: number }>>;
+  active?: Color | null;
+  paused?: boolean;
+  callbacks?: ClockCallbacks;
+}
+
+interface ClockCallbacks {
+  onClockStart?(state: ClockState): void;
+  onClockPause?(state: ClockState): void;
+  onClockChange?(state: ClockState): void;
+  onFlag?(payload: { color: Color; state: ClockState }): void;
+}
+
+interface ClockState {
+  white: { initial: number; increment: number; remaining: number; isFlagged: boolean };
+  black: { initial: number; increment: number; remaining: number; isFlagged: boolean };
+  active: Color | null;
+  isPaused: boolean;
+  isRunning: boolean;
+  lastUpdatedAt: number | null;
+}
+
+interface ClockStateUpdate {
+  active?: Color | null;
+  paused?: boolean;
+  running?: boolean;
+  timestamp?: number | null;
+  white?: Partial<ClockState['white']>;
+  black?: Partial<ClockState['black']>;
+}
+```
 
 ### Theme
 
@@ -726,6 +829,9 @@ interface Theme {
   moveTo: string;
   lastMove: string;
   premove: string;
+  check?: string;
+  checkmate?: string;
+  stalemate?: string;
   dot: string;
   arrow: string;
   squareNameColor: string;

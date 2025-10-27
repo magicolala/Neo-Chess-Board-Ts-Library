@@ -144,6 +144,21 @@ export const ThemeCreator: React.FC = () => {
         desc: 'Highlight for premove indicators',
       },
       {
+        key: 'check' as keyof Theme,
+        label: 'Check Highlight',
+        desc: 'Overlay applied when a king is in check',
+      },
+      {
+        key: 'checkmate' as keyof Theme,
+        label: 'Checkmate Highlight',
+        desc: 'Overlay applied when a player is checkmated',
+      },
+      {
+        key: 'stalemate' as keyof Theme,
+        label: 'Stalemate Highlight',
+        desc: 'Board tint used when the game reaches stalemate',
+      },
+      {
         key: 'dot' as keyof Theme,
         label: 'Legal Move Dots',
         desc: 'Small circles for legal moves',

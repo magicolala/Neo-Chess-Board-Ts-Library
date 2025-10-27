@@ -18,7 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Animation configuration object on `BoardOptions` for specifying duration and easing.
+- `NeoChessBoard#setAnimation` method for runtime animation updates.
+
 ### Changed
+
+- Animation easing selection now resolves named easings or custom functions instead of always using `easeOutCubic`.
 
 ## [0.1.0] - 2024-12-31
 
