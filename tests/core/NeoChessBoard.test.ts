@@ -1084,12 +1084,26 @@ describe('NeoChessBoard Core', () => {
         const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
         const playSpy = jest.spyOn(audioManager, 'playSound');
 
-        board.setFEN('4k3/7P/8/8/8/8/8/4K3 w - - 0 1');
+        board.setFEN('8/7P/1k6/8/8/8/8/K7 w - - 0 1');
         playSpy.mockClear();
         const result = board.attemptMove('h7', 'h8', { promotion: 'q' });
 
         expect(result).toBe(true);
         expect(playSpy).toHaveBeenCalledWith('promote', 'white');
+
+        playSpy.mockRestore();
+      });
+
+      it('prioritizes mate sounds when a promotion delivers checkmate', () => {
+        const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+        const playSpy = jest.spyOn(audioManager, 'playSound');
+
+        board.setFEN('6kr/6P1/6K1/8/8/2B5/8/8 w - - 0 1');
+        playSpy.mockClear();
+        const result = board.attemptMove('g7', 'h8', { promotion: 'q' });
+
+        expect(result).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('checkmate', 'white');
 
         playSpy.mockRestore();
       });
