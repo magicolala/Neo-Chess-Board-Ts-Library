@@ -344,7 +344,11 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
         <span className="playground__pgn-navigation-label" aria-live="polite">
           {currentMoveLabel ?? 'Start position'}
         </span>
-        <div className="playground__pgn-navigation-buttons" role="group" aria-label="Move navigation">
+        <div
+          className="playground__pgn-navigation-buttons"
+          role="group"
+          aria-label="Move navigation"
+        >
           <button
             type="button"
             className="playground__pgn-nav-button"

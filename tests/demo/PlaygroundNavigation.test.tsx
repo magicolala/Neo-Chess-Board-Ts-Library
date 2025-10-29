@@ -121,41 +121,45 @@ jest.mock('../../src/react', () => {
     },
   });
 
+  const MockNeoChessBoard = React.forwardRef(
+    (
+      props: Record<string, unknown>,
+      ref: React.ForwardedRef<{ getBoard: ReturnType<typeof getBoardApi> }>,
+    ) => {
+      const { onMove } = props as {
+        onMove?: (event: { from: string; to: string; fen: string }) => void;
+      };
+
+      React.useImperativeHandle(ref, () => ({
+        getBoard: getBoardApi,
+      }));
+
+      React.useEffect(() => {
+        boardState.currentFen = props.fen as string;
+      }, [props.fen]);
+
+      return React.createElement('button', {
+        type: 'button',
+        'data-testid': 'mock-board',
+        'data-fen': props.fen,
+        onClick: () => {
+          const move = SCRIPTED_MOVES[boardState.moveIndex];
+          if (!move) {
+            return;
+          }
+          boardState.moveIndex += 1;
+          boardState.currentFen = move.fen;
+          boardState.pgn = buildPgnFromMoves(boardState.moveIndex);
+          onMove?.({ from: move.from, to: move.to, fen: move.fen });
+        },
+      });
+    },
+  );
+
+  MockNeoChessBoard.displayName = 'MockNeoChessBoard';
+
   return {
-    NeoChessBoard: React.forwardRef(
-      (
-        props: Record<string, unknown>,
-        ref: React.ForwardedRef<{ getBoard: ReturnType<typeof getBoardApi> }>,
-      ) => {
-        const { onMove } = props as {
-          onMove?: (event: { from: string; to: string; fen: string }) => void;
-        };
-
-        React.useImperativeHandle(ref, () => ({
-          getBoard: getBoardApi,
-        }));
-
-        React.useEffect(() => {
-          boardState.currentFen = props.fen as string;
-        }, [props.fen]);
-
-        return React.createElement('button', {
-          type: 'button',
-          'data-testid': 'mock-board',
-          'data-fen': props.fen,
-          onClick: () => {
-            const move = SCRIPTED_MOVES[boardState.moveIndex];
-            if (!move) {
-              return;
-            }
-            boardState.moveIndex += 1;
-            boardState.currentFen = move.fen;
-            boardState.pgn = buildPgnFromMoves(boardState.moveIndex);
-            onMove?.({ from: move.from, to: move.to, fen: move.fen });
-          },
-        });
-      },
-    ),
+    NeoChessBoard: MockNeoChessBoard,
   };
 });
 
