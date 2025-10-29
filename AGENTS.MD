@@ -1,4 +1,4 @@
-# Neo Chess Board - LLM Agent Guidelines 
+# Neo Chess Board - LLM Agent Guidelines
 
 > [!IMPORTANT]
 > **Primary Reference Document**: This file is the authoritative source for LLM agents working on this codebase.
@@ -219,6 +219,7 @@ function App() {
   );
 }
 ```
+
 ```
 
 ## 🔄 Build System

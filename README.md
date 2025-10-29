@@ -418,6 +418,7 @@ board.configure({ promotion: { autoQueen: true } });
 ```
 
 `promotion.ui` defaults to `'dialog'`, which preserves the event/callback behaviour above. When set to `'inline'` the board renders a lightweight picker on top of the board, integrated with the existing promotion preview pipeline. `autoQueen` resolves promotions immediately with a queen, skipping any UI or callbacks.
+
 ## ⏱️ Integrated Game Clocks
 
 Neo Chess Board ships with a battle-tested game clock so you can add time controls without wiring a separate timer. Configure the
