@@ -215,6 +215,78 @@ export interface ParsedFENState {
   fullmove: number;
 }
 
+export class InvalidFENError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidFENError';
+  }
+}
+
+function validateFenString(fen: string, files: number, ranks: number): string[] {
+  const trimmedFen = fen.trim();
+  const fail = (reason: string): never => {
+    throw new InvalidFENError(`Invalid FEN: ${reason}`);
+  };
+
+  if (!trimmedFen) {
+    fail('FEN string cannot be empty.');
+  }
+
+  const parts = trimmedFen.split(/\s+/);
+  if (parts.length < 1 || parts.length > 6) {
+    fail(`FEN string must contain between 1 and 6 fields. Received ${parts.length}.`);
+  }
+
+  const boardPart = parts[0];
+  const rows = boardPart.split('/');
+  if (rows.length === 0) {
+    fail('FEN board description must contain at least one rank.');
+  }
+  if (rows.length > ranks) {
+    fail(`FEN board cannot describe more than ${ranks} ranks. Received ${rows.length}.`);
+  }
+
+  const piecePattern = /^[prnbqkPRNBQK]$/;
+
+  rows.forEach((row, index) => {
+    let totalSquares = 0;
+    let i = 0;
+    while (i < row.length) {
+      const char = row[i]!;
+      if (/\d/.test(char)) {
+        let digits = char;
+        i++;
+        while (i < row.length && /\d/.test(row[i]!)) {
+          digits += row[i]!;
+          i++;
+        }
+        const emptyCount = Number.parseInt(digits, 10);
+        if (!Number.isFinite(emptyCount) || emptyCount <= 0) {
+          fail(`FEN rank ${index + 1} contains an invalid empty square count: ${digits}.`);
+        }
+        totalSquares += emptyCount;
+      } else if (piecePattern.test(char)) {
+        totalSquares += 1;
+        i++;
+      } else {
+        fail(`FEN rank ${index + 1} contains an invalid character: '${char}'.`);
+      }
+    }
+
+    if (totalSquares !== files) {
+      fail(
+        `FEN rank ${index + 1} must describe exactly ${files} files but received ${totalSquares}.`,
+      );
+    }
+  });
+
+  if (parts[1] && parts[1] !== 'w' && parts[1] !== 'b') {
+    fail(`FEN active color must be either 'w' or 'b', received '${parts[1]}'.`);
+  }
+
+  return parts;
+}
+
 export function sq(
   file: number,
   rank: number,
@@ -302,9 +374,9 @@ export function parseFEN(
   fen: string,
   dimensions: { files?: number; ranks?: number } = {},
 ): ParsedFENState {
-  const parts = fen.split(' ');
   const files = Math.max(1, Math.floor(dimensions.files ?? 8));
   const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
+  const parts = validateFenString(fen, files, ranks);
   const board: (string | null)[][] = Array.from({ length: ranks }, () => Array(files).fill(null));
 
   const rows = parts[0].split('/');

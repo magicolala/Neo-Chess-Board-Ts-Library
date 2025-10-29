@@ -6,6 +6,7 @@ import {
   sq,
   sqToFR,
   parseFEN,
+  InvalidFENError,
   clamp,
   lerp,
   easeOutCubic,
@@ -114,6 +115,11 @@ describe('Chess Utils', () => {
       state.board.forEach((row) => {
         expect(row).toHaveLength(10);
       });
+    });
+
+    it('throws an explicit error for malformed FEN strings', () => {
+      expect(() => parseFEN('invalid fen')).toThrow(InvalidFENError);
+      expect(() => parseFEN('invalid fen')).toThrow('Invalid FEN');
     });
   });
 
