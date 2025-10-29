@@ -17,7 +17,10 @@ import type { EventBus } from '../../src/core/EventBus';
 
 type MinimalPgnNotation = Pick<
   PgnNotation,
-  'loadPgnWithAnnotations' | 'getMovesWithAnnotations' | 'addMoveAnnotations' | 'toPgnWithAnnotations'
+  | 'loadPgnWithAnnotations'
+  | 'getMovesWithAnnotations'
+  | 'addMoveAnnotations'
+  | 'toPgnWithAnnotations'
 >;
 
 const getPrivate = <T>(instance: unknown, key: string): T =>
@@ -39,7 +42,11 @@ if (typeof globalThis.PointerEvent === 'undefined') {
 class StubPgnNotation implements MinimalPgnNotation {
   private moves: PgnMove[] = [];
   public lastLoaded: string | null = null;
-  public storedAnnotations: Array<{ moveNumber: number; isWhite: boolean; annotations: PgnMoveAnnotations }> = [];
+  public storedAnnotations: Array<{
+    moveNumber: number;
+    isWhite: boolean;
+    annotations: PgnMoveAnnotations;
+  }> = [];
   public exportValue = '[Event "Stub"]\n\n1. e4 e5';
 
   loadPgnWithAnnotations(pgn: string): void {
