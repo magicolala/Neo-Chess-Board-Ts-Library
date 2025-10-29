@@ -2832,15 +2832,25 @@ export class NeoChessBoard {
 
       if (activePremove || queuedForWhite || queuedForBlack) {
         const activeColor = this.drawingManager?.getActivePremoveColor?.();
+        const colorsToClear = new Set<'white' | 'black'>();
+
         if (activeColor === 'w') {
-          this.clearPremove('white');
+          colorsToClear.add('white');
         } else if (activeColor === 'b') {
-          this.clearPremove('black');
-        } else if (queuedForWhite || queuedForBlack) {
-          this.clearPremove(queuedForWhite ? 'white' : 'black');
+          colorsToClear.add('black');
         } else {
-          this.clearPremove();
+          if (queuedForWhite) colorsToClear.add('white');
+          if (queuedForBlack) colorsToClear.add('black');
         }
+
+        if (colorsToClear.size === 0) {
+          this.clearPremove();
+        } else if (colorsToClear.size === 2) {
+          this.clearPremove('both');
+        } else {
+          this.clearPremove(colorsToClear.has('white') ? 'white' : 'black');
+        }
+
         handled = true;
       } else if (this.rightClickHighlights) {
         const square = this._xyToSquare(pt.x, pt.y);
