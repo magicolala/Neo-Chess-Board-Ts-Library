@@ -3328,13 +3328,25 @@ export class NeoChessBoard {
   }
 
   private _determineSoundEventType(legal: RulesMoveResponse): BoardSoundEventType {
+    const moveDetail = legal.move as
+      | { captured?: unknown; san?: string; promotion?: unknown; flags?: string }
+      | undefined;
+    const san = moveDetail?.san;
+
+    const isPromotion =
+      typeof moveDetail?.promotion !== 'undefined' ||
+      (typeof moveDetail?.flags === 'string' && moveDetail.flags.includes('p')) ||
+      (typeof san === 'string' && san.includes('='));
+
+    if (isPromotion) {
+      return 'promote';
+    }
+
     if (this.rules.isCheckmate?.()) {
       return 'checkmate';
     }
 
-    const moveDetail = legal.move as { captured?: unknown; san?: string } | undefined;
     const capturedPiece = moveDetail?.captured;
-    const san = moveDetail?.san;
 
     if (typeof san === 'string' && san.includes('#')) {
       return 'checkmate';
@@ -3362,6 +3374,8 @@ export class NeoChessBoard {
   ): void {
     this._clearSelectionState();
     this.renderAll();
+    const activeColor = this.state.turn === 'w' ? 'white' : 'black';
+    this.audioManager.playSound('illegal', activeColor);
     this._emitIllegalMoveEvent(from, to, legal);
   }
 
@@ -3552,6 +3566,12 @@ export class NeoChessBoard {
       const token = pending.token;
       this._hideInlinePromotion();
       this._resolvePromotion(token, 'q');
+      this.root.querySelectorAll('.ncb-inline-promotion').forEach((overlay) => {
+        overlay.innerHTML = '';
+        overlay.removeAttribute('data-square');
+        overlay.removeAttribute('data-color');
+        overlay.removeAttribute('data-mode');
+      });
       return;
     }
 

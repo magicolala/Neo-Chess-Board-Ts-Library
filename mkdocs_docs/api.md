@@ -155,11 +155,11 @@ reinitialising the timer values.
 
 ##### `setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void`
 
-Update the per-event audio configuration (move, capture, check, checkmate). Individual entries may be a single clip or a per-color map. Missing events automatically fall back to the move configuration and then to the legacy sound options.
+Update the per-event audio configuration (move, capture, check, checkmate, promote, illegal). Individual entries may be a single clip or a per-color map. Missing events automatically fall back to the move configuration and then to the legacy sound options.
 
 **Parameters:**
 
-- `soundEventUrls: BoardOptions['soundEventUrls']` - Optional map of event names to clip URLs or `{ white, black }` overrides
+- `soundEventUrls: BoardOptions['soundEventUrls']` - Optional map of event names to clip URLs or `{ white, black }` overrides. Supported keys: `move`, `capture`, `check`, `checkmate`, `promote`, `illegal`.
 
 ##### `configure(configuration: BoardConfiguration): void`
 
@@ -773,7 +773,10 @@ interface BoardOptions {
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
   soundEventUrls?: Partial<
-    Record<'move' | 'capture' | 'check' | 'checkmate', string | Partial<Record<'white' | 'black', string>>>
+    Record<
+      'move' | 'capture' | 'check' | 'checkmate' | 'promote' | 'illegal',
+      string | Partial<Record<'white' | 'black', string>>
+    >
   >;
   onPromotionRequired?: (request: PromotionRequest) => void;
   promotion?: { autoQueen?: boolean; ui?: 'dialog' | 'inline' };

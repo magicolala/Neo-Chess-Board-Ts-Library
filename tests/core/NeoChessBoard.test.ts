@@ -1079,6 +1079,33 @@ describe('NeoChessBoard Core', () => {
 
         playSpy.mockRestore();
       });
+
+      it('emits promotion sounds when a pawn is promoted', () => {
+        const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+        const playSpy = jest.spyOn(audioManager, 'playSound');
+
+        board.setFEN('4k3/7P/8/8/8/8/8/4K3 w - - 0 1');
+        playSpy.mockClear();
+        const result = board.attemptMove('h7', 'h8', { promotion: 'q' });
+
+        expect(result).toBe(true);
+        expect(playSpy).toHaveBeenCalledWith('promote', 'white');
+
+        playSpy.mockRestore();
+      });
+
+      it('plays the illegal move cue when a move is rejected', () => {
+        const audioManager = getPrivate<BoardAudioManager>(board, 'audioManager');
+        const playSpy = jest.spyOn(audioManager, 'playSound');
+
+        playSpy.mockClear();
+        const result = board.attemptMove('e2', 'e5');
+
+        expect(result).toBe(false);
+        expect(playSpy).toHaveBeenCalledWith('illegal', 'white');
+
+        playSpy.mockRestore();
+      });
     });
 
     describe('status highlights', () => {

@@ -1,9 +1,22 @@
-import type { BoardOptions, BoardSoundEventUrls } from './types';
+import type { BoardOptions, BoardSoundEventType, BoardSoundEventUrls } from './types';
+
+export type { BoardSoundEventType };
 
 const DEFAULT_AUDIO_VOLUME = 0.3;
 
 type Color = 'white' | 'black';
-export type BoardSoundEventType = 'move' | 'capture' | 'check' | 'checkmate';
+
+const SOUND_EVENT_TYPES: readonly BoardSoundEventType[] = [
+  'move',
+  'capture',
+  'check',
+  'checkmate',
+  'promote',
+  'illegal',
+] as const;
+
+const isBoardSoundEventType = (value: string): value is BoardSoundEventType =>
+  (SOUND_EVENT_TYPES as readonly string[]).includes(value);
 
 type LoadedSoundMap = {
   default?: HTMLAudioElement;
@@ -15,6 +28,8 @@ const SOUND_EVENT_FALLBACK: Record<BoardSoundEventType, BoardSoundEventType[]> =
   capture: ['capture', 'move'],
   check: ['check', 'move'],
   checkmate: ['checkmate', 'check', 'move'],
+  promote: ['promote', 'move'],
+  illegal: ['illegal', 'move'],
 };
 
 export interface BoardAudioConfig {
@@ -161,7 +176,11 @@ export class BoardAudioManager {
         continue;
       }
 
-      const type = eventKey as BoardSoundEventType;
+      if (!isBoardSoundEventType(eventKey)) {
+        continue;
+      }
+
+      const type = eventKey;
       const collection: LoadedSoundMap = {};
       let hasSound = false;
 
