@@ -3267,7 +3267,7 @@ export class NeoChessBoard {
     const piece = this._pieceAt(from)!;
     if (this._isPromotionMove(piece, to, side) && !promotion) {
       if (this.promotionOptions.autoQueen) {
-        this._setPremove(from, to, 'q');
+        this._setPremove(from, to, 'q', side);
         return true;
       }
       return this._beginPromotionRequest(from, to, side, 'premove');
@@ -3298,6 +3298,9 @@ export class NeoChessBoard {
     this.state = newState;
     this._syncOrientationFromTurn(false);
     this._clearSelectionState();
+    if (!this._pendingPromotion) {
+      this._hideInlinePromotion();
+    }
     this._lastMove = { from, to };
 
     if (this.drawingManager) {
@@ -3554,6 +3557,18 @@ export class NeoChessBoard {
       return null;
     }
 
+    const overlayRoot = this.domOverlay ?? this.root;
+    const existing = overlayRoot.querySelectorAll<HTMLDivElement>('.ncb-inline-promotion');
+    if (existing.length > 0) {
+      const primary = existing[0];
+      for (let i = 1; i < existing.length; i += 1) {
+        const extra = existing[i];
+        extra.parentElement?.removeChild(extra);
+      }
+      this.inlinePromotionContainer = primary;
+      return primary;
+    }
+
     if (this.inlinePromotionContainer && this.inlinePromotionContainer.isConnected) {
       return this.inlinePromotionContainer;
     }
@@ -3579,7 +3594,7 @@ export class NeoChessBoard {
       event.stopPropagation();
     });
 
-    (this.domOverlay ?? this.root).appendChild(container);
+    overlayRoot.appendChild(container);
     this.inlinePromotionContainer = container;
     return container;
   }
@@ -3723,14 +3738,19 @@ export class NeoChessBoard {
   }
 
   private _hideInlinePromotion(): void {
-    if (!this.inlinePromotionContainer) {
+    const container = this.inlinePromotionContainer;
+    if (!container) {
       return;
     }
-    this.inlinePromotionContainer.style.display = 'none';
-    this.inlinePromotionContainer.removeAttribute('data-square');
-    this.inlinePromotionContainer.removeAttribute('data-color');
-    this.inlinePromotionContainer.removeAttribute('data-mode');
-    this.inlinePromotionContainer.innerHTML = '';
+    container.style.display = 'none';
+    container.removeAttribute('data-square');
+    container.removeAttribute('data-color');
+    container.removeAttribute('data-mode');
+    const replacer = container as HTMLElement & {
+      replaceChildren?: (...nodes: Node[]) => void;
+    };
+    replacer.replaceChildren?.();
+    container.innerHTML = '';
     this.inlinePromotionButtons = [];
     this.inlinePromotionToken = null;
   }
