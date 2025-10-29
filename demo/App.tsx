@@ -31,6 +31,7 @@ import {
 } from './components/Icons';
 import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
 import { useBoardSize } from './hooks/useBoardSize';
+import { PlyNavigator } from './components/PlyNavigator';
 import {
   createTranslationValue,
   type Language,
@@ -51,6 +52,12 @@ const buildStatusSnapshot = (rules: ChessJsRules) => ({
 });
 
 type GameStatus = ReturnType<typeof buildStatusSnapshot>;
+
+interface PlyTimelineEntry {
+  ply: number;
+  fen: string;
+  san?: string;
+}
 
 const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
@@ -124,11 +131,16 @@ const AppContent: React.FC = () => {
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [isPgnLoading, setIsPgnLoading] = useState(false);
   const [evaluationsByPly, setEvaluationsByPly] = useState<Record<number, number | string>>({});
-  const [fenToPlyMap, setFenToPlyMap] = useState<Record<string, number>>({});
+  const initialFen = chessRules.getFEN();
+  const [plyTimeline, setPlyTimeline] = useState<PlyTimelineEntry[]>([{ ply: 0, fen: initialFen }]);
+  const [fenToPlyMap, setFenToPlyMap] = useState<Record<string, number>>({
+    [initialFen]: 0,
+  });
   const [currentPly, setCurrentPly] = useState(0);
   const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>(
     undefined,
   );
+  const [selectedPly, setSelectedPly] = useState(0);
   const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
     showHighlights: true,
@@ -167,6 +179,11 @@ const AppContent: React.FC = () => {
   });
 
   const boardRef = useRef<NeoChessRef>(null);
+  const selectedPlyRef = useRef(0);
+
+  useEffect(() => {
+    selectedPlyRef.current = selectedPly;
+  }, [selectedPly]);
 
   useEffect(() => {
     const boardInstance = boardRef.current?.getBoard();
@@ -224,16 +241,44 @@ const AppContent: React.FC = () => {
       const source = map ?? evaluationsByPly;
       setCurrentEvaluation(source[ply]);
       setCurrentPly(ply);
+      setSelectedPly(ply);
     },
     [evaluationsByPly],
   );
 
+  const createFenToPlyMap = useCallback((timeline: PlyTimelineEntry[]) => {
+    return timeline.reduce<Record<string, number>>((accumulator, entry) => {
+      accumulator[entry.fen] = entry.ply;
+      return accumulator;
+    }, {});
+  }, []);
+
+  const setTimeline = useCallback(
+    (updater: PlyTimelineEntry[] | ((previous: PlyTimelineEntry[]) => PlyTimelineEntry[])) => {
+      if (typeof updater === 'function') {
+        setPlyTimeline((previous) => {
+          const nextTimeline = (updater as (prev: PlyTimelineEntry[]) => PlyTimelineEntry[])(
+            previous,
+          );
+          setFenToPlyMap(createFenToPlyMap(nextTimeline));
+          return nextTimeline;
+        });
+      } else {
+        setFenToPlyMap(createFenToPlyMap(updater));
+        setPlyTimeline(updater);
+      }
+    },
+    [createFenToPlyMap],
+  );
+
   const clearEvaluations = useCallback(() => {
+    const baseFen = chessRules.getFEN();
     setEvaluationsByPly({});
-    setFenToPlyMap({});
+    setTimeline([{ ply: 0, fen: baseFen }]);
     setCurrentEvaluation(undefined);
-    setCurrentPly(chessRules.history().length);
-  }, [chessRules]);
+    setCurrentPly(0);
+    setSelectedPly(0);
+  }, [chessRules, setTimeline]);
 
   const syncEvaluationsFromRules = useCallback(() => {
     const notation = chessRules.getPgnNotation();
@@ -287,8 +332,9 @@ const AppContent: React.FC = () => {
       timelineRules.reset();
     }
 
-    const fenMap: Record<string, number> = {};
-    fenMap[timelineRules.getFEN()] = 0;
+    const initialTimelineFen = timelineRules.getFEN();
+    const timelineEntries: PlyTimelineEntry[] = [{ ply: 0, fen: initialTimelineFen }];
+    const fenMap: Record<string, number> = { [initialTimelineFen]: 0 };
 
     verboseHistory.forEach((move, index) => {
       const result = timelineRules.move({
@@ -297,14 +343,55 @@ const AppContent: React.FC = () => {
         promotion: move.promotion,
       });
       if (result.ok) {
-        fenMap[timelineRules.getFEN()] = index + 1;
+        const plyIndex = index + 1;
+        const resultingFen = result.fen ?? timelineRules.getFEN();
+        fenMap[resultingFen] = plyIndex;
+        timelineEntries.push({
+          ply: plyIndex,
+          fen: resultingFen,
+          san: result.move?.san,
+        });
       }
     });
 
     setEvaluationsByPly(evaluationMap);
-    setFenToPlyMap(fenMap);
+    setTimeline(timelineEntries);
     updateEvaluationFromMap(verboseHistory.length, evaluationMap);
-  }, [chessRules, updateEvaluationFromMap]);
+  }, [chessRules, setTimeline, updateEvaluationFromMap]);
+
+  const jumpToPly = useCallback(
+    (targetPly: number) => {
+      if (plyTimeline.length === 0) {
+        return;
+      }
+      const maxPly = plyTimeline[plyTimeline.length - 1]?.ply ?? 0;
+      const clampedPly = Math.max(0, Math.min(targetPly, maxPly));
+      const entry = plyTimeline.find((item) => item.ply === clampedPly);
+      if (!entry) {
+        return;
+      }
+
+      const board = boardRef.current?.getBoard();
+      setFen((previousFen) => (previousFen === entry.fen ? previousFen : entry.fen));
+      board?.loadFEN?.(entry.fen);
+      syncOrientationWithFen(entry.fen);
+      try {
+        chessRules.setFEN(entry.fen);
+      } catch (error) {
+        console.error('Unable to sync rules with timeline navigation:', error);
+      }
+      updateStatusSnapshot();
+      updateEvaluationFromMap(clampedPly);
+    },
+    [
+      boardRef,
+      chessRules,
+      plyTimeline,
+      syncOrientationWithFen,
+      updateEvaluationFromMap,
+      updateStatusSnapshot,
+    ],
+  );
 
   const handleBoardUpdate = useCallback(
     ({ fen: nextFen }: { fen: string }) => {
@@ -325,13 +412,24 @@ const AppContent: React.FC = () => {
       if (typeof mappedPly === 'number') {
         updateEvaluationFromMap(mappedPly);
       } else {
+        const fallbackPly = chessRules.history().length;
+        setTimeline((previousTimeline) => {
+          const trimmedTimeline = previousTimeline.filter((entry) => entry.ply <= fallbackPly);
+          const alreadyRegistered = trimmedTimeline.some((entry) => entry.fen === nextFen);
+          if (alreadyRegistered) {
+            return trimmedTimeline;
+          }
+          return [...trimmedTimeline, { ply: fallbackPly, fen: nextFen }];
+        });
         setCurrentEvaluation(undefined);
-        setCurrentPly(chessRules.history().length);
+        setCurrentPly(fallbackPly);
+        setSelectedPly(fallbackPly);
       }
     },
     [
       chessRules,
       fenToPlyMap,
+      setTimeline,
       syncOrientationWithFen,
       updateEvaluationFromMap,
       updateStatusSnapshot,
@@ -792,14 +890,40 @@ const AppContent: React.FC = () => {
                 setFen(nextFen);
                 syncOrientationWithFen(nextFen);
                 updateStatusSnapshot();
-                const historyLength = chessRules.history().length;
-                setFenToPlyMap((prev) => {
-                  if (prev[nextFen] === historyLength) {
-                    return prev;
+                const basePly = selectedPlyRef.current;
+                const nextPly = basePly + 1;
+                const truncatedEvaluationMap = Object.entries(evaluationsByPly).reduce<
+                  Record<number, number | string>
+                >((accumulator, [plyKey, value]) => {
+                  const numericPly = Number(plyKey);
+                  if (!Number.isNaN(numericPly) && numericPly <= basePly) {
+                    accumulator[numericPly] = value;
                   }
-                  return { ...prev, [nextFen]: historyLength };
+                  return accumulator;
+                }, {});
+                setEvaluationsByPly(truncatedEvaluationMap);
+                setTimeline((previousTimeline) => {
+                  const trimmedTimeline = previousTimeline.filter((entry) => entry.ply <= basePly);
+                  const ensuredTimeline = trimmedTimeline.length
+                    ? trimmedTimeline
+                    : [
+                        {
+                          ply: 0,
+                          fen: previousTimeline[0]?.fen ?? nextFen,
+                          san: previousTimeline[0]?.san,
+                        },
+                      ];
+                  const nextTimeline = [
+                    ...ensuredTimeline,
+                    {
+                      ply: nextPly,
+                      fen: nextFen,
+                      san: result.move?.san,
+                    },
+                  ];
+                  return nextTimeline;
                 });
-                updateEvaluationFromMap(historyLength);
+                updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
               }}
               onUpdate={handleBoardUpdate}
               className={styles.boardCanvas}
@@ -1275,6 +1399,45 @@ const AppContent: React.FC = () => {
               <strong>{translate('pgn.helper.prefix')}</strong> {translate('pgn.helper.middle')}{' '}
               <code>[%eval ...]</code> {translate('pgn.helper.suffix')}
             </p>
+          </div>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>{translate('timeline.title')}</h3>
+          </div>
+          <div className={styles.panelContent}>
+            <PlyNavigator
+              onFirst={() => jumpToPly(0)}
+              onPrevious={() => jumpToPly(selectedPly - 1)}
+              onNext={() => jumpToPly(selectedPly + 1)}
+              onLast={() => jumpToPly(plyTimeline[plyTimeline.length - 1]?.ply ?? 0)}
+              isAtStart={selectedPly <= 0}
+              isAtEnd={
+                plyTimeline.length === 0 ||
+                selectedPly >= (plyTimeline[plyTimeline.length - 1]?.ply ?? 0)
+              }
+              moveLabel={
+                plyTimeline.find((entry) => entry.ply === selectedPly)?.san ||
+                translate('timeline.start')
+              }
+              positionLabel={translate('timeline.position', {
+                descriptor: formatPlyDescriptor(selectedPly),
+              })}
+              labels={{
+                first: translate('timeline.controls.first'),
+                previous: translate('timeline.controls.previous'),
+                next: translate('timeline.controls.next'),
+                last: translate('timeline.controls.last'),
+                currentMove: translate('timeline.currentMove'),
+              }}
+              ariaLabels={{
+                first: translate('timeline.aria.first'),
+                previous: translate('timeline.aria.previous'),
+                next: translate('timeline.aria.next'),
+                last: translate('timeline.aria.last'),
+              }}
+            />
           </div>
         </div>
 
