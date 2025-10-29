@@ -133,4 +133,20 @@
   .playground__pgn-actions > * {
     width: 100%;
   }
+
+  .playground__pgn-navigation {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .playground__pgn-navigation-buttons {
+    width: 100%;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .playground__pgn-nav-button {
+    width: 100%;
+  }
 }
