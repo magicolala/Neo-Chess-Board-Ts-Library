@@ -56,6 +56,8 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
       'no-unused-vars': 'off',
     },
     settings: {
