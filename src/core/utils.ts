@@ -222,7 +222,7 @@ export class InvalidFENError extends Error {
   }
 }
 
-function validateFenString(fen: string, files: number, ranks: number): string[] {
+function validateFenString(fen: string): string[] {
   const trimmedFen = fen.trim();
   const fail = (reason: string): never => {
     throw new InvalidFENError(`Invalid FEN: ${reason}`);
@@ -242,11 +242,9 @@ function validateFenString(fen: string, files: number, ranks: number): string[] 
   if (rows.length === 0) {
     fail('FEN board description must contain at least one rank.');
   }
-  if (rows.length > ranks) {
-    fail(`FEN board cannot describe more than ${ranks} ranks. Received ${rows.length}.`);
-  }
 
   const piecePattern = /^[prnbqkPRNBQK]$/;
+  let describedFiles: number | null = null;
 
   rows.forEach((row, index) => {
     let totalSquares = 0;
@@ -273,9 +271,15 @@ function validateFenString(fen: string, files: number, ranks: number): string[] 
       }
     }
 
-    if (totalSquares !== files) {
+    if (totalSquares === 0) {
+      fail(`FEN rank ${index + 1} must describe at least one square.`);
+    }
+
+    if (describedFiles === null) {
+      describedFiles = totalSquares;
+    } else if (totalSquares !== describedFiles) {
       fail(
-        `FEN rank ${index + 1} must describe exactly ${files} files but received ${totalSquares}.`,
+        `FEN rank ${index + 1} must describe exactly ${describedFiles} squares but received ${totalSquares}.`,
       );
     }
   });
@@ -376,7 +380,7 @@ export function parseFEN(
 ): ParsedFENState {
   const files = Math.max(1, Math.floor(dimensions.files ?? 8));
   const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
-  const parts = validateFenString(fen, files, ranks);
+  const parts = validateFenString(fen);
   const board: (string | null)[][] = Array.from({ length: ranks }, () => Array(files).fill(null));
 
   const rows = parts[0].split('/');
