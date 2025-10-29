@@ -5,11 +5,17 @@ import type { PgnNotation } from '../../../src/core/PgnNotation';
 import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 import { useToaster } from './Toaster';
 
+type PgnNavigationDirection = 'first' | 'previous' | 'next' | 'last';
+
 interface PgnPanelProps {
   boardRef: React.RefObject<NeoChessRef>;
   pgn: string;
   onPgnChange: (next: string) => void;
   onLog?: (message: string) => void;
+  onNavigate: (direction: PgnNavigationDirection) => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  currentMoveLabel?: string;
 }
 
 interface ExamplePgn {
@@ -63,7 +69,16 @@ const getPgnNotationFromBoard = (board: unknown): PgnNotation | null => {
   return rules.getPgnNotation();
 };
 
-const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }) => {
+const PgnPanel: React.FC<PgnPanelProps> = ({
+  boardRef,
+  pgn,
+  onPgnChange,
+  onLog,
+  onNavigate,
+  canGoBack,
+  canGoForward,
+  currentMoveLabel,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -323,6 +338,46 @@ const PgnPanel: React.FC<PgnPanelProps> = ({ boardRef, pgn, onPgnChange, onLog }
             {loadingExample === example.id ? 'Loading…' : example.label}
           </button>
         ))}
+      </div>
+
+      <div className="playground__pgn-navigation">
+        <span className="playground__pgn-navigation-label" aria-live="polite">
+          {currentMoveLabel ?? 'Start position'}
+        </span>
+        <div className="playground__pgn-navigation-buttons" role="group" aria-label="Move navigation">
+          <button
+            type="button"
+            className="playground__pgn-nav-button"
+            onClick={() => onNavigate('first')}
+            disabled={!canGoBack}
+          >
+            First
+          </button>
+          <button
+            type="button"
+            className="playground__pgn-nav-button"
+            onClick={() => onNavigate('previous')}
+            disabled={!canGoBack}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="playground__pgn-nav-button"
+            onClick={() => onNavigate('next')}
+            disabled={!canGoForward}
+          >
+            Next
+          </button>
+          <button
+            type="button"
+            className="playground__pgn-nav-button"
+            onClick={() => onNavigate('last')}
+            disabled={!canGoForward}
+          >
+            Last
+          </button>
+        </div>
       </div>
 
       <textarea

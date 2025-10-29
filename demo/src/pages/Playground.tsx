@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { NeoChessBoard } from '../../../src/react';
 import type { NeoChessRef } from '../../../src/react';
+import { ChessJsRules } from '../../../src/core/ChessJsRules';
 import {
   usePlaygroundState,
   usePlaygroundActions,
@@ -186,6 +187,18 @@ const DIRTY_STROKE_BY_LAYER: Record<RenderLayer, string> = {
 };
 
 const DEFAULT_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+const formatPlyLabel = (ply: number): string => {
+  if (ply <= 0) {
+    return 'Start position';
+  }
+
+  const moveNumber = Math.ceil(ply / 2);
+  const isWhite = ply % 2 === 1;
+  const sideLabel = isWhite ? 'White' : 'Black';
+
+  return `Move ${moveNumber} (${sideLabel})`;
+};
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -507,6 +520,8 @@ const PlaygroundView: React.FC = () => {
       ? permalinkSnapshot.fen
       : DEFAULT_START_FEN;
   const [currentFen, setCurrentFen] = useState<string>(initialFen);
+  const [fenTimeline, setFenTimeline] = useState<string[]>([initialFen]);
+  const [plyIndex, setPlyIndex] = useState(0);
   const [isStressTestRunning, setIsStressTestRunning] = useState(false);
   const [isPerfPanelVisible, setIsPerfPanelVisible] = useState(false);
   const [showFpsBadge, setShowFpsBadge] = useState(false);
@@ -528,8 +543,13 @@ const PlaygroundView: React.FC = () => {
   const fpsUnsubscribeRef = useRef<(() => void) | null>(null);
   const dirtyCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const dirtyObserverBoardRef = useRef<ReturnType<NeoChessRef['getBoard']>>(null);
+  const fenTimelineRef = useRef<string[]>([initialFen]);
+  const plyIndexRef = useRef(0);
+  const orientationRef = useRef(orientation);
+  const initialFenRef = useRef(initialFen);
 
   const boardOptions = usePlaygroundState();
+  const boardOptionsRef = useRef(boardOptions);
   const { update: updateBoardOptions, reset: resetBoardOptions } = usePlaygroundActions();
   const { pushToast } = useToaster();
 
@@ -668,6 +688,22 @@ const PlaygroundView: React.FC = () => {
   useEffect(() => {
     boardSizeRef.current = boardSize;
   }, [boardSize]);
+
+  useEffect(() => {
+    fenTimelineRef.current = fenTimeline;
+  }, [fenTimeline]);
+
+  useEffect(() => {
+    plyIndexRef.current = plyIndex;
+  }, [plyIndex]);
+
+  useEffect(() => {
+    orientationRef.current = orientation;
+  }, [orientation]);
+
+  useEffect(() => {
+    boardOptionsRef.current = boardOptions;
+  }, [boardOptions]);
 
   useEffect(() => {
     const boardInstance = boardRef.current?.getBoard?.();
@@ -942,6 +978,118 @@ const PlaygroundView: React.FC = () => {
       return [...previous, entry];
     });
   }, []);
+
+  const applyPly = useCallback(
+    (index: number, options?: { timelineOverride?: string[]; logLabel?: string }) => {
+      const timeline = options?.timelineOverride ?? fenTimelineRef.current;
+      if (!timeline.length) {
+        return;
+      }
+
+      const maxIndex = timeline.length - 1;
+      const clampedIndex = Math.max(0, Math.min(index, maxIndex));
+      const fen = timeline[clampedIndex] ?? timeline[maxIndex];
+
+      plyIndexRef.current = clampedIndex;
+      setPlyIndex(clampedIndex);
+      setCurrentFen(fen);
+
+      const stateSnapshot = boardOptionsRef.current ?? boardOptions;
+      syncPlaygroundPermalink({
+        orientation: orientationRef.current,
+        state: stateSnapshot,
+        fen,
+      });
+
+      if (options?.logLabel) {
+        pushLog(options.logLabel);
+      }
+    },
+    [boardOptions, pushLog],
+  );
+
+  const rebuildTimelineFromPgn = useCallback(
+    (sourcePgn: string, options?: { jumpToEnd?: boolean; logLabel?: string }) => {
+      const trimmed = sourcePgn.trim();
+      let sanitizedPgn = trimmed;
+      let startingFen = initialFenRef.current ?? DEFAULT_START_FEN;
+      let frames: string[] = [];
+
+      if (trimmed.length === 0) {
+        frames = [startingFen];
+      } else {
+        try {
+          const rules = new ChessJsRules();
+          const loaded = rules.loadPgn(trimmed);
+          if (!loaded) {
+            throw new Error('Failed to load PGN into ChessJsRules.');
+          }
+
+          const notation = rules.getPgnNotation?.();
+          const metadata = notation?.getMetadata?.();
+          const metadataFen = typeof metadata?.FEN === 'string' ? metadata.FEN.trim() : undefined;
+          const normalizedSetUp =
+            typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
+          if (metadataFen) {
+            if (!normalizedSetUp || normalizedSetUp === '1' || normalizedSetUp === 'true') {
+              startingFen = metadataFen;
+            }
+          }
+
+          sanitizedPgn = notation?.toPgnWithAnnotations?.() ?? trimmed;
+
+          const verboseHistory = rules.getChessInstance().history({ verbose: true }) as Array<{
+            from: string;
+            to: string;
+            promotion?: string;
+          }>;
+
+          const timelineRules = new ChessJsRules(startingFen);
+          const nextFrames: string[] = [timelineRules.getFEN()];
+          for (const move of verboseHistory) {
+            const response = timelineRules.move({
+              from: move.from,
+              to: move.to,
+              promotion: move.promotion,
+            });
+
+            if (!response.ok || typeof response.fen !== 'string') {
+              break;
+            }
+
+            nextFrames.push(response.fen);
+          }
+
+          frames = nextFrames.length > 0 ? nextFrames : [startingFen];
+        } catch (error) {
+          console.error('Failed to rebuild PGN timeline:', error);
+          const fallback =
+            fenTimelineRef.current[plyIndexRef.current] ?? fenTimelineRef.current[0] ?? startingFen;
+          frames = [fallback];
+        }
+      }
+
+      if (frames.length === 0) {
+        frames = [startingFen];
+      }
+
+      fenTimelineRef.current = frames;
+      setFenTimeline(frames);
+
+      const maxIndex = frames.length > 0 ? frames.length - 1 : 0;
+      const targetIndex = options?.jumpToEnd ? maxIndex : Math.min(plyIndexRef.current, maxIndex);
+      applyPly(targetIndex, { timelineOverride: frames, logLabel: options?.logLabel });
+
+      if (sanitizedPgn !== sourcePgn) {
+        setPgn(sanitizedPgn);
+      }
+    },
+    [applyPly, setPgn],
+  );
+
+  useEffect(() => {
+    rebuildTimelineFromPgn(pgn, { jumpToEnd: true });
+  }, [pgn, rebuildTimelineFromPgn]);
 
   const stopStressTest = useCallback(
     (message?: string, options?: { silent?: boolean }) => {
@@ -1258,11 +1406,68 @@ const PlaygroundView: React.FC = () => {
     [orientation, boardOptions, currentFen, copyToClipboard],
   );
 
+  const currentMoveLabel = useMemo(() => formatPlyLabel(plyIndex), [plyIndex]);
+  const canNavigateBackward = plyIndex > 0;
+  const canNavigateForward = plyIndex < Math.max(0, fenTimeline.length - 1);
+
+  const handleNavigate = useCallback(
+    (direction: 'first' | 'previous' | 'next' | 'last') => {
+      const timeline = fenTimelineRef.current;
+      if (!timeline.length) {
+        return;
+      }
+
+      const maxIndex = timeline.length - 1;
+      let targetIndex = plyIndexRef.current;
+
+      switch (direction) {
+        case 'first':
+          targetIndex = 0;
+          break;
+        case 'previous':
+          targetIndex = Math.max(0, plyIndexRef.current - 1);
+          break;
+        case 'next':
+          targetIndex = Math.min(maxIndex, plyIndexRef.current + 1);
+          break;
+        case 'last':
+          targetIndex = maxIndex;
+          break;
+        default:
+          targetIndex = plyIndexRef.current;
+      }
+
+      if (targetIndex === plyIndexRef.current) {
+        return;
+      }
+
+      const label = formatPlyLabel(targetIndex);
+      const verb =
+        direction === 'next'
+          ? 'Moved forward to'
+          : direction === 'previous'
+            ? 'Moved back to'
+            : 'Navigated to';
+
+      applyPly(targetIndex, { logLabel: `${verb} ${label}.` });
+    },
+    [applyPly],
+  );
+
   const outputSections = useMemo(
     () =>
       buildOutputSections(
         logs,
-        <PgnPanel boardRef={boardRef} pgn={pgn} onPgnChange={setPgn} onLog={pushLog} />,
+        <PgnPanel
+          boardRef={boardRef}
+          pgn={pgn}
+          onPgnChange={setPgn}
+          onLog={pushLog}
+          onNavigate={handleNavigate}
+          canGoBack={canNavigateBackward}
+          canGoForward={canNavigateForward}
+          currentMoveLabel={currentMoveLabel}
+        />,
         codePanelElement,
         handleClearLogs,
         {
@@ -1279,6 +1484,10 @@ const PlaygroundView: React.FC = () => {
       codePanelElement,
       sharePanelProps,
       perfPanelElement,
+      handleNavigate,
+      canNavigateBackward,
+      canNavigateForward,
+      currentMoveLabel,
     ],
   );
 
@@ -1294,12 +1503,17 @@ const PlaygroundView: React.FC = () => {
     setBoardKey((value) => value + 1);
     setOrientation(DEFAULT_ORIENTATION);
     resetBoardOptions();
-    clearPlaygroundPermalink();
+    const resetTimeline = [DEFAULT_START_FEN];
+    fenTimelineRef.current = resetTimeline;
+    setFenTimeline(resetTimeline);
     setPgn('');
-    setCurrentFen(DEFAULT_START_FEN);
-    pushLog('Board reset and controls restored to defaults');
+    applyPly(0, {
+      timelineOverride: resetTimeline,
+      logLabel: 'Board reset and controls restored to defaults',
+    });
+    clearPlaygroundPermalink();
     pushToast('Playground reset to defaults and permalink cleared.', { intent: 'success' });
-  }, [isStressTestRunning, resetBoardOptions, stopStressTest, pushLog, pushToast]);
+  }, [isStressTestRunning, resetBoardOptions, stopStressTest, applyPly, pushToast]);
 
   const handleStressTest = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -1504,11 +1718,20 @@ const PlaygroundView: React.FC = () => {
 
   const handleBoardMove = useCallback(
     (event: BoardEventMap['move']) => {
-      setPgn(exportPgnFromBoard());
-      setCurrentFen(event.fen);
-      pushLog(`Move played from ${event.from} to ${event.to}`);
+      const exported = exportPgnFromBoard();
+      setPgn(exported);
+
+      const baseTimeline = fenTimelineRef.current.slice(0, plyIndexRef.current + 1);
+      const nextTimeline = [...baseTimeline, event.fen];
+      fenTimelineRef.current = nextTimeline;
+      setFenTimeline(nextTimeline);
+
+      applyPly(nextTimeline.length - 1, {
+        timelineOverride: nextTimeline,
+        logLabel: `Move played from ${event.from} to ${event.to}`,
+      });
     },
-    [exportPgnFromBoard, pushLog],
+    [applyPly, exportPgnFromBoard],
   );
 
   const handleBoardIllegal = useCallback(
@@ -1522,11 +1745,24 @@ const PlaygroundView: React.FC = () => {
 
   const handleBoardUpdate = useCallback(
     (event: BoardEventMap['update']) => {
-      setPgn(exportPgnFromBoard());
-      setCurrentFen(event.fen);
-      pushLog(`Board updated: ${event.fen}`);
+      const exported = exportPgnFromBoard();
+      setPgn(exported);
+
+      const sliceEnd = Math.max(0, plyIndexRef.current) + 1;
+      const baseTimeline = fenTimelineRef.current.slice(0, sliceEnd);
+      const nextTimeline = baseTimeline.length
+        ? [...baseTimeline.slice(0, baseTimeline.length - 1), event.fen]
+        : [event.fen];
+
+      fenTimelineRef.current = nextTimeline;
+      setFenTimeline(nextTimeline);
+
+      applyPly(nextTimeline.length - 1, {
+        timelineOverride: nextTimeline,
+        logLabel: `Board updated: ${event.fen}`,
+      });
     },
-    [exportPgnFromBoard, pushLog],
+    [applyPly, exportPgnFromBoard],
   );
 
   const handlePromotionRequired = useCallback(
