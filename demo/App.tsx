@@ -59,6 +59,12 @@ interface PlyTimelineEntry {
   san?: string;
 }
 
+interface TimelineMove {
+  from: string;
+  to: string;
+  promotion?: string;
+}
+
 const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
@@ -132,6 +138,8 @@ const AppContent: React.FC = () => {
   const [isPgnLoading, setIsPgnLoading] = useState(false);
   const [evaluationsByPly, setEvaluationsByPly] = useState<Record<number, number | string>>({});
   const initialFen = chessRules.getFEN();
+  const timelineInitialFenRef = useRef(initialFen);
+  const timelineMovesRef = useRef<TimelineMove[]>([]);
   const [plyTimeline, setPlyTimeline] = useState<PlyTimelineEntry[]>([{ ply: 0, fen: initialFen }]);
   const [fenToPlyMap, setFenToPlyMap] = useState<Record<string, number>>({
     [initialFen]: 0,
@@ -278,6 +286,8 @@ const AppContent: React.FC = () => {
     setCurrentEvaluation(undefined);
     setCurrentPly(0);
     setSelectedPly(0);
+    timelineInitialFenRef.current = baseFen;
+    timelineMovesRef.current = [];
   }, [chessRules, setTimeline]);
 
   const syncEvaluationsFromRules = useCallback(() => {
@@ -354,10 +364,54 @@ const AppContent: React.FC = () => {
       }
     });
 
+    timelineInitialFenRef.current = initialTimelineFen;
+    timelineMovesRef.current = verboseHistory;
     setEvaluationsByPly(evaluationMap);
     setTimeline(timelineEntries);
     updateEvaluationFromMap(verboseHistory.length, evaluationMap);
   }, [chessRules, setTimeline, updateEvaluationFromMap]);
+
+  const rebuildRulesFromTimeline = useCallback(
+    (targetPly: number) => {
+      const baseFen = timelineInitialFenRef.current;
+      const moves = timelineMovesRef.current;
+
+      try {
+        if (typeof baseFen === 'string' && baseFen.trim().length > 0) {
+          chessRules.setFEN(baseFen);
+        } else {
+          chessRules.reset();
+        }
+      } catch (error) {
+        console.error('Unable to reset rules with the timeline starting FEN:', error);
+        return;
+      }
+
+      if (targetPly <= 0) {
+        return;
+      }
+
+      const limit = Math.min(targetPly, moves.length);
+      for (let index = 0; index < limit; index += 1) {
+        const move = moves[index];
+        if (!move) {
+          break;
+        }
+
+        const response = chessRules.move({
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+        });
+
+        if (!response.ok) {
+          console.warn('Failed to replay PGN move while rebuilding rules history:', move);
+          break;
+        }
+      }
+    },
+    [chessRules],
+  );
 
   const jumpToPly = useCallback(
     (targetPly: number) => {
@@ -375,17 +429,13 @@ const AppContent: React.FC = () => {
       setFen((previousFen) => (previousFen === entry.fen ? previousFen : entry.fen));
       board?.loadFEN?.(entry.fen);
       syncOrientationWithFen(entry.fen);
-      try {
-        chessRules.setFEN(entry.fen);
-      } catch (error) {
-        console.error('Unable to sync rules with timeline navigation:', error);
-      }
+      rebuildRulesFromTimeline(clampedPly);
       updateStatusSnapshot();
       updateEvaluationFromMap(clampedPly);
     },
     [
       boardRef,
-      chessRules,
+      rebuildRulesFromTimeline,
       plyTimeline,
       syncOrientationWithFen,
       updateEvaluationFromMap,
@@ -399,16 +449,20 @@ const AppContent: React.FC = () => {
       syncOrientationWithFen(nextFen);
       setPgnError(null);
 
+      const mappedPly = fenToPlyMap[nextFen];
       if (chessRules.getFEN() !== nextFen) {
-        try {
-          chessRules.setFEN(nextFen);
-        } catch (error) {
-          console.error('Error while syncing the FEN with PGN navigation:', error);
+        if (typeof mappedPly === 'number') {
+          rebuildRulesFromTimeline(mappedPly);
+        } else {
+          try {
+            chessRules.setFEN(nextFen);
+          } catch (error) {
+            console.error('Error while syncing the FEN with PGN navigation:', error);
+          }
         }
         updateStatusSnapshot();
       }
 
-      const mappedPly = fenToPlyMap[nextFen];
       if (typeof mappedPly === 'number') {
         updateEvaluationFromMap(mappedPly);
       } else {
@@ -421,6 +475,11 @@ const AppContent: React.FC = () => {
           }
           return [...trimmedTimeline, { ply: fallbackPly, fen: nextFen }];
         });
+        timelineMovesRef.current = chessRules.getHistory().map((move) => ({
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+        }));
         setCurrentEvaluation(undefined);
         setCurrentPly(fallbackPly);
         setSelectedPly(fallbackPly);
@@ -429,6 +488,7 @@ const AppContent: React.FC = () => {
     [
       chessRules,
       fenToPlyMap,
+      rebuildRulesFromTimeline,
       setTimeline,
       syncOrientationWithFen,
       updateEvaluationFromMap,
@@ -923,6 +983,11 @@ const AppContent: React.FC = () => {
                   ];
                   return nextTimeline;
                 });
+                timelineMovesRef.current = chessRules.getHistory().map((move) => ({
+                  from: move.from,
+                  to: move.to,
+                  promotion: move.promotion,
+                }));
                 updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
               }}
               onUpdate={handleBoardUpdate}
