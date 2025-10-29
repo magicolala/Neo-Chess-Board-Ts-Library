@@ -168,10 +168,63 @@ export interface PieceDropEventPayload {
   event: PointerEvent;
 }
 
-export type BoardSoundEventType = 'move' | 'capture' | 'check' | 'checkmate';
+export type BoardSoundEventType =
+  | 'move'
+  | 'capture'
+  | 'check'
+  | 'checkmate'
+  | 'promote'
+  | 'illegal';
 export type BoardSoundEventColor = 'white' | 'black';
 export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
 export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
+
+export interface ClockSideState {
+  initial: number;
+  increment: number;
+  remaining: number;
+  isFlagged: boolean;
+}
+
+export interface ClockState {
+  white: ClockSideState;
+  black: ClockSideState;
+  active: Color | null;
+  isPaused: boolean;
+  isRunning: boolean;
+  lastUpdatedAt: number | null;
+}
+
+export interface ClockStateUpdate {
+  white?: Partial<ClockSideState>;
+  black?: Partial<ClockSideState>;
+  active?: Color | null;
+  paused?: boolean;
+  running?: boolean;
+  timestamp?: number | null;
+}
+
+export interface ClockCallbacks {
+  onClockStart?(state: ClockState): void;
+  onClockPause?(state: ClockState): void;
+  onClockChange?(state: ClockState): void;
+  onFlag?(payload: { color: Color; state: ClockState }): void;
+}
+
+export interface ClockSideConfig {
+  initial?: number;
+  increment?: number;
+  remaining?: number;
+}
+
+export interface ClockConfig {
+  initial?: number | Partial<Record<Color, number>>;
+  increment?: number | Partial<Record<Color, number>>;
+  sides?: Partial<Record<Color, ClockSideConfig>>;
+  active?: Color | null;
+  paused?: boolean;
+  callbacks?: ClockCallbacks;
+}
 
 export interface PremoveAppliedEvent {
   from: Square;

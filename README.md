@@ -135,7 +135,7 @@ board.on('move', ({ from, to, fen }) => {
 
 ### 🔊 Event-aware sound cues
 
-Customize the audio feedback per event or per side. Provide a single clip for all moves or tailor captures, checks, and mates for each color:
+Customize the audio feedback per event or per side. Provide a single clip for all moves or tailor captures, checks, promotions, mates, and illegal move warnings for each color:
 
 ```ts
 const board = new NeoChessBoard(container, {
@@ -149,11 +149,15 @@ const board = new NeoChessBoard(container, {
     },
     check: '/sounds/check.mp3',
     checkmate: '/sounds/mate.mp3',
+    promote: '/sounds/promote.mp3',
+    illegal: '/sounds/illegal.mp3',
   },
 });
 ```
 
 When a specific clip is missing the board gracefully falls back to the move configuration (`soundEventUrls.move`), the color-specific defaults (`soundUrls`), and finally the legacy `soundUrl`.
+
+Available sound event keys: `move`, `capture`, `check`, `checkmate`, `promote`, and `illegal`.
 
 ## 🎨 Themes
 

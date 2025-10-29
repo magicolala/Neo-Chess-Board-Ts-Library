@@ -99,4 +99,25 @@ describe('BoardAudioManager', () => {
 
     expect(blackSound.play).toHaveBeenCalledTimes(1);
   });
+
+  it('loads and plays promotion and illegal event clips', () => {
+    const manager = createManager({
+      soundEventUrls: {
+        promote: { white: 'white-promote.mp3' },
+        illegal: 'illegal.mp3',
+      },
+    });
+
+    const promoteSound = audioInstances['white-promote.mp3'];
+    const illegalSound = audioInstances['illegal.mp3'];
+
+    expect(promoteSound).toBeDefined();
+    expect(illegalSound).toBeDefined();
+
+    manager.playSound('promote', 'white');
+    manager.playSound('illegal', 'black');
+
+    expect(promoteSound.play).toHaveBeenCalledTimes(1);
+    expect(illegalSound.play).toHaveBeenCalledTimes(1);
+  });
 });

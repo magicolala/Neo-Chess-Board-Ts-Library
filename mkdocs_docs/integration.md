@@ -172,7 +172,11 @@ board.setSoundEventUrls({
     black: '/sounds/black-capture.mp3',
   },
   check: '/sounds/check.mp3',
+  promote: '/sounds/promote.mp3',
+  illegal: '/sounds/illegal.mp3',
 });
+
+// Supported event keys: move, capture, check, checkmate, promote, illegal
 
 // Apply inline CSS to the layered root element
 board.setBoardStyle({
