@@ -3333,6 +3333,20 @@ export class NeoChessBoard {
       | undefined;
     const san = moveDetail?.san;
 
+    const isCheckmate =
+      this.rules.isCheckmate?.() === true || (typeof san === 'string' && san.includes('#'));
+
+    if (isCheckmate) {
+      return 'checkmate';
+    }
+
+    const isCheck =
+      this.rules.inCheck?.() === true || (typeof san === 'string' && san.includes('+'));
+
+    if (isCheck) {
+      return 'check';
+    }
+
     const isPromotion =
       typeof moveDetail?.promotion !== 'undefined' ||
       (typeof moveDetail?.flags === 'string' && moveDetail.flags.includes('p')) ||
@@ -3342,23 +3356,7 @@ export class NeoChessBoard {
       return 'promote';
     }
 
-    if (this.rules.isCheckmate?.()) {
-      return 'checkmate';
-    }
-
     const capturedPiece = moveDetail?.captured;
-
-    if (typeof san === 'string' && san.includes('#')) {
-      return 'checkmate';
-    }
-
-    if (this.rules.inCheck?.()) {
-      return 'check';
-    }
-
-    if (typeof san === 'string' && san.includes('+')) {
-      return 'check';
-    }
 
     if (capturedPiece) {
       return 'capture';
