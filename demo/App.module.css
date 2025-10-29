@@ -1096,6 +1096,94 @@ body {
   margin-top: 16px;
 }
 
+.timelineNavigator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border-radius: calc(var(--radius) + 16px);
+  background: rgba(15, 23, 42, 0.32);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--blur-light));
+  -webkit-backdrop-filter: blur(var(--blur-light));
+}
+
+.timelineMove {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.timelineMoveLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.timelineMoveValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.timelineMoveValueActive {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timelineDescriptor {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.timelineControls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-xs);
+}
+
+.timelineButton {
+  padding: 10px 12px;
+  border-radius: calc(var(--radius) + 14px);
+  border: 1px solid var(--glass-border);
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.timelineButton:hover,
+.timelineButton:focus-visible {
+  background: rgba(148, 163, 184, 0.26);
+  border-color: var(--glass-active-border);
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.timelineButton:active {
+  transform: translateY(0);
+}
+
+.timelineButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: rgba(148, 163, 184, 0.6);
+  transform: none;
+}
+
 .pgnHelper {
   margin-top: 12px;
   font-size: 0.8rem;

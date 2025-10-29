@@ -17,7 +17,34 @@ interface MockRulesState {
   verboseHistory: VerboseMove[];
 }
 
-const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
+const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+const SCRIPTED_MOVES = [
+  {
+    from: 'e2',
+    to: 'e4',
+    fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+    san: 'e4',
+  },
+  {
+    from: 'e7',
+    to: 'e5',
+    fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+    san: '... e5',
+  },
+  {
+    from: 'g1',
+    to: 'f3',
+    fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2',
+    san: 'Nf3',
+  },
+  {
+    from: 'b8',
+    to: 'c6',
+    fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',
+    san: '... Nc6',
+  },
+];
 
 const updateFromFen = (state: MockRulesState) => {
   const parts = state.fen.trim().split(/\s+/);
@@ -32,6 +59,9 @@ const normaliseFen = (fen: string) => {
   }
   return fen;
 };
+
+const resolveScriptedMove = (from: string, to: string) =>
+  SCRIPTED_MOVES.find((entry) => entry.from === from && entry.to === to);
 
 const createMockChessJsRules = () => {
   const state: MockRulesState = {
@@ -52,13 +82,29 @@ const createMockChessJsRules = () => {
   };
 
   const instance = {
-    move: jest.fn(() => {
-      state.pgn = '1. e4';
-      state.fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2';
-      state.historySan = ['e4'];
-      state.verboseHistory = [{ from: 'e2', to: 'e4' }];
+    move: jest.fn((moveData: string | { from: string; to: string; promotion?: string }) => {
+      const from = typeof moveData === 'string' ? moveData.slice(0, 2) : moveData.from;
+      const to = typeof moveData === 'string' ? moveData.slice(2, 4) : moveData.to;
+      const scripted = resolveScriptedMove(from, to);
+      const fen = scripted?.fen ?? state.fen;
+      state.fen = fen;
+      state.historySan.push(scripted?.san ?? `${from}-${to}`);
+      state.verboseHistory.push({ from, to });
+      state.pgn = state.historySan.length
+        ? state.historySan.reduce<string>((pgn, san, index) => {
+            const moveNumber = Math.floor(index / 2) + 1;
+            if (index % 2 === 0) {
+              return `${pgn}${moveNumber}. ${san}`;
+            }
+            return `${pgn} ${san}`;
+          }, '')
+        : '';
       updateFromFen(state);
-      return { ok: true };
+      return {
+        ok: true,
+        fen,
+        move: { from, to, san: scripted?.san ?? `${from}-${to}` },
+      };
     }),
     toPgn: jest.fn(() => state.pgn),
     setFEN: jest.fn((fen: string) => {
@@ -71,7 +117,11 @@ const createMockChessJsRules = () => {
     }),
     loadPgn: jest.fn((pgn: string) => {
       state.pgn = pgn;
-      setFenInternal('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      state.historySan = SCRIPTED_MOVES.map((entry) => entry.san);
+      state.verboseHistory = SCRIPTED_MOVES.map(({ from, to }) => ({ from, to }));
+      const lastFen = SCRIPTED_MOVES[SCRIPTED_MOVES.length - 1]?.fen ?? state.fen;
+      state.fen = normaliseFen(lastFen);
+      updateFromFen(state);
       return true;
     }),
     setPgnMetadata: jest.fn(),
@@ -87,7 +137,13 @@ const createMockChessJsRules = () => {
     getHistory: jest.fn(() => [...state.verboseHistory]),
     history: jest.fn(() => [...state.historySan]),
     getPgnNotation: jest.fn(() => ({
-      getMovesWithAnnotations: jest.fn(() => []),
+      getMovesWithAnnotations: jest.fn(() =>
+        SCRIPTED_MOVES.map((entry, index) => ({
+          moveNumber: Math.floor(index / 2) + 1,
+          evaluation: index % 2 === 0 ? { white: index } : { black: -index },
+          san: entry.san,
+        })),
+      ),
       getMetadata: jest.fn(() => ({ SetUp: '0' })),
     })),
   };
@@ -96,26 +152,55 @@ const createMockChessJsRules = () => {
   return instance;
 };
 
+const mockBoardLoadFEN = jest.fn();
+const mockBoardLoadPgnWithAnnotations = jest.fn(() => true);
+
+interface MockNeoChessBoardProps {
+  onMove?: (event: { from: string; to: string; fen: string }) => void;
+  theme?: string;
+}
+
+interface MockBoardHandle {
+  getBoard: () => {
+    loadFEN: typeof mockBoardLoadFEN;
+    loadPgnWithAnnotations: typeof mockBoardLoadPgnWithAnnotations;
+  };
+}
+
 jest.mock('../../src/core/ChessJsRules', () => ({
   ChessJsRules: jest.fn(() => createMockChessJsRules()),
 }));
 
-jest.mock('../../src/react/NeoChessBoard', () => ({
-  __esModule: true,
-  NeoChessBoard: jest.fn(({ onMove, theme }) =>
-    React.createElement('div', {
+jest.mock('../../src/react/NeoChessBoard', () => {
+  const MockComponent = React.forwardRef<MockBoardHandle, MockNeoChessBoardProps>((props, ref) => {
+    const { onMove, theme } = props;
+    React.useImperativeHandle(ref, () => ({
+      getBoard: () => ({
+        loadFEN: mockBoardLoadFEN,
+        loadPgnWithAnnotations: mockBoardLoadPgnWithAnnotations,
+      }),
+    }));
+
+    return React.createElement('div', {
       'data-testid': 'neo-chessboard',
       'data-theme': theme,
       onClick: () => {
+        const scripted = SCRIPTED_MOVES[0];
         onMove?.({
-          from: 'e2',
-          to: 'e4',
-          fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
+          from: scripted.from,
+          to: scripted.to,
+          fen: scripted.fen,
         });
       },
-    }),
-  ),
-}));
+    });
+  });
+  MockComponent.displayName = 'MockNeoChessBoard';
+
+  return {
+    __esModule: true,
+    NeoChessBoard: MockComponent,
+  };
+});
 
 const mockWriteText = jest.fn(() => Promise.resolve());
 
@@ -125,6 +210,8 @@ describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.NODE_ENV = 'test';
+    mockBoardLoadFEN.mockClear();
+    mockBoardLoadPgnWithAnnotations.mockClear();
     Object.defineProperty(navigator, 'clipboard', {
       value: {
         writeText: mockWriteText,
@@ -250,7 +337,7 @@ describe('App Component', () => {
         await waitFor(
           () => {
             expect(fenTextarea).toHaveValue(
-              'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 2',
+              'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
             );
           },
           { timeout: 2000 },
@@ -329,6 +416,75 @@ describe('App Component', () => {
       const exportButton = screen.getByText(enTranslations['pgn.export']);
       expect(exportButton).toBeInTheDocument();
       expect(exportButton).not.toHaveAttribute('disabled');
+    });
+  });
+
+  describe('Timeline navigation', () => {
+    it('should allow navigating the PGN timeline', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
+      const fenTextarea = screen.getByRole('textbox', { name: /fen/i });
+      const samplePgn = '1. e4 e5 2. Nf3 Nc6';
+
+      await user.type(pgnTextarea, samplePgn);
+      await user.click(screen.getByRole('button', { name: enTranslations['pgn.load'] }));
+
+      await waitFor(() => {
+        expect(mockBoardLoadPgnWithAnnotations).toHaveBeenCalled();
+        expect(screen.getByText(enTranslations['timeline.title'])).toBeInTheDocument();
+      });
+
+      const firstButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.first'],
+      });
+      const previousButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.previous'],
+      });
+      const nextButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.next'],
+      });
+      const lastButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.last'],
+      });
+
+      expect(lastButton).toBeDisabled();
+
+      await user.click(firstButton);
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(INITIAL_FEN);
+      });
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(INITIAL_FEN);
+
+      await user.click(nextButton);
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[0].fen);
+      });
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen);
+      const descriptorWhite = enTranslations['timeline.position'].replace(
+        '{descriptor}',
+        '1 (White)',
+      );
+      expect(screen.getByText(descriptorWhite)).toBeInTheDocument();
+      expect(screen.getByText(SCRIPTED_MOVES[0].san)).toBeInTheDocument();
+
+      await user.click(nextButton);
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[1].fen);
+      });
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[1].fen);
+      const descriptorBlack = enTranslations['timeline.position'].replace(
+        '{descriptor}',
+        '1... (Black)',
+      );
+      expect(screen.getByText(descriptorBlack)).toBeInTheDocument();
+
+      await user.click(previousButton);
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[0].fen);
+      });
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen);
     });
   });
 

@@ -85,6 +85,14 @@ declare const styles: {
   readonly '2': string;
   readonly textareaSmall: string;
   readonly buttonGroup: string;
+  readonly timelineNavigator: string;
+  readonly timelineMove: string;
+  readonly timelineMoveLabel: string;
+  readonly timelineMoveValue: string;
+  readonly timelineMoveValueActive: string;
+  readonly timelineDescriptor: string;
+  readonly timelineControls: string;
+  readonly timelineButton: string;
   readonly pgnHelper: string;
   readonly pgnError: string;
   readonly button: string;
