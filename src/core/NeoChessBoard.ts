@@ -2832,15 +2832,25 @@ export class NeoChessBoard {
 
       if (activePremove || queuedForWhite || queuedForBlack) {
         const activeColor = this.drawingManager?.getActivePremoveColor?.();
+        const colorsToClear = new Set<'white' | 'black'>();
+
         if (activeColor === 'w') {
-          this.clearPremove('white');
+          colorsToClear.add('white');
         } else if (activeColor === 'b') {
-          this.clearPremove('black');
-        } else if (queuedForWhite || queuedForBlack) {
-          this.clearPremove(queuedForWhite ? 'white' : 'black');
+          colorsToClear.add('black');
         } else {
-          this.clearPremove();
+          if (queuedForWhite) colorsToClear.add('white');
+          if (queuedForBlack) colorsToClear.add('black');
         }
+
+        if (colorsToClear.size === 0) {
+          this.clearPremove();
+        } else if (colorsToClear.size === 2) {
+          this.clearPremove('both');
+        } else {
+          this.clearPremove(colorsToClear.has('white') ? 'white' : 'black');
+        }
+
         handled = true;
       } else if (this.rightClickHighlights) {
         const square = this._xyToSquare(pt.x, pt.y);
@@ -3298,7 +3308,9 @@ export class NeoChessBoard {
     this.state = newState;
     this._syncOrientationFromTurn(false);
     this._clearSelectionState();
-    this._hideInlinePromotion();
+    if (!this._pendingPromotion) {
+      this._hideInlinePromotion();
+    }
     this._lastMove = { from, to };
 
     if (this.drawingManager) {
@@ -3575,6 +3587,18 @@ export class NeoChessBoard {
       return null;
     }
 
+    const overlayRoot = this.domOverlay ?? this.root;
+    const existing = overlayRoot.querySelectorAll<HTMLDivElement>('.ncb-inline-promotion');
+    if (existing.length > 0) {
+      const primary = existing[0];
+      for (let i = 1; i < existing.length; i += 1) {
+        const extra = existing[i];
+        extra.parentElement?.removeChild(extra);
+      }
+      this.inlinePromotionContainer = primary;
+      return primary;
+    }
+
     if (this.inlinePromotionContainer && this.inlinePromotionContainer.isConnected) {
       return this.inlinePromotionContainer;
     }
@@ -3600,7 +3624,7 @@ export class NeoChessBoard {
       event.stopPropagation();
     });
 
-    (this.domOverlay ?? this.root).appendChild(container);
+    overlayRoot.appendChild(container);
     this.inlinePromotionContainer = container;
     return container;
   }
@@ -3744,14 +3768,19 @@ export class NeoChessBoard {
   }
 
   private _hideInlinePromotion(): void {
-    if (!this.inlinePromotionContainer) {
+    const container = this.inlinePromotionContainer;
+    if (!container) {
       return;
     }
-    this.inlinePromotionContainer.style.display = 'none';
-    this.inlinePromotionContainer.removeAttribute('data-square');
-    this.inlinePromotionContainer.removeAttribute('data-color');
-    this.inlinePromotionContainer.removeAttribute('data-mode');
-    this.inlinePromotionContainer.innerHTML = '';
+    container.style.display = 'none';
+    container.removeAttribute('data-square');
+    container.removeAttribute('data-color');
+    container.removeAttribute('data-mode');
+    const replacer = container as HTMLElement & {
+      replaceChildren?: (...nodes: Node[]) => void;
+    };
+    replacer.replaceChildren?.();
+    container.innerHTML = '';
     this.inlinePromotionButtons = [];
     this.inlinePromotionToken = null;
   }
