@@ -2221,7 +2221,9 @@ describe('NeoChessBoard Core', () => {
         throw new Error('Inline promotion overlay not found');
       }
       expect(inlineOverlay.dataset.square).toBe('e8');
-      const buttons = inlineOverlay.querySelectorAll<HTMLElement>('.ncb-inline-promotion__choice');
+      const buttons = inlineOverlay.querySelectorAll<HTMLButtonElement>(
+        '.ncb-inline-promotion__choice',
+      );
       expect(buttons).toHaveLength(4);
       expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
     });
