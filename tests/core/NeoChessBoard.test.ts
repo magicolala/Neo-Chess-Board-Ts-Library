@@ -79,8 +79,14 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
   ) {
     this.fileLabels = generateFileLabels(files);
     this.rankLabels = generateRankLabels(ranks);
-    this.board = Array.from({ length: ranks }, () => Array.from({ length: files }, () => null));
+    this.board = this.createEmptyBoard();
     this.fen = this._buildFen();
+  }
+
+  private createEmptyBoard(): (string | null)[][] {
+    return Array.from({ length: this.ranks }, () => {
+      return Array.from({ length: this.files }, () => null);
+    });
   }
 
   setFEN(fen: string): void {
@@ -1146,7 +1152,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['e8']);
@@ -1172,7 +1181,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['g8']);
@@ -1197,7 +1209,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('board');
         expect(highlight.color).toBe(resolveStatusColor('stalemate'));
@@ -1325,7 +1340,7 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(setSpy).toHaveBeenLastCalledWith();
+      expect(setSpy).toHaveBeenLastCalledWith(void 0, void 0);
       expect(renderSpy).toHaveBeenCalled();
 
       setSpy.mockRestore();
@@ -1379,7 +1394,7 @@ describe('NeoChessBoard Core', () => {
 
       const originalAudio = globalThis.Audio;
       const audioFactory = jest.fn(() => ({
-        play: jest.fn().mockResolvedValue(),
+        play: jest.fn(async () => {}),
         addEventListener: jest.fn(),
         preload: 'auto',
         volume: 0.3,
@@ -2187,60 +2202,51 @@ describe('NeoChessBoard Core', () => {
       expect(promotionBoard.isPromotionPending()).toBe(false);
     });
 
-    it('renders an inline promotion chooser when configured', () => {
-      board.destroy();
+it('renders an inline promotion chooser when configured', () => {
+  board.destroy();
+  const promotionBoard = new NeoChessBoard(container, {
+    promotion: { ui: 'inline' },
+  });
+  board = promotionBoard;
+  promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
+  const result = promotionBoard.attemptMove('e7', 'e8');
+  expect(result).toBe(true);
+  const inlineOverlay = container.querySelector<HTMLElement>('.ncb-inline-promotion');
+  expect(inlineOverlay).not.toBeNull();
+  if (!inlineOverlay) {
+    throw new Error('Inline promotion overlay not found');
+  }
+  expect(inlineOverlay.dataset.square).toBe('e8');
+  const buttons = inlineOverlay.querySelectorAll<HTMLButtonElement>(
+    '.ncb-inline-promotion__choice',
+  );
+  expect(buttons).toHaveLength(4);
+  expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
+});
 
-      const promotionBoard = new NeoChessBoard(container, {
-        promotion: { ui: 'inline' },
-      });
-
-      board = promotionBoard;
-      promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
-
-      const result = promotionBoard.attemptMove('e7', 'e8');
-
-      expect(result).toBe(true);
-      const inlineOverlay = container.querySelector('.ncb-inline-promotion');
-      expect(inlineOverlay).not.toBeNull();
-      if (!inlineOverlay) {
-        throw new Error('Inline promotion overlay not found');
-      }
-      expect((inlineOverlay as HTMLElement).dataset.square).toBe('e8');
-      const buttons = inlineOverlay.querySelectorAll('.ncb-inline-promotion__choice');
-      expect(buttons).toHaveLength(4);
-      expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
-    });
-
-    it('updates promotion UI dynamically when configured at runtime', () => {
-      board.destroy();
-
-      const handler = jest.fn();
-      const promotionBoard = new NeoChessBoard(container, {
-        onPromotionRequired: handler,
-      });
-
-      board = promotionBoard;
-      promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
-
-      promotionBoard.attemptMove('e7', 'e8');
-      expect(handler).toHaveBeenCalled();
-      handler.mockReset();
-
-      promotionBoard.configure({ promotion: { ui: 'inline' } });
-
-      const overlay = container.querySelector('.ncb-inline-promotion');
-      expect(overlay).not.toBeNull();
-      if (!overlay) {
-        throw new Error('Inline overlay missing after configuration');
-      }
-
-      const buttons = overlay.querySelectorAll('.ncb-inline-promotion__choice');
-      expect(buttons).toHaveLength(4);
-
-      promotionBoard.configure({ promotion: { autoQueen: true } });
-      expect(promotionBoard.getPieceAt('e8')).toBe('Q');
-      expect(promotionBoard.isPromotionPending()).toBe(false);
-      expect(container.querySelector('.ncb-inline-promotion')?.childElementCount).toBe(0);
-    });
+it('updates promotion UI dynamically when configured at runtime', () => {
+  board.destroy();
+  const handler = jest.fn();
+  const promotionBoard = new NeoChessBoard(container, {
+    onPromotionRequired: handler,
+  });
+  board = promotionBoard;
+  promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
+  promotionBoard.attemptMove('e7', 'e8');
+  expect(handler).toHaveBeenCalled();
+  handler.mockReset();
+  promotionBoard.configure({ promotion: { ui: 'inline' } });
+  const overlay = container.querySelector('.ncb-inline-promotion');
+  expect(overlay).not.toBeNull();
+  if (!overlay) {
+    throw new Error('Inline overlay missing after configuration');
+  }
+  const buttons = overlay.querySelectorAll('.ncb-inline-promotion__choice');
+  expect(buttons).toHaveLength(4);
+  promotionBoard.configure({ promotion: { autoQueen: true } });
+  expect(promotionBoard.getPieceAt('e8')).toBe('Q');
+  expect(promotionBoard.isPromotionPending()).toBe(false);
+  expect(container.querySelector('.ncb-inline-promotion')?.childElementCount).toBe(0);
+});
   });
 });

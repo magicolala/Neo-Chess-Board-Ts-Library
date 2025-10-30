@@ -24,7 +24,7 @@ export class ChessJsRules implements RulesAdapter {
     const parts = fenString.split(/\s+/);
 
     if (parts.length < 6) {
-      return [...parts, ...Array.from({ length: 6 - parts.length }).fill('')];
+      return [...parts, ...Array.from({ length: 6 - parts.length }, () => '')];
     }
 
     return parts;
@@ -389,7 +389,8 @@ export class ChessJsRules implements RulesAdapter {
    */
   getLastMove(): ChessMove | null {
     const history = this.chess.history({ verbose: true }) as ChessMove[];
-    return history.length > 0 ? history.at(-1) : null;
+    const lastMove = history.at(-1);
+    return lastMove ?? null;
   }
 
   /**
@@ -447,7 +448,8 @@ export class ChessJsRules implements RulesAdapter {
    */
   getLastMoveNotation(): string | null {
     const history = this.chess.history();
-    return history.length > 0 ? history.at(-1) : null;
+    const lastMove = history.at(-1);
+    return lastMove ?? null;
   }
 
   /**

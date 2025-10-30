@@ -120,7 +120,8 @@ const createMockChessJsRules = () => {
       state.pgn = pgn;
       state.historySan = SCRIPTED_MOVES.map((entry) => entry.san);
       state.verboseHistory = SCRIPTED_MOVES.map(({ from, to }) => ({ from, to }));
-      const lastFen = SCRIPTED_MOVES.at(-1)?.fen ?? state.fen;
+      const lastScriptedMove = SCRIPTED_MOVES.at(-1);
+      const lastFen = lastScriptedMove ? lastScriptedMove.fen : state.fen;
       state.fen = normaliseFen(lastFen);
       updateFromFen(state);
       return true;

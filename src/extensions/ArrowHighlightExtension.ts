@@ -52,25 +52,25 @@ export function createArrowHighlightExtension(
       let replacedInitialArrow: Arrow | null = null;
 
       const applyInitialArrows = (ctx: ExtensionContext<ArrowHighlightExtensionOptions>) => {
-        for (const arrow of initialArrows) {
+        for (const arrow of initialArrows.values()) {
           ctx.board.addArrow(arrow);
         }
       };
 
       const applyInitialHighlights = (ctx: ExtensionContext<ArrowHighlightExtensionOptions>) => {
-        for (const highlight of initialHighlights) {
+        for (const highlight of initialHighlights.values()) {
           ctx.board.addHighlight(highlight);
         }
       };
 
       const clearInitialArrows = (ctx: ExtensionContext<ArrowHighlightExtensionOptions>) => {
-        for (const arrow of initialArrows) {
+        for (const arrow of initialArrows.values()) {
           ctx.board.removeArrow(arrow.from, arrow.to);
         }
       };
 
       const clearInitialHighlights = (ctx: ExtensionContext<ArrowHighlightExtensionOptions>) => {
-        for (const highlight of initialHighlights) {
+        for (const highlight of initialHighlights.values()) {
           ctx.board.removeHighlight(highlight.square);
         }
       };

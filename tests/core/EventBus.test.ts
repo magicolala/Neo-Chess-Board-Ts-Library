@@ -69,7 +69,7 @@ describe('EventBus', () => {
       const handler = jest.fn();
       eventBus.on('empty', handler);
 
-      eventBus.emit('empty');
+      eventBus.emit('empty', void 0);
 
       expect(handler).toHaveBeenCalledWith(undefined);
     });
