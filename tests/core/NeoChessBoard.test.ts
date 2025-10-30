@@ -962,7 +962,7 @@ describe('NeoChessBoard Core', () => {
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
         const audioFactory = jest.fn((src: string) => {
           const audio: AudioMock = {
-            play: jest.fn().mockResolvedValue(),
+            play: jest.fn(async () => {}),
             addEventListener: jest.fn(),
             preload: 'auto',
             volume: 0.3,
@@ -1152,7 +1152,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['e8']);
@@ -1178,7 +1181,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['g8']);
@@ -1203,7 +1209,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('board');
         expect(highlight.color).toBe(resolveStatusColor('stalemate'));
@@ -1331,7 +1340,7 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(setSpy).toHaveBeenLastCalledWith();
+      expect(setSpy).toHaveBeenLastCalledWith(void 0, void 0);
       expect(renderSpy).toHaveBeenCalled();
 
       setSpy.mockRestore();
@@ -1385,7 +1394,7 @@ describe('NeoChessBoard Core', () => {
 
       const originalAudio = globalThis.Audio;
       const audioFactory = jest.fn(() => ({
-        play: jest.fn().mockResolvedValue(),
+        play: jest.fn(async () => {}),
         addEventListener: jest.fn(),
         preload: 'auto',
         volume: 0.3,
@@ -2206,13 +2215,13 @@ describe('NeoChessBoard Core', () => {
       const result = promotionBoard.attemptMove('e7', 'e8');
 
       expect(result).toBe(true);
-      const inlineOverlay = container.querySelector('.ncb-inline-promotion');
+      const inlineOverlay = container.querySelector<HTMLElement>('.ncb-inline-promotion');
       expect(inlineOverlay).not.toBeNull();
       if (!inlineOverlay) {
         throw new Error('Inline promotion overlay not found');
       }
       expect(inlineOverlay.dataset.square).toBe('e8');
-      const buttons = inlineOverlay.querySelectorAll('.ncb-inline-promotion__choice');
+      const buttons = inlineOverlay.querySelectorAll<HTMLElement>('.ncb-inline-promotion__choice');
       expect(buttons).toHaveLength(4);
       expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
     });

@@ -3565,7 +3565,7 @@ export class NeoChessBoard {
       const token = pending.token;
       this._hideInlinePromotion();
       this._resolvePromotion(token, 'q');
-      for (const overlay of this.root.querySelectorAll('.ncb-inline-promotion')) {
+      for (const overlay of this.root.querySelectorAll<HTMLElement>('.ncb-inline-promotion')) {
         overlay.innerHTML = '';
         delete overlay.dataset.square;
         delete overlay.dataset.color;
@@ -4630,6 +4630,9 @@ export class NeoChessBoard {
     if (moves.length === 0) return;
 
     const lastMove = moves.at(-1);
+    if (!lastMove) {
+      return;
+    }
     const totalMoves = moves.reduce(
       (acc, move) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
       0,

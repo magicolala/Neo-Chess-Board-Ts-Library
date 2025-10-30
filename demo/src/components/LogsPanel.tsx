@@ -62,7 +62,7 @@ const srOnlyStyles: React.CSSProperties = {
 const LogsPanel: React.FC<LogsPanelProps> = ({ logs, onClear }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);
-  const lastEntry = useMemo(() => (logs.length > 0 ? logs.at(-1) : ''), [logs]);
+  const lastEntry = useMemo(() => logs.at(-1) ?? '', [logs]);
 
   useEffect(() => {
     const viewport = viewportRef.current;

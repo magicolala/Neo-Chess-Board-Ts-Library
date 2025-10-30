@@ -1,5 +1,5 @@
 import { PGNRecorder } from '../../src/core/PGN';
-import type { RulesAdapter } from '../../src/core/types';
+import type { Move, RulesAdapter } from '../../src/core/types';
 
 // Mock adapter for testing
 const createMockAdapter = (pgnOverride?: string): RulesAdapter => ({
@@ -93,7 +93,14 @@ describe('PGNRecorder', () => {
 
   describe('Move recording', () => {
     it('should record and format moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' }, { from: 'g1', to: 'f3' });
+      const moves: Move[] = [
+        { from: 'e2', to: 'e4' },
+        { from: 'e7', to: 'e5' },
+        { from: 'g1', to: 'f3' },
+      ];
+      for (const move of moves) {
+        pgn.push(move);
+      }
 
       const result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5 2. g1f3');
@@ -114,7 +121,13 @@ describe('PGNRecorder', () => {
     });
 
     it('should reset moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' });
+      const moves: Move[] = [
+        { from: 'e2', to: 'e4' },
+        { from: 'e7', to: 'e5' },
+      ];
+      for (const move of moves) {
+        pgn.push(move);
+      }
 
       let result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5');
@@ -137,8 +150,7 @@ describe('PGNRecorder', () => {
 
       globalThis.document.createElement = jest.fn(() => anchorMock);
 
-      globalThis.document.body.appendChild = jest.fn();
-      globalThis.document.body.removeChild = jest.fn();
+      globalThis.document.body.append = jest.fn();
 
       globalThis.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
       globalThis.URL.revokeObjectURL = jest.fn();
@@ -178,7 +190,7 @@ describe('PGNRecorder', () => {
 
       expect(globalThis.URL.createObjectURL).toHaveBeenCalled();
       expect(globalThis.document.createElement).toHaveBeenCalledWith('a');
-      expect(globalThis.document.body.appendChild).toHaveBeenCalled();
+      expect(globalThis.document.body.append).toHaveBeenCalled();
     });
 
     it('should handle SSR environment gracefully', () => {
@@ -211,7 +223,14 @@ describe('PGNRecorder', () => {
     });
 
     it('should handle odd number of moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' }, { from: 'g1', to: 'f3' }); // White's second move
+      const moves: Move[] = [
+        { from: 'e2', to: 'e4' },
+        { from: 'e7', to: 'e5' },
+        { from: 'g1', to: 'f3' },
+      ];
+      for (const move of moves) {
+        pgn.push(move);
+      }
 
       const result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5 2. g1f3');

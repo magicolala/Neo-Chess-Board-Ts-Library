@@ -482,11 +482,13 @@ interface StressTestBoardApi {
   reset?: (immediate?: boolean) => void;
 }
 
+type TimeoutHandle = ReturnType<typeof globalThis.setTimeout>;
+
 interface StressTestRunState {
   board: StressTestBoardApi;
   moveIndex: number;
-  moveTimeoutId?: number;
-  resizeTimeoutId?: number;
+  moveTimeoutId?: TimeoutHandle;
+  resizeTimeoutId?: TimeoutHandle;
   rafId?: number;
   resizeIndex: number;
   resizeDirection: 1 | -1;
@@ -955,12 +957,12 @@ const PlaygroundView: React.FC = () => {
       return;
     }
 
-    if (typeof state.moveTimeoutId === 'number') {
+    if (state.moveTimeoutId !== undefined) {
       globalThis.clearTimeout(state.moveTimeoutId);
       state.moveTimeoutId = undefined;
     }
 
-    if (typeof state.resizeTimeoutId === 'number') {
+    if (state.resizeTimeoutId !== undefined) {
       globalThis.clearTimeout(state.resizeTimeoutId);
       state.resizeTimeoutId = undefined;
     }

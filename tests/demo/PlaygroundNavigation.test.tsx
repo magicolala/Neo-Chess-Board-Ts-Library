@@ -187,7 +187,8 @@ jest.mock('../../src/core/ChessJsRules', () => {
         this.history = SCRIPTED_MOVES.slice(0, moveCount);
         this.pgn = trimmed || buildPgnFromMoves(this.history.length);
         this.movePointer = 0;
-        this.fen = this.history.length > 0 ? this.history.at(-1).fen : this.initialFen;
+        const lastMove = this.history.at(-1);
+        this.fen = lastMove ? lastMove.fen : this.initialFen;
         return true;
       }
 
