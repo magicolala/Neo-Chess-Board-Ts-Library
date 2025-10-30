@@ -3566,10 +3566,10 @@ export class NeoChessBoard {
       this._hideInlinePromotion();
       this._resolvePromotion(token, 'q');
       for (const overlay of this.root.querySelectorAll('.ncb-inline-promotion')) {
-        overlay.innerHTML = '';
-        delete overlay.dataset.square;
-        delete overlay.dataset.color;
-        delete overlay.dataset.mode;
+        (overlay as HTMLElement).innerHTML = '';
+        delete (overlay as HTMLElement).dataset.square;
+        delete (overlay as HTMLElement).dataset.color;
+        delete (overlay as HTMLElement).dataset.mode;
       }
       return;
     }
@@ -4637,10 +4637,12 @@ export class NeoChessBoard {
 
     let annotationsToShow: PgnMoveAnnotations | null = null;
 
-    if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
-      annotationsToShow = lastMove.blackAnnotations;
-    } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
-      annotationsToShow = lastMove.whiteAnnotations;
+    if (lastMove) {
+      if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
+        annotationsToShow = lastMove.blackAnnotations;
+      } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
+        annotationsToShow = lastMove.whiteAnnotations;
+      }
     }
 
     if (annotationsToShow) {

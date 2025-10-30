@@ -956,7 +956,7 @@ describe('NeoChessBoard Core', () => {
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
         const audioFactory = jest.fn((src: string) => {
           const audio: AudioMock = {
-            play: jest.fn().mockResolvedValue(),
+            play: jest.fn().mockResolvedValue(void 0),
             addEventListener: jest.fn(),
             preload: 'auto',
             volume: 0.3,
@@ -2205,7 +2205,7 @@ describe('NeoChessBoard Core', () => {
       if (!inlineOverlay) {
         throw new Error('Inline promotion overlay not found');
       }
-      expect(inlineOverlay.dataset.square).toBe('e8');
+      expect((inlineOverlay as HTMLElement).dataset.square).toBe('e8');
       const buttons = inlineOverlay.querySelectorAll('.ncb-inline-promotion__choice');
       expect(buttons).toHaveLength(4);
       expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
