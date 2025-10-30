@@ -20,7 +20,7 @@ describe('BoardAudioManager', () => {
     originalAudio = globalThis.Audio as AudioConstructor | undefined;
     const audioFactory = jest.fn((src: string) => {
       const audio: AudioMock = {
-        play: jest.fn().mockResolvedValue(),
+        play: jest.fn(async () => {}),
         addEventListener: jest.fn(),
         preload: 'auto',
         volume: 0.3,

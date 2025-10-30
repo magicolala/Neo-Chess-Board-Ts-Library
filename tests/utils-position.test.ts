@@ -33,7 +33,7 @@ describe('getPositionUpdates', () => {
 
     const updates = getPositionUpdates(start, next);
 
-    expect(updates.removed.toSorted()).toEqual(['d5', 'e4']);
+    expect([...updates.removed].sort()).toEqual(['d5', 'e4']);
     expect(updates.added).toEqual({ d5: { pieceType: 'P' } });
   });
 
@@ -43,7 +43,7 @@ describe('getPositionUpdates', () => {
 
     const updates = getPositionUpdates(start, promoted);
 
-    expect(updates.removed.toSorted()).toEqual(['h7']);
+    expect([...updates.removed].sort()).toEqual(['h7']);
     expect(updates.added).toEqual({ h8: { pieceType: 'Q' } });
   });
 
@@ -54,9 +54,9 @@ describe('getPositionUpdates', () => {
       nextOrientation: 'black',
     });
 
-    const expectedSquares = Object.keys(baseline).toSorted();
+    const expectedSquares = Object.keys(baseline).sort();
 
-    expect(updates.removed.toSorted()).toEqual(expectedSquares);
-    expect(Object.keys(updates.added).toSorted()).toEqual(expectedSquares);
+    expect([...updates.removed].sort()).toEqual(expectedSquares);
+    expect(Object.keys(updates.added).sort()).toEqual(expectedSquares);
   });
 });

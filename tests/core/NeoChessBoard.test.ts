@@ -79,8 +79,14 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
   ) {
     this.fileLabels = generateFileLabels(files);
     this.rankLabels = generateRankLabels(ranks);
-    this.board = Array.from({ length: ranks }, () => Array.from({ length: files }, () => null));
+    this.board = this.createEmptyBoard();
     this.fen = this._buildFen();
+  }
+
+  private createEmptyBoard(): (string | null)[][] {
+    return Array.from({ length: this.ranks }, () => {
+      return Array.from({ length: this.files }, () => null);
+    });
   }
 
   setFEN(fen: string): void {
@@ -956,7 +962,7 @@ describe('NeoChessBoard Core', () => {
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
         const audioFactory = jest.fn((src: string) => {
           const audio: AudioMock = {
-            play: jest.fn().mockResolvedValue(),
+            play: jest.fn(async () => {}),
             addEventListener: jest.fn(),
             preload: 'auto',
             volume: 0.3,
@@ -1146,7 +1152,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['e8']);
@@ -1172,7 +1181,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('squares');
         expect(highlight.squares).toEqual(['g8']);
@@ -1197,7 +1209,10 @@ describe('NeoChessBoard Core', () => {
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
         const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
-        const highlight = lastCall[0] as StatusHighlight;
+        if (!lastCall) {
+          throw new Error('Expected a status highlight call');
+        }
+        const [highlight] = lastCall as [StatusHighlight];
 
         expect(highlight.mode).toBe('board');
         expect(highlight.color).toBe(resolveStatusColor('stalemate'));
@@ -1325,7 +1340,7 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(setSpy).toHaveBeenLastCalledWith();
+      expect(setSpy).toHaveBeenLastCalledWith(void 0, void 0);
       expect(renderSpy).toHaveBeenCalled();
 
       setSpy.mockRestore();
@@ -1379,7 +1394,7 @@ describe('NeoChessBoard Core', () => {
 
       const originalAudio = globalThis.Audio;
       const audioFactory = jest.fn(() => ({
-        play: jest.fn().mockResolvedValue(),
+        play: jest.fn(async () => {}),
         addEventListener: jest.fn(),
         preload: 'auto',
         volume: 0.3,
