@@ -75,12 +75,12 @@ describe('FlatSprites', () => {
         return context as unknown as CanvasRenderingContext2D;
       }) as unknown as jest.MockedFunction<typeof HTMLCanvasElement.prototype.getContext>;
       HTMLCanvasElement.prototype.getContext = getContextMock;
-
-      new FlatSprites(128, THEMES.classic);
+      const instance = new FlatSprites(128, THEMES.classic);
 
       // Should have called drawing operations for each piece
       expect(mockFill).toHaveBeenCalled();
       expect(mockTranslate).toHaveBeenCalled();
+      expect(instance).toBeInstanceOf(FlatSprites);
 
       HTMLCanvasElement.prototype.getContext = originalGetContext;
     });
@@ -95,9 +95,9 @@ describe('FlatSprites', () => {
         pieceShadow: 'rgba(255,0,0,0.5)',
       };
 
-      expect(() => {
-        new FlatSprites(128, customTheme);
-      }).not.toThrow();
+      const instance = new FlatSprites(128, customTheme);
+
+      expect(() => instance.getSheet()).not.toThrow();
     });
   });
 

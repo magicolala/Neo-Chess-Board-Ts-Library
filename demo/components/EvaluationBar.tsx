@@ -3,6 +3,7 @@ import { useTranslation } from '../i18n/translations';
 import styles from './EvaluationBar.module.css';
 
 type Sign = -1 | 0 | 1;
+type EvaluationInput = number | string | null | undefined;
 
 export interface ParsedEvaluation {
   hasValue: boolean;
@@ -10,10 +11,10 @@ export interface ParsedEvaluation {
   label: string;
   mate: boolean;
   sign: Sign;
-  raw: number | string | null | undefined;
+  raw: EvaluationInput;
 }
 
-export const interpretEvaluationValue = (value?: number | string | null): ParsedEvaluation => {
+export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluation => {
   if (value === null || value === undefined) {
     return {
       hasValue: false,
@@ -33,7 +34,7 @@ export const interpretEvaluationValue = (value?: number | string | null): Parsed
         numeric: sign === 0 ? 0 : sign * 100,
         label: value > 0 ? '+∞' : value < 0 ? '-∞' : '0.00',
         mate: false,
-        sign: sign as -1 | 0 | 1,
+        sign: sign as Sign,
         raw: value,
       };
     }
@@ -45,7 +46,7 @@ export const interpretEvaluationValue = (value?: number | string | null): Parsed
       numeric: value,
       label: formatted,
       mate: false,
-      sign: sign as -1 | 0 | 1,
+      sign: sign as Sign,
       raw: value,
     };
   }
@@ -88,7 +89,7 @@ export const interpretEvaluationValue = (value?: number | string | null): Parsed
         numeric: sign === 0 ? 0 : sign * 100,
         label,
         mate: false,
-        sign: sign as -1 | 0 | 1,
+        sign: sign as Sign,
         raw: value,
       };
     }

@@ -51,13 +51,16 @@ export const SkeletonText: React.FC<{
   className?: string;
 }> = ({ lines = 3, className = '' }) => (
   <div className={className}>
-    {Array.from({ length: lines }, (_, i) => (
-      <div
-        key={i}
-        className={`${styles.skeletonLoader} ${styles.skeletonText}`}
-        style={{ width: `${80 + Math.random() * 20}%` }}
-      />
-    ))}
+    {Array.from({ length: lines }, (_, i) => {
+      const widthPercentage = 80 + ((i * 13) % 21);
+      return (
+        <div
+          key={i}
+          className={`${styles.skeletonLoader} ${styles.skeletonText}`}
+          style={{ width: `${widthPercentage}%` }}
+        />
+      );
+    })}
   </div>
 );
 

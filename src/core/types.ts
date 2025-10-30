@@ -5,6 +5,10 @@ import type { PgnNotation } from './PgnNotation';
 
 export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';
+export type NamedPlayerColor = 'white' | 'black';
+export type PremoveColorOption = NamedPlayerColor | 'both';
+export type ColorInput = Color | NamedPlayerColor;
+export type PremoveColorListInput = ColorInput | PremoveColorOption | ColorInput[];
 export type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
 export type BoardOrientation = 'white' | 'black';
 
@@ -523,28 +527,28 @@ export interface BoardOptions {
 export interface BoardPremoveSettings {
   enabled?: boolean;
   multi?: boolean;
-  color?: 'white' | 'black' | 'both';
-  colors?: Partial<Record<'white' | 'black', boolean>>;
+  color?: PremoveColorOption;
+  colors?: Partial<Record<NamedPlayerColor, boolean>>;
 }
 
 export interface BoardPremoveEnableOptions {
   multi?: boolean;
-  color?: 'white' | 'black' | 'both';
-  colors?: Partial<Record<'white' | 'black', boolean>>;
+  color?: PremoveColorOption;
+  colors?: Partial<Record<NamedPlayerColor, boolean>>;
 }
 
 export interface BoardPremoveControllerConfig {
   enabled: boolean;
   multi: boolean;
-  colors: Record<'white' | 'black', boolean>;
+  colors: Record<NamedPlayerColor, boolean>;
 }
 
 export interface BoardPremoveController {
   enable(options?: BoardPremoveEnableOptions): void;
-  disable(color?: 'white' | 'black' | 'both'): void;
-  clear(color?: 'white' | 'black' | 'both'): void;
-  getQueue(color?: 'white' | 'black'): Premove[];
-  getQueues(): Record<'white' | 'black', Premove[]>;
+  disable(color?: PremoveColorOption): void;
+  clear(color?: PremoveColorOption): void;
+  getQueue(color?: NamedPlayerColor): Premove[];
+  getQueues(): Record<NamedPlayerColor, Premove[]>;
   isEnabled(): boolean;
   isMulti(): boolean;
   setMulti(enabled: boolean): void;

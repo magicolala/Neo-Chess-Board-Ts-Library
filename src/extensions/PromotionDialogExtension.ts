@@ -58,7 +58,7 @@ export function createPromotionDialogExtension(
         }
 
         overlay = doc.createElement('div');
-        overlay.className = options.className ? options.className : 'ncb-promotion-overlay';
+        overlay.className = options.className || 'ncb-promotion-overlay';
         Object.assign(overlay.style, {
           position: 'absolute',
           inset: '0',

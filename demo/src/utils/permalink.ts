@@ -267,7 +267,8 @@ export const syncPlaygroundPermalink = (payload: PlaygroundPermalinkPayload): vo
   const params = serializePlaygroundPermalink(payload);
   const query = params.toString();
   const hash = globalThis.location.hash ?? '';
-  const url = `${globalThis.location.pathname}${query ? `?${query}` : ''}${hash}`;
+  const queryString = query ? `?${query}` : '';
+  const url = `${globalThis.location.pathname}${queryString}${hash}`;
 
   globalThis.history.replaceState(null, '', url);
 };

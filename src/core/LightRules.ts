@@ -30,7 +30,14 @@ export class LightRules implements RulesAdapter {
   private historyStack: ParsedFENState[] = [];
   public readonly supportsSanMoves = false;
   private cloneState(state: ParsedFENState): ParsedFENState {
-    return JSON.parse(JSON.stringify(state)) as ParsedFENState;
+    return {
+      board: state.board.map((row) => [...row]),
+      turn: state.turn,
+      castling: state.castling,
+      ep: state.ep,
+      halfmove: state.halfmove,
+      fullmove: state.fullmove,
+    };
   }
   reset() {
     this.state = parseFEN(START_FEN);

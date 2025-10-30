@@ -54,9 +54,7 @@ export const PgnAnnotationParser = {
   parseComment(comment: string): ParsedAnnotations {
     // Strip outer curly braces if present
     let processingComment =
-      comment.startsWith('{') && comment.endsWith('}')
-        ? comment.substring(1, comment.length - 1)
-        : comment;
+      comment.startsWith('{') && comment.endsWith('}') ? comment.slice(1, -1) : comment;
 
     const arrows: Arrow[] = [];
     const highlights: Array<SquareHighlight & { color: string }> = [];

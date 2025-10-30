@@ -24,7 +24,7 @@ export class ChessJsRules implements RulesAdapter {
     const parts = fenString.split(/\s+/);
 
     if (parts.length < 6) {
-      return parts.concat(Array.from({ length: 6 - parts.length }).fill(''));
+      return [...parts, ...Array.from({ length: 6 - parts.length }).fill('')];
     }
 
     return parts;

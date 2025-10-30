@@ -23,7 +23,7 @@ function toFileLabel(index: number): string {
 
   do {
     const remainder = current % 26;
-    label = String.fromCharCode(97 + remainder) + label;
+    label = String.fromCodePoint(97 + remainder) + label;
     current = Math.floor(current / 26) - 1;
   } while (current >= 0);
 
@@ -382,7 +382,7 @@ export function parseFEN(
   const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
   const parts = validateFenString(fen);
   const board: (string | null)[][] = Array.from({ length: ranks }, () =>
-    new Array(files).fill(null),
+    Array.from({ length: files }, () => null),
   );
 
   const rows = parts[0].split('/');
@@ -390,22 +390,27 @@ export function parseFEN(
   for (let r = 0; r < rowCount; r++) {
     const row = rows[r];
     let f = 0;
-    for (let i = 0; i < row.length && f < files; i++) {
-      const char = row[i];
+    let columnIndex = 0;
+
+    while (columnIndex < row.length && f < files) {
+      const char = row[columnIndex];
       if (/\d/.test(char)) {
-        let digits = char;
-        while (i + 1 < row.length && /\d/.test(row[i + 1])) {
-          digits += row[i + 1];
-          i++;
+        let lookahead = columnIndex + 1;
+        while (lookahead < row.length && /\d/.test(row[lookahead])) {
+          lookahead += 1;
         }
+        const digits = row.slice(columnIndex, lookahead);
         f += Number.parseInt(digits, 10);
-      } else {
-        const targetRank = ranks - 1 - r;
-        if (f < files) {
-          board[targetRank][f] = char;
-        }
-        f++;
+        columnIndex = lookahead;
+        continue;
       }
+
+      const targetRank = ranks - 1 - r;
+      if (f < files) {
+        board[targetRank][f] = char;
+      }
+      f += 1;
+      columnIndex += 1;
     }
   }
 

@@ -1078,8 +1078,10 @@ const PlaygroundView: React.FC = () => {
       setFenTimeline(frames);
 
       const maxIndex = frames.length > 0 ? frames.length - 1 : 0;
-      const targetIndex = options?.jumpToEnd ? maxIndex : Math.min(plyIndexRef.current, maxIndex);
-      applyPly(targetIndex, { timelineOverride: frames, logLabel: options?.logLabel });
+      applyPly(options?.jumpToEnd ? maxIndex : Math.min(plyIndexRef.current, maxIndex), {
+        timelineOverride: frames,
+        logLabel: options?.logLabel,
+      });
 
       if (sanitizedPgn !== sourcePgn) {
         setPgn(sanitizedPgn);
@@ -1419,7 +1421,7 @@ const PlaygroundView: React.FC = () => {
       }
 
       const maxIndex = timeline.length - 1;
-      let targetIndex = plyIndexRef.current;
+      let targetIndex: number;
 
       switch (direction) {
         case 'first': {
@@ -1439,7 +1441,7 @@ const PlaygroundView: React.FC = () => {
           break;
         }
         default: {
-          targetIndex = plyIndexRef.current;
+          return;
         }
       }
 

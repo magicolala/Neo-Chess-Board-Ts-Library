@@ -226,7 +226,7 @@ export class BoardAudioManager {
   private playAudioElement(sound: HTMLAudioElement): void {
     try {
       sound.currentTime = 0;
-      void sound.play().catch((error) => {
+      sound.play().catch((error) => {
         console.debug('Sound not played:', error?.message ?? error);
       });
     } catch (error) {

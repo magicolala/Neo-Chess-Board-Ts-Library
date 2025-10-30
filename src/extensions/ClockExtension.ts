@@ -208,9 +208,7 @@ class ClockExtensionInstance {
 
     this.cleanup.push(
       context.registerExtensionPoint('clockChange', (state) => this.handleClockChange(state)),
-    );
-    this.cleanup.push(context.registerExtensionPoint('move', () => this.handleMove()));
-    this.cleanup.push(
+      context.registerExtensionPoint('move', () => this.handleMove()),
       context.registerExtensionPoint('update', () => {
         if (this.currentState) {
           this.render(this.currentState);
@@ -344,12 +342,7 @@ class ClockExtensionInstance {
     }
 
     const nextSide = nextTurn === 'w' ? state.white : state.black;
-    if (isFlagged) {
-      updates.running = false;
-      updates.paused = true;
-      updates.active = null;
-      this.lastTick = null;
-    } else if (nextSide.isFlagged) {
+    if (isFlagged || nextSide.isFlagged) {
       updates.running = false;
       updates.paused = true;
       updates.active = null;

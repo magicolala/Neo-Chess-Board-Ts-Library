@@ -75,6 +75,9 @@ import type {
   AnimationEasingName,
   StatusHighlight,
   MoveNotation,
+  ColorInput,
+  PremoveColorOption,
+  PremoveColorListInput,
 } from './types';
 
 // ============================================================================
@@ -120,6 +123,12 @@ const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
 ];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
+const COORDINATE_MOVE_REGEX =
+  /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/;
+const PGN_COMMENT_REGEX = /\s*\{[^{}]*\}\s*/g;
+const MULTIPLE_SPACE_REGEX = /[ \t]{2,}/g;
+const SPACED_NEWLINE_REGEX = / ?\n ?/g;
+const MULTIPLE_NEWLINES_REGEX = /\n{3,}/g;
 
 type NormalizedNotationMove = {
   from: Square;
@@ -553,7 +562,7 @@ export class NeoChessBoard {
     this.resize();
 
     if (options.pieceSet) {
-      void this.setPieceSet(options.pieceSet);
+      this.setPieceSet(options.pieceSet);
     }
   }
 
@@ -1354,7 +1363,7 @@ export class NeoChessBoard {
     }
   }
 
-  public setPremove(premove: Premove, color?: 'white' | 'black' | Color): void {
+  public setPremove(premove: Premove, color?: ColorInput): void {
     if (!this.allowPremoves) {
       return;
     }
@@ -1363,7 +1372,7 @@ export class NeoChessBoard {
     this._queuePremove(targetColor, premove, true);
   }
 
-  public clearPremove(color?: 'white' | 'black' | 'both'): void {
+  public clearPremove(color?: PremoveColorOption): void {
     const colors = this._resolveColorsForClearing(color);
     for (const code of colors) {
       if (this._premoveQueues[code].length > 0) {
@@ -2816,13 +2825,12 @@ export class NeoChessBoard {
 
   private _handleRightMouseUp(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
-    let handled = false;
-
+    let handledByDrawingManager = false;
     if (this.drawingManager && pt) {
-      handled = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
+      handledByDrawingManager = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
     }
 
-    if (!handled && pt) {
+    if (!handledByDrawingManager && pt) {
       const activePremove = this.drawingManager?.getPremove();
       const queuedForWhite = this._premoveQueues.w.length > 0;
       const queuedForBlack = this._premoveQueues.b.length > 0;
@@ -2847,8 +2855,6 @@ export class NeoChessBoard {
         } else {
           this.clearPremove(colorsToClear.has('white') ? 'white' : 'black');
         }
-
-        handled = true;
       } else if (this.rightClickHighlights) {
         const square = this._xyToSquare(pt.x, pt.y);
         this.drawingManager?.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
@@ -3083,9 +3089,7 @@ export class NeoChessBoard {
     const cleaned = notation.trim();
     if (!cleaned) return null;
 
-    const match = cleaned.match(
-      /^([a-zA-Z]+\d+)\s*(?:-|\s)?\s*([a-zA-Z]+\d+)(?:\s*(?:=)?\s*([qrbnQRBN]))?$/,
-    );
+    const match = COORDINATE_MOVE_REGEX.exec(cleaned);
     if (!match) return null;
 
     return {
@@ -3097,10 +3101,10 @@ export class NeoChessBoard {
 
   private _stripPgnComments(pgn: string): string {
     return pgn
-      .replaceAll(/\s*\{[^}]*\}\s*/g, ' ')
-      .replaceAll(/[ \t]{2,}/g, ' ')
-      .replaceAll(/ ?\n ?/g, '\n')
-      .replaceAll(/\n{3,}/g, '\n\n')
+      .replaceAll(PGN_COMMENT_REGEX, ' ')
+      .replaceAll(MULTIPLE_SPACE_REGEX, ' ')
+      .replaceAll(SPACED_NEWLINE_REGEX, '\n')
+      .replaceAll(MULTIPLE_NEWLINES_REGEX, '\n\n')
       .trim();
   }
 
@@ -3514,8 +3518,8 @@ export class NeoChessBoard {
     if (this.promotionHandler) {
       try {
         const result = this.promotionHandler(request);
-        if (result && typeof (result as Promise<void>).then === 'function') {
-          void (result as Promise<void>).catch((error) => {
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          Promise.resolve(result).catch((error) => {
             console.error('[NeoChessBoard] Promotion handler rejected.', error);
           });
         }
@@ -3588,7 +3592,7 @@ export class NeoChessBoard {
       const primary = existing[0];
       for (let i = 1; i < existing.length; i += 1) {
         const extra = existing[i];
-        extra.parentElement?.removeChild(extra);
+        extra.remove();
       }
       this.inlinePromotionContainer = primary;
       return primary;
@@ -4023,7 +4027,7 @@ export class NeoChessBoard {
     return color === 'w' ? 'white' : 'black';
   }
 
-  private _resolveTargetColor(color?: 'white' | 'black' | Color): Color {
+  private _resolveTargetColor(color?: ColorInput): Color {
     const normalized = this._normalizeColorSelection(color as Color | 'white' | 'black');
     return normalized[0] ?? this._defaultPremoveColor();
   }
@@ -4032,9 +4036,7 @@ export class NeoChessBoard {
     return this.state.turn === 'w' ? 'b' : 'w';
   }
 
-  private _normalizeColorSelection(
-    input?: 'white' | 'black' | 'both' | Color | Array<'white' | 'black' | Color>,
-  ): Color[] {
+  private _normalizeColorSelection(input?: PremoveColorListInput): Color[] {
     if (input === undefined) {
       return [];
     }
@@ -4058,7 +4060,7 @@ export class NeoChessBoard {
     return result;
   }
 
-  private _resolveColorsForClearing(color?: 'white' | 'black' | 'both'): Color[] {
+  private _resolveColorsForClearing(color?: PremoveColorOption): Color[] {
     const normalized = this._normalizeColorSelection(color);
     return normalized.length > 0 ? normalized : (['w', 'b'] as Color[]);
   }
@@ -4075,7 +4077,7 @@ export class NeoChessBoard {
     }
   }
 
-  private _setPremoveColorsFromColorOption(option: 'white' | 'black' | 'both'): void {
+  private _setPremoveColorsFromColorOption(option: PremoveColorOption): void {
     if (option === 'white') {
       this._premoveSettings.colors = { w: true, b: false };
       this._premoveQueues.b = [];
@@ -4449,7 +4451,16 @@ export class NeoChessBoard {
       }
 
       img.addEventListener('load', () => resolve(img));
-      img.onerror = (err) => reject(err instanceof Error ? err : new Error(String(err)));
+      img.addEventListener('error', (event) => {
+        if (event instanceof ErrorEvent && event.error instanceof Error) {
+          reject(event.error);
+          return;
+        }
+
+        const message =
+          event instanceof ErrorEvent && event.message ? event.message : 'Image failed to load.';
+        reject(new Error(message));
+      });
       img.src = src;
     });
   }

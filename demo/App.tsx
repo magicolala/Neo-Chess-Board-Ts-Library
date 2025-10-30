@@ -39,6 +39,7 @@ import {
   type TranslationKey,
   useTranslation,
 } from './i18n/translations';
+import { pickRandomElement } from './utils/random';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
   moveNumber: rules.moveNumber(),
@@ -293,16 +294,12 @@ const AppContent: React.FC = () => {
     const evaluationMap: Record<number, number | string> = {};
     const metadata =
       typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
+    const normalizedSetup =
+      typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
+    const metadataFen = metadata?.FEN?.trim();
     const fenFromMetadata =
-      metadata?.FEN && metadata.FEN.trim().length > 0
-        ? (() => {
-            const rawSetup = metadata?.SetUp;
-            const normalizedSetup = rawSetup ? rawSetup.trim().toLowerCase() : undefined;
-            if (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true') {
-              return metadata.FEN.trim();
-            }
-
-          })()
+      metadataFen && (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true')
+        ? metadataFen
         : undefined;
 
     for (const move of notation.getMovesWithAnnotations()) {
@@ -694,12 +691,12 @@ const AppContent: React.FC = () => {
   const addRandomArrow = useCallback(() => {
     if (!boardRef.current) return;
 
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const files: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     const randomSquare = (): Square => {
-      const file = files[Math.floor(Math.random() * files.length)];
-      const rank = ranks[Math.floor(Math.random() * ranks.length)];
+      const file = pickRandomElement(files);
+      const rank = pickRandomElement(ranks);
       return `${file}${rank}` as Square;
     };
 
@@ -711,8 +708,8 @@ const AppContent: React.FC = () => {
       to = randomSquare();
     }
 
-    const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
+    const colors: readonly string[] = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
+    const color = pickRandomElement(colors);
 
     boardRef.current.addArrow({
       from,
@@ -725,23 +722,23 @@ const AppContent: React.FC = () => {
   const addRandomHighlight = useCallback(() => {
     if (!boardRef.current) return;
 
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const files: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     const randomSquare = (): Square => {
-      const file = files[Math.floor(Math.random() * files.length)];
-      const rank = ranks[Math.floor(Math.random() * ranks.length)];
+      const file = pickRandomElement(files);
+      const rank = pickRandomElement(ranks);
       return `${file}${rank}` as Square;
     };
 
     const square = randomSquare();
-    const types: Array<'move' | 'capture' | 'check' | 'selected'> = [
+    const types: ReadonlyArray<'move' | 'capture' | 'check' | 'selected'> = [
       'move',
       'capture',
       'check',
       'selected',
     ];
-    const type = types[Math.floor(Math.random() * types.length)];
+    const type = pickRandomElement(types);
 
     // Get the board instance from the ref
     const board = boardRef.current.getBoard();
@@ -1429,9 +1426,7 @@ const AppContent: React.FC = () => {
             <div className={styles.buttonGroup}>
               <LoadingButton
                 className={`${styles.button} ${styles.buttonPrimary}`}
-                onClick={() => {
-                  void handleLoadPgn();
-                }}
+                onClick={handleLoadPgn}
                 isLoading={isPgnLoading}
               >
                 {isPgnLoading ? translate('pgn.loading') : translate('pgn.load')}

@@ -199,8 +199,8 @@ describe('DrawingManager', () => {
     )._drawSquareNames(mockContext);
     const legacyLabels = mockContext.fillText.mock.calls.map((call) => call[0]);
 
-    const sortedRenderLabels = [...renderLabels].sort();
-    const sortedLegacyLabels = [...legacyLabels].sort();
+    const sortedRenderLabels = renderLabels.toSorted();
+    const sortedLegacyLabels = legacyLabels.toSorted();
 
     expect(sortedLegacyLabels).toEqual(sortedRenderLabels);
     expect(sortedLegacyLabels).toEqual(['1', '2', '3', '4', 'a', 'b', 'c', 'd']);
