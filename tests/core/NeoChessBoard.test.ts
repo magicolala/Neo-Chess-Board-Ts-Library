@@ -962,7 +962,7 @@ describe('NeoChessBoard Core', () => {
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
         const audioFactory = jest.fn((src: string) => {
           const audio: AudioMock = {
-            play: jest.fn(async () => {}),
+            play: jest.fn().mockResolvedValue(void 0),
             addEventListener: jest.fn(),
             preload: 'auto',
             volume: 0.3,
@@ -2204,16 +2204,12 @@ describe('NeoChessBoard Core', () => {
 
     it('renders an inline promotion chooser when configured', () => {
       board.destroy();
-
       const promotionBoard = new NeoChessBoard(container, {
         promotion: { ui: 'inline' },
       });
-
       board = promotionBoard;
       promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
-
       const result = promotionBoard.attemptMove('e7', 'e8');
-
       expect(result).toBe(true);
       const inlineOverlay = container.querySelector<HTMLElement>('.ncb-inline-promotion');
       expect(inlineOverlay).not.toBeNull();
@@ -2230,30 +2226,23 @@ describe('NeoChessBoard Core', () => {
 
     it('updates promotion UI dynamically when configured at runtime', () => {
       board.destroy();
-
       const handler = jest.fn();
       const promotionBoard = new NeoChessBoard(container, {
         onPromotionRequired: handler,
       });
-
       board = promotionBoard;
       promotionBoard.setFEN('3k4/4P3/8/8/8/8/8/4K3 w - - 0 1', true);
-
       promotionBoard.attemptMove('e7', 'e8');
       expect(handler).toHaveBeenCalled();
       handler.mockReset();
-
       promotionBoard.configure({ promotion: { ui: 'inline' } });
-
       const overlay = container.querySelector('.ncb-inline-promotion');
       expect(overlay).not.toBeNull();
       if (!overlay) {
         throw new Error('Inline overlay missing after configuration');
       }
-
       const buttons = overlay.querySelectorAll('.ncb-inline-promotion__choice');
       expect(buttons).toHaveLength(4);
-
       promotionBoard.configure({ promotion: { autoQueen: true } });
       expect(promotionBoard.getPieceAt('e8')).toBe('Q');
       expect(promotionBoard.isPromotionPending()).toBe(false);

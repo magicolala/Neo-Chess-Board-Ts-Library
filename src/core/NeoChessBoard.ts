@@ -4640,10 +4640,12 @@ export class NeoChessBoard {
 
     let annotationsToShow: PgnMoveAnnotations | null = null;
 
-    if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
-      annotationsToShow = lastMove.blackAnnotations;
-    } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
-      annotationsToShow = lastMove.whiteAnnotations;
+    if (lastMove) {
+      if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
+        annotationsToShow = lastMove.blackAnnotations;
+      } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
+        annotationsToShow = lastMove.whiteAnnotations;
+      }
     }
 
     if (annotationsToShow) {
