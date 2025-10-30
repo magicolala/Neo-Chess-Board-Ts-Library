@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-bg-primary text-textc-primary;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(139,92,246,0.08), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(96,165,250,0.06), transparent 55%),
+    #0b0e14;
+}
