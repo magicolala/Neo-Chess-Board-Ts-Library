@@ -79,8 +79,14 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
   ) {
     this.fileLabels = generateFileLabels(files);
     this.rankLabels = generateRankLabels(ranks);
-    this.board = Array.from({ length: ranks }, () => Array.from({ length: files }, () => null));
+    this.board = this.createEmptyBoard();
     this.fen = this._buildFen();
+  }
+
+  private createEmptyBoard(): (string | null)[][] {
+    return Array.from({ length: this.ranks }, () => {
+      return Array.from({ length: this.files }, () => null);
+    });
   }
 
   setFEN(fen: string): void {
