@@ -1,45 +1,394 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta
-      name="description"
-      content="Demo moderne de NeoChessBoard - Bibliothèque d'échiquier interactive en TypeScript avec suivi de la règle des 50 coups"
-    />
-    <meta name="theme-color" content="#4f46e5" />
-    <title>NeoChessBoard – Demo Interactive</title>
-
-    <!-- Google Fonts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2d1b3d" />
+    <title>NeoChessBoard — Immersive Demo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./chess-ui-framework.css" />
-    <style>
-      body {
-        margin: 0;
-        min-block-size: 100vh;
-        background:
-          radial-gradient(circle at top left, hsl(var(--h-accent) 83% 66% / 0.22), transparent 55%),
-          radial-gradient(circle at bottom right, hsl(var(--h-info) 92% 60% / 0.18), transparent 55%),
-          var(--bg-0);
-        color: var(--text-0);
-        font-family: var(--font-sans);
-      }
-    </style>
-
-    <!-- Favicon emoji -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♔</text></svg>"
-    />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="./assets/css/custom-styles.css" />
   </head>
+  <body
+    class="min-h-screen bg-gradient-to-br from-[#1a1625] via-[#211630] to-[#2d1b3d] text-slate-100 antialiased"
+  >
+    <div class="relative min-h-screen overflow-hidden">
+      <div class="pointer-events-none absolute inset-0">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+        <div class="glow glow-3"></div>
+      </div>
+      <div class="relative flex min-h-screen flex-col">
+        <header
+          class="backdrop-blur-md/0 sticky top-0 z-20 border-b border-white/10 bg-slate-900/40 shadow-lg shadow-purple-900/20"
+          role="banner"
+        >
+          <div class="mx-auto flex w-full max-w-[1400px] items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-10 items-center justify-center rounded-xl bg-purple-500/20 text-2xl font-semibold text-purple-300"
+                aria-hidden="true"
+              >♞</span>
+              <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.25em] text-purple-200/80">NeoChessBoard</p>
+                <h1 class="text-xl font-semibold text-white">Immersive Analysis Playground</h1>
+              </div>
+            </div>
+            <nav aria-label="Primary navigation" class="hidden items-center gap-8 text-sm font-medium lg:flex">
+              <a class="nav-link nav-link-active" href="#">Play</a>
+              <a class="nav-link" href="#analysis">Analysis</a>
+              <a class="nav-link" href="#puzzles">Puzzles</a>
+              <a class="nav-link" href="#openings">Openings</a>
+              <a class="nav-link" href="../examples" target="_blank" rel="noreferrer">Examples</a>
+              <a class="nav-link" href="../docs" target="_blank" rel="noreferrer">Docs</a>
+            </nav>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="icon-button"
+                id="theme-mode-toggle"
+                aria-label="Toggle light mode"
+              >
+                <span aria-hidden="true">🌙</span>
+              </button>
+              <button type="button" class="icon-button" aria-label="Account">
+                <span aria-hidden="true">👤</span>
+              </button>
+            </div>
+          </div>
+        </header>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./main.tsx"></script>
+        <main class="flex-1" role="main">
+          <div class="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-6 py-8">
+            <section
+              class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(280px,1fr)_minmax(420px,1.8fr)_minmax(280px,1fr)]"
+            >
+              <aside class="glass-panel space-y-6" aria-label="Move configuration">
+                <header class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.4em] text-purple-200/60">Navigator</p>
+                    <h2 class="text-lg font-semibold text-white">Move Timeline</h2>
+                  </div>
+                  <span class="badge badge-live" id="analysis-status">Live</span>
+                </header>
+
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-100">Move History</h3>
+                    <div class="text-xs text-slate-400" id="current-move-label">Start Position</div>
+                  </div>
+                  <div
+                    id="move-list"
+                    class="move-list max-h-[420px] overflow-y-auto pr-2"
+                    role="grid"
+                    aria-label="Move history"
+                  ></div>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-100">Analysis Configuration</h3>
+                    <span class="text-xs text-slate-400" id="engine-status">Maia 1900 preset</span>
+                  </div>
+                  <div class="grid gap-3">
+                    <label class="control">
+                      <span class="control-label">Engine Profile</span>
+                      <select id="engine-select" class="control-select" aria-label="Select engine profile">
+                        <option value="maia-1900">Maia 1900</option>
+                        <option value="maia-1500">Maia 1500</option>
+                        <option value="stockfish-16">Stockfish 16</option>
+                        <option value="lc0">Leela Chess Zero</option>
+                      </select>
+                    </label>
+                    <label class="control">
+                      <span class="control-label">Evaluation Mode</span>
+                      <select id="evaluation-mode" class="control-select" aria-label="Select evaluation mode">
+                        <option value="centipawn">Centipawn</option>
+                        <option value="winrate">Win %</option>
+                      </select>
+                    </label>
+                    <label class="control">
+                      <span class="control-label">Theme</span>
+                      <select id="theme-select" class="control-select" aria-label="Select board theme"></select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <h3 class="text-sm font-semibold text-slate-100">Board Options</h3>
+                  <div class="grid grid-cols-2 gap-3 text-sm" id="board-options">
+                    <label class="toggle" data-option="arrows">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Arrows</span>
+                    </label>
+                    <label class="toggle" data-option="highlights">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Highlights</span>
+                    </label>
+                    <label class="toggle" data-option="premoves">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Premoves</span>
+                    </label>
+                    <label class="toggle" data-option="animations">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Animations</span>
+                    </label>
+                    <label class="toggle" data-option="coordinates">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Coordinates</span>
+                    </label>
+                    <label class="toggle" data-option="sounds">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Sounds</span>
+                    </label>
+                    <label class="toggle" data-option="legalMoves">
+                      <input type="checkbox" class="sr-only" checked />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Legal moves</span>
+                    </label>
+                    <label class="toggle" data-option="autoFlip">
+                      <input type="checkbox" class="sr-only" />
+                      <span class="toggle-pill" aria-hidden="true"></span>
+                      <span class="toggle-label">Auto flip</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <h3 class="text-sm font-semibold text-slate-100">Animation Speed</h3>
+                  <div class="space-y-2">
+                    <input
+                      type="range"
+                      id="animation-speed"
+                      min="0"
+                      max="2000"
+                      step="50"
+                      value="300"
+                      class="w-full accent-purple-500"
+                      aria-label="Animation speed"
+                    />
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                      <span>Instant</span>
+                      <span id="animation-speed-value">300 ms</span>
+                      <span>Slow</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              <section class="glass-panel space-y-6" aria-label="Interactive board">
+                <header class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img
+                      src="https://avatars.dicebear.com/api/identicon/white-player.svg"
+                      alt="White player"
+                      class="size-10 rounded-full border border-white/10"
+                    />
+                    <div>
+                      <p class="text-xs uppercase tracking-[0.4em] text-slate-400">White</p>
+                      <p class="text-base font-semibold text-white" id="white-player-name">Neo Player</p>
+                    </div>
+                  </div>
+                  <div class="player-timer" id="white-clock">10:00</div>
+                </header>
+
+                <div class="board-wrapper">
+                  <div id="board-canvas" class="board-canvas" aria-label="Chess board"></div>
+                </div>
+
+                <footer class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <img
+                        src="https://avatars.dicebear.com/api/identicon/black-player.svg"
+                        alt="Black player"
+                        class="size-10 rounded-full border border-white/10"
+                      />
+                      <div>
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-400">Black</p>
+                        <p class="text-base font-semibold text-white" id="black-player-name">Guest</p>
+                      </div>
+                    </div>
+                    <div class="player-timer" id="black-clock">10:00</div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="inline-flex items-center gap-2 text-sm text-slate-300">
+                      <span class="inline-flex size-2.5 rounded-full bg-emerald-400/80"></span>
+                      <span id="status-text">In progress</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="control-button" data-nav="first" aria-label="Go to first move">⏮</button>
+                      <button class="control-button" data-nav="prev" aria-label="Go to previous move">◀</button>
+                      <button class="control-button" data-nav="next" aria-label="Go to next move">▶</button>
+                      <button class="control-button" data-nav="last" aria-label="Go to last move">⏭</button>
+                      <button class="control-button" id="flip-board" aria-label="Flip orientation">↕</button>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2" id="status-tags" aria-live="polite"></div>
+                </footer>
+              </section>
+
+              <aside class="glass-panel space-y-6" aria-label="Analysis insights">
+                <header class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.4em] text-blue-200/70">Evaluation</p>
+                    <h2 class="text-lg font-semibold text-white">Engine Insight</h2>
+                  </div>
+                  <div class="flex flex-col items-end text-right text-xs text-slate-400">
+                    <span id="evaluation-caption">Balanced</span>
+                    <span id="evaluation-move-pointer">—</span>
+                  </div>
+                </header>
+
+                <div class="flex items-stretch gap-4">
+                  <div class="relative h-72 w-8 overflow-hidden rounded-full bg-gradient-to-b from-white to-slate-900">
+                    <div class="absolute inset-0 flex flex-col" aria-hidden="true">
+                      <div id="evaluation-white" class="flex-1 bg-white/90 transition-all"></div>
+                      <div id="evaluation-black" class="flex-1 bg-slate-900/90 transition-all"></div>
+                    </div>
+                    <div
+                      id="evaluation-score"
+                      class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-900"
+                    >
+                      0.0
+                    </div>
+                  </div>
+
+                  <div class="flex-1 space-y-4">
+                    <div class="metric-card">
+                      <div class="metric-label">Score Trend</div>
+                      <canvas id="move-map" class="h-28 w-full"></canvas>
+                    </div>
+                    <div class="metric-card space-y-3">
+                      <div class="metric-label">Blunder Meter</div>
+                      <div class="grid gap-3 text-xs" id="blunder-meter"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid gap-3 text-sm" id="game-stats">
+                  <div class="stat-row">
+                    <span>Side to move</span>
+                    <span id="stat-turn">White</span>
+                  </div>
+                  <div class="stat-row">
+                    <span>Legal moves</span>
+                    <span id="stat-legal">20</span>
+                  </div>
+                  <div class="stat-row">
+                    <span>Half-move clock</span>
+                    <span id="stat-halfmove">0</span>
+                  </div>
+                  <div class="stat-row">
+                    <span>50-move rule</span>
+                    <span id="stat-fifty">100</span>
+                  </div>
+                  <div class="stat-row">
+                    <span>Move number</span>
+                    <span id="stat-fullmove">1</span>
+                  </div>
+                </div>
+
+                <div class="space-y-3">
+                  <h3 class="text-sm font-semibold text-slate-100">Quick tools</h3>
+                  <div class="flex flex-wrap gap-2 text-sm">
+                    <button class="pill-button" id="add-arrow" type="button">Add arrow</button>
+                    <button class="pill-button" id="clear-arrows" type="button">Clear drawings</button>
+                    <button class="pill-button" id="toggle-annotations" type="button">Toggle highlights</button>
+                  </div>
+                </div>
+              </aside>
+            </section>
+
+            <section class="glass-panel space-y-6" aria-label="Notation tools">
+              <header class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.4em] text-purple-200/60">Notations</p>
+                  <h2 class="text-lg font-semibold text-white">PGN &amp; FEN Manager</h2>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                  <span class="inline-flex size-2 rounded-full bg-emerald-400/80"></span>
+                  <span id="sync-status">Auto-saved</span>
+                </div>
+              </header>
+
+              <div class="grid gap-6 lg:grid-cols-[minmax(320px,2fr)_minmax(200px,1fr)]">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-100">PGN Notation</h3>
+                    <span class="text-xs text-slate-400">Supports [%eval ...] annotations</span>
+                  </div>
+                  <textarea
+                    id="pgn-input"
+                    class="code-surface"
+                    rows="8"
+                    spellcheck="false"
+                    aria-label="PGN notation"
+                    placeholder="Paste a PGN here to explore the game with evaluation data..."
+                  ></textarea>
+                  <div class="flex flex-wrap gap-2 text-sm">
+                    <button class="primary-button" id="load-pgn" type="button">Load PGN</button>
+                    <button class="secondary-button" id="copy-pgn" type="button">Copy PGN</button>
+                    <button class="warning-button" id="reset-board" type="button">Reset</button>
+                    <button class="secondary-button" id="export-pgn" type="button">Export</button>
+                  </div>
+                </div>
+
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-100">Current FEN</h3>
+                    <button class="control-button" id="copy-fen" type="button" aria-label="Copy FEN">⧉</button>
+                  </div>
+                  <textarea
+                    id="fen-output"
+                    class="code-surface text-xs"
+                    rows="4"
+                    spellcheck="false"
+                    readonly
+                    aria-label="Current FEN"
+                  ></textarea>
+                  <div class="grid gap-2 text-xs text-slate-400">
+                    <p>
+                      💡 Tip: load PGNs containing <code>[%eval ...]</code> comments to feed the evaluation bar, move map, and
+                      blunder meter.
+                    </p>
+                    <button class="pill-button" id="load-sample" type="button">Load sample annotated PGN</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <footer class="border-t border-white/10 bg-slate-900/50 py-6">
+          <div class="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-3 px-6 text-xs text-slate-400">
+            <div class="flex flex-wrap items-center gap-3">
+              <span>© <span id="year">2025</span> NeoChessBoard</span>
+              <span>Crafted for modern chess experiences</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <a class="footer-link" href="../README.md" target="_blank" rel="noreferrer">Project README</a>
+              <a class="footer-link" href="../CHANGELOG.md" target="_blank" rel="noreferrer">Changelog</a>
+              <a class="footer-link" href="../CONTRIBUTING.md" target="_blank" rel="noreferrer">Contributing</a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+    <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
+    <script type="module" src="./assets/js/demo-logic.js"></script>
   </body>
 </html>
