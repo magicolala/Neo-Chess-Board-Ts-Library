@@ -1,5 +1,4 @@
 import React from 'react';
-import styles from '../App.module.css';
 
 interface PlyNavigatorLabels {
   first: string;
@@ -41,23 +40,28 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
   labels,
   ariaLabels,
 }) => {
-  const moveValueClassName = isAtStart ? styles.timelineMoveValue : styles.timelineMoveValueActive;
+  const moveValueClassName = isAtStart ? 'text-gray-400' : 'font-semibold text-gray-100';
+
+  const buttonBaseClass =
+    'px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-md text-sm font-medium text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
   return (
-    <div className={styles.timelineNavigator}>
-      <div className={styles.timelineMove}>
-        <span className={styles.timelineMoveLabel}>{labels.currentMove}</span>
-        <span className={moveValueClassName} aria-live="polite">
+    <div className="p-2 rounded-lg bg-gray-800/50">
+      <div className="flex justify-between items-baseline">
+        <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+          {labels.currentMove}
+        </span>
+        <span className={`${moveValueClassName} transition-colors`} aria-live="polite">
           {moveLabel}
         </span>
       </div>
-      <div className={styles.timelineDescriptor} aria-live="polite">
+      <div className="text-xs text-gray-500 mt-1" aria-live="polite">
         {positionLabel}
       </div>
-      <div className={styles.timelineControls}>
+      <div className="grid grid-cols-4 gap-1 mt-3">
         <button
           type="button"
-          className={styles.timelineButton}
+          className={buttonBaseClass}
           onClick={onFirst}
           disabled={isAtStart}
           aria-label={ariaLabels.first}
@@ -66,7 +70,7 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
         </button>
         <button
           type="button"
-          className={styles.timelineButton}
+          className={buttonBaseClass}
           onClick={onPrevious}
           disabled={isAtStart}
           aria-label={ariaLabels.previous}
@@ -75,7 +79,7 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
         </button>
         <button
           type="button"
-          className={styles.timelineButton}
+          className={buttonBaseClass}
           onClick={onNext}
           disabled={isAtEnd}
           aria-label={ariaLabels.next}
@@ -84,7 +88,7 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
         </button>
         <button
           type="button"
-          className={styles.timelineButton}
+          className={buttonBaseClass}
           onClick={onLast}
           disabled={isAtEnd}
           aria-label={ariaLabels.last}
