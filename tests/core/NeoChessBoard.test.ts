@@ -2200,13 +2200,15 @@ describe('NeoChessBoard Core', () => {
       const result = promotionBoard.attemptMove('e7', 'e8');
 
       expect(result).toBe(true);
-      const inlineOverlay = container.querySelector('.ncb-inline-promotion');
+      const inlineOverlay = container.querySelector<HTMLElement>('.ncb-inline-promotion');
       expect(inlineOverlay).not.toBeNull();
       if (!inlineOverlay) {
         throw new Error('Inline promotion overlay not found');
       }
       expect(inlineOverlay.dataset.square).toBe('e8');
-      const buttons = inlineOverlay.querySelectorAll('.ncb-inline-promotion__choice');
+      const buttons = inlineOverlay.querySelectorAll<HTMLButtonElement>(
+        '.ncb-inline-promotion__choice',
+      );
       expect(buttons).toHaveLength(4);
       expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
     });

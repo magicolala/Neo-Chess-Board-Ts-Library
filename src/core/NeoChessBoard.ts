@@ -3565,7 +3565,7 @@ export class NeoChessBoard {
       const token = pending.token;
       this._hideInlinePromotion();
       this._resolvePromotion(token, 'q');
-      for (const overlay of this.root.querySelectorAll('.ncb-inline-promotion')) {
+      for (const overlay of this.root.querySelectorAll<HTMLDivElement>('.ncb-inline-promotion')) {
         overlay.innerHTML = '';
         delete overlay.dataset.square;
         delete overlay.dataset.color;
