@@ -158,31 +158,36 @@ export const useBoardSize = (config: BoardSizeConfig): UseBoardSizeResult => {
     (event: ReactKeyboardEvent<HTMLElement>) => {
       switch (event.key) {
         case 'ArrowUp':
-        case 'ArrowRight':
+        case 'ArrowRight': {
           event.preventDefault();
           setSize((previous) => previous + step);
           break;
+        }
         case 'ArrowDown':
-        case 'ArrowLeft':
+        case 'ArrowLeft': {
           event.preventDefault();
           setSize((previous) => previous - step);
           break;
-        case 'Home':
+        }
+        case 'Home': {
           event.preventDefault();
           setSize(minSize);
           break;
-        case 'End':
+        }
+        case 'End': {
           event.preventDefault();
           setSize(maxSize);
           break;
+        }
         case 'Enter':
         case ' ': {
           event.preventDefault();
           resetSize();
           break;
         }
-        default:
+        default: {
           break;
+        }
       }
     },
     [maxSize, minSize, resetSize, setSize, step],

@@ -444,7 +444,7 @@ const clampBoardSize = (size: number): number => {
 };
 
 const getInitialBoardSize = (): number => {
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     return 480;
   }
 
@@ -501,11 +501,11 @@ interface StressTestRunState {
 
 const PlaygroundView: React.FC = () => {
   const permalinkSnapshot = useMemo(() => {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return {};
     }
 
-    return parsePlaygroundPermalink(window.location.search);
+    return parsePlaygroundPermalink(globalThis.location.search);
   }, []);
 
   const [orientation, setOrientation] = useState<PlaygroundOrientation>(
@@ -577,10 +577,10 @@ const PlaygroundView: React.FC = () => {
       textarea.setAttribute('readonly', '');
       textarea.style.position = 'absolute';
       textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
+      document.body.append(textarea);
       textarea.select();
       const result = document.execCommand('copy');
-      document.body.removeChild(textarea);
+      textarea.remove();
       return result;
     } catch (error) {
       console.error(error);
@@ -590,13 +590,13 @@ const PlaygroundView: React.FC = () => {
 
   useEffect(() => {
     const payload =
-      typeof window !== 'undefined'
-        ? {
-            path: window.location.pathname,
-            search: window.location.search,
+      globalThis.window === undefined
+        ? undefined
+        : {
+            path: globalThis.location.pathname,
+            search: globalThis.location.search,
             title: document?.title,
-          }
-        : undefined;
+          };
     trackPageView(ANALYTICS_EVENTS.PAGE_VIEW, payload);
   }, []);
 
@@ -620,7 +620,7 @@ const PlaygroundView: React.FC = () => {
 
     setCurrentFen((current) => (current === fenFromPermalink ? current : fenFromPermalink));
 
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return;
     }
 
@@ -661,7 +661,7 @@ const PlaygroundView: React.FC = () => {
       }
 
       attempts += 1;
-      frameId = window.requestAnimationFrame(() => {
+      frameId = globalThis.requestAnimationFrame(() => {
         if (!applyFenToBoard()) {
           scheduleAttempt();
         }
@@ -672,7 +672,7 @@ const PlaygroundView: React.FC = () => {
 
     return () => {
       if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
+        globalThis.cancelAnimationFrame(frameId);
       }
     };
   }, [permalinkSnapshot.fen]);
@@ -779,7 +779,7 @@ const PlaygroundView: React.FC = () => {
       widths.push(clampBoardSize(size));
     }
 
-    const lastWidth = widths[widths.length - 1];
+    const lastWidth = widths.at(-1);
     if (!lastWidth || lastWidth !== normalizedMax) {
       widths.push(normalizedMax);
     }
@@ -809,7 +809,7 @@ const PlaygroundView: React.FC = () => {
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return;
     }
 
@@ -835,7 +835,7 @@ const PlaygroundView: React.FC = () => {
       return;
     }
 
-    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    if (globalThis.window === undefined || typeof globalThis.requestAnimationFrame !== 'function') {
       setFpsSample(null);
       return;
     }
@@ -857,7 +857,7 @@ const PlaygroundView: React.FC = () => {
   }, [showFpsBadge]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return;
     }
 
@@ -956,17 +956,17 @@ const PlaygroundView: React.FC = () => {
     }
 
     if (typeof state.moveTimeoutId === 'number') {
-      window.clearTimeout(state.moveTimeoutId);
+      globalThis.clearTimeout(state.moveTimeoutId);
       state.moveTimeoutId = undefined;
     }
 
     if (typeof state.resizeTimeoutId === 'number') {
-      window.clearTimeout(state.resizeTimeoutId);
+      globalThis.clearTimeout(state.resizeTimeoutId);
       state.resizeTimeoutId = undefined;
     }
 
     if (typeof state.rafId === 'number') {
-      window.cancelAnimationFrame(state.rafId);
+      globalThis.cancelAnimationFrame(state.rafId);
       state.rafId = undefined;
     }
   }, []);
@@ -982,7 +982,7 @@ const PlaygroundView: React.FC = () => {
   const applyPly = useCallback(
     (index: number, options?: { timelineOverride?: string[]; logLabel?: string }) => {
       const timeline = options?.timelineOverride ?? fenTimelineRef.current;
-      if (!timeline.length) {
+      if (timeline.length === 0) {
         return;
       }
 
@@ -1030,10 +1030,11 @@ const PlaygroundView: React.FC = () => {
           const metadataFen = typeof metadata?.FEN === 'string' ? metadata.FEN.trim() : undefined;
           const normalizedSetUp =
             typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
-          if (metadataFen) {
-            if (!normalizedSetUp || normalizedSetUp === '1' || normalizedSetUp === 'true') {
-              startingFen = metadataFen;
-            }
+          if (
+            metadataFen &&
+            (!normalizedSetUp || normalizedSetUp === '1' || normalizedSetUp === 'true')
+          ) {
+            startingFen = metadataFen;
           }
 
           sanitizedPgn = notation?.toPgnWithAnnotations?.() ?? trimmed;
@@ -1413,7 +1414,7 @@ const PlaygroundView: React.FC = () => {
   const handleNavigate = useCallback(
     (direction: 'first' | 'previous' | 'next' | 'last') => {
       const timeline = fenTimelineRef.current;
-      if (!timeline.length) {
+      if (timeline.length === 0) {
         return;
       }
 
@@ -1421,20 +1422,25 @@ const PlaygroundView: React.FC = () => {
       let targetIndex = plyIndexRef.current;
 
       switch (direction) {
-        case 'first':
+        case 'first': {
           targetIndex = 0;
           break;
-        case 'previous':
+        }
+        case 'previous': {
           targetIndex = Math.max(0, plyIndexRef.current - 1);
           break;
-        case 'next':
+        }
+        case 'next': {
           targetIndex = Math.min(maxIndex, plyIndexRef.current + 1);
           break;
-        case 'last':
+        }
+        case 'last': {
           targetIndex = maxIndex;
           break;
-        default:
+        }
+        default: {
           targetIndex = plyIndexRef.current;
+        }
       }
 
       if (targetIndex === plyIndexRef.current) {
@@ -1516,7 +1522,7 @@ const PlaygroundView: React.FC = () => {
   }, [isStressTestRunning, resetBoardOptions, stopStressTest, applyPly, pushToast]);
 
   const handleStressTest = useCallback(() => {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       pushLog('Stress test is only available in a browser environment.');
       return;
     }
@@ -1585,7 +1591,7 @@ const PlaygroundView: React.FC = () => {
       }
 
       state.moveIndex += 1;
-      state.moveTimeoutId = window.setTimeout(playNextMove, STRESS_TEST_MOVE_DELAY_MS);
+      state.moveTimeoutId = globalThis.setTimeout(playNextMove, STRESS_TEST_MOVE_DELAY_MS);
     };
 
     const animateResizeTo = (targetSize: number) => {
@@ -1595,7 +1601,7 @@ const PlaygroundView: React.FC = () => {
       }
 
       if (typeof state.rafId === 'number') {
-        window.cancelAnimationFrame(state.rafId);
+        globalThis.cancelAnimationFrame(state.rafId);
       }
 
       const startSize = boardSizeRef.current;
@@ -1619,14 +1625,10 @@ const PlaygroundView: React.FC = () => {
         const clamped = clampBoardSize(interpolated);
         setBoardSize(clamped);
 
-        if (progress < 1) {
-          activeState.rafId = window.requestAnimationFrame(step);
-        } else {
-          activeState.rafId = undefined;
-        }
+        activeState.rafId = progress < 1 ? globalThis.requestAnimationFrame(step) : undefined;
       };
 
-      state.rafId = window.requestAnimationFrame(step);
+      state.rafId = globalThis.requestAnimationFrame(step);
     };
 
     const scheduleNextResize = () => {
@@ -1635,7 +1637,7 @@ const PlaygroundView: React.FC = () => {
         return;
       }
 
-      state.resizeTimeoutId = window.setTimeout(() => {
+      state.resizeTimeoutId = globalThis.setTimeout(() => {
         const activeState = stressTestStateRef.current;
         if (
           !activeState ||
@@ -1672,7 +1674,7 @@ const PlaygroundView: React.FC = () => {
       scheduleNextResize();
     }
 
-    runState.moveTimeoutId = window.setTimeout(() => {
+    runState.moveTimeoutId = globalThis.setTimeout(() => {
       playNextMove();
     }, STRESS_TEST_INITIAL_DELAY_MS);
   }, [
@@ -1706,7 +1708,7 @@ const PlaygroundView: React.FC = () => {
       return;
     }
     const currentIndex = themeOptions.indexOf(theme);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % themeOptions.length;
     const nextTheme = themeOptions[nextIndex];
     updateBoardOptions({ theme: nextTheme });
     pushLog(`Theme changed to ${getThemeLabel(nextTheme)}`);
@@ -1750,9 +1752,8 @@ const PlaygroundView: React.FC = () => {
 
       const sliceEnd = Math.max(0, plyIndexRef.current) + 1;
       const baseTimeline = fenTimelineRef.current.slice(0, sliceEnd);
-      const nextTimeline = baseTimeline.length
-        ? [...baseTimeline.slice(0, baseTimeline.length - 1), event.fen]
-        : [event.fen];
+      const nextTimeline =
+        baseTimeline.length > 0 ? [...baseTimeline.slice(0, -1), event.fen] : [event.fen];
 
       fenTimelineRef.current = nextTimeline;
       setFenTimeline(nextTimeline);

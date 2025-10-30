@@ -348,8 +348,8 @@ describe('PgnNotation with Annotations', () => {
       const annotatedPgn = pgnNotation.toPgnWithAnnotations();
 
       // Should be identical when no annotations are present
-      expect(annotatedPgn.replace(/\s+/g, ' ').trim()).toBe(
-        standardPgn.replace(/\s+/g, ' ').trim(),
+      expect(annotatedPgn.replaceAll(/\s+/g, ' ').trim()).toBe(
+        standardPgn.replaceAll(/\s+/g, ' ').trim(),
       );
     });
   });
@@ -382,8 +382,7 @@ describe('PgnNotation with Annotations', () => {
       expect(secondMoves).toHaveLength(originalMoves.length);
 
       // Check that annotations are preserved
-      for (let i = 0; i < originalMoves.length; i++) {
-        const original = originalMoves[i];
+      for (const [i, original] of originalMoves.entries()) {
         const second = secondMoves[i];
 
         if (original.whiteAnnotations) {
@@ -443,12 +442,12 @@ describe('PgnNotation with Annotations', () => {
       expect(moves.length).toBeGreaterThan(0);
 
       // No annotations should be present
-      moves.forEach((move) => {
+      for (const move of moves) {
         expect(move.whiteAnnotations?.arrows || []).toHaveLength(0);
         expect(move.whiteAnnotations?.circles || []).toHaveLength(0);
         expect(move.blackAnnotations?.arrows || []).toHaveLength(0);
         expect(move.blackAnnotations?.circles || []).toHaveLength(0);
-      });
+      }
     });
   });
 });

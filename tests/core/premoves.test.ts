@@ -108,7 +108,7 @@ describe('Premoves', () => {
    */
   beforeEach(() => {
     container = document.createElement('div');
-    document.body.appendChild(container);
+    document.body.append(container);
 
     mockEngine = createMockEngine();
     board = new NeoChessBoard(container, {
@@ -124,7 +124,7 @@ describe('Premoves', () => {
    */
   afterEach(() => {
     board.destroy();
-    document.body.removeChild(container);
+    container.remove();
   });
 
   // --- Test Cases ---

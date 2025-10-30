@@ -8,7 +8,7 @@ describe('AccessibilityExtension', () => {
 
   beforeEach(() => {
     mount = document.createElement('div');
-    document.body.appendChild(mount);
+    document.body.append(mount);
   });
 
   afterEach(() => {

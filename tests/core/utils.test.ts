@@ -112,9 +112,9 @@ describe('Chess Utils', () => {
       const state = parseFEN(fen, { files: 10, ranks: 6 });
 
       expect(state.board).toHaveLength(6);
-      state.board.forEach((row) => {
+      for (const row of state.board) {
         expect(row).toHaveLength(10);
-      });
+      }
     });
 
     it('throws an explicit error for malformed FEN strings', () => {

@@ -101,7 +101,7 @@ describe('ChessJsRules', () => {
         // We expect at least one of these to be true in an endgame
         expect(typeof isStalemate).toBe('boolean');
         expect(typeof isGameOver).toBe('boolean');
-      } catch (_error) {
+      } catch {
         // If the position is invalid, just test that methods work
         expect(rules.isStalemate()).toBe(false);
         expect(rules.isGameOver()).toBe(false);
@@ -297,7 +297,7 @@ describe('ChessJsRules', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       try {
         rules.setFEN('8/8/8/8/8/8/8/8 w - - 0 1'); // No kings - invalid but caught
-      } catch (_error) {
+      } catch {
         // Expected to throw, now test getCheckSquares with current valid position
         const checkSquares = rules.getCheckSquares();
         expect(Array.isArray(checkSquares)).toBe(true);
@@ -458,11 +458,11 @@ describe('ChessJsRules', () => {
         { move: { from: 'b8', to: 'c6' }, expected: 2 }, // Knight move increments again
       ];
 
-      sequence.forEach(({ move, expected }) => {
+      for (const { move, expected } of sequence) {
         const result = rules.move(move);
         expect(result.ok).toBe(true);
         expect(rules.halfMoves()).toBe(expected);
-      });
+      }
     });
 
     test('should generate FEN', () => {

@@ -11,7 +11,7 @@ export class PGNRecorder {
   private headers: Record<string, string> = {
     Event: 'Casual Game',
     Site: 'Local',
-    Date: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+    Date: new Date().toISOString().slice(0, 10).replaceAll('-', '.'),
     Round: '1',
     White: 'White',
     Black: 'Black',
@@ -53,8 +53,8 @@ export class PGNRecorder {
     return new Blob([pgn], { type: 'application/x-chess-pgn' });
   }
   suggestFilename() {
-    const safe = (s: string) => s.replace(/[^a-z0-9_-]+/gi, '_');
-    const d = (this.headers.Date || new Date().toISOString().slice(0, 10)).replace(/\./g, '-');
+    const safe = (s: string) => s.replaceAll(/[^a-z0-9_-]+/gi, '_');
+    const d = (this.headers.Date || new Date().toISOString().slice(0, 10)).replaceAll('.', '-');
     return `${safe(this.headers.White || 'White')}_vs_${safe(this.headers.Black || 'Black')}_${d}.pgn`;
   }
   download(filename = this.suggestFilename()) {
@@ -66,10 +66,10 @@ export class PGNRecorder {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
-    document.body.appendChild(a);
+    document.body.append(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     }, 0);
   }

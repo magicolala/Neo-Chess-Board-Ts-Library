@@ -42,7 +42,7 @@ function normalizeInlineStyle(
   }
   const normalized: Record<string, string | number> = {};
   for (const [key, value] of Object.entries(style)) {
-    if (value === null || typeof value === 'undefined') {
+    if (value === null || value === undefined) {
       continue;
     }
     normalized[key] = value as string | number;
@@ -58,7 +58,7 @@ function normalizeCssStyle(
   }
   const normalized: CSSProperties = {};
   for (const [key, value] of Object.entries(style)) {
-    if (value === null || typeof value === 'undefined') {
+    if (value === null || value === undefined) {
       continue;
     }
     normalized[key as keyof CSSProperties] = value as never;
@@ -118,7 +118,7 @@ function handleRendererResult(
   if (isDomNode(result)) {
     unmountReactContent(element, roots);
     element.innerHTML = '';
-    element.appendChild(result);
+    element.append(result);
     return;
   }
   if (typeof result === 'string' || typeof result === 'number') {
@@ -222,11 +222,11 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     const boardCssStyle = useMemo(() => normalizeCssStyle(boardStyleProp), [boardStyleProp]);
 
     const normalizedSquareRenderer = useMemo<BoardOptions['squareRenderer'] | undefined>(() => {
-      if (typeof squareRendererProp === 'undefined') {
-        return undefined;
+      if (squareRendererProp === undefined) {
+        return;
       }
       if (!squareRendererProp) {
-        return undefined;
+        return;
       }
       return (params) => {
         if (typeof squareRendererProp === 'function') {
@@ -239,16 +239,16 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     }, [squareRendererProp]);
 
     const normalizedPieceRenderers = useMemo<BoardOptions['pieces'] | undefined>(() => {
-      if (typeof piecesProp === 'undefined') {
-        return undefined;
+      if (piecesProp === undefined) {
+        return;
       }
       if (!piecesProp) {
-        return undefined;
+        return;
       }
       const mapped: PieceRendererMap = {};
       let hasRenderer = false;
       for (const [pieceKey, renderer] of Object.entries(piecesProp)) {
-        if (renderer === null || typeof renderer === 'undefined') {
+        if (renderer === null || renderer === undefined) {
           continue;
         }
         hasRenderer = true;
@@ -273,10 +273,10 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       }
       typedOptions.id = elementId;
       typedOptions.boardOrientation = boardOrientation;
-      if (typeof boardOrientation !== 'undefined') {
+      if (boardOrientation !== undefined) {
         typedOptions.orientation = boardOrientation;
       }
-      if (typeof position !== 'undefined') {
+      if (position !== undefined) {
         typedOptions.position = position;
       }
       typedOptions.boardStyle = normalizedBoardStyle;

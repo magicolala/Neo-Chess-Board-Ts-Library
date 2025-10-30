@@ -29,7 +29,7 @@ const getPrivate = <T>(instance: unknown, key: string): T =>
 const getMethodHost = (instance: NeoChessBoard): Record<string, (...args: unknown[]) => unknown> =>
   instance as unknown as Record<string, (...args: unknown[]) => unknown>;
 
-if (typeof globalThis.PointerEvent === 'undefined') {
+if (globalThis.PointerEvent === undefined) {
   class PointerEventPolyfill extends MouseEvent {
     constructor(type: string, init?: Record<string, unknown>) {
       super(type, init);
@@ -165,7 +165,7 @@ describe('NeoChessBoard PGN and notation helpers', () => {
 
   beforeEach(() => {
     container = document.createElement('div');
-    document.body.appendChild(container);
+    document.body.append(container);
     rules = new PgnFriendlyRules();
     board = new NeoChessBoard(container, { rulesAdapter: rules });
 
@@ -336,7 +336,7 @@ describe('NeoChessBoard configuration side-effects', () => {
 
   beforeEach(() => {
     container = document.createElement('div');
-    document.body.appendChild(container);
+    document.body.append(container);
     board = new NeoChessBoard(container);
     jest.spyOn(board, 'renderAll').mockImplementation(() => {});
   });

@@ -130,7 +130,7 @@ const AppContent: React.FC = () => {
   const whiteSideLabel = language === 'fr' ? `les ${whiteLabel}` : whiteLabel;
   const blackSideLabel = language === 'fr' ? `les ${blackLabel}` : blackLabel;
   const chessRules = useMemo(() => new ChessJsRules(), []);
-  const [fen, setFen] = useState<string | undefined>(undefined);
+  const [fen, setFen] = useState<string | undefined>();
   const [theme, setTheme] = useState<'midnight' | 'classic'>('midnight');
   const [status, setStatus] = useState<GameStatus>(() => buildStatusSnapshot(chessRules));
   const [pgnText, setPgnText] = useState('');
@@ -145,9 +145,7 @@ const AppContent: React.FC = () => {
     [initialFen]: 0,
   });
   const [currentPly, setCurrentPly] = useState(0);
-  const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>(
-    undefined,
-  );
+  const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>();
   const [selectedPly, setSelectedPly] = useState(0);
   const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
@@ -303,7 +301,7 @@ const AppContent: React.FC = () => {
             if (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true') {
               return metadata.FEN.trim();
             }
-            return undefined;
+
           })()
         : undefined;
 
@@ -346,7 +344,7 @@ const AppContent: React.FC = () => {
     const timelineEntries: PlyTimelineEntry[] = [{ ply: 0, fen: initialTimelineFen }];
     const fenMap: Record<string, number> = { [initialTimelineFen]: 0 };
 
-    verboseHistory.forEach((move, index) => {
+    for (const [index, move] of verboseHistory.entries()) {
       const result = timelineRules.move({
         from: move.from,
         to: move.to,
@@ -362,7 +360,7 @@ const AppContent: React.FC = () => {
           san: result.move?.san,
         });
       }
-    });
+    }
 
     timelineInitialFenRef.current = initialTimelineFen;
     timelineMovesRef.current = verboseHistory;
@@ -418,7 +416,7 @@ const AppContent: React.FC = () => {
       if (plyTimeline.length === 0) {
         return;
       }
-      const maxPly = plyTimeline[plyTimeline.length - 1]?.ply ?? 0;
+      const maxPly = plyTimeline.at(-1)?.ply ?? 0;
       const clampedPly = Math.max(0, Math.min(targetPly, maxPly));
       const entry = plyTimeline.find((item) => item.ply === clampedPly);
       if (!entry) {
@@ -622,7 +620,7 @@ const AppContent: React.FC = () => {
       chessRules.setPgnMetadata({
         Event: 'Playground',
         Site: 'Local',
-        Date: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+        Date: new Date().toISOString().slice(0, 10).replaceAll('-', '.'),
       });
       chessRules.downloadPgn();
     } catch (error) {
@@ -964,15 +962,16 @@ const AppContent: React.FC = () => {
                 setEvaluationsByPly(truncatedEvaluationMap);
                 setTimeline((previousTimeline) => {
                   const trimmedTimeline = previousTimeline.filter((entry) => entry.ply <= basePly);
-                  const ensuredTimeline = trimmedTimeline.length
-                    ? trimmedTimeline
-                    : [
-                        {
-                          ply: 0,
-                          fen: previousTimeline[0]?.fen ?? nextFen,
-                          san: previousTimeline[0]?.san,
-                        },
-                      ];
+                  const ensuredTimeline =
+                    trimmedTimeline.length > 0
+                      ? trimmedTimeline
+                      : [
+                          {
+                            ply: 0,
+                            fen: previousTimeline[0]?.fen ?? nextFen,
+                            san: previousTimeline[0]?.san,
+                          },
+                        ];
                   const nextTimeline = [
                     ...ensuredTimeline,
                     {
@@ -1476,12 +1475,9 @@ const AppContent: React.FC = () => {
               onFirst={() => jumpToPly(0)}
               onPrevious={() => jumpToPly(selectedPly - 1)}
               onNext={() => jumpToPly(selectedPly + 1)}
-              onLast={() => jumpToPly(plyTimeline[plyTimeline.length - 1]?.ply ?? 0)}
+              onLast={() => jumpToPly(plyTimeline.at(-1)?.ply ?? 0)}
               isAtStart={selectedPly <= 0}
-              isAtEnd={
-                plyTimeline.length === 0 ||
-                selectedPly >= (plyTimeline[plyTimeline.length - 1]?.ply ?? 0)
-              }
+              isAtEnd={plyTimeline.length === 0 || selectedPly >= (plyTimeline.at(-1)?.ply ?? 0)}
               moveLabel={
                 plyTimeline.find((entry) => entry.ply === selectedPly)?.san ||
                 translate('timeline.start')

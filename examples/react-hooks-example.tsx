@@ -37,7 +37,7 @@ function useChessGame(initialPosition = 'start') {
         setPosition('start');
         setCurrentPlayer('white');
       } else {
-        const lastMove = newMoves[newMoves.length - 1];
+        const lastMove = newMoves.at(-1);
         setPosition(lastMove.fen || 'start');
         setCurrentPlayer(newMoves.length % 2 === 0 ? 'white' : 'black');
       }
@@ -415,7 +415,7 @@ export function AdvancedChessGame() {
                   max="1000"
                   step="50"
                   value={prefs.animationSpeed}
-                  onChange={(e) => prefs.setAnimationSpeed(parseInt(e.target.value))}
+                  onChange={(e) => prefs.setAnimationSpeed(Number.parseInt(e.target.value))}
                   style={{ width: '100%' }}
                 />
               </div>

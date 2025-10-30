@@ -260,25 +260,25 @@ export const parsePlaygroundPermalink = (search: string): PlaygroundPermalinkSna
 };
 
 export const syncPlaygroundPermalink = (payload: PlaygroundPermalinkPayload): void => {
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     return;
   }
 
   const params = serializePlaygroundPermalink(payload);
   const query = params.toString();
-  const hash = window.location.hash ?? '';
-  const url = `${window.location.pathname}${query ? `?${query}` : ''}${hash}`;
+  const hash = globalThis.location.hash ?? '';
+  const url = `${globalThis.location.pathname}${query ? `?${query}` : ''}${hash}`;
 
-  window.history.replaceState(null, '', url);
+  globalThis.history.replaceState(null, '', url);
 };
 
 export const clearPlaygroundPermalink = (): void => {
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     return;
   }
 
-  const hash = window.location.hash ?? '';
-  window.history.replaceState(null, '', `${window.location.pathname}${hash}`);
+  const hash = globalThis.location.hash ?? '';
+  globalThis.history.replaceState(null, '', `${globalThis.location.pathname}${hash}`);
 };
 
 export const isDefaultPlaygroundPermalink = (payload: PlaygroundPermalinkPayload): boolean =>

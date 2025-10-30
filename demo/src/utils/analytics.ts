@@ -32,13 +32,14 @@ interface AnalyticsConfig {
 
 let config: AnalyticsConfig = {
   enabled:
-    typeof window !== 'undefined' &&
-    typeof (window as { __PLAYGROUND_ANALYTICS__?: unknown }).__PLAYGROUND_ANALYTICS__ === 'object',
+    globalThis.window !== undefined &&
+    typeof (globalThis as { __PLAYGROUND_ANALYTICS__?: unknown }).__PLAYGROUND_ANALYTICS__ ===
+      'object',
   reporter:
-    typeof window !== 'undefined'
-      ? ((window as { __PLAYGROUND_ANALYTICS__?: { reporter?: AnalyticsReporter } })
-          .__PLAYGROUND_ANALYTICS__?.reporter ?? null)
-      : null,
+    globalThis.window === undefined
+      ? null
+      : ((globalThis as { __PLAYGROUND_ANALYTICS__?: { reporter?: AnalyticsReporter } })
+          .__PLAYGROUND_ANALYTICS__?.reporter ?? null),
   logger: console,
 };
 

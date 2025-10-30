@@ -187,9 +187,7 @@ jest.mock('../../src/core/ChessJsRules', () => {
         this.history = SCRIPTED_MOVES.slice(0, moveCount);
         this.pgn = trimmed || buildPgnFromMoves(this.history.length);
         this.movePointer = 0;
-        this.fen = this.history.length
-          ? this.history[this.history.length - 1].fen
-          : this.initialFen;
+        this.fen = this.history.length > 0 ? this.history.at(-1).fen : this.initialFen;
         return true;
       }
 
@@ -201,7 +199,7 @@ jest.mock('../../src/core/ChessJsRules', () => {
       }
 
       getChessInstance() {
-        const source = this.history.length ? this.history : SCRIPTED_MOVES;
+        const source = this.history.length > 0 ? this.history : SCRIPTED_MOVES;
         return {
           history: ({ verbose }: { verbose?: boolean } = {}) => {
             if (verbose) {

@@ -233,7 +233,7 @@ function validateFenString(fen: string): string[] {
   }
 
   const parts = trimmedFen.split(/\s+/);
-  if (parts.length < 1 || parts.length > 6) {
+  if (parts.length === 0 || parts.length > 6) {
     fail(`FEN string must contain between 1 and 6 fields. Received ${parts.length}.`);
   }
 
@@ -246,7 +246,7 @@ function validateFenString(fen: string): string[] {
   const piecePattern = /^[prnbqkPRNBQK]$/;
   let describedFiles: number | null = null;
 
-  rows.forEach((row, index) => {
+  for (const [index, row] of rows.entries()) {
     let totalSquares = 0;
     let i = 0;
     while (i < row.length) {
@@ -282,7 +282,7 @@ function validateFenString(fen: string): string[] {
         `FEN rank ${index + 1} must describe exactly ${describedFiles} squares but received ${totalSquares}.`,
       );
     }
-  });
+  }
 
   if (parts[1] && parts[1] !== 'w' && parts[1] !== 'b') {
     fail(`FEN active color must be either 'w' or 'b', received '${parts[1]}'.`);
@@ -299,7 +299,7 @@ export function sq(
 ): Square {
   const fileLabel = files[file];
   const rankLabel = ranks[rank];
-  if (typeof fileLabel === 'undefined' || typeof rankLabel === 'undefined') {
+  if (fileLabel === undefined || rankLabel === undefined) {
     throw new RangeError(`Invalid square indices f=${file} r=${rank}`);
   }
   return `${fileLabel}${rankLabel}` as Square;
@@ -316,7 +316,7 @@ export function sqToFR(
   const filePart = (fileMatch?.[0] ?? '').toLowerCase();
 
   const f = files.findIndex((label) => label.toLowerCase() === filePart);
-  const r = ranks.findIndex((label) => label === rankPart);
+  const r = ranks.indexOf(rankPart);
 
   if (f === -1 || r === -1) {
     throw new RangeError(`Invalid square notation: ${square}`);
@@ -381,7 +381,9 @@ export function parseFEN(
   const files = Math.max(1, Math.floor(dimensions.files ?? 8));
   const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
   const parts = validateFenString(fen);
-  const board: (string | null)[][] = Array.from({ length: ranks }, () => Array(files).fill(null));
+  const board: (string | null)[][] = Array.from({ length: ranks }, () =>
+    new Array(files).fill(null),
+  );
 
   const rows = parts[0].split('/');
   const rowCount = Math.min(rows.length, ranks);
@@ -396,7 +398,7 @@ export function parseFEN(
           digits += row[i + 1];
           i++;
         }
-        f += parseInt(digits, 10);
+        f += Number.parseInt(digits, 10);
       } else {
         const targetRank = ranks - 1 - r;
         if (f < files) {
@@ -412,8 +414,8 @@ export function parseFEN(
     turn: (parts[1] || 'w') as Color,
     castling: parts[2] || 'KQkq',
     ep: parts[3] === '-' ? null : parts[3],
-    halfmove: parseInt(parts[4] || '0'),
-    fullmove: parseInt(parts[5] || '1'),
+    halfmove: Number.parseInt(parts[4] || '0'),
+    fullmove: Number.parseInt(parts[5] || '1'),
   };
 }
 
@@ -523,18 +525,16 @@ export function getPositionUpdates(
         continue;
       }
 
-      if (nextPiece) {
-        if (!previousPiece || previousPiece.pieceType !== nextPiece.pieceType) {
-          if (previousPiece) {
-            removedSet.add(square);
-          }
-          added[square] = { pieceType: nextPiece.pieceType };
+      if (nextPiece && (!previousPiece || previousPiece.pieceType !== nextPiece.pieceType)) {
+        if (previousPiece) {
+          removedSet.add(square);
         }
+        added[square] = { pieceType: nextPiece.pieceType };
       }
     }
   }
 
-  const removed = Array.from(removedSet);
+  const removed = [...removedSet];
   removed.sort((a, b) => a.localeCompare(b));
   return { added, removed };
 }
@@ -555,7 +555,7 @@ export function rowIndexToChessRow({
   const rankIndex = normalizedOrientation === 'white' ? count - 1 - rowIndex : rowIndex;
 
   const rankLabel = labels[rankIndex];
-  if (typeof rankLabel === 'undefined') {
+  if (rankLabel === undefined) {
     throw new RangeError(`Rank label not found for index ${rankIndex}`);
   }
 
@@ -584,7 +584,7 @@ export function columnIndexToChessColumn({
   const fileIndex = normalizedOrientation === 'white' ? columnIndex : count - 1 - columnIndex;
 
   const fileLabel = labels[fileIndex];
-  if (typeof fileLabel === 'undefined') {
+  if (fileLabel === undefined) {
     throw new RangeError(`File label not found for index ${fileIndex}`);
   }
 
@@ -643,7 +643,7 @@ export function chessRowToRowIndex({
     throw new RangeError('row must be a non-empty string or number');
   }
 
-  const rankIndex = labels.findIndex((label) => label === normalizedRow);
+  const rankIndex = labels.indexOf(normalizedRow);
   if (rankIndex === -1) {
     throw new RangeError(`Unknown row label: ${row}`);
   }

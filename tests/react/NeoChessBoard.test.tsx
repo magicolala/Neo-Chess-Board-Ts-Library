@@ -434,7 +434,7 @@ describe('NeoChessBoard React Component', () => {
         />,
       );
 
-      [
+      for (const fn of [
         mockBoard.setSoundEnabled,
         mockBoard.setAutoFlip,
         mockBoard.setOrientation,
@@ -456,7 +456,8 @@ describe('NeoChessBoard React Component', () => {
         mockBoard.setArrowOptions,
         mockBoard.setArrows,
         mockBoard.setOnArrowsChange,
-      ].forEach((fn) => fn.mockClear());
+      ])
+        fn.mockClear();
 
       rerender(
         <NeoChessBoard

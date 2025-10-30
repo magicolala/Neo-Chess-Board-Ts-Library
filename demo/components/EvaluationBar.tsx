@@ -2,17 +2,19 @@ import React from 'react';
 import { useTranslation } from '../i18n/translations';
 import styles from './EvaluationBar.module.css';
 
+type Sign = -1 | 0 | 1;
+
 export interface ParsedEvaluation {
   hasValue: boolean;
   numeric: number | null;
   label: string;
   mate: boolean;
-  sign: -1 | 0 | 1;
+  sign: Sign;
   raw: number | string | null | undefined;
 }
 
 export const interpretEvaluationValue = (value?: number | string | null): ParsedEvaluation => {
-  if (value === null || typeof value === 'undefined') {
+  if (value === null || value === undefined) {
     return {
       hasValue: false,
       numeric: null,
@@ -142,7 +144,7 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
   const topLabel = isBlackPerspective ? blackLabel : whiteLabel;
   const bottomLabel = isBlackPerspective ? whiteLabel : blackLabel;
   const orientedValue =
-    parsed.numeric !== null ? (isBlackPerspective ? -parsed.numeric : parsed.numeric) : 0;
+    parsed.numeric === null ? 0 : isBlackPerspective ? -parsed.numeric : parsed.numeric;
   const fillPercent = parsed.hasValue ? ((clamp(orientedValue, -10, 10) + 10) / 20) * 100 : 50;
 
   const moveDescriptor = (() => {

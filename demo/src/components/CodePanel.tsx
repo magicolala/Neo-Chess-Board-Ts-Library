@@ -113,7 +113,7 @@ const CodePanel: React.FC<CodePanelProps> = ({ snippets }) => {
 
   useEffect(() => {
     if (!toast) {
-      return undefined;
+      return;
     }
 
     if (timeoutRef.current) {

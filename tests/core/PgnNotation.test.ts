@@ -166,14 +166,14 @@ describe('PgnNotation', () => {
     test('should handle different result formats', () => {
       const results = ['1-0', '0-1', '1/2-1/2', '*'];
 
-      results.forEach((result) => {
+      for (const result of results) {
         pgn.setResult(result);
         expect(pgn.getResult()).toBe(result);
 
         const pgnOutput = pgn.toPgn();
         expect(pgnOutput).toContain(`[Result "${result}"]`);
         expect(pgnOutput).toContain(result);
-      });
+      }
     });
   });
 
@@ -281,9 +281,9 @@ describe('PgnNotation', () => {
       );
 
       // Each line should be under or at 80 characters
-      moveLines.forEach((line) => {
+      for (const line of moveLines) {
         expect(line.length).toBeLessThanOrEqual(80);
-      });
+      }
     });
 
     test('should include result at the end', () => {

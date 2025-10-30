@@ -161,7 +161,7 @@ export class BoardDomManager {
       height: '100%',
       pointerEvents: 'none',
     });
-    overlay.appendChild(squareLayer);
+    overlay.append(squareLayer);
 
     const pieceLayer = document.createElement('div');
     pieceLayer.classList.add('ncb-piece-overlay');
@@ -173,9 +173,9 @@ export class BoardDomManager {
       height: '100%',
       pointerEvents: 'none',
     });
-    overlay.appendChild(pieceLayer);
+    overlay.append(pieceLayer);
 
-    this.root.appendChild(overlay);
+    this.root.append(overlay);
 
     return { domOverlay: overlay, squareLayer, pieceLayer };
   }
@@ -247,7 +247,7 @@ export class BoardDomManager {
         aspect-ratio: auto 606/606;
       }
     `;
-    document.head.appendChild(style);
+    document.head.append(style);
   }
 
   private applyBoardStyle(): void {

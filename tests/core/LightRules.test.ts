@@ -78,9 +78,9 @@ describe('LightRules', () => {
       expect(moves).toHaveLength(8);
 
       const expectedSquares = ['b3', 'b5', 'c2', 'c6', 'e2', 'e6', 'f3', 'f5'];
-      expectedSquares.forEach((square) => {
+      for (const square of expectedSquares) {
         expect(moves).toContainEqual({ from: 'd4', to: square });
-      });
+      }
     });
 
     it('should not allow knight to move to squares occupied by own pieces', () => {
@@ -149,9 +149,9 @@ describe('LightRules', () => {
       expect(moves).toHaveLength(8);
 
       const expectedSquares = ['c3', 'c4', 'c5', 'd3', 'd5', 'e3', 'e4', 'e5'];
-      expectedSquares.forEach((square) => {
+      for (const square of expectedSquares) {
         expect(moves).toContainEqual({ from: 'd4', to: square });
-      });
+      }
     });
   });
 

@@ -60,21 +60,18 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
   let changed = false;
   const nextState: PlaygroundState = { ...state };
 
-  if (typeof partial.theme !== 'undefined' && !Object.is(nextState.theme, partial.theme)) {
+  if (partial.theme !== undefined && !Object.is(nextState.theme, partial.theme)) {
     nextState.theme = partial.theme;
     changed = true;
   }
 
-  if (
-    typeof partial.pieceSetId !== 'undefined' &&
-    !Object.is(nextState.pieceSetId, partial.pieceSetId)
-  ) {
+  if (partial.pieceSetId !== undefined && !Object.is(nextState.pieceSetId, partial.pieceSetId)) {
     nextState.pieceSetId = partial.pieceSetId;
     changed = true;
   }
 
   if (
-    typeof partial.showCoordinates !== 'undefined' &&
+    partial.showCoordinates !== undefined &&
     !Object.is(nextState.showCoordinates, partial.showCoordinates)
   ) {
     nextState.showCoordinates = partial.showCoordinates;
@@ -82,28 +79,25 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
   }
 
   if (
-    typeof partial.highlightLegal !== 'undefined' &&
+    partial.highlightLegal !== undefined &&
     !Object.is(nextState.highlightLegal, partial.highlightLegal)
   ) {
     nextState.highlightLegal = partial.highlightLegal;
     changed = true;
   }
 
-  if (
-    typeof partial.interactive !== 'undefined' &&
-    !Object.is(nextState.interactive, partial.interactive)
-  ) {
+  if (partial.interactive !== undefined && !Object.is(nextState.interactive, partial.interactive)) {
     nextState.interactive = partial.interactive;
     changed = true;
   }
 
-  if (typeof partial.autoFlip !== 'undefined' && !Object.is(nextState.autoFlip, partial.autoFlip)) {
+  if (partial.autoFlip !== undefined && !Object.is(nextState.autoFlip, partial.autoFlip)) {
     nextState.autoFlip = partial.autoFlip;
     changed = true;
   }
 
   if (
-    typeof partial.allowDrawingArrows !== 'undefined' &&
+    partial.allowDrawingArrows !== undefined &&
     !Object.is(nextState.allowDrawingArrows, partial.allowDrawingArrows)
   ) {
     nextState.allowDrawingArrows = partial.allowDrawingArrows;
@@ -111,7 +105,7 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
   }
 
   if (
-    typeof partial.animationDurationInMs !== 'undefined' &&
+    partial.animationDurationInMs !== undefined &&
     !Object.is(nextState.animationDurationInMs, partial.animationDurationInMs)
   ) {
     nextState.animationDurationInMs = partial.animationDurationInMs;
@@ -119,25 +113,19 @@ const applyPartial = (partial: PlaygroundStatePartial | void): boolean => {
   }
 
   if (
-    typeof partial.dragActivationDistance !== 'undefined' &&
+    partial.dragActivationDistance !== undefined &&
     !Object.is(nextState.dragActivationDistance, partial.dragActivationDistance)
   ) {
     nextState.dragActivationDistance = partial.dragActivationDistance;
     changed = true;
   }
 
-  if (
-    typeof partial.promotionUi !== 'undefined' &&
-    !Object.is(nextState.promotionUi, partial.promotionUi)
-  ) {
+  if (partial.promotionUi !== undefined && !Object.is(nextState.promotionUi, partial.promotionUi)) {
     nextState.promotionUi = partial.promotionUi;
     changed = true;
   }
 
-  if (
-    typeof partial.autoQueen !== 'undefined' &&
-    !Object.is(nextState.autoQueen, partial.autoQueen)
-  ) {
+  if (partial.autoQueen !== undefined && !Object.is(nextState.autoQueen, partial.autoQueen)) {
     nextState.autoQueen = partial.autoQueen;
     changed = true;
   }

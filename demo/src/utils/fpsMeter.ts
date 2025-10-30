@@ -57,21 +57,21 @@ export const createFpsMeter = ({
       lastSample = timestamp;
     }
 
-    rafId = window.requestAnimationFrame(tick);
+    rafId = globalThis.requestAnimationFrame(tick);
   };
 
   const start = () => {
     if (running) {
       return;
     }
-    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    if (globalThis.window === undefined || typeof globalThis.requestAnimationFrame !== 'function') {
       return;
     }
 
     running = true;
     frameCount = 0;
     lastSample = 0;
-    rafId = window.requestAnimationFrame(tick);
+    rafId = globalThis.requestAnimationFrame(tick);
   };
 
   const stop = () => {
@@ -79,10 +79,12 @@ export const createFpsMeter = ({
       return;
     }
     running = false;
-    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-      }
+    if (
+      globalThis.window !== undefined &&
+      typeof globalThis.cancelAnimationFrame === 'function' &&
+      rafId !== null
+    ) {
+      globalThis.cancelAnimationFrame(rafId);
     }
     rafId = null;
     frameCount = 0;

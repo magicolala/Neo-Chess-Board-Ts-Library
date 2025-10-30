@@ -71,17 +71,17 @@ const getContextMock = jest.fn(
 ) as jest.MockedFunction<CanvasContextGetter>;
 
 // Mock canvas API pour les tests
-global.HTMLCanvasElement.prototype.getContext = getContextMock;
+globalThis.HTMLCanvasElement.prototype.getContext = getContextMock;
 
 // Mock ResizeObserver
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
+globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
 // Mock OffscreenCanvas
-global.OffscreenCanvas = jest.fn().mockImplementation((width, height) => {
+globalThis.OffscreenCanvas = jest.fn().mockImplementation((width, height) => {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -89,11 +89,11 @@ global.OffscreenCanvas = jest.fn().mockImplementation((width, height) => {
 });
 
 // Mock URL.createObjectURL et URL.revokeObjectURL
-global.URL.createObjectURL = jest.fn(() => 'mock-object-url');
-global.URL.revokeObjectURL = jest.fn();
+globalThis.URL.createObjectURL = jest.fn(() => 'mock-object-url');
+globalThis.URL.revokeObjectURL = jest.fn();
 
 // Mock window.devicePixelRatio
-Object.defineProperty(window, 'devicePixelRatio', {
+Object.defineProperty(globalThis, 'devicePixelRatio', {
   writable: true,
   configurable: true,
   value: 1,

@@ -76,8 +76,8 @@ class ClockExtensionInstance {
 
   constructor(private readonly context: ExtensionContext<ClockExtensionOptions>) {
     const root = context.board.getRootElement();
-    const doc = root?.ownerDocument ?? (typeof document !== 'undefined' ? document : undefined);
-    const win = doc?.defaultView ?? (typeof window !== 'undefined' ? window : undefined);
+    const doc = root?.ownerDocument ?? (typeof document === 'undefined' ? undefined : document);
+    const win = doc?.defaultView ?? (globalThis.window === undefined ? undefined : globalThis);
 
     if (
       win &&
@@ -117,9 +117,7 @@ class ClockExtensionInstance {
     this.api = {
       startClock: (color?: Color | null) => {
         const targetColor: Color | null =
-          typeof color === 'undefined' || color === null
-            ? (context.board.getTurn() as Color)
-            : color;
+          color === undefined || color === null ? (context.board.getTurn() as Color) : color;
         const updates: ClockStateUpdate = {
           running: true,
           paused: false,
@@ -157,7 +155,7 @@ class ClockExtensionInstance {
   onInit(context: ExtensionContext<ClockExtensionOptions>): void {
     const board = context.board;
     const root = board.getRootElement();
-    const doc = root?.ownerDocument ?? (typeof document !== 'undefined' ? document : undefined);
+    const doc = root?.ownerDocument ?? (typeof document === 'undefined' ? undefined : document);
     if (!doc) {
       return;
     }
@@ -181,7 +179,7 @@ class ClockExtensionInstance {
     inner.style.boxSizing = 'border-box';
     inner.style.gap = '8px';
     inner.style.pointerEvents = 'none';
-    container.appendChild(inner);
+    container.append(inner);
     this.inner = inner;
 
     const rows: Record<Color, ClockRow> = {
@@ -201,7 +199,7 @@ class ClockExtensionInstance {
           root.style.position = previous;
         };
       }
-      root.appendChild(container);
+      root.append(container);
       this.cleanup.push(() => {
         container.remove();
         revertPosition?.();
@@ -231,7 +229,7 @@ class ClockExtensionInstance {
 
   onDestroy(): void {
     this.stopTicking();
-    while (this.cleanup.length) {
+    while (this.cleanup.length > 0) {
       try {
         this.cleanup.pop()?.();
       } catch (error) {
@@ -356,14 +354,14 @@ class ClockExtensionInstance {
       updates.paused = true;
       updates.active = null;
       this.lastTick = null;
-    } else if (!state.isPaused) {
-      updates.running = true;
-      updates.paused = false;
-      this.lastTick = timestamp;
-    } else {
+    } else if (state.isPaused) {
       updates.running = false;
       updates.paused = true;
       this.lastTick = null;
+    } else {
+      updates.running = true;
+      updates.paused = false;
+      this.lastTick = timestamp;
     }
 
     this.context.board.updateClockState(updates);

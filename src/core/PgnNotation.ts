@@ -49,7 +49,7 @@ export class PgnNotation {
     this.metadata = {
       Event: 'Casual Game',
       Site: 'Neo Chess Board',
-      Date: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
+      Date: new Date().toISOString().split('T')[0].replaceAll('-', '.'),
       Round: '1',
       White: 'Player 1',
       Black: 'Player 2',
@@ -69,7 +69,7 @@ export class PgnNotation {
     if (!this.metadata.Event) this.metadata.Event = 'Casual Game';
     if (!this.metadata.Site) this.metadata.Site = 'Neo Chess Board';
     if (!this.metadata.Date)
-      this.metadata.Date = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+      this.metadata.Date = new Date().toISOString().split('T')[0].replaceAll('-', '.');
     if (!this.metadata.Round) this.metadata.Round = '1';
     if (!this.metadata.White) this.metadata.White = 'Player 1';
     if (!this.metadata.Black) this.metadata.Black = 'Player 2';
@@ -92,7 +92,18 @@ export class PgnNotation {
   ): void {
     const existingMoveIndex = this.moves.findIndex((move) => move.moveNumber === moveNumber);
 
-    if (existingMoveIndex >= 0) {
+    if (existingMoveIndex === -1) {
+      // Add new move
+      this.moves.push({
+        moveNumber,
+        white: whiteMove,
+        black: blackMove,
+        whiteComment,
+        blackComment,
+        whiteAnnotations: { arrows: [], circles: [], textComment: '' },
+        blackAnnotations: { arrows: [], circles: [], textComment: '' },
+      });
+    } else {
       // Update existing move
       const move = this.moves[existingMoveIndex];
       if (whiteMove) move.white = whiteMove;
@@ -104,17 +115,6 @@ export class PgnNotation {
         move.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
       if (!move.blackAnnotations)
         move.blackAnnotations = { arrows: [], circles: [], textComment: '' };
-    } else {
-      // Add new move
-      this.moves.push({
-        moveNumber,
-        white: whiteMove,
-        black: blackMove,
-        whiteComment,
-        blackComment,
-        whiteAnnotations: { arrows: [], circles: [], textComment: '' },
-        blackAnnotations: { arrows: [], circles: [], textComment: '' },
-      });
     }
   }
 
@@ -142,8 +142,7 @@ export class PgnNotation {
         this.moves = [];
 
         if (PgnNotation.isVerboseHistory(detailedHistory)) {
-          for (let i = 0; i < detailedHistory.length; i++) {
-            const move = detailedHistory[i];
+          for (const [i, move] of detailedHistory.entries()) {
             const moveNumber = Math.floor(i / 2) + 1;
             const isWhite = i % 2 === 0;
 
@@ -204,7 +203,7 @@ export class PgnNotation {
     this.moves = [];
 
     // Remove comments and variations for now (simple implementation)
-    let cleanPgn = pgnText.replace(/\{[^}]*\}/g, '').replace(/\([^)]*\)/g, '');
+    let cleanPgn = pgnText.replaceAll(/\{[^}]*\}/g, '').replaceAll(/\([^)]*\)/g, '');
 
     // Extract and remove the result from the end if present
     const resultPattern = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/;
@@ -219,7 +218,7 @@ export class PgnNotation {
     let match;
 
     while ((match = movePattern.exec(cleanPgn)) !== null) {
-      const moveNumber = parseInt(match[1]);
+      const moveNumber = Number.parseInt(match[1]);
       const whiteMove = match[2];
       const blackMove = match[3];
 
@@ -357,15 +356,15 @@ export class PgnNotation {
    * Download PGN as file (browser only)
    */
   downloadPgn(filename: string = 'game.pgn'): void {
-    if (typeof window !== 'undefined' && window.document) {
+    if (globalThis.window !== undefined && globalThis.document) {
       const blob = new Blob([this.toPgnWithAnnotations()], { type: 'application/x-chess-pgn' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
-      document.body.appendChild(a);
+      document.body.append(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     }
   }
@@ -376,7 +375,7 @@ export class PgnNotation {
   addMoveAnnotations(moveNumber: number, isWhite: boolean, annotations: PgnMoveAnnotations): void {
     const existingMoveIndex = this.moves.findIndex((move) => move.moveNumber === moveNumber);
 
-    if (existingMoveIndex >= 0) {
+    if (existingMoveIndex !== -1) {
       const move = this.moves[existingMoveIndex];
       if (isWhite) {
         move.whiteAnnotations = annotations;
@@ -489,25 +488,25 @@ export class PgnNotation {
     let match;
 
     while ((match = movePattern.exec(movesText)) !== null) {
-      const moveNumber = parseInt(match[1], 10);
+      const moveNumber = Number.parseInt(match[1], 10);
       const startsWithBlack = Boolean(match[2]);
       let currentIndex = movePattern.lastIndex;
 
       let pgnMove = this.moves.find((move) => move.moveNumber === moveNumber);
-      if (!pgnMove) {
-        pgnMove = {
-          moveNumber,
-          whiteAnnotations: { arrows: [], circles: [], textComment: '' },
-          blackAnnotations: { arrows: [], circles: [], textComment: '' },
-        };
-        this.moves.push(pgnMove);
-      } else {
+      if (pgnMove) {
         if (!pgnMove.whiteAnnotations) {
           pgnMove.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
         }
         if (!pgnMove.blackAnnotations) {
           pgnMove.blackAnnotations = { arrows: [], circles: [], textComment: '' };
         }
+      } else {
+        pgnMove = {
+          moveNumber,
+          whiteAnnotations: { arrows: [], circles: [], textComment: '' },
+          blackAnnotations: { arrows: [], circles: [], textComment: '' },
+        };
+        this.moves.push(pgnMove);
       }
 
       if (!startsWithBlack) {
@@ -563,8 +562,8 @@ export class PgnNotation {
     color: 'white' | 'black',
     value: number | string | undefined,
   ): void {
-    if (typeof value !== 'undefined') {
-      move.evaluation = { ...(move.evaluation || {}), [color]: value };
+    if (value !== undefined) {
+      move.evaluation = { ...move.evaluation, [color]: value };
       return;
     }
 
@@ -578,10 +577,7 @@ export class PgnNotation {
       delete move.evaluation.black;
     }
 
-    if (
-      typeof move.evaluation.white === 'undefined' &&
-      typeof move.evaluation.black === 'undefined'
-    ) {
+    if (move.evaluation.white === undefined && move.evaluation.black === undefined) {
       move.evaluation = undefined;
     }
   }
@@ -593,7 +589,7 @@ export class PgnNotation {
       return undefined;
     }
 
-    const normalizedContent = normalizedParts.join(' ').replace(/\s+/g, ' ').trim();
+    const normalizedContent = normalizedParts.join(' ').replaceAll(/\s+/g, ' ').trim();
     if (!normalizedContent) {
       return undefined;
     }
@@ -646,7 +642,7 @@ export class PgnNotation {
           if (visualAnnotations) {
             annotationParts.push(visualAnnotations);
           }
-          if (typeof move.whiteAnnotations.evaluation !== 'undefined') {
+          if (move.whiteAnnotations.evaluation !== undefined) {
             annotationParts.push(PgnNotation.formatEvaluation(move.whiteAnnotations.evaluation));
           }
           const textComment = move.whiteAnnotations.textComment?.trim();
@@ -678,7 +674,7 @@ export class PgnNotation {
           if (visualAnnotations) {
             annotationParts.push(visualAnnotations);
           }
-          if (typeof move.blackAnnotations.evaluation !== 'undefined') {
+          if (move.blackAnnotations.evaluation !== undefined) {
             annotationParts.push(PgnNotation.formatEvaluation(move.blackAnnotations.evaluation));
           }
           const textComment = move.blackAnnotations.textComment?.trim();

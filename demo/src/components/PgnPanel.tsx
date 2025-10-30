@@ -197,7 +197,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
 
   const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
-      const [file] = Array.from(event.target.files ?? []);
+      const [file] = [...(event.target.files ?? [])];
       void handleFileContent(file ?? null);
       event.target.value = '';
     },
@@ -209,7 +209,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
       event.preventDefault();
       event.stopPropagation();
       setIsDragging(false);
-      const [file] = Array.from(event.dataTransfer.files ?? []);
+      const [file] = [...(event.dataTransfer.files ?? [])];
       void handleFileContent(file ?? null);
     },
     [handleFileContent],
@@ -269,9 +269,9 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = 'neo-chess-board-game.pgn';
-    document.body.appendChild(anchor);
+    document.body.append(anchor);
     anchor.click();
-    document.body.removeChild(anchor);
+    anchor.remove();
     URL.revokeObjectURL(url);
     const message = 'PGN exported successfully.';
     setStatus(message);

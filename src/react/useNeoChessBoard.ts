@@ -123,12 +123,12 @@ function normalizeClockConfig(clock?: ClockConfig): Record<string, unknown> | nu
   const normalized: Record<string, unknown> = {};
 
   const initial = normalizeClockValue(clock.initial);
-  if (typeof initial !== 'undefined') {
+  if (initial !== undefined) {
     normalized.initial = initial;
   }
 
   const increment = normalizeClockValue(clock.increment);
-  if (typeof increment !== 'undefined') {
+  if (increment !== undefined) {
     normalized.increment = increment;
   }
 
@@ -157,13 +157,13 @@ function serializeClockConfig(clock?: ClockConfig): string | null {
     return '{}';
   }
   const ordered: Record<string, unknown> = {};
-  if (typeof normalized.initial !== 'undefined') {
+  if (normalized.initial !== undefined) {
     ordered.initial = normalized.initial;
   }
-  if (typeof normalized.increment !== 'undefined') {
+  if (normalized.increment !== undefined) {
     ordered.increment = normalized.increment;
   }
-  if (typeof normalized.sides !== 'undefined') {
+  if (normalized.sides !== undefined) {
     ordered.sides = normalized.sides;
   }
   if (Object.prototype.hasOwnProperty.call(normalized, 'active')) {
@@ -310,9 +310,9 @@ export function useNeoChessBoard({
   }, [handlersRef, isReady]);
 
   useEffect(() => {
-    const resolvedFen = typeof fen !== 'undefined' ? fen : position;
+    const resolvedFen = fen === undefined ? position : fen;
 
-    if (!isReady || typeof resolvedFen === 'undefined') {
+    if (!isReady || resolvedFen === undefined) {
       return;
     }
 
@@ -357,7 +357,7 @@ export function useNeoChessBoard({
 
   const applySoundEnabled = useCallback(
     (board: Chessboard, enabled: BoardOptions['soundEnabled']) => {
-      if (typeof enabled === 'undefined') {
+      if (enabled === undefined) {
         return;
       }
       board.setSoundEnabled(enabled);
@@ -383,14 +383,14 @@ export function useNeoChessBoard({
   );
 
   const applyAutoFlip = useCallback((board: Chessboard, autoFlip: BoardOptions['autoFlip']) => {
-    if (typeof autoFlip === 'undefined') {
+    if (autoFlip === undefined) {
       return;
     }
     board.setAutoFlip(autoFlip);
   }, []);
 
   const applyAnimationDuration = useCallback((board: Chessboard, duration: number | undefined) => {
-    if (typeof duration === 'undefined') {
+    if (duration === undefined) {
       return;
     }
     board.setAnimationDuration(duration);
@@ -405,7 +405,7 @@ export function useNeoChessBoard({
 
   const applyAnimationEasing = useCallback(
     (board: Chessboard, easing: BoardOptions['animationEasing']) => {
-      if (typeof easing === 'undefined') {
+      if (easing === undefined) {
         return;
       }
       board.setAnimation({ easing });
@@ -415,7 +415,7 @@ export function useNeoChessBoard({
 
   const applyShowAnimations = useCallback(
     (board: Chessboard, show: BoardOptions['showAnimations']) => {
-      if (typeof show === 'undefined') {
+      if (show === undefined) {
         return;
       }
       board.setShowAnimations(show);
@@ -425,7 +425,7 @@ export function useNeoChessBoard({
 
   const applyDraggingEnabled = useCallback(
     (board: Chessboard, allow: BoardOptions['allowDragging']) => {
-      if (typeof allow === 'undefined') {
+      if (allow === undefined) {
         return;
       }
       board.setDraggingEnabled(allow);
@@ -435,7 +435,7 @@ export function useNeoChessBoard({
 
   const applyAllowDragOffBoard = useCallback(
     (board: Chessboard, allow: BoardOptions['allowDragOffBoard']) => {
-      if (typeof allow === 'undefined') {
+      if (allow === undefined) {
         return;
       }
       board.setAllowDragOffBoard(allow);
@@ -445,7 +445,7 @@ export function useNeoChessBoard({
 
   const applyAutoScroll = useCallback(
     (board: Chessboard, allow: BoardOptions['allowAutoScroll']) => {
-      if (typeof allow === 'undefined') {
+      if (allow === undefined) {
         return;
       }
       board.setAutoScrollEnabled(allow);
@@ -455,7 +455,7 @@ export function useNeoChessBoard({
 
   const applyAllowDrawingArrows = useCallback(
     (board: Chessboard, allow: BoardOptions['allowDrawingArrows']) => {
-      if (typeof allow === 'undefined') {
+      if (allow === undefined) {
         return;
       }
       board.setAllowDrawingArrows(allow);
@@ -465,7 +465,7 @@ export function useNeoChessBoard({
 
   const applyClearArrowsOnClick = useCallback(
     (board: Chessboard, clear: BoardOptions['clearArrowsOnClick']) => {
-      if (typeof clear === 'undefined') {
+      if (clear === undefined) {
         return;
       }
       board.setClearArrowsOnClick(clear);
@@ -497,7 +497,7 @@ export function useNeoChessBoard({
 
   const applyDragActivationDistance = useCallback(
     (board: Chessboard, distance: BoardOptions['dragActivationDistance']) => {
-      if (typeof distance === 'undefined') {
+      if (distance === undefined) {
         return;
       }
       board.setDragActivationDistance(distance);
@@ -567,7 +567,7 @@ export function useNeoChessBoard({
   );
 
   const applyShowNotation = useCallback((board: Chessboard, show: BoardOptions['showNotation']) => {
-    if (typeof show === 'undefined') {
+    if (show === undefined) {
       return;
     }
     board.setShowNotation(show);
@@ -598,7 +598,7 @@ export function useNeoChessBoard({
   );
 
   const applyShowArrows = useCallback((board: Chessboard, show: BoardOptions['showArrows']) => {
-    if (typeof show === 'undefined') {
+    if (show === undefined) {
       return;
     }
     board.setShowArrows(show);
@@ -606,7 +606,7 @@ export function useNeoChessBoard({
 
   const applyShowHighlights = useCallback(
     (board: Chessboard, show: BoardOptions['showHighlights']) => {
-      if (typeof show === 'undefined') {
+      if (show === undefined) {
         return;
       }
       board.setShowHighlights(show);
@@ -616,7 +616,7 @@ export function useNeoChessBoard({
 
   const applyAllowPremoves = useCallback(
     (board: Chessboard, allow: BoardOptions['allowPremoves']) => {
-      if (typeof allow === 'undefined') {
+      if (allow === undefined) {
         return;
       }
       board.setAllowPremoves(allow);
@@ -626,7 +626,7 @@ export function useNeoChessBoard({
 
   const applyHighlightLegal = useCallback(
     (board: Chessboard, highlight: BoardOptions['highlightLegal']) => {
-      if (typeof highlight === 'undefined') {
+      if (highlight === undefined) {
         return;
       }
       board.setHighlightLegal(highlight);
@@ -636,7 +636,7 @@ export function useNeoChessBoard({
 
   const applyShowSquareNames = useCallback(
     (board: Chessboard, show: BoardOptions['showSquareNames']) => {
-      if (typeof show === 'undefined') {
+      if (show === undefined) {
         return;
       }
       board.setShowSquareNames(show);
@@ -693,7 +693,7 @@ export function useNeoChessBoard({
   const hasSoundUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundUrls');
   const hasClock = Object.prototype.hasOwnProperty.call(resolvedOptions, 'clock');
   const hasSoundEventUrls = Object.prototype.hasOwnProperty.call(resolvedOptions, 'soundEventUrls');
-  const hasAnimation = typeof animation !== 'undefined';
+  const hasAnimation = animation !== undefined;
   const hasArrowOptions = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrowOptions');
   const hasArrows = Object.prototype.hasOwnProperty.call(resolvedOptions, 'arrows');
   const hasOnArrowsChange = Object.prototype.hasOwnProperty.call(resolvedOptions, 'onArrowsChange');
@@ -717,7 +717,7 @@ export function useNeoChessBoard({
     resolvedOptions,
     'darkSquareNotationStyle',
   );
-  const hasAnimationEasing = typeof animationEasing !== 'undefined';
+  const hasAnimationEasing = animationEasing !== undefined;
   const hasAlphaNotationStyle = Object.prototype.hasOwnProperty.call(
     resolvedOptions,
     'alphaNotationStyle',
@@ -731,20 +731,14 @@ export function useNeoChessBoard({
   const hasPieces = Object.prototype.hasOwnProperty.call(resolvedOptions, 'pieces');
   const hasPromotion = Object.prototype.hasOwnProperty.call(resolvedOptions, 'promotion');
 
-  useBoardOption(boardRef, isReady, theme, typeof theme !== 'undefined', applyTheme);
+  useBoardOption(boardRef, isReady, theme, theme !== undefined, applyTheme);
   useBoardOption(boardRef, isReady, pieceSet, hasPieceSet, applyPieceSet);
   useBoardOption(boardRef, isReady, clock, hasClock, applyClockConfig);
-  useBoardOption(
-    boardRef,
-    isReady,
-    soundEnabled,
-    typeof soundEnabled !== 'undefined',
-    applySoundEnabled,
-  );
+  useBoardOption(boardRef, isReady, soundEnabled, soundEnabled !== undefined, applySoundEnabled);
   useBoardOption(boardRef, isReady, soundUrls, hasSoundUrls, applySoundUrls);
   useBoardOption(boardRef, isReady, soundEventUrls, hasSoundEventUrls, applySoundEventUrls);
   useBoardOption(boardRef, isReady, promotion, hasPromotion, applyPromotionOptions);
-  useBoardOption(boardRef, isReady, autoFlip, typeof autoFlip !== 'undefined', applyAutoFlip);
+  useBoardOption(boardRef, isReady, autoFlip, autoFlip !== undefined, applyAutoFlip);
   useBoardOption(boardRef, isReady, animation, hasAnimation, applyAnimation);
   const hasAnimationMs = Object.prototype.hasOwnProperty.call(resolvedOptions, 'animationMs');
   const hasAnimationDuration = Object.prototype.hasOwnProperty.call(
@@ -771,42 +765,42 @@ export function useNeoChessBoard({
     boardRef,
     isReady,
     showAnimations,
-    typeof showAnimations !== 'undefined',
+    showAnimations !== undefined,
     applyShowAnimations,
   );
   useBoardOption(
     boardRef,
     isReady,
     allowDragging,
-    typeof allowDragging !== 'undefined',
+    allowDragging !== undefined,
     applyDraggingEnabled,
   );
   useBoardOption(
     boardRef,
     isReady,
     allowDragOffBoard,
-    typeof allowDragOffBoard !== 'undefined',
+    allowDragOffBoard !== undefined,
     applyAllowDragOffBoard,
   );
   useBoardOption(
     boardRef,
     isReady,
     allowAutoScroll,
-    typeof allowAutoScroll !== 'undefined',
+    allowAutoScroll !== undefined,
     applyAutoScroll,
   );
   useBoardOption(
     boardRef,
     isReady,
     allowDrawingArrows,
-    typeof allowDrawingArrows !== 'undefined',
+    allowDrawingArrows !== undefined,
     applyAllowDrawingArrows,
   );
   useBoardOption(
     boardRef,
     isReady,
     clearArrowsOnClick,
-    typeof clearArrowsOnClick !== 'undefined',
+    clearArrowsOnClick !== undefined,
     applyClearArrowsOnClick,
   );
   const hasCanDragPiece = Object.prototype.hasOwnProperty.call(resolvedOptions, 'canDragPiece');
@@ -815,43 +809,31 @@ export function useNeoChessBoard({
     boardRef,
     isReady,
     dragActivationDistance,
-    typeof dragActivationDistance !== 'undefined',
+    dragActivationDistance !== undefined,
     applyDragActivationDistance,
   );
-  useBoardOption(
-    boardRef,
-    isReady,
-    orientation,
-    typeof orientation !== 'undefined',
-    applyOrientation,
-  );
-  useBoardOption(boardRef, isReady, showArrows, typeof showArrows !== 'undefined', applyShowArrows);
+  useBoardOption(boardRef, isReady, orientation, orientation !== undefined, applyOrientation);
+  useBoardOption(boardRef, isReady, showArrows, showArrows !== undefined, applyShowArrows);
   useBoardOption(
     boardRef,
     isReady,
     showHighlights,
-    typeof showHighlights !== 'undefined',
+    showHighlights !== undefined,
     applyShowHighlights,
   );
-  useBoardOption(
-    boardRef,
-    isReady,
-    allowPremoves,
-    typeof allowPremoves !== 'undefined',
-    applyAllowPremoves,
-  );
+  useBoardOption(boardRef, isReady, allowPremoves, allowPremoves !== undefined, applyAllowPremoves);
   useBoardOption(
     boardRef,
     isReady,
     highlightLegal,
-    typeof highlightLegal !== 'undefined',
+    highlightLegal !== undefined,
     applyHighlightLegal,
   );
   useBoardOption(
     boardRef,
     isReady,
     showSquareNames,
-    typeof showSquareNames !== 'undefined',
+    showSquareNames !== undefined,
     applyShowSquareNames,
   );
   useBoardOption(boardRef, isReady, showNotation, hasShowNotation, applyShowNotation);
@@ -957,7 +939,7 @@ export function useNeoChessBoard({
       }
       const state = board.getClockState();
       const targetColor: Color | null =
-        typeof color === 'undefined' || color === null
+        color === undefined || color === null
           ? (state?.active ?? (board.getTurn() as Color))
           : color;
       board.updateClockState({

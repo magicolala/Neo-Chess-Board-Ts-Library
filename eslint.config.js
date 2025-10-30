@@ -3,11 +3,13 @@ import pluginJs from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginReact from 'eslint-plugin-react';
 import prettierPlugin from 'eslint-plugin-prettier';
+import sonarjs from 'eslint-plugin-sonarjs';
+import unicorn from 'eslint-plugin-unicorn';
 
 export default [
   {
     // Global ignores
-    ignores: ['dist/', 'node_modules/'],
+    ignores: ['dist/', 'node_modules/', 'coverage/'],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
@@ -29,12 +31,16 @@ export default [
       react: pluginReact,
       '@typescript-eslint': tseslint.plugin,
       prettier: prettierPlugin,
+      sonarjs,
+      unicorn,
     },
     rules: {
       ...pluginJs.configs.recommended.rules,
-      ...tseslint.configs.recommended.rules,
+      ...tseslint.configs.strict.rules,
       ...pluginReact.configs.recommended.rules,
       ...prettierPlugin.configs.recommended.rules,
+      ...sonarjs.configs.recommended.rules,
+      ...unicorn.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
       'prettier/prettier': 'error',
       '@typescript-eslint/consistent-type-imports': [
@@ -59,6 +65,26 @@ export default [
       'no-redeclare': 'off',
       '@typescript-eslint/no-redeclare': 'error',
       'no-unused-vars': 'off',
+      // Unicorn rules to disable
+      'unicorn/prevent-abbreviations': 'off',
+      'unicorn/filename-case': 'off',
+      'unicorn/no-null': 'off',
+      'unicorn/prefer-module': 'off',
+      'unicorn/no-nested-ternary': 'off',
+      'unicorn/no-array-for-each': 'off',
+      'unicorn/consistent-function-scoping': 'off',
+      'unicorn/no-array-reduce': 'off',
+      'unicorn/no-array-sort': 'off',
+      'unicorn/prefer-structured-clone': 'off',
+
+      // Sonarjs rules to disable
+      'sonarjs/no-identical-functions': 'off',
+      'sonarjs/cognitive-complexity': 'off',
+      'sonarjs/no-nested-conditional': 'off',
+      'sonarjs/no-nested-functions': 'off',
+      'sonarjs/constructor-for-side-effects': 'off',
+      'sonarjs/pseudo-random': 'off',
+      'sonarjs/slow-regex': 'off',
     },
     settings: {
       react: {

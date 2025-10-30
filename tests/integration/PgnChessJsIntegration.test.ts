@@ -202,9 +202,9 @@ describe('PGN and ChessJs Integration', () => {
         ['b8', 'd7'],
       ];
 
-      moves.forEach(([from, to]) => {
+      for (const [from, to] of moves) {
         rules.move({ from, to });
-      });
+      }
 
       const pgn = rules.toPgn();
       const lines = pgn.split('\n');
@@ -214,9 +214,9 @@ describe('PGN and ChessJs Integration', () => {
         (line) => !line.startsWith('[') && line.trim() !== '' && line.includes('.'),
       );
 
-      moveLines.forEach((line) => {
+      for (const line of moveLines) {
         expect(line.length).toBeLessThanOrEqual(80);
-      });
+      }
     });
 
     test('should use proper algebraic notation', () => {
@@ -346,9 +346,9 @@ describe('PGN and ChessJs Integration', () => {
         Black: 'Kieseritzky, Lionel',
       });
 
-      immortalGameMoves.forEach(([from, to]) => {
+      for (const [from, to] of immortalGameMoves) {
         rules.move({ from, to });
-      });
+      }
 
       const pgn = rules.toPgn();
 

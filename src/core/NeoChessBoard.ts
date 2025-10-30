@@ -371,18 +371,17 @@ export class NeoChessBoard {
     this.darkSquareStyleOptions = options.darkSquareStyle
       ? { ...options.darkSquareStyle }
       : undefined;
-    if (options.squareStyles) {
-      this.squareStylesMap = Object.entries(options.squareStyles).reduce<
-        Partial<Record<Square, SquareStyleOptions>>
-      >((acc, [sqKey, style]) => {
-        if (style) {
-          acc[sqKey as Square] = { ...style };
-        }
-        return acc;
-      }, {});
-    } else {
-      this.squareStylesMap = undefined;
-    }
+    this.squareStylesMap = options.squareStyles
+      ? Object.entries(options.squareStyles).reduce<Partial<Record<Square, SquareStyleOptions>>>(
+          (acc, [sqKey, style]) => {
+            if (style) {
+              acc[sqKey as Square] = { ...style };
+            }
+            return acc;
+          },
+          {},
+        )
+      : undefined;
     this.lightNotationStyle = options.lightSquareNotationStyle
       ? { ...options.lightSquareNotationStyle }
       : undefined;
@@ -605,12 +604,11 @@ export class NeoChessBoard {
     const board = this.state.board;
     const squares: Square[] = [];
 
-    for (let r = 0; r < board.length; r++) {
-      const row = board[r];
+    for (const [r, row] of board.entries()) {
       if (!row) continue;
 
-      for (let f = 0; f < row.length; f++) {
-        if (row[f] === piece) {
+      for (const [f, element] of row.entries()) {
+        if (element === piece) {
           squares.push(this._indicesToSquare(f, r));
         }
       }
@@ -799,7 +797,7 @@ export class NeoChessBoard {
 
       if (!includeHeaders) {
         const headerSplitIndex = pgn.indexOf('\n\n');
-        if (headerSplitIndex >= 0) {
+        if (headerSplitIndex !== -1) {
           pgn = pgn.slice(headerSplitIndex + 2);
         }
       }
@@ -875,14 +873,18 @@ export class NeoChessBoard {
     }
 
     switch (normalizedTo) {
-      case 'san':
+      case 'san': {
         return this._resolveSanFromMove(normalizedMove);
-      case 'uci':
+      }
+      case 'uci': {
         return this._formatUciFromMove(normalizedMove);
-      case 'coord':
+      }
+      case 'coord': {
         return this._formatCoordinateFromMove(normalizedMove);
-      default:
+      }
+      default: {
         return null;
+      }
     }
   }
 
@@ -1021,11 +1023,9 @@ export class NeoChessBoard {
           shouldRender = true;
         }
       }
-      if (typeof drag.ghost === 'boolean') {
-        if (this.dragGhostPiece !== drag.ghost) {
-          this.dragGhostPiece = drag.ghost;
-          shouldRender = true;
-        }
+      if (typeof drag.ghost === 'boolean' && this.dragGhostPiece !== drag.ghost) {
+        this.dragGhostPiece = drag.ghost;
+        shouldRender = true;
       }
       if (typeof drag.ghostOpacity === 'number' && Number.isFinite(drag.ghostOpacity)) {
         const clampedOpacity = clamp(drag.ghostOpacity, 0, 1);
@@ -1066,7 +1066,7 @@ export class NeoChessBoard {
   }
 
   public setAnimationDuration(duration: number | undefined): void {
-    if (typeof duration === 'undefined') {
+    if (duration === undefined) {
       return;
     }
     this.setAnimation({ duration });
@@ -1089,7 +1089,7 @@ export class NeoChessBoard {
       this.animationMs = Math.max(0, resolvedDuration);
     }
 
-    if (typeof easing !== 'undefined') {
+    if (easing !== undefined) {
       this._setAnimationEasing(easing);
     }
   }
@@ -1179,18 +1179,17 @@ export class NeoChessBoard {
   }
 
   public setSquareStyles(styles?: Partial<Record<Square, SquareStyleOptions>>): void {
-    if (styles) {
-      this.squareStylesMap = Object.entries(styles).reduce<
-        Partial<Record<Square, SquareStyleOptions>>
-      >((acc, [key, value]) => {
-        if (value) {
-          acc[key as Square] = { ...value };
-        }
-        return acc;
-      }, {});
-    } else {
-      this.squareStylesMap = undefined;
-    }
+    this.squareStylesMap = styles
+      ? Object.entries(styles).reduce<Partial<Record<Square, SquareStyleOptions>>>(
+          (acc, [key, value]) => {
+            if (value) {
+              acc[key as Square] = { ...value };
+            }
+            return acc;
+          },
+          {},
+        )
+      : undefined;
     this.renderAll();
   }
 
@@ -1288,7 +1287,7 @@ export class NeoChessBoard {
 
   public setArrows(arrows: Arrow[] | undefined): void {
     this.controlledArrows = arrows;
-    if (!this.drawingManager || typeof arrows === 'undefined') {
+    if (!this.drawingManager || arrows === undefined) {
       return;
     }
     this.drawingManager.setArrows(arrows);
@@ -1650,20 +1649,18 @@ export class NeoChessBoard {
     const black = this._mergeClockSideState(current.black, update.black);
 
     let active =
-      typeof update.active !== 'undefined'
-        ? this._sanitizeActiveColor(update.active)
-        : current.active;
+      update.active === undefined ? current.active : this._sanitizeActiveColor(update.active);
     let isPaused = typeof update.paused === 'boolean' ? update.paused : current.isPaused;
     let lastUpdatedAt =
-      typeof update.timestamp !== 'undefined' ? (update.timestamp ?? null) : current.lastUpdatedAt;
+      update.timestamp === undefined ? current.lastUpdatedAt : (update.timestamp ?? null);
 
     let isRunning: boolean;
     if (typeof update.running === 'boolean') {
       isRunning = update.running;
-      if (isRunning && typeof update.paused === 'undefined') {
+      if (isRunning && update.paused === undefined) {
         isPaused = false;
       }
-      if (!isRunning && typeof update.paused === 'undefined') {
+      if (!isRunning && update.paused === undefined) {
         isPaused = true;
       }
     } else {
@@ -1720,7 +1717,7 @@ export class NeoChessBoard {
 
     if (typeof update.remaining === 'number') {
       next.remaining = this._sanitizeMillis(update.remaining);
-      if (next.remaining > 0 && typeof update.isFlagged === 'undefined') {
+      if (next.remaining > 0 && update.isFlagged === undefined) {
         next.isFlagged = false;
       }
     }
@@ -1729,7 +1726,7 @@ export class NeoChessBoard {
       next.isFlagged = update.isFlagged;
     }
 
-    if (next.remaining <= 0 && typeof update.isFlagged === 'undefined') {
+    if (next.remaining <= 0 && update.isFlagged === undefined) {
       next.remaining = 0;
       next.isFlagged = true;
     }
@@ -1874,10 +1871,10 @@ export class NeoChessBoard {
 
   private _updateCanvasDimensions(dimensions: { pixelWidth: number; pixelHeight: number }): void {
     const { pixelWidth, pixelHeight } = dimensions;
-    [this.cBoard, this.cPieces, this.cOverlay].forEach((canvas) => {
+    for (const canvas of [this.cBoard, this.cPieces, this.cOverlay]) {
       canvas.width = pixelWidth;
       canvas.height = pixelHeight;
-    });
+    }
   }
 
   private _updateInternalDimensions(dimensions: {
@@ -2144,7 +2141,7 @@ export class NeoChessBoard {
     element.style.top = '0';
     element.style.pointerEvents = 'none';
     element.style.willChange = 'transform';
-    this.pieceLayer?.appendChild(element);
+    this.pieceLayer?.append(element);
     this.pieceElements.set(square, element);
     return element;
   }
@@ -2242,7 +2239,7 @@ export class NeoChessBoard {
     element.style.top = '0';
     element.style.pointerEvents = 'none';
     element.style.willChange = 'transform';
-    this.squareLayer?.appendChild(element);
+    this.squareLayer?.append(element);
     this.squareElements.set(square, element);
     return element;
   }
@@ -3060,13 +3057,13 @@ export class NeoChessBoard {
     let x = (e.clientX - rect.left) * scaleX;
     let y = (e.clientY - rect.top) * scaleY;
 
-    if (!this.allowDragOffBoard) {
+    if (this.allowDragOffBoard) {
+      x = clamp(x, 0, this.cOverlay.width);
+      y = clamp(y, 0, this.cOverlay.height);
+    } else {
       if (x < 0 || y < 0 || x > this.cOverlay.width || y > this.cOverlay.height) {
         return null;
       }
-    } else {
-      x = clamp(x, 0, this.cOverlay.width);
-      y = clamp(y, 0, this.cOverlay.height);
     }
 
     return { x, y };
@@ -3100,10 +3097,10 @@ export class NeoChessBoard {
 
   private _stripPgnComments(pgn: string): string {
     return pgn
-      .replace(/\s*\{[^}]*\}\s*/g, ' ')
-      .replace(/[ \t]{2,}/g, ' ')
-      .replace(/ ?\n ?/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
+      .replaceAll(/\s*\{[^}]*\}\s*/g, ' ')
+      .replaceAll(/[ \t]{2,}/g, ' ')
+      .replaceAll(/ ?\n ?/g, '\n')
+      .replaceAll(/\n{3,}/g, '\n\n')
       .trim();
   }
 
@@ -3348,7 +3345,7 @@ export class NeoChessBoard {
     }
 
     const isPromotion =
-      typeof moveDetail?.promotion !== 'undefined' ||
+      moveDetail?.promotion !== undefined ||
       (typeof moveDetail?.flags === 'string' && moveDetail.flags.includes('p')) ||
       (typeof san === 'string' && san.includes('='));
 
@@ -3564,12 +3561,12 @@ export class NeoChessBoard {
       const token = pending.token;
       this._hideInlinePromotion();
       this._resolvePromotion(token, 'q');
-      this.root.querySelectorAll('.ncb-inline-promotion').forEach((overlay) => {
+      for (const overlay of this.root.querySelectorAll('.ncb-inline-promotion')) {
         overlay.innerHTML = '';
-        overlay.removeAttribute('data-square');
-        overlay.removeAttribute('data-color');
-        overlay.removeAttribute('data-mode');
-      });
+        delete overlay.dataset.square;
+        delete overlay.dataset.color;
+        delete overlay.dataset.mode;
+      }
       return;
     }
 
@@ -3622,7 +3619,7 @@ export class NeoChessBoard {
       event.stopPropagation();
     });
 
-    overlayRoot.appendChild(container);
+    overlayRoot.append(container);
     this.inlinePromotionContainer = container;
     return container;
   }
@@ -3700,8 +3697,8 @@ export class NeoChessBoard {
 
     container.innerHTML = '';
     container.dataset.square = pending.to;
-    container.setAttribute('data-color', pending.color);
-    container.setAttribute('data-mode', pending.mode);
+    container.dataset.color = pending.color;
+    container.dataset.mode = pending.mode;
 
     const doc = container.ownerDocument ?? document;
     const pieces =
@@ -3755,7 +3752,7 @@ export class NeoChessBoard {
       button.addEventListener('pointerleave', () => {
         button.style.transform = 'scale(1)';
       });
-      container.appendChild(button);
+      container.append(button);
       return button;
     });
 
@@ -3771,9 +3768,9 @@ export class NeoChessBoard {
       return;
     }
     container.style.display = 'none';
-    container.removeAttribute('data-square');
-    container.removeAttribute('data-color');
-    container.removeAttribute('data-mode');
+    delete container.dataset.square;
+    delete container.dataset.color;
+    delete container.dataset.mode;
     const replacer = container as HTMLElement & {
       replaceChildren?: (...nodes: Node[]) => void;
     };
@@ -3835,12 +3832,12 @@ export class NeoChessBoard {
     const color = this.state.turn;
     const queue = this._premoveQueues[color];
 
-    if (!queue.length) {
+    if (queue.length === 0) {
       this._syncPremoveDisplay(undefined, false);
       return;
     }
 
-    while (queue.length) {
+    while (queue.length > 0) {
       const premove = queue[0];
       const premoveResult = this.rules.move({
         from: premove.from,
@@ -3856,7 +3853,7 @@ export class NeoChessBoard {
       }
 
       this._handleInvalidPremove(color, premove, premoveResult?.reason);
-      if (!queue.length) {
+      if (queue.length === 0) {
         this._syncPremoveDisplay(undefined, false);
         return;
       }
@@ -3898,11 +3895,9 @@ export class NeoChessBoard {
       ? { from: premove.from, to: premove.to, promotion: premove.promotion }
       : { from: premove.from, to: premove.to };
 
-    if (this._premoveSettings.multi) {
-      this._premoveQueues[color] = [...this._premoveQueues[color], entry];
-    } else {
-      this._premoveQueues[color] = [entry];
-    }
+    this._premoveQueues[color] = this._premoveSettings.multi
+      ? [...this._premoveQueues[color], entry]
+      : [entry];
 
     this._syncPremoveDisplay(color, render);
   }
@@ -3934,11 +3929,11 @@ export class NeoChessBoard {
     const queues: Partial<Record<Color, Premove[]>> = {};
     for (const color of ['w', 'b'] as const) {
       if (!this._premoveSettings.colors[color]) continue;
-      if (this._premoveQueues[color].length) {
+      if (this._premoveQueues[color].length > 0) {
         queues[color] = this._premoveQueues[color].map((entry) => ({ ...entry }));
       }
     }
-    return Object.keys(queues).length ? queues : undefined;
+    return Object.keys(queues).length > 0 ? queues : undefined;
   }
 
   private _determineActivePremove(
@@ -3966,7 +3961,7 @@ export class NeoChessBoard {
     for (const color of order) {
       if (!this._premoveSettings.colors[color]) continue;
       const queue = this._premoveQueues[color];
-      if (queue.length) {
+      if (queue.length > 0) {
         return { color, premove: { ...queue[0] } };
       }
     }
@@ -3995,7 +3990,7 @@ export class NeoChessBoard {
 
   private _removeMatchingPremove(color: Color, premove: Premove): void {
     const queue = this._premoveQueues[color];
-    if (!queue.length) return;
+    if (queue.length === 0) return;
 
     if (this._arePremovesEqual(queue[0], premove)) {
       queue.shift();
@@ -4003,7 +3998,7 @@ export class NeoChessBoard {
     }
 
     const index = queue.findIndex((entry) => this._arePremovesEqual(entry, premove));
-    if (index >= 0) {
+    if (index !== -1) {
       queue.splice(index, 1);
     }
   }
@@ -4040,7 +4035,7 @@ export class NeoChessBoard {
   private _normalizeColorSelection(
     input?: 'white' | 'black' | 'both' | Color | Array<'white' | 'black' | Color>,
   ): Color[] {
-    if (typeof input === 'undefined') {
+    if (input === undefined) {
       return [];
     }
 
@@ -4065,7 +4060,7 @@ export class NeoChessBoard {
 
   private _resolveColorsForClearing(color?: 'white' | 'black' | 'both'): Color[] {
     const normalized = this._normalizeColorSelection(color);
-    return normalized.length ? normalized : (['w', 'b'] as Color[]);
+    return normalized.length > 0 ? normalized : (['w', 'b'] as Color[]);
   }
 
   private _applyInitialPremoveSettings(settings: BoardPremoveSettings): void {
@@ -4125,10 +4120,10 @@ export class NeoChessBoard {
           this._setPremoveColors(options.colors);
         }
 
-        if (!this.allowPremoves) {
-          this.setAllowPremoves(true);
-        } else {
+        if (this.allowPremoves) {
           this._syncPremoveDisplay(undefined, true);
+        } else {
+          this.setAllowPremoves(true);
         }
       },
       disable: (color) => {
@@ -4138,7 +4133,7 @@ export class NeoChessBoard {
         }
 
         const colors = this._normalizeColorSelection(color);
-        if (!colors.length) {
+        if (colors.length === 0) {
           this.setAllowPremoves(false);
           return;
         }
@@ -4160,7 +4155,7 @@ export class NeoChessBoard {
         const colors = color ? this._resolveColorsForClearing(color) : (['w', 'b'] as Color[]);
         let updated = false;
         for (const code of colors) {
-          if (this._premoveQueues[code].length) {
+          if (this._premoveQueues[code].length > 0) {
             this._premoveQueues[code] = [];
             updated = true;
           }
@@ -4210,11 +4205,10 @@ export class NeoChessBoard {
     this._premoveQueues.b = queues?.b ? queues.b.map((entry) => ({ ...entry })) : [];
 
     const activeColor = this.drawingManager.getActivePremoveColor();
-    if (activeColor && this._premoveQueues[activeColor]?.length) {
-      this._premove = { ...this._premoveQueues[activeColor][0] };
-    } else {
-      this._premove = null;
-    }
+    this._premove =
+      activeColor && this._premoveQueues[activeColor]?.length
+        ? { ...this._premoveQueues[activeColor][0] }
+        : null;
   }
 
   // ============================================================================
@@ -4431,13 +4425,13 @@ export class NeoChessBoard {
 
   private _loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
-      const doc = this.root?.ownerDocument ?? (typeof document !== 'undefined' ? document : null);
+      const doc = this.root?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
       const img =
-        typeof Image !== 'undefined'
-          ? new Image()
-          : doc
+        typeof Image === 'undefined'
+          ? doc
             ? (doc.createElement('img') as HTMLImageElement)
-            : null;
+            : null
+          : new Image();
 
       if (!img) {
         reject(new Error('Image loading is not supported in the current environment.'));
@@ -4450,11 +4444,11 @@ export class NeoChessBoard {
 
       try {
         img.decoding = 'async';
-      } catch (_error) {
+      } catch {
         // Ignore browsers that do not support decoding
       }
 
-      img.onload = () => resolve(img);
+      img.addEventListener('load', () => resolve(img));
       img.onerror = (err) => reject(err instanceof Error ? err : new Error(String(err)));
       img.src = src;
     });
@@ -4468,7 +4462,7 @@ export class NeoChessBoard {
     this.extensionStates = [];
     if (!configs || configs.length === 0) return;
 
-    configs.forEach((config, index) => {
+    for (const [index, config] of configs.entries()) {
       const id = config.id ?? `extension-${index + 1}`;
       const state: ExtensionState = {
         id,
@@ -4492,7 +4486,7 @@ export class NeoChessBoard {
         console.error(`[NeoChessBoard] Failed to create extension "${id}".`, error);
         state.instance = null;
       }
-    });
+    }
   }
 
   private _createExtensionContext<TOptions>(
@@ -4568,7 +4562,7 @@ export class NeoChessBoard {
   }
 
   private _runExtensionDisposers(state: ExtensionState): void {
-    while (state.disposers.length) {
+    while (state.disposers.length > 0) {
       const disposer = state.disposers.pop();
       if (!disposer) continue;
       try {
@@ -4624,7 +4618,7 @@ export class NeoChessBoard {
     const moves = pgnNotation.getMovesWithAnnotations();
     if (moves.length === 0) return;
 
-    const lastMove = moves[moves.length - 1];
+    const lastMove = moves.at(-1);
     const totalMoves = moves.reduce(
       (acc, move) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
       0,

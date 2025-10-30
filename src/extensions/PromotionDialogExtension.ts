@@ -49,7 +49,7 @@ export function createPromotionDialogExtension(
 
       const labels: Record<PromotionPiece, string> = {
         ...DEFAULT_LABELS,
-        ...(options.labels ?? {}),
+        ...options.labels,
       };
 
       const ensureOverlay = () => {
@@ -92,7 +92,7 @@ export function createPromotionDialogExtension(
         heading.style.margin = '0';
         heading.style.fontSize = '1.1rem';
         heading.style.fontWeight = '600';
-        dialog.appendChild(heading);
+        dialog.append(heading);
 
         const descriptionText =
           options.description ?? 'Select the piece to complete your pawn promotion.';
@@ -101,7 +101,7 @@ export function createPromotionDialogExtension(
         description.style.margin = '0';
         description.style.fontSize = '0.9rem';
         description.style.opacity = '0.85';
-        dialog.appendChild(description);
+        dialog.append(description);
 
         const buttonsRow = doc.createElement('div');
         Object.assign(buttonsRow.style, {
@@ -168,7 +168,7 @@ export function createPromotionDialogExtension(
             button.style.transform = 'scale(1)';
           });
 
-          buttonsRow.appendChild(button);
+          buttonsRow.append(button);
           return button;
         });
 
@@ -178,9 +178,9 @@ export function createPromotionDialogExtension(
           }
         });
 
-        dialog.appendChild(buttonsRow);
-        overlay.appendChild(dialog);
-        root.appendChild(overlay);
+        dialog.append(buttonsRow);
+        overlay.append(dialog);
+        root.append(overlay);
       };
 
       const detachKeyListener = () => {
@@ -261,7 +261,7 @@ export function createPromotionDialogExtension(
             detachBus = null;
           }
           if (overlay && overlay.parentElement) {
-            overlay.parentElement.removeChild(overlay);
+            overlay.remove();
           }
           overlay = null;
           dialog = null;

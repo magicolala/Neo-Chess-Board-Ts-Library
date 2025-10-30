@@ -16,9 +16,9 @@ const rgbaToHex = (rgba: string): string => {
   const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
   if (!match) return '#000000';
 
-  const r = parseInt(match[1], 10);
-  const g = parseInt(match[2], 10);
-  const b = parseInt(match[3], 10);
+  const r = Number.parseInt(match[1], 10);
+  const g = Number.parseInt(match[2], 10);
+  const b = Number.parseInt(match[3], 10);
 
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
@@ -27,9 +27,9 @@ const hexToRgba = (hex: string, alpha: number = 1): string => {
   const match = hex.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
   if (!match) return hex;
 
-  const r = parseInt(match[1], 16);
-  const g = parseInt(match[2], 16);
-  const b = parseInt(match[3], 16);
+  const r = Number.parseInt(match[1], 16);
+  const g = Number.parseInt(match[2], 16);
+  const b = Number.parseInt(match[3], 16);
 
   if (alpha === 1) return hex;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -37,7 +37,7 @@ const hexToRgba = (hex: string, alpha: number = 1): string => {
 
 const extractAlphaFromRgba = (rgba: string): number => {
   const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  return match && match[4] ? parseFloat(match[4]) : 1;
+  return match && match[4] ? Number.parseFloat(match[4]) : 1;
 };
 
 const ColorInput: React.FC<ColorInputProps> = ({ label, value, onChange, description }) => {
@@ -242,8 +242,8 @@ registerTheme('${themeName || 'myTheme'}', ${themeName || 'myTheme'});
     try {
       await navigator.clipboard.writeText(text);
       alert('Copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch (error) {
+      console.error('Failed to copy:', error);
     }
   }, []);
 

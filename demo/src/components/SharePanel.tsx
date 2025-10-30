@@ -51,10 +51,10 @@ const fallbackCopyToClipboard = async (value: string): Promise<boolean> => {
     textarea.setAttribute('readonly', '');
     textarea.style.position = 'absolute';
     textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
+    document.body.append(textarea);
     textarea.select();
     const result = document.execCommand('copy');
-    document.body.removeChild(textarea);
+    textarea.remove();
     return result;
   } catch (error) {
     console.error(error);
@@ -63,11 +63,11 @@ const fallbackCopyToClipboard = async (value: string): Promise<boolean> => {
 };
 
 const buildBaseUrl = (query: string): string => {
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     return query ? `${FALLBACK_PLAYGROUND_URL}?${query}` : FALLBACK_PLAYGROUND_URL;
   }
 
-  const url = new URL(window.location.href);
+  const url = new URL(globalThis.location.href);
   url.search = query;
   url.hash = '';
   return url.toString();

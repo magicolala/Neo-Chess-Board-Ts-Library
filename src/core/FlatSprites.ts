@@ -33,15 +33,15 @@ export class FlatSprites {
   }
   private build(px: number) {
     const c =
-      typeof OffscreenCanvas !== 'undefined'
-        ? new OffscreenCanvas(px * 6, px * 2)
-        : Object.assign(document.createElement('canvas'), { width: px * 6, height: px * 2 });
+      typeof OffscreenCanvas === 'undefined'
+        ? Object.assign(document.createElement('canvas'), { width: px * 6, height: px * 2 })
+        : new OffscreenCanvas(px * 6, px * 2);
     const ctx = c.getContext('2d')!;
     const order = ['k', 'q', 'r', 'b', 'n', 'p'] as const;
-    order.forEach((t, i) => {
+    for (const [i, t] of order.entries()) {
       this.draw(ctx, i * px, 0, px, t, 'black');
       this.draw(ctx, i * px, px, px, t, 'white');
-    });
+    }
     return c;
   }
   private draw(

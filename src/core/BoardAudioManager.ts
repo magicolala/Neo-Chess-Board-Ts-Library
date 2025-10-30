@@ -1,7 +1,5 @@
 import type { BoardOptions, BoardSoundEventType, BoardSoundEventUrls } from './types';
 
-export type { BoardSoundEventType };
-
 const DEFAULT_AUDIO_VOLUME = 0.3;
 
 type Color = 'white' | 'black';
@@ -251,3 +249,5 @@ export class BoardAudioManager {
     }
   }
 }
+
+export { type BoardSoundEventType } from './types';

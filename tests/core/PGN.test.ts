@@ -25,7 +25,7 @@ describe('PGNRecorder', () => {
     jest.useFakeTimers();
     const date = new Date('2024-01-15');
     jest.setSystemTime(date);
-    mockedDate = date.toISOString().slice(0, 10).replace(/-/g, '.');
+    mockedDate = date.toISOString().slice(0, 10).replaceAll('-', '.');
     pgn = new PGNRecorder();
   });
 
@@ -93,9 +93,7 @@ describe('PGNRecorder', () => {
 
   describe('Move recording', () => {
     it('should record and format moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' });
-      pgn.push({ from: 'e7', to: 'e5' });
-      pgn.push({ from: 'g1', to: 'f3' });
+      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' }, { from: 'g1', to: 'f3' });
 
       const result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5 2. g1f3');
@@ -116,8 +114,7 @@ describe('PGNRecorder', () => {
     });
 
     it('should reset moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' });
-      pgn.push({ from: 'e7', to: 'e5' });
+      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' });
 
       let result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5');
@@ -138,13 +135,13 @@ describe('PGNRecorder', () => {
         style: {},
       } as unknown as HTMLAnchorElement;
 
-      global.document.createElement = jest.fn(() => anchorMock);
+      globalThis.document.createElement = jest.fn(() => anchorMock);
 
-      global.document.body.appendChild = jest.fn();
-      global.document.body.removeChild = jest.fn();
+      globalThis.document.body.appendChild = jest.fn();
+      globalThis.document.body.removeChild = jest.fn();
 
-      global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
-      global.URL.revokeObjectURL = jest.fn();
+      globalThis.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
+      globalThis.URL.revokeObjectURL = jest.fn();
     });
 
     it('should create correct blob', () => {
@@ -179,20 +176,20 @@ describe('PGNRecorder', () => {
     it('should download file when in browser environment', () => {
       pgn.download('test.pgn');
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
-      expect(global.document.createElement).toHaveBeenCalledWith('a');
-      expect(global.document.body.appendChild).toHaveBeenCalled();
+      expect(globalThis.URL.createObjectURL).toHaveBeenCalled();
+      expect(globalThis.document.createElement).toHaveBeenCalledWith('a');
+      expect(globalThis.document.body.appendChild).toHaveBeenCalled();
     });
 
     it('should handle SSR environment gracefully', () => {
-      const originalDocument = global.document;
+      const originalDocument = globalThis.document;
       Reflect.deleteProperty(globalThis as typeof globalThis & { document?: Document }, 'document');
 
       expect(() => {
         pgn.download('test.pgn');
       }).not.toThrow();
 
-      global.document = originalDocument;
+      globalThis.document = originalDocument;
     });
   });
 
@@ -214,9 +211,7 @@ describe('PGNRecorder', () => {
     });
 
     it('should handle odd number of moves correctly', () => {
-      pgn.push({ from: 'e2', to: 'e4' });
-      pgn.push({ from: 'e7', to: 'e5' });
-      pgn.push({ from: 'g1', to: 'f3' }); // White's second move
+      pgn.push({ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' }, { from: 'g1', to: 'f3' }); // White's second move
 
       const result = pgn.getPGN();
       expect(result).toContain('1. e2e4 e7e5 2. g1f3');

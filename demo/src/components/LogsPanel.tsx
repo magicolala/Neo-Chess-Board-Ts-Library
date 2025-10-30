@@ -62,7 +62,7 @@ const srOnlyStyles: React.CSSProperties = {
 const LogsPanel: React.FC<LogsPanelProps> = ({ logs, onClear }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);
-  const lastEntry = useMemo(() => (logs.length ? logs[logs.length - 1] : ''), [logs]);
+  const lastEntry = useMemo(() => (logs.length > 0 ? logs.at(-1) : ''), [logs]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -88,8 +88,8 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ logs, onClear }) => {
   const clearButtonDynamicStyles = useMemo(() => {
     return {
       ...clearButtonStyles,
-      opacity: logs.length ? 1 : 0.5,
-      cursor: logs.length ? 'pointer' : 'not-allowed',
+      opacity: logs.length > 0 ? 1 : 0.5,
+      cursor: logs.length > 0 ? 'pointer' : 'not-allowed',
     };
   }, [logs.length]);
 
@@ -101,7 +101,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ logs, onClear }) => {
           type="button"
           onClick={handleClear}
           style={clearButtonDynamicStyles}
-          disabled={!logs.length}
+          disabled={logs.length === 0}
         >
           Clear
         </button>
@@ -116,7 +116,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ logs, onClear }) => {
         aria-label="Activity log"
       >
         <div ref={liveRegionRef} aria-live="polite" aria-atomic="true" style={srOnlyStyles} />
-        {logs.length ? (
+        {logs.length > 0 ? (
           <ul className="playground__log-list">
             {logs.map((entry, index) => (
               <li key={`${index}-${entry}`}>{entry}</li>

@@ -117,7 +117,7 @@ export function createAccessibilityExtension(
     create(context) {
       const board = context.board;
       const root = board.getRootElement();
-      const doc = root?.ownerDocument ?? (typeof document !== 'undefined' ? document : undefined);
+      const doc = root?.ownerDocument ?? (typeof document === 'undefined' ? undefined : document);
 
       if (!doc) {
         return {};
@@ -159,7 +159,7 @@ export function createAccessibilityExtension(
       grid.setAttribute('aria-label', options.boardLabel ?? DEFAULT_OPTIONS.boardLabel);
       grid.dataset.boardGrid = 'true';
       const gridBody = doc.createElement('tbody');
-      grid.appendChild(gridBody);
+      grid.append(gridBody);
 
       const outputsWrapper = doc.createElement('div');
       outputsWrapper.classList.add('ncb-a11y-outputs');
@@ -225,7 +225,7 @@ export function createAccessibilityExtension(
       };
 
       const clearSquareHandlers = () => {
-        while (squareCleanup.length) {
+        while (squareCleanup.length > 0) {
           const disposer = squareCleanup.pop();
           if (disposer) disposer();
         }
@@ -304,18 +304,20 @@ export function createAccessibilityExtension(
               const focusHandler = () => setActiveSquare(square, false);
               button.addEventListener('keydown', keyHandler);
               button.addEventListener('focus', focusHandler);
-              squareCleanup.push(() => button.removeEventListener('keydown', keyHandler));
-              squareCleanup.push(() => button.removeEventListener('focus', focusHandler));
+              squareCleanup.push(
+                () => button.removeEventListener('keydown', keyHandler),
+                () => button.removeEventListener('focus', focusHandler),
+              );
             }
 
-            td.appendChild(button);
-            tr.appendChild(td);
+            td.append(button);
+            tr.append(td);
             squareButtons.set(square, button);
             if (!firstSquare) {
               firstSquare = square;
             }
           }
-          gridBody.appendChild(tr);
+          gridBody.append(tr);
         }
 
         if (keyboardEnabled && (focusedSquare || selectedSquare || firstSquare)) {
@@ -335,7 +337,7 @@ export function createAccessibilityExtension(
           item.textContent = blackMove
             ? `${moveNumber}. ${whiteMove} ${blackMove}`
             : `${moveNumber}. ${whiteMove}`;
-          moveList.appendChild(item);
+          moveList.append(item);
         }
       };
 
@@ -372,9 +374,9 @@ export function createAccessibilityExtension(
           const symbol = piece ? (PIECE_SYMBOLS[piece] ?? PIECE_SYMBOLS[piece.toUpperCase()]) : '';
           button.textContent = symbol ?? '';
           if (piece) {
-            button.setAttribute('data-piece', piece);
+            button.dataset.piece = piece;
           } else {
-            button.removeAttribute('data-piece');
+            delete button.dataset.piece;
           }
           button.setAttribute('aria-label', describeSquare(square, piece));
         }
@@ -402,30 +404,36 @@ export function createAccessibilityExtension(
         }
         const orientationNow = board.getOrientation();
         switch (event.key) {
-          case 'ArrowUp':
+          case 'ArrowUp': {
             event.preventDefault();
             moveFocusBy(0, orientationNow === 'white' ? 1 : -1, square);
             break;
-          case 'ArrowDown':
+          }
+          case 'ArrowDown': {
             event.preventDefault();
             moveFocusBy(0, orientationNow === 'white' ? -1 : 1, square);
             break;
-          case 'ArrowLeft':
+          }
+          case 'ArrowLeft': {
             event.preventDefault();
             moveFocusBy(orientationNow === 'white' ? -1 : 1, 0, square);
             break;
-          case 'ArrowRight':
+          }
+          case 'ArrowRight': {
             event.preventDefault();
             moveFocusBy(orientationNow === 'white' ? 1 : -1, 0, square);
             break;
+          }
           case 'Enter':
           case ' ': // Space key
-          case 'Spacebar':
+          case 'Spacebar': {
             event.preventDefault();
             handleSquareActivation(square);
             break;
-          default:
+          }
+          default: {
             break;
+          }
         }
       };
 
@@ -488,7 +496,7 @@ export function createAccessibilityExtension(
           container.append(statusEl, grid, outputsWrapper, moveForm);
         }
         if (!options.container) {
-          root.appendChild(container);
+          root.append(container);
         }
       };
 
@@ -521,7 +529,7 @@ export function createAccessibilityExtension(
         },
         onDestroy() {
           clearSquareHandlers();
-          while (cleanup.length) {
+          while (cleanup.length > 0) {
             const disposer = cleanup.pop();
             if (disposer) disposer();
           }

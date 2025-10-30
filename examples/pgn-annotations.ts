@@ -25,7 +25,7 @@ const pgnWithAnnotations = `
 export function demonstratePgnAnnotations() {
   // Create a container element
   const container = document.createElement('div');
-  document.body.appendChild(container);
+  document.body.append(container);
 
   // Create the chessboard with ChessJsRules
   const rules = new ChessJsRules();
@@ -126,7 +126,7 @@ export const annotationExamples = {
 };
 
 // Call demonstration functions when this module is imported
-if (typeof window !== 'undefined') {
+if (globalThis.window !== undefined) {
   // Browser environment
   document.addEventListener('DOMContentLoaded', () => {
     demonstratePgnAnnotations();

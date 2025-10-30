@@ -1,6 +1,7 @@
 const config = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
+  testTimeout: 10_000,
   testEnvironmentOptions: {
     pretendToBeVisual: true,
   },

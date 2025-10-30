@@ -7,13 +7,14 @@ function boardToFEN(state: ParsedFENState) {
     let e = 0;
     for (let f = 0; f < 8; f++) {
       const p = state.board[r][f];
-      if (!p) e++;
-      else {
+      if (p) {
         if (e) {
           s += e;
           e = 0;
         }
         s += p;
+      } else {
+        e++;
       }
     }
     if (e) s += e;
@@ -66,10 +67,11 @@ export class LightRules implements RulesAdapter {
         R = r0 + dr;
       while (F >= 0 && F < 8 && R >= 0 && R < 8) {
         const t = occ(F, R);
-        if (!t) pushes.push({ f: F, r: R });
-        else {
+        if (t) {
           if (enemy(t)) pushes.push({ f: F, r: R });
           break;
+        } else {
+          pushes.push({ f: F, r: R });
         }
         F += df;
         R += dr;
@@ -97,7 +99,7 @@ export class LightRules implements RulesAdapter {
         }
         break;
       }
-      case 'n':
+      case 'n': {
         for (const [df, dr] of [
           [1, 2],
           [2, 1],
@@ -115,19 +117,22 @@ export class LightRules implements RulesAdapter {
           if (!t || enemy(t)) pushes.push({ f: F, r: R });
         }
         break;
-      case 'b':
+      }
+      case 'b': {
         ray(1, 1);
         ray(-1, 1);
         ray(1, -1);
         ray(-1, -1);
         break;
-      case 'r':
+      }
+      case 'r': {
         ray(1, 0);
         ray(-1, 0);
         ray(0, 1);
         ray(0, -1);
         break;
-      case 'q':
+      }
+      case 'q': {
         ray(1, 0);
         ray(-1, 0);
         ray(0, 1);
@@ -137,7 +142,8 @@ export class LightRules implements RulesAdapter {
         ray(1, -1);
         ray(-1, -1);
         break;
-      case 'k':
+      }
+      case 'k': {
         for (let df = -1; df <= 1; df++)
           for (let dr = -1; dr <= 1; dr++) {
             if (!df && !dr) continue;
@@ -148,6 +154,7 @@ export class LightRules implements RulesAdapter {
             if (!t || enemy(t)) pushes.push({ f: F, r: R });
           }
         break;
+      }
     }
     const sq = (f: number, r: number) => (FILES[f] + RANKS[r]) as Square;
     return pushes.map(({ f, r, ep }) => ({

@@ -14,8 +14,8 @@ export class EventBus<T extends Record<string, unknown>> {
     this.map.get(type)?.forEach((fn) => {
       try {
         fn(payload);
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error(error);
       }
     });
   }

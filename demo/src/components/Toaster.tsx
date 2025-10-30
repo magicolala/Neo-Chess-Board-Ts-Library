@@ -23,7 +23,7 @@ const ToasterContext = createContext<ToasterContextValue | null>(null);
 const DEFAULT_TOAST_DURATION = 3600;
 const MAX_TOASTS = 3;
 
-const useIsBrowser = (): boolean => typeof window !== 'undefined';
+const useIsBrowser = (): boolean => globalThis.window !== undefined;
 
 export const ToasterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastInstance[]>([]);
@@ -34,12 +34,12 @@ export const ToasterProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const dismissToast = useCallback(
     (id: number) => {
       setToasts((previous) => previous.filter((toast) => toast.id !== id));
-      if (!timeoutsRef.current.size) {
+      if (timeoutsRef.current.size === 0) {
         return;
       }
       const timeoutId = timeoutsRef.current.get(id);
       if (typeof timeoutId === 'number' && isBrowser) {
-        window.clearTimeout(timeoutId);
+        globalThis.clearTimeout(timeoutId);
       }
       timeoutsRef.current.delete(id);
     },
@@ -62,7 +62,7 @@ export const ToasterProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       if (duration > 0 && isBrowser) {
-        const timeoutId = window.setTimeout(() => {
+        const timeoutId = globalThis.setTimeout(() => {
           dismissToast(id);
         }, duration);
         timeoutsRef.current.set(id, timeoutId);

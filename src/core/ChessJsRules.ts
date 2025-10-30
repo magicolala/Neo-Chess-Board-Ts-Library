@@ -24,7 +24,7 @@ export class ChessJsRules implements RulesAdapter {
     const parts = fenString.split(/\s+/);
 
     if (parts.length < 6) {
-      return parts.concat(new Array(6 - parts.length).fill(''));
+      return parts.concat(Array.from({ length: 6 - parts.length }).fill(''));
     }
 
     return parts;
@@ -287,7 +287,7 @@ export class ChessJsRules implements RulesAdapter {
    */
   isSquareAttacked(square: string, by?: 'w' | 'b'): boolean {
     if (typeof square !== 'string') {
-      throw new Error(`Invalid square: ${square}`);
+      throw new TypeError(`Invalid square: ${square}`);
     }
 
     const normalizedSquare = square.toLowerCase();
@@ -343,11 +343,7 @@ export class ChessJsRules implements RulesAdapter {
     const currentColor = color || this.chess.turn();
     const castlingRights = this.chess.getCastlingRights(currentColor);
 
-    if (side === 'k') {
-      return castlingRights.k;
-    } else {
-      return castlingRights.q;
-    }
+    return side === 'k' ? castlingRights.k : castlingRights.q;
   }
 
   /**
@@ -393,7 +389,7 @@ export class ChessJsRules implements RulesAdapter {
    */
   getLastMove(): ChessMove | null {
     const history = this.chess.history({ verbose: true }) as ChessMove[];
-    return history.length > 0 ? history[history.length - 1] : null;
+    return history.length > 0 ? history.at(-1) : null;
   }
 
   /**
@@ -441,7 +437,7 @@ export class ChessJsRules implements RulesAdapter {
       this.chess.loadPgn(pgn);
       this.pgnNotation.importFromChessJs(this.chess);
       return true;
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
@@ -451,7 +447,7 @@ export class ChessJsRules implements RulesAdapter {
    */
   getLastMoveNotation(): string | null {
     const history = this.chess.history();
-    return history.length > 0 ? history[history.length - 1] : null;
+    return history.length > 0 ? history.at(-1) : null;
   }
 
   /**

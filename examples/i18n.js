@@ -447,7 +447,7 @@ const dictionaries = {
 const fallbackLanguage = 'en';
 
 const applyReplacements = (template, replacements = {}) =>
-  template.replace(/\{(\w+)\}/g, (_, token) =>
+  template.replaceAll(/\{(\w+)\}/g, (_, token) =>
     Object.prototype.hasOwnProperty.call(replacements, token)
       ? String(replacements[token])
       : `{${token}}`,
@@ -460,7 +460,7 @@ export function setupI18n(pageKey) {
   }
 
   const storageKey = `${STORAGE_PREFIX}${pageKey}`;
-  let currentLanguage = window.localStorage?.getItem(storageKey) ?? fallbackLanguage;
+  let currentLanguage = globalThis.localStorage?.getItem(storageKey) ?? fallbackLanguage;
   if (!dictionary[currentLanguage]) {
     currentLanguage = fallbackLanguage;
   }
@@ -488,32 +488,32 @@ export function setupI18n(pageKey) {
       }
     }
 
-    document.querySelectorAll('[data-i18n]').forEach((element) => {
+    for (const element of document.querySelectorAll('[data-i18n]')) {
       const key = element.dataset.i18n;
       if (key) {
         element.textContent = translate(key);
       }
-    });
+    }
 
-    document.querySelectorAll('[data-i18n-html]').forEach((element) => {
+    for (const element of document.querySelectorAll('[data-i18n-html]')) {
       const key = element.dataset.i18nHtml;
       if (key) {
         element.innerHTML = translate(key);
       }
-    });
+    }
 
-    document.querySelectorAll('[data-i18n-attr]').forEach((element) => {
+    for (const element of document.querySelectorAll('[data-i18n-attr]')) {
       const mappings = element.dataset.i18nAttr?.split(',').map((part) => part.trim());
       if (!mappings) {
-        return;
+        continue;
       }
-      mappings.forEach((mapping) => {
+      for (const mapping of mappings) {
         const [attr, key] = mapping.split(':');
         if (attr && key) {
           element.setAttribute(attr.trim(), translate(key.trim()));
         }
-      });
-    });
+      }
+    }
   };
 
   const setLanguage = (language) => {
@@ -522,7 +522,7 @@ export function setupI18n(pageKey) {
     }
     currentLanguage = language;
     try {
-      window.localStorage?.setItem(storageKey, language);
+      globalThis.localStorage?.setItem(storageKey, language);
     } catch (error) {
       console.warn('Unable to persist language preference:', error);
     }

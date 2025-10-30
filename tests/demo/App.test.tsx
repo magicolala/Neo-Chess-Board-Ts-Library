@@ -90,15 +90,16 @@ const createMockChessJsRules = () => {
       state.fen = fen;
       state.historySan.push(scripted?.san ?? `${from}-${to}`);
       state.verboseHistory.push({ from, to });
-      state.pgn = state.historySan.length
-        ? state.historySan.reduce<string>((pgn, san, index) => {
-            const moveNumber = Math.floor(index / 2) + 1;
-            if (index % 2 === 0) {
-              return `${pgn}${moveNumber}. ${san}`;
-            }
-            return `${pgn} ${san}`;
-          }, '')
-        : '';
+      state.pgn =
+        state.historySan.length > 0
+          ? state.historySan.reduce<string>((pgn, san, index) => {
+              const moveNumber = Math.floor(index / 2) + 1;
+              if (index % 2 === 0) {
+                return `${pgn}${moveNumber}. ${san}`;
+              }
+              return `${pgn} ${san}`;
+            }, '')
+          : '';
       updateFromFen(state);
       return {
         ok: true,
@@ -119,7 +120,7 @@ const createMockChessJsRules = () => {
       state.pgn = pgn;
       state.historySan = SCRIPTED_MOVES.map((entry) => entry.san);
       state.verboseHistory = SCRIPTED_MOVES.map(({ from, to }) => ({ from, to }));
-      const lastFen = SCRIPTED_MOVES[SCRIPTED_MOVES.length - 1]?.fen ?? state.fen;
+      const lastFen = SCRIPTED_MOVES.at(-1)?.fen ?? state.fen;
       state.fen = normaliseFen(lastFen);
       updateFromFen(state);
       return true;
@@ -507,7 +508,7 @@ describe('App Component', () => {
       await waitFor(() => {
         expect(fenTextarea).toHaveValue(`${problematicFEN} 1`);
       });
-    }, 10000);
+    }, 10_000);
 
     it('should start with empty FEN textarea', () => {
       render(<App />);
@@ -535,13 +536,13 @@ describe('App Component', () => {
 
   describe('PGN Recorder integration', () => {
     it('should handle PGN recorder with or without Chess.js', () => {
-      delete (window as typeof window & { Chess?: unknown }).Chess;
+      delete (globalThis as typeof globalThis & { Chess?: unknown }).Chess;
 
       expect(() => {
         render(<App />);
       }).not.toThrow();
 
-      (window as typeof window & { Chess?: unknown }).Chess = {};
+      (globalThis as typeof globalThis & { Chess?: unknown }).Chess = {};
 
       expect(() => {
         render(<App />);

@@ -638,7 +638,7 @@ export function ChessPuzzleApp() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#f59e0b' }}>
                 {
-                  Array.from(puzzle.solvedPuzzles).filter((id) => {
+                  [...puzzle.solvedPuzzles].filter((id) => {
                     const p = chessPuzzles.find((puzzle) => puzzle.id === id);
                     return p?.difficulty === 'advanced' || p?.difficulty === 'master';
                   }).length
@@ -724,7 +724,7 @@ export function PuzzleCreator() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${puzzle.title.replace(/\s+/g, '-').toLowerCase()}.json`;
+    a.download = `${puzzle.title.replaceAll(/\s+/g, '-').toLowerCase()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

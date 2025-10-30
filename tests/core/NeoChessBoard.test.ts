@@ -55,7 +55,7 @@ type AudioMock = {
 
 type AudioConstructor = new (src?: string) => HTMLAudioElement;
 
-if (typeof globalThis.PointerEvent === 'undefined') {
+if (globalThis.PointerEvent === undefined) {
   class PointerEventPolyfill extends MouseEvent {
     constructor(type: string, init?: Record<string, unknown>) {
       super(type, init);
@@ -79,7 +79,7 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
   ) {
     this.fileLabels = generateFileLabels(files);
     this.rankLabels = generateRankLabels(ranks);
-    this.board = Array.from({ length: ranks }, () => Array(files).fill(null));
+    this.board = Array.from({ length: ranks }, () => new Array(files).fill(null));
     this.fen = this._buildFen();
   }
 
@@ -761,8 +761,8 @@ describe('NeoChessBoard Core', () => {
       });
       overlayBoard.renderAll();
 
-      const overlays = Array.from(container.querySelectorAll('.ncb-square-overlay'));
-      const overlay = overlays[overlays.length - 1];
+      const overlays = [...container.querySelectorAll('.ncb-square-overlay')];
+      const overlay = overlays.at(-1);
       expect(overlay).toBeTruthy();
       expect(overlay!.children.length).toBe(64);
       expect((overlay!.children[0] as HTMLElement).textContent).toBe('X');
@@ -783,8 +783,8 @@ describe('NeoChessBoard Core', () => {
       });
       piecesBoard.renderAll();
 
-      const overlays = Array.from(container.querySelectorAll('.ncb-piece-overlay'));
-      const overlay = overlays[overlays.length - 1];
+      const overlays = [...container.querySelectorAll('.ncb-piece-overlay')];
+      const overlay = overlays.at(-1);
       expect(overlay).toBeTruthy();
       expect(overlay!.children.length).toBeGreaterThan(0);
 
@@ -956,7 +956,7 @@ describe('NeoChessBoard Core', () => {
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
         const audioFactory = jest.fn((src: string) => {
           const audio: AudioMock = {
-            play: jest.fn().mockResolvedValue(undefined),
+            play: jest.fn().mockResolvedValue(),
             addEventListener: jest.fn(),
             preload: 'auto',
             volume: 0.3,
@@ -1126,12 +1126,15 @@ describe('NeoChessBoard Core', () => {
       const resolveStatusColor = (status: 'check' | 'checkmate' | 'stalemate'): string => {
         const theme = getPrivate<Theme>(board, 'theme');
         switch (status) {
-          case 'stalemate':
+          case 'stalemate': {
             return theme.stalemate ?? theme.lastMove;
-          case 'checkmate':
+          }
+          case 'checkmate': {
             return theme.checkmate ?? theme.moveHighlight ?? theme.moveTo;
-          default:
+          }
+          default: {
             return theme.check ?? theme.moveHighlight ?? theme.moveTo;
+          }
         }
       };
 
@@ -1142,8 +1145,7 @@ describe('NeoChessBoard Core', () => {
         board.setFEN('4k3/8/8/8/8/8/4Q3/4K3 b - - 0 1', true);
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
-        const lastCall =
-          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
         const highlight = lastCall[0] as StatusHighlight;
 
         expect(highlight.mode).toBe('squares');
@@ -1169,8 +1171,7 @@ describe('NeoChessBoard Core', () => {
         board.setFEN('6k1/8/6K1/8/8/8/8/8 b - - 0 1', true);
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
-        const lastCall =
-          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
         const highlight = lastCall[0] as StatusHighlight;
 
         expect(highlight.mode).toBe('squares');
@@ -1195,8 +1196,7 @@ describe('NeoChessBoard Core', () => {
         board.setFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1', true);
 
         expect(setStatusHighlightSpy).toHaveBeenCalled();
-        const lastCall =
-          setStatusHighlightSpy.mock.calls[setStatusHighlightSpy.mock.calls.length - 1];
+        const lastCall = setStatusHighlightSpy.mock.calls.at(-1);
         const highlight = lastCall[0] as StatusHighlight;
 
         expect(highlight.mode).toBe('board');
@@ -1325,7 +1325,7 @@ describe('NeoChessBoard Core', () => {
       renderSpy.mockClear();
       board.clearPremove();
 
-      expect(setSpy).toHaveBeenLastCalledWith(undefined, undefined);
+      expect(setSpy).toHaveBeenLastCalledWith();
       expect(renderSpy).toHaveBeenCalled();
 
       setSpy.mockRestore();
@@ -1379,7 +1379,7 @@ describe('NeoChessBoard Core', () => {
 
       const originalAudio = globalThis.Audio;
       const audioFactory = jest.fn(() => ({
-        play: jest.fn().mockResolvedValue(undefined),
+        play: jest.fn().mockResolvedValue(),
         addEventListener: jest.fn(),
         preload: 'auto',
         volume: 0.3,
@@ -1913,8 +1913,8 @@ describe('NeoChessBoard Core', () => {
       const scrollBy = jest.fn();
       scrollContainer.scrollBy = scrollBy as unknown as typeof scrollContainer.scrollBy;
 
-      scrollContainer.appendChild(container);
-      document.body.appendChild(scrollContainer);
+      scrollContainer.append(container);
+      document.body.append(scrollContainer);
 
       board.destroy();
       board = new NeoChessBoard(container, { allowAutoScroll: true });
@@ -1950,8 +1950,8 @@ describe('NeoChessBoard Core', () => {
       expect(scrollBy).toHaveBeenCalled();
 
       onPointerUp(nearEdge.event);
-      scrollContainer.removeChild(container);
-      document.body.removeChild(scrollContainer);
+      container.remove();
+      scrollContainer.remove();
     });
   });
 
@@ -2205,15 +2205,10 @@ describe('NeoChessBoard Core', () => {
       if (!inlineOverlay) {
         throw new Error('Inline promotion overlay not found');
       }
-      expect(inlineOverlay.getAttribute('data-square')).toBe('e8');
+      expect(inlineOverlay.dataset.square).toBe('e8');
       const buttons = inlineOverlay.querySelectorAll('.ncb-inline-promotion__choice');
       expect(buttons).toHaveLength(4);
-      expect(Array.from(buttons).map((button) => button.getAttribute('data-piece'))).toEqual([
-        'q',
-        'r',
-        'b',
-        'n',
-      ]);
+      expect([...buttons].map((button) => button.dataset.piece)).toEqual(['q', 'r', 'b', 'n']);
     });
 
     it('updates promotion UI dynamically when configured at runtime', () => {

@@ -6,7 +6,7 @@ describe('NeoChessBoard clock integration', () => {
 
   beforeEach(() => {
     root = document.createElement('div');
-    document.body.appendChild(root);
+    document.body.append(root);
   });
 
   afterEach(() => {
@@ -23,7 +23,7 @@ describe('NeoChessBoard clock integration', () => {
       soundEnabled: false,
       clock: {
         initial: { w: 300_000, b: 180_000 },
-        increment: { w: 2_000, b: 1_000 },
+        increment: { w: 2000, b: 1000 },
         active: 'b',
         paused: true,
         callbacks: {
@@ -36,8 +36,8 @@ describe('NeoChessBoard clock integration', () => {
     expectState(state);
     expect(state.white.remaining).toBe(300_000);
     expect(state.black.remaining).toBe(180_000);
-    expect(state.white.increment).toBe(2_000);
-    expect(state.black.increment).toBe(1_000);
+    expect(state.white.increment).toBe(2000);
+    expect(state.black.increment).toBe(1000);
     expect(state.active).toBe('b');
     expect(state.isPaused).toBe(true);
     expect(change).toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('NeoChessBoard clock integration', () => {
     const board = new NeoChessBoard(root, {
       soundEnabled: false,
       clock: {
-        initial: 5_000,
+        initial: 5000,
         active: 'w',
         paused: true,
       },
@@ -94,20 +94,20 @@ describe('NeoChessBoard clock integration', () => {
       },
     });
 
-    board.updateClockState({ white: { remaining: 2_000 } });
+    board.updateClockState({ white: { remaining: 2000 } });
     board.setClockConfig({
-      initial: { w: 4_000, b: 8_000 },
-      increment: { w: 1_000, b: 2_000 },
+      initial: { w: 4000, b: 8000 },
+      increment: { w: 1000, b: 2000 },
       active: 'b',
       paused: true,
     });
 
     const state = board.getClockState();
     expectState(state);
-    expect(state.white.remaining).toBe(4_000);
-    expect(state.black.remaining).toBe(8_000);
-    expect(state.white.increment).toBe(1_000);
-    expect(state.black.increment).toBe(2_000);
+    expect(state.white.remaining).toBe(4000);
+    expect(state.black.remaining).toBe(8000);
+    expect(state.white.increment).toBe(1000);
+    expect(state.black.increment).toBe(2000);
     expect(state.active).toBe('b');
     expect(state.isRunning).toBe(false);
 
@@ -118,7 +118,7 @@ describe('NeoChessBoard clock integration', () => {
     const board = new NeoChessBoard(root, {
       soundEnabled: false,
       clock: {
-        initial: 3_000,
+        initial: 3000,
         active: 'w',
         paused: false,
       },

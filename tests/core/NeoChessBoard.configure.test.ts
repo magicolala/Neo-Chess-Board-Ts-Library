@@ -6,7 +6,7 @@ const getPrivate = <T>(instance: unknown, key: string): T =>
 const getMethodHost = (instance: NeoChessBoard): Record<string, (...args: unknown[]) => unknown> =>
   instance as unknown as Record<string, (...args: unknown[]) => unknown>;
 
-if (typeof globalThis.PointerEvent === 'undefined') {
+if (globalThis.PointerEvent === undefined) {
   class PointerEventPolyfill extends MouseEvent {
     constructor(type: string, init?: Record<string, unknown>) {
       super(type, init);
@@ -22,7 +22,7 @@ describe('NeoChessBoard.configure', () => {
 
   beforeEach(() => {
     container = document.createElement('div');
-    document.body.appendChild(container);
+    document.body.append(container);
     board = new NeoChessBoard(container);
   });
 

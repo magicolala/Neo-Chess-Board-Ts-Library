@@ -35,21 +35,21 @@ describe('Themes', () => {
     it('should have all required properties in classic theme', () => {
       const classic = THEMES.classic;
 
-      requiredThemeProperties.forEach((prop) => {
+      for (const prop of requiredThemeProperties) {
         expect(classic).toHaveProperty(prop);
         expect(typeof classic[prop]).toBe('string');
         expect(classic[prop]).toBeTruthy();
-      });
+      }
     });
 
     it('should have all required properties in midnight theme', () => {
       const midnight = THEMES.midnight;
 
-      requiredThemeProperties.forEach((prop) => {
+      for (const prop of requiredThemeProperties) {
         expect(midnight).toHaveProperty(prop);
         expect(typeof midnight[prop]).toBe('string');
         expect(midnight[prop]).toBeTruthy();
-      });
+      }
     });
   });
 
@@ -107,9 +107,9 @@ describe('Themes', () => {
 
     it('should have appropriate contrast between light and dark squares', () => {
       // This is a basic test to ensure themes have some visual distinction
-      Object.values(THEMES).forEach((theme) => {
+      for (const theme of Object.values(THEMES)) {
         expect(theme.light).not.toBe(theme.dark);
-      });
+      }
     });
   });
 
@@ -125,12 +125,12 @@ describe('Themes', () => {
 
   describe('Theme accessibility', () => {
     it('should have sufficient opacity for move highlights', () => {
-      Object.values(THEMES).forEach((theme) => {
+      for (const theme of Object.values(THEMES)) {
         // Extract opacity from rgba values
-        const moveFromOpacity = parseFloat(
+        const moveFromOpacity = Number.parseFloat(
           theme.moveFrom.match(/rgba\(\d+,\d+,\d+,([\d.]+)\)/)?.[1] || '0',
         );
-        const moveToOpacity = parseFloat(
+        const moveToOpacity = Number.parseFloat(
           theme.moveTo.match(/rgba\(\d+,\d+,\d+,([\d.]+)\)/)?.[1] || '0',
         );
 
@@ -138,7 +138,7 @@ describe('Themes', () => {
         expect(moveFromOpacity).toBeLessThan(1);
         expect(moveToOpacity).toBeGreaterThan(0);
         expect(moveToOpacity).toBeLessThan(1);
-      });
+      }
     });
   });
 

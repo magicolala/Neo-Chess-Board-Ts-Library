@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import path from 'node:path';
 
 export default defineConfig({
   base: '/Neo-Chess-Board-Ts-Library/',
@@ -8,8 +8,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        index: resolve(__dirname, 'src/index.ts'),
-        react: resolve(__dirname, 'src/react/index.ts'),
+        index: path.resolve(__dirname, 'src/index.ts'),
+        react: path.resolve(__dirname, 'src/react/index.ts'),
       },
       name: 'NeoChessBoard',
       formats: ['es', 'cjs'],
@@ -29,7 +29,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, 'src'),
     },
   },
 });

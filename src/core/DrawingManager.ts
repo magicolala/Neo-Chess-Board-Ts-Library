@@ -152,10 +152,10 @@ export class DrawingManager {
     if (config.arrowOptions) {
       this.arrowOptions = { ...config.arrowOptions };
     }
-    if (typeof config.allowDrawingArrows !== 'undefined') {
+    if (config.allowDrawingArrows !== undefined) {
       this.allowDrawingArrows = config.allowDrawingArrows;
     }
-    if (typeof config.clearArrowsOnClick !== 'undefined') {
+    if (config.clearArrowsOnClick !== undefined) {
       this.clearArrowsOnClick = config.clearArrowsOnClick;
     }
     if (config.onArrowsChange) {
@@ -505,11 +505,11 @@ export class DrawingManager {
       const cloned: Partial<Record<Color, Premove[]>> = {};
       for (const color of Object.keys(queues) as Color[]) {
         const list = queues[color];
-        if (list && list.length) {
+        if (list && list.length > 0) {
           cloned[color] = list.map((entry) => ({ ...entry }));
         }
       }
-      this.state.premoves = Object.keys(cloned).length ? cloned : undefined;
+      this.state.premoves = Object.keys(cloned).length > 0 ? cloned : undefined;
     } else {
       this.state.premoves = undefined;
     }
@@ -556,12 +556,12 @@ export class DrawingManager {
     const cloned: Partial<Record<Color, Premove[]>> = {};
     for (const color of Object.keys(this.state.premoves) as Color[]) {
       const list = this.state.premoves[color];
-      if (list && list.length) {
+      if (list && list.length > 0) {
         cloned[color] = list.map((entry) => ({ ...entry }));
       }
     }
 
-    return Object.keys(cloned).length ? cloned : undefined;
+    return Object.keys(cloned).length > 0 ? cloned : undefined;
   }
 
   public getActivePremoveColor(): Color | undefined {
@@ -717,10 +717,7 @@ export class DrawingManager {
     const fallbackFileLabels = generateFileLabels(boardFileIndex + 1);
 
     return (
-      this.fileLabels[boardFileIndex] ??
-      FILES[boardFileIndex] ??
-      fallbackFileLabels[fallbackFileLabels.length - 1] ??
-      ''
+      this.fileLabels[boardFileIndex] ?? FILES[boardFileIndex] ?? fallbackFileLabels.at(-1) ?? ''
     );
   }
 
@@ -730,7 +727,7 @@ export class DrawingManager {
     return (
       this.rankLabels[boardRankIndex] ??
       RANKS[boardRankIndex] ??
-      fallbackRankLabels[fallbackRankLabels.length - 1] ??
+      fallbackRankLabels.at(-1) ??
       String(boardRankIndex + 1)
     );
   }
@@ -1143,11 +1140,11 @@ export class DrawingManager {
         if (state.premoves) {
           const queues: Partial<Record<Color, Premove[]>> = {};
           for (const [color, queue] of Object.entries(state.premoves) as [Color, Premove[]][]) {
-            if (queue && queue.length) {
+            if (queue && queue.length > 0) {
               queues[color] = queue.map((entry) => ({ ...entry }));
             }
           }
-          this.state.premoves = Object.keys(queues).length ? queues : undefined;
+          this.state.premoves = Object.keys(queues).length > 0 ? queues : undefined;
         } else {
           this.state.premoves = undefined;
         }
@@ -1386,7 +1383,7 @@ export class DrawingManager {
       (highlight) => highlight.square === square && highlight.type === highlightType,
     );
 
-    if (existingIndex >= 0) {
+    if (existingIndex !== -1) {
       this.removeHighlight(square);
       return;
     }

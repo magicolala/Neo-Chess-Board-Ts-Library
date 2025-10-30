@@ -40,18 +40,18 @@ const COLOR_MAP: Record<string, string> = {
   B: '#0000ff', // Blue
 };
 
-export class PgnAnnotationParser {
+export const PgnAnnotationParser = {
   /**
    * Check if a comment contains visual annotations
    */
-  static hasVisualAnnotations(comment: string): boolean {
+  hasVisualAnnotations(comment: string): boolean {
     return VISUAL_ANNOTATION_REGEX.test(comment);
-  }
+  },
 
   /**
    * Parse visual annotations from a PGN comment
    */
-  static parseComment(comment: string): ParsedAnnotations {
+  parseComment(comment: string): ParsedAnnotations {
     // Strip outer curly braces if present
     let processingComment =
       comment.startsWith('{') && comment.endsWith('}')
@@ -113,13 +113,13 @@ export class PgnAnnotationParser {
     }
 
     // Parse evaluation (%eval)
-    processingComment = processingComment.replace(EVAL_REGEX, (_match, value: string) => {
+    processingComment = processingComment.replaceAll(EVAL_REGEX, (_match, value: string) => {
       evaluation = parseAnnotationValue(value);
       return ' ';
     });
 
     // The remaining text in processingComment is the actual text comment
-    let textComment = processingComment.replace(/\s+/g, ' ').trim();
+    let textComment = processingComment.replaceAll(/\s+/g, ' ').trim();
 
     return {
       arrows,
@@ -127,12 +127,12 @@ export class PgnAnnotationParser {
       textComment: textComment || '',
       evaluation,
     };
-  }
+  },
 
   /**
    * Returns drawing objects from parsed annotations
    */
-  static toDrawingObjects(parsed: ParsedAnnotations): {
+  toDrawingObjects(parsed: ParsedAnnotations): {
     arrows: Arrow[];
     highlights: SquareHighlight[];
   } {
@@ -140,22 +140,22 @@ export class PgnAnnotationParser {
       arrows: parsed.arrows,
       highlights: parsed.highlights,
     };
-  }
+  },
 
   /**
    * Remove visual annotations from a comment, keeping only text
    */
-  static stripAnnotations(comment: string): string {
+  stripAnnotations(comment: string): string {
     return comment
-      .replace(new RegExp(VISUAL_ANNOTATION_REGEX.source, 'g'), '')
-      .replace(/\s+/g, ' ')
+      .replaceAll(new RegExp(VISUAL_ANNOTATION_REGEX.source, 'g'), '')
+      .replaceAll(/\s+/g, ' ')
       .trim();
-  }
+  },
 
   /**
    * Create annotation string from arrows and circles
    */
-  static fromDrawingObjects(arrows: Arrow[], highlights: SquareHighlight[]): string {
+  fromDrawingObjects(arrows: Arrow[], highlights: SquareHighlight[]): string {
     const parts: string[] = [];
 
     if (arrows.length > 0) {
@@ -176,31 +176,31 @@ export class PgnAnnotationParser {
     }
 
     return parts.join(' ');
-  }
+  },
 
   /**
    * Convert color code to hex color
    */
-  static colorToHex(colorCode: string): string {
+  colorToHex(colorCode: string): string {
     return COLOR_MAP[colorCode] || COLOR_MAP['R']; // Default to red
-  }
+  },
 
   /**
    * Convert hex color to color code
    */
-  static hexToColor(hex: string): string {
+  hexToColor(hex: string): string {
     for (const [code, color] of Object.entries(COLOR_MAP)) {
       if (color === hex) {
         return code;
       }
     }
     return 'R'; // Default to red
-  }
+  },
 
   /**
    * Check if a string is a valid chess square notation
    */
-  static isValidSquare(square: string): square is Square {
+  isValidSquare(square: string): square is Square {
     return SQUARE_REGEX.test(square);
-  }
-}
+  },
+};
