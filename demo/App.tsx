@@ -32,6 +32,7 @@ import {
   useTranslation,
 } from './i18n/translations';
 import { pickRandomElement } from './utils/random';
+import { normalizePgn } from './utils/pgn-normalizer';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
   moveNumber: rules.moveNumber(),
@@ -539,12 +540,14 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    const normalizedPgn = normalizePgn(trimmed);
+
     setIsPgnLoading(true);
     try {
       setPgnError(null);
-      const success = chessRules.loadPgn(trimmed);
+      const success = chessRules.loadPgn(normalizedPgn);
       const board = boardRef.current?.getBoard();
-      const boardResult = board?.loadPgnWithAnnotations(trimmed);
+      const boardResult = board?.loadPgnWithAnnotations(normalizedPgn);
 
       if (!success) {
         setPgnError(translate('pgn.error.load'));

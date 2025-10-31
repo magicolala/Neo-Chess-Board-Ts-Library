@@ -562,4 +562,64 @@ describe('App Component', () => {
       expect(() => user.click(screen.getByText(enTranslations['pgn.copy']))).not.toThrow();
     });
   });
+
+  describe('PGN normalizer utility', () => {
+    const { normalizePgn } = require('../../demo/utils/pgn-normalizer');
+
+    it('should normalize Lichess-style PGN to standard format', () => {
+      const lishPgn = `[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "1-0"]
+
+c4 { [%eval 0.12] } 1... e6 { [%eval 0.25] } 2. d4 d5 { [%eval 0.17] }`;
+      const expected = `[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "1-0"]
+
+1. c4 { [%eval 0.12] } 1... e6 { [%eval 0.25] } 2. d4 2... d5 { [%eval 0.17] }`;
+
+      expect(normalizePgn(lishPgn)).toBe(expected);
+    });
+
+    it('should handle the specific user PGN from the issue', () => {
+      const userPgn = `[Event "Analysis"]
+[Site "https://maiachess.com/"]
+[Date "2025.10.30"]
+[White "Carlsen, Magnus"]
+[Black "Anand, Viswanathan"]
+[Result "1-0"]
+[GameId "2SThIknb"]
+[UTCDate "2025.10.30"]
+[UTCTime "23:42:18"]
+[WhiteElo "?"]
+[BlackElo "?"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "D31"]
+[Opening "Semi-Slav Defense: Marshall Gambit, Forgotten Variation"]
+[Termination "Normal"]
+[Annotator "lichess.org"]
+
+c4 { [%eval 0.12] } 1... e6 { [%eval 0.25] } 2. d4 d5 { [%eval 0.17] }`;
+      const normalized = normalizePgn(userPgn);
+
+      // Verify it contains the expected normalized format
+      expect(normalized).toContain(
+        '1. c4 { [%eval 0.12] } 1... e6 { [%eval 0.25] } 2. d4 2... d5 { [%eval 0.17] }',
+      );
+
+      // Ensure the PGN is now loadable
+      const rulesInstance = new (require('../../src/core/ChessJsRules').ChessJsRules)();
+      const success = rulesInstance.loadPgn(normalized);
+      expect(success).toBe(true);
+    });
+  });
 });
