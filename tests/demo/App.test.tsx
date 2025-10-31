@@ -457,13 +457,13 @@ describe('App Component', () => {
       await waitFor(() => {
         expect(fenTextarea).toHaveValue(INITIAL_FEN);
       });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(INITIAL_FEN);
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(INITIAL_FEN, false);
 
       await user.click(nextButton);
       await waitFor(() => {
         expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[0].fen);
       });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen);
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen, false);
       const descriptorWhite = enTranslations['timeline.position'].replace(
         '{descriptor}',
         '1 (White)',
@@ -475,7 +475,7 @@ describe('App Component', () => {
       await waitFor(() => {
         expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[1].fen);
       });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[1].fen);
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[1].fen, false);
       const descriptorBlack = enTranslations['timeline.position'].replace(
         '{descriptor}',
         '1... (Black)',
@@ -486,7 +486,7 @@ describe('App Component', () => {
       await waitFor(() => {
         expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[0].fen);
       });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen);
+      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen, false);
     });
   });
 

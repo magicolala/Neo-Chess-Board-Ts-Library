@@ -168,6 +168,7 @@ const AppContent: React.FC = () => {
     showAnimations: true,
     animationDuration: 300,
   });
+  const shouldAnimateMoves = boardOptions.showAnimations && boardOptions.animationDuration > 0;
   const animationSpeedInputId = useId();
   const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
@@ -429,7 +430,7 @@ const AppContent: React.FC = () => {
 
       const board = boardRef.current?.getBoard();
       setFen((previousFen) => (previousFen === entry.fen ? previousFen : entry.fen));
-      board?.loadFEN?.(entry.fen);
+      board?.loadFEN?.(entry.fen, !shouldAnimateMoves);
       syncOrientationWithFen(entry.fen);
       rebuildRulesFromTimeline(clampedPly);
       updateStatusSnapshot();
@@ -442,6 +443,7 @@ const AppContent: React.FC = () => {
       syncOrientationWithFen,
       updateEvaluationFromMap,
       updateStatusSnapshot,
+      shouldAnimateMoves,
     ],
   );
 
