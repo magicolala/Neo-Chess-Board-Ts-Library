@@ -797,7 +797,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a1625] to-[#2d1b3d] text-gray-200 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a1625] to-[#2d1b3d] text-gray-200 font-sans container">
       <header className="fixed top-0 w-full bg-gray-900/50 backdrop-blur-sm border-b border-gray-800 z-50 h-[60px]">
         {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
         <div className="max-w-screen-2xl mx-auto px-4 h-full flex items-center justify-between">
@@ -839,7 +839,7 @@ const AppContent: React.FC = () => {
             <LoadingButton
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 theme === 'midnight'
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-purple-600 text-white active'
                   : 'text-gray-300 hover:bg-gray-700/50'
               }`}
               onClick={() => handleThemeChange('midnight')}
@@ -851,7 +851,7 @@ const AppContent: React.FC = () => {
             <LoadingButton
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 theme === 'classic'
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-purple-600 text-white active'
                   : 'text-gray-300 hover:bg-gray-700/50'
               }`}
               onClick={() => handleThemeChange('classic')}
@@ -935,7 +935,7 @@ const AppContent: React.FC = () => {
                   aria-label={translate('pgn.title')}
                   placeholder={translate('pgn.placeholder')}
                 />
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="grid grid-cols-2 gap-2 mt-3 buttonGroup">
                   <LoadingButton
                     className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-medium transition text-white text-sm"
                     onClick={handleLoadPgn}
