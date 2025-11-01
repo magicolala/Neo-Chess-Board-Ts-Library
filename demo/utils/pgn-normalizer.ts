@@ -7,13 +7,13 @@ export function normalizePgn(pgn: string): string {
   if (firstMoveIndex === -1) {
     return pgn;
   }
-
   const headers = pgn.slice(0, firstMoveIndex + 2);
   const moves = pgn.slice(firstMoveIndex + 2);
-
+  
   let normalizedMoves = moves;
+  // Add move numbers where missing for Lichess-style PGN
   normalizedMoves = normalizedMoves.replace(/^(\s*)c4(\s+)/, '$11. c4$2');
   normalizedMoves = normalizedMoves.replace(/ d4 d5 /, ' d4 2... d5 ');
-
+  
   return headers + normalizedMoves;
 }
