@@ -836,6 +836,35 @@ export class NeoChessBoard {
     }
   }
 
+  public showPgnAnnotationsForPly(ply: number): boolean {
+    if (!this.drawingManager) {
+      return false;
+    }
+
+    this.drawingManager.clearArrows();
+    this.drawingManager.clearHighlights();
+
+    if (ply <= 0) {
+      return true;
+    }
+
+    const pgnNotation = this._getPgnNotation();
+    if (!pgnNotation) {
+      return false;
+    }
+
+    const moveNumber = Math.ceil(ply / 2);
+    const isWhiteMove = ply % 2 === 1;
+    const annotations = pgnNotation.getMoveAnnotations(moveNumber, isWhiteMove);
+
+    if (!annotations) {
+      return true;
+    }
+
+    this._applyAnnotations(annotations);
+    return true;
+  }
+
   public exportPgnWithAnnotations(): string {
     const pgnNotation = this._getPgnNotation();
     if (pgnNotation && typeof pgnNotation.toPgnWithAnnotations === 'function') {
@@ -4629,26 +4658,12 @@ export class NeoChessBoard {
     const moves = pgnNotation.getMovesWithAnnotations();
     if (moves.length === 0) return;
 
-    const lastMove = moves.at(-1);
-    if (!lastMove) {
-      return;
-    }
-    const totalMoves = moves.reduce(
-      (acc, move) => acc + (move.white ? 1 : 0) + (move.black ? 1 : 0),
+    const totalPlies = moves.reduce(
+      (accumulator, move) => accumulator + (move.white ? 1 : 0) + (move.black ? 1 : 0),
       0,
     );
 
-    let annotationsToShow: PgnMoveAnnotations | null = null;
-
-    if (totalMoves % 2 === 0 && lastMove.blackAnnotations) {
-      annotationsToShow = lastMove.blackAnnotations;
-    } else if (totalMoves % 2 === 1 && lastMove.whiteAnnotations) {
-      annotationsToShow = lastMove.whiteAnnotations;
-    }
-
-    if (annotationsToShow) {
-      this._applyAnnotations(annotationsToShow);
-    }
+    this.showPgnAnnotationsForPly(totalPlies);
   }
 
   private _applyAnnotations(annotations: PgnMoveAnnotations): void {

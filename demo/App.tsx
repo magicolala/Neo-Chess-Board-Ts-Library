@@ -3,7 +3,7 @@ import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
 import { ChessJsRules } from '../src/core/ChessJsRules';
-import type { PromotionRequest, Square } from '../src/core/types';
+import type { PromotionRequest, Square, PgnMoveAnnotations } from '../src/core/types';
 import moveSound from './assets/souffle.ogg';
 import { LoadingButton, DotLoader, LoadingOverlay, useLoadingState } from './components/Loaders';
 import {
@@ -58,6 +58,42 @@ interface TimelineMove {
   to: string;
   promotion?: string;
 }
+
+interface PlyAnnotationInfo {
+  moveNumber: number;
+  color: 'white' | 'black';
+  san?: string;
+  comment?: string;
+  annotations?: PgnMoveAnnotations;
+}
+
+const sanitizeComment = (comment?: string): string | undefined => {
+  if (!comment) {
+    return undefined;
+  }
+
+  const trimmed = comment.trim();
+  const withoutBraces =
+    trimmed.startsWith('{') && trimmed.endsWith('}') ? trimmed.slice(1, -1) : trimmed;
+  const cleaned = withoutBraces
+    .replaceAll(/\[%[^]]*\]/g, ' ')
+    .replaceAll(/:[a-zA-Z]+\[[^\]]*\](?:\{[^{}]*\})?/g, ' ')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+
+  return cleaned.length > 0 ? cleaned : undefined;
+};
+
+const extractCommentText = (
+  annotations?: PgnMoveAnnotations,
+  fallback?: string,
+): string | undefined => {
+  const sanitizedFromAnnotations = sanitizeComment(annotations?.textComment);
+  if (sanitizedFromAnnotations) {
+    return sanitizedFromAnnotations;
+  }
+  return sanitizeComment(fallback);
+};
 
 const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
@@ -149,6 +185,7 @@ const AppContent: React.FC = () => {
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [isPgnLoading, setIsPgnLoading] = useState(false);
   const [evaluationsByPly, setEvaluationsByPly] = useState<Record<number, number | string>>({});
+  const [plyAnnotations, setPlyAnnotations] = useState<Record<number, PlyAnnotationInfo>>({});
   const initialFen = chessRules.getFEN();
   const timelineInitialFenRef = useRef(initialFen);
   const timelineMovesRef = useRef<TimelineMove[]>([]);
@@ -203,6 +240,14 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     selectedPlyRef.current = selectedPly;
   }, [selectedPly]);
+
+  useEffect(() => {
+    const boardInstance = boardRef.current?.getBoard();
+    if (!boardInstance || typeof boardInstance.showPgnAnnotationsForPly !== 'function') {
+      return;
+    }
+    boardInstance.showPgnAnnotationsForPly(selectedPly);
+  }, [plyAnnotations, selectedPly]);
 
   useEffect(() => {
     const boardInstance = boardRef.current?.getBoard();
@@ -293,6 +338,7 @@ const AppContent: React.FC = () => {
   const clearEvaluations = useCallback(() => {
     const baseFen = chessRules.getFEN();
     setEvaluationsByPly({});
+    setPlyAnnotations({});
     setTimeline([{ ply: 0, fen: baseFen }]);
     setCurrentEvaluation(undefined);
     setCurrentPly(0);
@@ -304,6 +350,7 @@ const AppContent: React.FC = () => {
   const syncEvaluationsFromRules = useCallback(() => {
     const notation = chessRules.getPgnNotation();
     const evaluationMap: Record<number, number | string> = {};
+    const annotationMap: Record<number, PlyAnnotationInfo> = {};
     const metadata =
       typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
     const normalizedSetup =
@@ -321,6 +368,25 @@ const AppContent: React.FC = () => {
       }
       if (move.evaluation?.black !== undefined) {
         evaluationMap[baseIndex + 2] = move.evaluation.black;
+      }
+
+      if (move.whiteAnnotations || move.whiteComment) {
+        annotationMap[baseIndex + 1] = {
+          moveNumber: move.moveNumber,
+          color: 'white',
+          san: move.white,
+          comment: extractCommentText(move.whiteAnnotations, move.whiteComment),
+          annotations: move.whiteAnnotations,
+        };
+      }
+      if (move.blackAnnotations || move.blackComment) {
+        annotationMap[baseIndex + 2] = {
+          moveNumber: move.moveNumber,
+          color: 'black',
+          san: move.black,
+          comment: extractCommentText(move.blackAnnotations, move.blackComment),
+          annotations: move.blackAnnotations,
+        };
       }
     }
 
@@ -374,6 +440,7 @@ const AppContent: React.FC = () => {
     timelineInitialFenRef.current = initialTimelineFen;
     timelineMovesRef.current = verboseHistory;
     setEvaluationsByPly(evaluationMap);
+    setPlyAnnotations(annotationMap);
     setTimeline(timelineEntries);
     updateEvaluationFromMap(verboseHistory.length, evaluationMap);
   }, [chessRules, setTimeline, updateEvaluationFromMap]);
@@ -435,6 +502,7 @@ const AppContent: React.FC = () => {
       const board = boardRef.current?.getBoard();
       setFen((previousFen) => (previousFen === entry.fen ? previousFen : entry.fen));
       board?.loadFEN?.(entry.fen, !shouldAnimateMoves);
+      board?.showPgnAnnotationsForPly?.(clampedPly);
       syncOrientationWithFen(entry.fen);
       rebuildRulesFromTimeline(clampedPly);
       updateStatusSnapshot();
@@ -456,6 +524,7 @@ const AppContent: React.FC = () => {
       setFen((previousFen) => (previousFen === nextFen ? previousFen : nextFen));
       syncOrientationWithFen(nextFen);
       setPgnError(null);
+      const board = boardRef.current?.getBoard();
 
       const mappedPly = fenToPlyMap[nextFen];
       if (chessRules.getFEN() !== nextFen) {
@@ -473,6 +542,7 @@ const AppContent: React.FC = () => {
 
       if (typeof mappedPly === 'number') {
         updateEvaluationFromMap(mappedPly);
+        board?.showPgnAnnotationsForPly?.(mappedPly);
       } else {
         const fallbackPly = chessRules.history().length;
         setTimeline((previousTimeline) => {
@@ -482,6 +552,16 @@ const AppContent: React.FC = () => {
             return trimmedTimeline;
           }
           return [...trimmedTimeline, { ply: fallbackPly, fen: nextFen }];
+        });
+        setPlyAnnotations((previousAnnotations) => {
+          const nextAnnotations: Record<number, PlyAnnotationInfo> = {};
+          for (const [plyKey, info] of Object.entries(previousAnnotations)) {
+            const numericPly = Number(plyKey);
+            if (!Number.isNaN(numericPly) && numericPly <= fallbackPly) {
+              nextAnnotations[numericPly] = info;
+            }
+          }
+          return nextAnnotations;
         });
         timelineMovesRef.current = chessRules.getHistory().map((move) => ({
           from: move.from,
@@ -607,6 +687,7 @@ const AppContent: React.FC = () => {
     chessRules.reset();
     setPgnText(chessRules.toPgn(false));
     clearEvaluations();
+    boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(0);
     setPgnError(null);
     const resetFen = chessRules.getFEN();
     setFen(resetFen);
@@ -757,6 +838,108 @@ const AppContent: React.FC = () => {
         })
       : translate('evaluation.lastScore', { score: evaluationSnapshot.label })
     : translate('evaluation.waitingData');
+
+  const selectedTimelineEntry = useMemo(
+    () => plyTimeline.find((entry) => entry.ply === selectedPly),
+    [plyTimeline, selectedPly],
+  );
+  const activePlyInfo = plyAnnotations[selectedPly];
+  const sanForSelectedPly = selectedTimelineEntry?.san ?? activePlyInfo?.san;
+  const commentForSelectedPly = activePlyInfo?.comment;
+  const arrowCount = activePlyInfo?.annotations?.arrows?.length ?? 0;
+  const highlightCount = activePlyInfo?.annotations?.circles?.length ?? 0;
+  const evaluationForSelectedPly =
+    activePlyInfo?.annotations?.evaluation ?? evaluationsByPly[selectedPly];
+  const annotationBadges: string[] = [];
+
+  if (arrowCount > 0) {
+    annotationBadges.push(
+      translate(
+        arrowCount === 1
+          ? 'comments.annotations.arrows.single'
+          : 'comments.annotations.arrows.plural',
+        { count: arrowCount },
+      ),
+    );
+  }
+
+  if (highlightCount > 0) {
+    annotationBadges.push(
+      translate(
+        highlightCount === 1
+          ? 'comments.annotations.highlights.single'
+          : 'comments.annotations.highlights.plural',
+        { count: highlightCount },
+      ),
+    );
+  }
+
+  if (evaluationForSelectedPly !== undefined) {
+    annotationBadges.push(
+      translate('comments.annotations.evaluation', {
+        value: evaluationForSelectedPly,
+      }),
+    );
+  }
+
+  const optionToggleDescriptors = [
+    {
+      option: 'showArrows',
+      icon: <ArrowsIcon />,
+      label: 'options.showArrows.title',
+      hint_enabled: 'options.showArrows.enabled',
+      hint_disabled: 'options.showArrows.disabled',
+    },
+    {
+      option: 'showHighlights',
+      icon: <HighlightIcon />,
+      label: 'options.showHighlights.title',
+      hint_enabled: 'options.showHighlights.enabled',
+      hint_disabled: 'options.showHighlights.disabled',
+    },
+    {
+      option: 'allowPremoves',
+      icon: <PremovesIcon />,
+      label: 'options.allowPremoves.title',
+      hint_enabled: 'options.allowPremoves.enabled',
+      hint_disabled: 'options.allowPremoves.disabled',
+    },
+    {
+      option: 'showAnimations',
+      icon: <AnimationIcon />,
+      label: 'options.showAnimations.title',
+      hint_enabled: 'options.showAnimations.enabled',
+      hint_disabled: 'options.showAnimations.disabled',
+    },
+    {
+      option: 'showSquareNames',
+      icon: <SquareNamesIcon />,
+      label: 'options.showSquareNames.title',
+      hint_enabled: 'options.showSquareNames.enabled',
+      hint_disabled: 'options.showSquareNames.disabled',
+    },
+    {
+      option: 'soundEnabled',
+      icon: <SoundIcon />,
+      label: 'options.soundEnabled.title',
+      hint_enabled: 'options.soundEnabled.enabled',
+      hint_disabled: 'options.soundEnabled.disabled',
+    },
+    {
+      option: 'allowResize',
+      icon: <BoardSizeIcon />,
+      label: 'options.allowResize.title',
+      hint_enabled: 'options.allowResize.enabled',
+      hint_disabled: 'options.allowResize.disabled',
+    },
+    {
+      option: 'highlightLegal',
+      icon: <LegalMovesIcon />,
+      label: 'options.highlightLegal.title',
+      hint_enabled: 'options.highlightLegal.enabled',
+      hint_disabled: 'options.highlightLegal.disabled',
+    },
+  ] as const;
 
   const gameTagClass = status.isCheckmate
     ? 'bg-red-500/15 text-red-300 border-red-400/30'
@@ -1094,6 +1277,16 @@ const AppContent: React.FC = () => {
                       return accumulator;
                     }, {});
                     setEvaluationsByPly(truncatedEvaluationMap);
+                    setPlyAnnotations((previousAnnotations) => {
+                      const nextAnnotations: Record<number, PlyAnnotationInfo> = {};
+                      for (const [plyKey, info] of Object.entries(previousAnnotations)) {
+                        const numericPly = Number(plyKey);
+                        if (!Number.isNaN(numericPly) && numericPly <= basePly) {
+                          nextAnnotations[numericPly] = info;
+                        }
+                      }
+                      return nextAnnotations;
+                    });
                     setTimeline((previousTimeline) => {
                       const trimmedTimeline = previousTimeline.filter(
                         (entry) => entry.ply <= basePly,
@@ -1120,6 +1313,7 @@ const AppContent: React.FC = () => {
                       promotion: move.promotion,
                     }));
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
+                    boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
                   }}
                   onUpdate={handleBoardUpdate}
                   className="w-full aspect-square rounded-xl ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
@@ -1165,78 +1359,21 @@ const AppContent: React.FC = () => {
 
               <div className="mt-6">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {[
-                    {
-                      option: 'showArrows',
-                      icon: <ArrowsIcon />,
-                      label: 'options.showArrows.title',
-                      hint_enabled: 'options.showArrows.enabled',
-                      hint_disabled: 'options.showArrows.disabled',
-                    },
-                    {
-                      option: 'showHighlights',
-                      icon: <HighlightIcon />,
-                      label: 'options.showHighlights.title',
-                      hint_enabled: 'options.showHighlights.enabled',
-                      hint_disabled: 'options.showHighlights.disabled',
-                    },
-                    {
-                      option: 'allowPremoves',
-                      icon: <PremovesIcon />,
-                      label: 'options.allowPremoves.title',
-                      hint_enabled: 'options.allowPremoves.enabled',
-                      hint_disabled: 'options.allowPremoves.disabled',
-                    },
-                    {
-                      option: 'showAnimations',
-                      icon: <AnimationIcon />,
-                      label: 'options.showAnimations.title',
-                      hint_enabled: 'options.showAnimations.enabled',
-                      hint_disabled: 'options.showAnimations.disabled',
-                    },
-                    {
-                      option: 'showSquareNames',
-                      icon: <SquareNamesIcon />,
-                      label: 'options.showSquareNames.title',
-                      hint_enabled: 'options.showSquareNames.enabled',
-                      hint_disabled: 'options.showSquareNames.disabled',
-                    },
-                    {
-                      option: 'soundEnabled',
-                      icon: <SoundIcon />,
-                      label: 'options.soundEnabled.title',
-                      hint_enabled: 'options.soundEnabled.enabled',
-                      hint_disabled: 'options.soundEnabled.disabled',
-                    },
-                    {
-                      option: 'allowResize',
-                      icon: <BoardSizeIcon />,
-                      label: 'options.allowResize.title',
-                      hint_enabled: 'options.allowResize.enabled',
-                      hint_disabled: 'options.allowResize.disabled',
-                    },
-                    {
-                      option: 'highlightLegal',
-                      icon: <LegalMovesIcon />,
-                      label: 'options.highlightLegal.title',
-                      hint_enabled: 'options.highlightLegal.enabled',
-                      hint_disabled: 'options.highlightLegal.disabled',
-                    },
-                  ].map(({ option, icon, label }) => (
+                  {optionToggleDescriptors.map(({ option, icon, label }) => (
                     <button
                       key={option}
                       type="button"
                       className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
-                        (boardOptions as any)[option]
+                        boardOptions[option]
                           ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
                           : 'bg-white/5 hover:bg-white/10 ring-white/10'
                       }`}
-                      onClick={() => toggleOption(option as ToggleableOption)}
-                      aria-pressed={(boardOptions as any)[option]}
+                      onClick={() => toggleOption(option)}
+                      aria-pressed={boardOptions[option]}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-gray-300">{icon}</span>
-                        <span className="font-medium">{translate(label as TranslationKey)}</span>
+                        <span className="font-medium">{translate(label)}</span>
                       </div>
                     </button>
                   ))}
@@ -1376,6 +1513,62 @@ const AppContent: React.FC = () => {
             </GlassPanel>
 
             <GlassPanel>
+              <PanelHeader>{translate('comments.title')}</PanelHeader>
+              <div className="p-4 space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em]">
+                    {translate('comments.current')}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      selectedPly <= 0 ? 'text-gray-400' : 'text-gray-100'
+                    }`}
+                  >
+                    {formatPlyDescriptor(selectedPly)}
+                  </span>
+                </div>
+                {selectedPly > 0 && sanForSelectedPly ? (
+                  <div className="flex items-center gap-2 text-xs text-purple-200">
+                    <span className="uppercase tracking-[0.14em] text-gray-500">
+                      {translate('comments.sanLabel')}
+                    </span>
+                    <code className="px-2 py-1 rounded-md bg-purple-500/10 font-mono text-sm text-purple-200">
+                      {sanForSelectedPly}
+                    </code>
+                  </div>
+                ) : null}
+                {commentForSelectedPly ? (
+                  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+                    {commentForSelectedPly}
+                  </p>
+                ) : selectedPly > 0 ? (
+                  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    {translate('comments.noMoveSelected')}
+                  </p>
+                )}
+                {annotationBadges.length > 0 && (
+                  <div className="pt-1 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+                      {translate('comments.annotationsTitle')}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {annotationBadges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-xs text-gray-200"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </GlassPanel>
+
+            <GlassPanel>
               <PanelHeader>{translate('timeline.title')}</PanelHeader>
               <div className="p-4">
                 <PlyNavigator
@@ -1387,10 +1580,7 @@ const AppContent: React.FC = () => {
                   isAtEnd={
                     plyTimeline.length === 0 || selectedPly >= (plyTimeline.at(-1)?.ply ?? 0)
                   }
-                  moveLabel={
-                    plyTimeline.find((entry) => entry.ply === selectedPly)?.san ||
-                    translate('timeline.start')
-                  }
+                  moveLabel={selectedTimelineEntry?.san || translate('timeline.start')}
                   positionLabel={translate('timeline.position', {
                     descriptor: formatPlyDescriptor(selectedPly),
                   })}

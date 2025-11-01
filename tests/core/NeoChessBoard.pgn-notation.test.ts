@@ -19,6 +19,7 @@ type MinimalPgnNotation = Pick<
   PgnNotation,
   | 'loadPgnWithAnnotations'
   | 'getMovesWithAnnotations'
+  | 'getMoveAnnotations'
   | 'addMoveAnnotations'
   | 'toPgnWithAnnotations'
 >;
@@ -55,6 +56,14 @@ class StubPgnNotation implements MinimalPgnNotation {
 
   getMovesWithAnnotations(): PgnMove[] {
     return this.moves;
+  }
+
+  getMoveAnnotations(moveNumber: number, isWhite: boolean): PgnMoveAnnotations | undefined {
+    const move = this.moves.find((entry) => entry.moveNumber === moveNumber);
+    if (!move) {
+      return undefined;
+    }
+    return isWhite ? move.whiteAnnotations : move.blackAnnotations;
   }
 
   setAnnotatedMoves(moves: PgnMove[]): void {
@@ -259,6 +268,44 @@ describe('NeoChessBoard PGN and notation helpers', () => {
     expect(drawingManagerMock.addArrowFromObject).toHaveBeenCalledWith(arrow);
     expect(drawingManagerMock.addHighlightFromObject).toHaveBeenCalledWith(circle);
     expect(board.getPosition()).toBe(rules.getFEN());
+  });
+
+  it('replays annotations for a specific ply when requested', () => {
+    const notation = rules.getNotation();
+    const whiteArrow: Arrow = { from: 'g1', to: 'f3', color: '#ff0000' };
+    const blackCircle: SquareHighlight = { square: 'e5', type: 'circle', color: '#00ff00' };
+    notation.setAnnotatedMoves([
+      {
+        moveNumber: 1,
+        white: 'Nf3',
+        black: 'e5',
+        whiteAnnotations: { arrows: [whiteArrow], circles: [] },
+        blackAnnotations: { arrows: [], circles: [blackCircle] },
+      },
+    ]);
+
+    board.loadPgnWithAnnotations('[Event "Test"]\n\n1. Nf3 e5');
+    jest.clearAllMocks();
+
+    expect(board.showPgnAnnotationsForPly(0)).toBe(true);
+    expect(drawingManagerMock.clearArrows).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.clearHighlights).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.addArrowFromObject).not.toHaveBeenCalled();
+    expect(drawingManagerMock.addHighlightFromObject).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(board.showPgnAnnotationsForPly(1)).toBe(true);
+    expect(drawingManagerMock.clearArrows).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.clearHighlights).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.addArrowFromObject).toHaveBeenCalledWith(whiteArrow);
+    expect(drawingManagerMock.addHighlightFromObject).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(board.showPgnAnnotationsForPly(2)).toBe(true);
+    expect(drawingManagerMock.clearArrows).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.clearHighlights).toHaveBeenCalledTimes(1);
+    expect(drawingManagerMock.addArrowFromObject).not.toHaveBeenCalled();
+    expect(drawingManagerMock.addHighlightFromObject).toHaveBeenCalledWith(blackCircle);
   });
 
   it('returns false when loading PGN annotations throws', () => {
