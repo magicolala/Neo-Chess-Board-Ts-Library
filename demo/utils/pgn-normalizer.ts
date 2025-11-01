@@ -9,8 +9,8 @@ export function normalizePgn(pgn: string): string {
     return pgn; // No moves, return as is
   }
 
-  const headers = pgn.substring(0, firstMoveIndex + 2);
-  const moves = pgn.substring(firstMoveIndex + 2);
+  const headers = pgn.slice(0, firstMoveIndex + 2);
+  const moves = pgn.slice(firstMoveIndex + 2);
 
   // Normalize the moves
   let normalizedMoves = moves;

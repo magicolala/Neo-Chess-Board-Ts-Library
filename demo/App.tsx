@@ -1,4 +1,12 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback, useId } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useId,
+  type ChangeEvent,
+} from 'react';
 import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
@@ -159,6 +167,8 @@ const AppContent: React.FC = () => {
   const [currentPly, setCurrentPly] = useState(0);
   const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>();
   const [selectedPly, setSelectedPly] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1000);
   const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
     showHighlights: true,
@@ -174,6 +184,7 @@ const AppContent: React.FC = () => {
   });
   const shouldAnimateMoves = boardOptions.showAnimations && boardOptions.animationDuration > 0;
   const animationSpeedInputId = useId();
+  const playbackSpeedInputId = useId();
   const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const {
@@ -199,10 +210,25 @@ const AppContent: React.FC = () => {
 
   const boardRef = useRef<NeoChessRef>(null);
   const selectedPlyRef = useRef(0);
+  const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timelineMaxPly = useMemo(() => plyTimeline.at(-1)?.ply ?? 0, [plyTimeline]);
+
+  const clearAutoplayTimer = useCallback(() => {
+    if (autoplayTimeoutRef.current !== null) {
+      clearTimeout(autoplayTimeoutRef.current);
+      autoplayTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     selectedPlyRef.current = selectedPly;
   }, [selectedPly]);
+
+  useEffect(() => {
+    return () => {
+      clearAutoplayTimer();
+    };
+  }, [clearAutoplayTimer]);
 
   useEffect(() => {
     const boardInstance = boardRef.current?.getBoard();
@@ -291,6 +317,8 @@ const AppContent: React.FC = () => {
   );
 
   const clearEvaluations = useCallback(() => {
+    setIsAutoPlaying(false);
+    clearAutoplayTimer();
     const baseFen = chessRules.getFEN();
     setEvaluationsByPly({});
     setTimeline([{ ply: 0, fen: baseFen }]);
@@ -299,7 +327,7 @@ const AppContent: React.FC = () => {
     setSelectedPly(0);
     timelineInitialFenRef.current = baseFen;
     timelineMovesRef.current = [];
-  }, [chessRules, setTimeline]);
+  }, [chessRules, clearAutoplayTimer, setIsAutoPlaying, setTimeline]);
 
   const syncEvaluationsFromRules = useCallback(() => {
     const notation = chessRules.getPgnNotation();
@@ -421,7 +449,12 @@ const AppContent: React.FC = () => {
   );
 
   const jumpToPly = useCallback(
-    (targetPly: number) => {
+    (targetPly: number, options?: { stopAutoplay?: boolean }) => {
+      if (options?.stopAutoplay !== false) {
+        setIsAutoPlaying(false);
+        clearAutoplayTimer();
+      }
+
       if (plyTimeline.length === 0) {
         return;
       }
@@ -448,11 +481,65 @@ const AppContent: React.FC = () => {
       updateEvaluationFromMap,
       updateStatusSnapshot,
       shouldAnimateMoves,
+      clearAutoplayTimer,
+      setIsAutoPlaying,
     ],
   );
 
+  const handleToggleAutoplay = useCallback(() => {
+    setIsAutoPlaying((previous) => {
+      if (previous) {
+        return false;
+      }
+
+      if (timelineMaxPly <= 0) {
+        return false;
+      }
+
+      if (selectedPly >= timelineMaxPly) {
+        jumpToPly(0, { stopAutoplay: false });
+      }
+
+      return true;
+    });
+  }, [jumpToPly, selectedPly, setIsAutoPlaying, timelineMaxPly]);
+
+  const handlePlaybackSpeedChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const nextValue = Number(event.target.value);
+      if (!Number.isFinite(nextValue) || nextValue <= 0) {
+        return;
+      }
+      setPlaybackSpeed(nextValue);
+    },
+    [setPlaybackSpeed],
+  );
+
+  useEffect(() => {
+    if (!isAutoPlaying) {
+      clearAutoplayTimer();
+      return;
+    }
+
+    if (selectedPly >= timelineMaxPly) {
+      setIsAutoPlaying(false);
+      return;
+    }
+
+    clearAutoplayTimer();
+    autoplayTimeoutRef.current = setTimeout(() => {
+      jumpToPly(selectedPlyRef.current + 1, { stopAutoplay: false });
+    }, playbackSpeed);
+
+    return () => {
+      clearAutoplayTimer();
+    };
+  }, [clearAutoplayTimer, isAutoPlaying, jumpToPly, playbackSpeed, selectedPly, timelineMaxPly]);
+
   const handleBoardUpdate = useCallback(
     ({ fen: nextFen }: { fen: string }) => {
+      setIsAutoPlaying(false);
+      clearAutoplayTimer();
       setFen((previousFen) => (previousFen === nextFen ? previousFen : nextFen));
       syncOrientationWithFen(nextFen);
       setPgnError(null);
@@ -495,8 +582,10 @@ const AppContent: React.FC = () => {
     },
     [
       chessRules,
+      clearAutoplayTimer,
       fenToPlyMap,
       rebuildRulesFromTimeline,
+      setIsAutoPlaying,
       setTimeline,
       syncOrientationWithFen,
       updateEvaluationFromMap,
@@ -550,6 +639,8 @@ const AppContent: React.FC = () => {
 
     setIsPgnLoading(true);
     try {
+      setIsAutoPlaying(false);
+      clearAutoplayTimer();
       setPgnError(null);
       const success = chessRules.loadPgn(normalizedPgn);
       const board = boardRef.current?.getBoard();
@@ -578,7 +669,9 @@ const AppContent: React.FC = () => {
     }
   }, [
     chessRules,
+    clearAutoplayTimer,
     pgnText,
+    setIsAutoPlaying,
     syncOrientationWithFen,
     translate,
     updateStatusSnapshot,
@@ -604,6 +697,8 @@ const AppContent: React.FC = () => {
     if (process.env.NODE_ENV !== 'test') {
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
+    setIsAutoPlaying(false);
+    clearAutoplayTimer();
     chessRules.reset();
     setPgnText(chessRules.toPgn(false));
     clearEvaluations();
@@ -793,7 +888,7 @@ const AppContent: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0b14] via-[#151225] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
+      <div className="container min-h-screen bg-gradient-to-br from-[#0b0b14] via-[#151225] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
         <div className="text-center">
           <DotLoader />
           <div className="mt-4 text-[15px] font-medium text-gray-300">
@@ -805,7 +900,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
+    <div className="container min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
       <header className="fixed top-0 w-full border-b border-white/10 bg-black/40 backdrop-blur-xl z-50 h-[64px]">
         {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
         <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
@@ -852,7 +947,7 @@ const AppContent: React.FC = () => {
             <LoadingButton
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                 theme === 'midnight'
-                  ? 'bg-purple-600 text-white shadow hover:bg-purple-500'
+                  ? 'active bg-purple-600 text-white shadow hover:bg-purple-500'
                   : 'text-gray-200 hover:bg-white/10'
               }`}
               onClick={() => handleThemeChange('midnight')}
@@ -864,7 +959,7 @@ const AppContent: React.FC = () => {
             <LoadingButton
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                 theme === 'classic'
-                  ? 'bg-purple-600 text-white shadow hover:bg-purple-500'
+                  ? 'active bg-purple-600 text-white shadow hover:bg-purple-500'
                   : 'text-gray-200 hover:bg-white/10'
               }`}
               onClick={() => handleThemeChange('classic')}
@@ -1377,16 +1472,61 @@ const AppContent: React.FC = () => {
 
             <GlassPanel>
               <PanelHeader>{translate('timeline.title')}</PanelHeader>
-              <div className="p-4">
+              <div className="p-4 space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-200 bg-purple-500/20 hover:bg-purple-500/30 ring-1 ring-purple-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleToggleAutoplay}
+                    aria-pressed={isAutoPlaying}
+                    aria-label={
+                      isAutoPlaying
+                        ? translate('timeline.aria.pause')
+                        : translate('timeline.aria.play')
+                    }
+                    disabled={timelineMaxPly <= 0}
+                  >
+                    {isAutoPlaying
+                      ? translate('timeline.playback.pause')
+                      : translate('timeline.playback.play')}
+                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-1">
+                    <label
+                      className="text-sm font-medium text-gray-300"
+                      htmlFor={playbackSpeedInputId}
+                    >
+                      {translate('timeline.playback.speed')}
+                    </label>
+                    <div className="flex items-center gap-3 sm:flex-1">
+                      <input
+                        id={playbackSpeedInputId}
+                        type="range"
+                        min={250}
+                        max={2000}
+                        step={250}
+                        value={playbackSpeed}
+                        onChange={handlePlaybackSpeedChange}
+                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
+                        aria-valuemin={250}
+                        aria-valuemax={2000}
+                        aria-valuenow={playbackSpeed}
+                        aria-label={translate('timeline.aria.speed')}
+                      />
+                      <span className="text-sm text-gray-400 w-24 text-right">
+                        {translate('timeline.playback.speedValue', {
+                          milliseconds: playbackSpeed,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <PlyNavigator
                   onFirst={() => jumpToPly(0)}
                   onPrevious={() => jumpToPly(selectedPly - 1)}
                   onNext={() => jumpToPly(selectedPly + 1)}
-                  onLast={() => jumpToPly(plyTimeline.at(-1)?.ply ?? 0)}
+                  onLast={() => jumpToPly(timelineMaxPly)}
                   isAtStart={selectedPly <= 0}
-                  isAtEnd={
-                    plyTimeline.length === 0 || selectedPly >= (plyTimeline.at(-1)?.ply ?? 0)
-                  }
+                  isAtEnd={plyTimeline.length === 0 || selectedPly >= timelineMaxPly}
                   moveLabel={
                     plyTimeline.find((entry) => entry.ply === selectedPly)?.san ||
                     translate('timeline.start')
