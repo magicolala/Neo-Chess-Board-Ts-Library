@@ -20,11 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Immersive Tailwind-based demo layout with three-panel architecture and glassmorphism styling.
+- Evaluation widgets (vertical bar, sparkline move map, blunder meter) synchronised with PGN `[%eval]` annotations.
 - Animation configuration object on `BoardOptions` for specifying duration and easing.
 - `NeoChessBoard#setAnimation` method for runtime animation updates.
 
 ### Changed
 
+- Demo entrypoint rebuilt with vanilla JavaScript orchestration (no React dependency) while preserving board capabilities.
 - Animation easing selection now resolves named easings or custom functions instead of always using `easeOutCubic`.
 
 ## [0.1.0] - 2024-12-31
