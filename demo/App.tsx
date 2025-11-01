@@ -1071,7 +1071,7 @@ const AppContent: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="container min-h-screen bg-gradient-to-br from-[#0b0b14] via-[#151225] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
+      <div className="container mx-auto min-h-screen bg-gradient-to-br from-[#0b0b14] via-[#151225] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
         <div className="text-center">
           <DotLoader />
           <div className="mt-4 text-[15px] font-medium text-gray-300">
@@ -1083,7 +1083,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="container min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
+    <div className="container mx-auto min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
       <header className="fixed top-0 w-full border-b border-white/10 bg-black/40 backdrop-blur-xl z-50 h-[64px]">
         {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
         <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 h-full flex items-center justify-between">

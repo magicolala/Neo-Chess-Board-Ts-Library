@@ -8,6 +8,15 @@ module.exports = {
     path.resolve(__dirname, './src/**/*.{js,ts,jsx,tsx}'),
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '1.5rem',
+        lg: '2rem',
+        xl: '2.5rem',
+      },
+    },
     extend: {},
   },
   plugins: [],
