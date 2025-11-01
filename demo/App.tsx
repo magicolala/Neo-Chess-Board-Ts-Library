@@ -1,12 +1,4 @@
-import React, {
-  useMemo,
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useId,
-  type ChangeEvent,
-} from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback, useId } from 'react';
 import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
@@ -20,11 +12,17 @@ import {
   ArrowsIcon,
   AutoFlipIcon,
   BoardSizeIcon,
+  FirstIcon,
   HighlightIcon,
+  LastIcon,
   LegalMovesIcon,
+  NextIcon,
   OrientationIcon,
   PremovesIcon,
   AnimationIcon,
+  PauseIcon,
+  PlayIcon,
+  PreviousIcon,
   SoundIcon,
   SquareNamesIcon,
   TrashIcon,
@@ -221,7 +219,6 @@ const AppContent: React.FC = () => {
   });
   const shouldAnimateMoves = boardOptions.showAnimations && boardOptions.animationDuration > 0;
   const animationSpeedInputId = useId();
-  const playbackSpeedInputId = useId();
   const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const {
@@ -554,14 +551,14 @@ const AppContent: React.FC = () => {
     ],
   );
 
-  const handleToggleAutoplay = useCallback(() => {
+  const handleStartAutoplay = useCallback(() => {
     setIsAutoPlaying((previous) => {
       if (previous) {
-        return false;
+        return previous;
       }
 
       if (timelineMaxPly <= 0) {
-        return false;
+        return previous;
       }
 
       if (selectedPly >= timelineMaxPly) {
@@ -572,9 +569,12 @@ const AppContent: React.FC = () => {
     });
   }, [jumpToPly, selectedPly, setIsAutoPlaying, timelineMaxPly]);
 
+  const handlePauseAutoplay = useCallback(() => {
+    setIsAutoPlaying(false);
+  }, [setIsAutoPlaying]);
+
   const handlePlaybackSpeedChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const nextValue = Number(event.target.value);
+    (nextValue: number) => {
       if (!Number.isFinite(nextValue) || nextValue <= 0) {
         return;
       }
@@ -1666,76 +1666,55 @@ const AppContent: React.FC = () => {
             <GlassPanel>
               <PanelHeader>{translate('timeline.title')}</PanelHeader>
               <div className="p-4 space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-200 bg-purple-500/20 hover:bg-purple-500/30 ring-1 ring-purple-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleToggleAutoplay}
-                    aria-pressed={isAutoPlaying}
-                    aria-label={
-                      isAutoPlaying
-                        ? translate('timeline.aria.pause')
-                        : translate('timeline.aria.play')
-                    }
-                    disabled={timelineMaxPly <= 0}
-                  >
-                    {isAutoPlaying
-                      ? translate('timeline.playback.pause')
-                      : translate('timeline.playback.play')}
-                  </button>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-1">
-                    <label
-                      className="text-sm font-medium text-gray-300"
-                      htmlFor={playbackSpeedInputId}
-                    >
-                      {translate('timeline.playback.speed')}
-                    </label>
-                    <div className="flex items-center gap-3 sm:flex-1">
-                      <input
-                        id={playbackSpeedInputId}
-                        type="range"
-                        min={250}
-                        max={2000}
-                        step={250}
-                        value={playbackSpeed}
-                        onChange={handlePlaybackSpeedChange}
-                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
-                        aria-valuemin={250}
-                        aria-valuemax={2000}
-                        aria-valuenow={playbackSpeed}
-                        aria-label={translate('timeline.aria.speed')}
-                      />
-                      <span className="text-sm text-gray-400 w-24 text-right">
-                        {translate('timeline.playback.speedValue', {
-                          milliseconds: playbackSpeed,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
                 <PlyNavigator
                   onFirst={() => jumpToPly(0)}
                   onPrevious={() => jumpToPly(selectedPly - 1)}
                   onNext={() => jumpToPly(selectedPly + 1)}
                   onLast={() => jumpToPly(timelineMaxPly)}
+                  onPlay={handleStartAutoplay}
+                  onPause={handlePauseAutoplay}
+                  onPlaybackSpeedChange={handlePlaybackSpeedChange}
                   isAtStart={selectedPly <= 0}
                   isAtEnd={plyTimeline.length === 0 || selectedPly >= timelineMaxPly}
+                  isPlaying={isAutoPlaying}
+                  isPlaybackDisabled={timelineMaxPly <= 0}
                   moveLabel={selectedTimelineEntry?.san || translate('timeline.start')}
                   positionLabel={translate('timeline.position', {
                     descriptor: formatPlyDescriptor(selectedPly),
                   })}
+                  playbackSpeed={playbackSpeed}
+                  playbackSpeedDisplay={translate('timeline.playback.speedValue', {
+                    milliseconds: playbackSpeed,
+                  })}
+                  playbackSpeedMin={250}
+                  playbackSpeedMax={2000}
+                  playbackSpeedStep={250}
                   labels={{
+                    currentMove: translate('timeline.currentMove'),
                     first: translate('timeline.controls.first'),
                     previous: translate('timeline.controls.previous'),
+                    play: translate('timeline.playback.play'),
+                    pause: translate('timeline.playback.pause'),
                     next: translate('timeline.controls.next'),
                     last: translate('timeline.controls.last'),
-                    currentMove: translate('timeline.currentMove'),
+                    speed: translate('timeline.playback.speed'),
                   }}
                   ariaLabels={{
                     first: translate('timeline.aria.first'),
                     previous: translate('timeline.aria.previous'),
+                    play: translate('timeline.aria.play'),
+                    pause: translate('timeline.aria.pause'),
                     next: translate('timeline.aria.next'),
                     last: translate('timeline.aria.last'),
+                    speed: translate('timeline.aria.speed'),
+                  }}
+                  icons={{
+                    first: <FirstIcon />,
+                    previous: <PreviousIcon />,
+                    play: <PlayIcon />,
+                    pause: <PauseIcon />,
+                    next: <NextIcon />,
+                    last: <LastIcon />,
                   }}
                 />
               </div>

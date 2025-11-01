@@ -26,6 +26,45 @@ export const ArrowsIcon: React.FC = () => (
   </SvgIcon>
 );
 
+export const FirstIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M6 5v14" />
+    <path d="m18 19-8-7 8-7" />
+  </SvgIcon>
+);
+
+export const PreviousIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m15 18-6-6 6-6" />
+  </SvgIcon>
+);
+
+export const PlayIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m9.5 7 7 5-7 5z" fill="currentColor" stroke="none" />
+  </SvgIcon>
+);
+
+export const PauseIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M10 7v10" />
+    <path d="M14 7v10" />
+  </SvgIcon>
+);
+
+export const NextIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m9 6 6 6-6 6" />
+  </SvgIcon>
+);
+
+export const LastIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M18 5v14" />
+    <path d="m6 5 8 7-8 7" />
+  </SvgIcon>
+);
+
 export const HighlightIcon: React.FC = () => (
   <SvgIcon>
     <path d="m12 6.4 1.7 3.3 3.6 .5-2.7 2.6.6 3.6L12 15.8l-3.2 1.6.6-3.6-2.7-2.6 3.6-.5z" />
