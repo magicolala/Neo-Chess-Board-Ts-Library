@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { App } from '../../demo/App';
 import { translations } from '../../demo/i18n/translations';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
+import type { PgnMove } from '../../src/core/types';
 
 type VerboseMove = { from: string; to: string; promotion?: string };
 
@@ -46,6 +47,12 @@ const SCRIPTED_MOVES = [
   },
 ];
 
+const RAW_BLACK_COMMENT =
+  'Menace directe. Mon coach aurait approuvé Nimzowitsch : « La menace est plus forte que l’attaque. »:contentReference[oaicite:0]{index=0 }';
+
+const SANITIZED_BLACK_COMMENT =
+  'Menace directe. Mon coach aurait approuvé Nimzowitsch : « La menace est plus forte que l’attaque. »';
+
 const updateFromFen = (state: MockRulesState) => {
   const parts = state.fen.trim().split(/\s+/);
   state.turn = parts[1] === 'b' ? 'b' : 'w';
@@ -80,6 +87,44 @@ const createMockChessJsRules = () => {
     state.verboseHistory = [];
     updateFromFen(state);
   };
+
+  const annotatedMoves: PgnMove[] = [];
+  const mergeEvaluation = (
+    existing: PgnMove['evaluation'] | undefined,
+    key: 'white' | 'black',
+    value: number,
+  ): PgnMove['evaluation'] => {
+    if (existing) {
+      return { ...existing, [key]: value };
+    }
+    return { [key]: value };
+  };
+
+  for (const [index, entry] of SCRIPTED_MOVES.entries()) {
+    const moveNumber = Math.floor(index / 2) + 1;
+    const isWhiteMove = index % 2 === 0;
+    let move = annotatedMoves.find((item) => item.moveNumber === moveNumber);
+
+    if (!move) {
+      move = { moveNumber };
+      annotatedMoves.push(move);
+    }
+
+    if (isWhiteMove) {
+      move.white = entry.san;
+      move.evaluation = mergeEvaluation(move.evaluation, 'white', index);
+    } else {
+      move.black = entry.san;
+      move.evaluation = mergeEvaluation(move.evaluation, 'black', -index);
+      if (index === SCRIPTED_MOVES.length - 1) {
+        move.blackAnnotations = {
+          textComment: RAW_BLACK_COMMENT,
+          arrows: [],
+          circles: [],
+        };
+      }
+    }
+  }
 
   const instance = {
     move: jest.fn((moveData: string | { from: string; to: string; promotion?: string }) => {
@@ -139,13 +184,7 @@ const createMockChessJsRules = () => {
     getHistory: jest.fn(() => [...state.verboseHistory]),
     history: jest.fn(() => [...state.historySan]),
     getPgnNotation: jest.fn(() => ({
-      getMovesWithAnnotations: jest.fn(() =>
-        SCRIPTED_MOVES.map((entry, index) => ({
-          moveNumber: Math.floor(index / 2) + 1,
-          evaluation: index % 2 === 0 ? { white: index } : { black: -index },
-          san: entry.san,
-        })),
-      ),
+      getMovesWithAnnotations: jest.fn(() => annotatedMoves.map((move) => ({ ...move }))),
       getMetadata: jest.fn(() => ({ SetUp: '0' })),
     })),
   };
@@ -264,7 +303,7 @@ describe('App Component', () => {
       const midnightButton = screen.getByRole('button', {
         name: enTranslations['app.themes.midnight'],
       });
-      expect(midnightButton).toHaveClass('active');
+      expect(midnightButton).toHaveClass('bg-purple-600');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
 
@@ -278,7 +317,7 @@ describe('App Component', () => {
 
       await user.click(classicButton);
 
-      expect(classicButton).toHaveClass('active');
+      expect(classicButton).toHaveClass('bg-purple-600');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'classic');
     });
 
@@ -296,7 +335,7 @@ describe('App Component', () => {
       await user.click(classicButton);
       await user.click(midnightButton);
 
-      expect(midnightButton).toHaveClass('active');
+      expect(midnightButton).toHaveClass('bg-purple-600');
       expect(screen.getByTestId('neo-chessboard')).toHaveAttribute('data-theme', 'midnight');
     });
   });
@@ -469,7 +508,8 @@ describe('App Component', () => {
         '1 (White)',
       );
       expect(screen.getByText(descriptorWhite)).toBeInTheDocument();
-      expect(screen.getByText(SCRIPTED_MOVES[0].san)).toBeInTheDocument();
+      const sanOccurrences = screen.getAllByText(SCRIPTED_MOVES[0].san);
+      expect(sanOccurrences[0]).toBeInTheDocument();
 
       await user.click(nextButton);
       await waitFor(() => {
@@ -487,6 +527,20 @@ describe('App Component', () => {
         expect(fenTextarea).toHaveValue(SCRIPTED_MOVES[0].fen);
       });
       expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(SCRIPTED_MOVES[0].fen, false);
+    });
+  });
+
+  describe('Commentary panel', () => {
+    it('displays sanitized comments from PGN annotations', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
+      await user.type(pgnTextarea, '1. e4 e5 2. Nf3 Nc6');
+      await user.click(screen.getByRole('button', { name: enTranslations['pgn.load'] }));
+
+      await screen.findByText(SANITIZED_BLACK_COMMENT);
+      expect(screen.queryByText(/contentReference/)).not.toBeInTheDocument();
     });
   });
 
@@ -524,7 +578,7 @@ describe('App Component', () => {
       const { container } = render(<App />);
 
       const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer).toHaveClass('container');
+      expect(mainContainer).toHaveClass('min-h-screen');
     });
 
     it('should have correct button layout', () => {
