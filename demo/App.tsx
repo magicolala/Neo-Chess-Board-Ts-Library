@@ -116,14 +116,18 @@ const GlassPanel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <div className={`bg-gray-900/70 backdrop-blur-lg rounded-lg border border-gray-800 ${className}`}>
+  <div
+    className={`bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_30px_rgb(2,6,23,0.35)] ${className}`}
+  >
     {children}
   </div>
 );
 
 const PanelHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="px-4 py-3 border-b border-gray-800">
-    <h3 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">{children}</h3>
+  <div className="px-4 py-3 border-b border-white/10">
+    <h3 className="text-[11px] font-semibold text-gray-300 uppercase tracking-[0.14em]">
+      {children}
+    </h3>
   </div>
 );
 
@@ -505,7 +509,7 @@ const AppContent: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isThemeChanging, setIsThemeChanging] = useState(false);
 
-  const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1500);
+  const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1200);
 
   const [isManualFenChange, setIsManualFenChange] = useState(false);
 
@@ -586,7 +590,7 @@ const AppContent: React.FC = () => {
     try {
       await navigator.clipboard.writeText(pgnText);
       if (process.env.NODE_ENV !== 'test') {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error) {
       console.error('Error while copying to the clipboard:', error);
@@ -598,7 +602,7 @@ const AppContent: React.FC = () => {
   const handleReset = async () => {
     setIsResetting(true);
     if (process.env.NODE_ENV !== 'test') {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 700));
     }
     chessRules.reset();
     setPgnText(chessRules.toPgn(false));
@@ -616,7 +620,7 @@ const AppContent: React.FC = () => {
     setPgnError(null);
     try {
       if (process.env.NODE_ENV !== 'test') {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
       chessRules.setPgnMetadata({
         Event: 'Playground',
@@ -636,7 +640,7 @@ const AppContent: React.FC = () => {
 
     setIsThemeChanging(true);
     if (process.env.NODE_ENV !== 'test') {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     }
     setTheme(newTheme);
     setIsThemeChanging(false);
@@ -755,12 +759,12 @@ const AppContent: React.FC = () => {
     : translate('evaluation.waitingData');
 
   const gameTagClass = status.isCheckmate
-    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+    ? 'bg-red-500/15 text-red-300 border-red-400/30'
     : status.isStalemate || status.inCheck
-      ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      ? 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30'
       : status.isGameOver
-        ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-        : 'bg-green-500/20 text-green-400 border-green-500/30';
+        ? 'bg-blue-500/15 text-blue-300 border-blue-400/30'
+        : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
   const gameTagLabel = status.isCheckmate
     ? translate('status.tags.checkmate')
     : status.isStalemate
@@ -772,10 +776,10 @@ const AppContent: React.FC = () => {
           : translate('status.tags.inProgress');
   const fiftyTagClass =
     status.halfMoves >= 100
-      ? 'bg-red-500/20 text-red-400 border-red-500/30'
+      ? 'bg-red-500/15 text-red-300 border-red-400/30'
       : status.halfMoves >= 80
-        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-        : 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        ? 'bg-amber-500/15 text-amber-300 border-amber-400/30'
+        : 'bg-sky-500/15 text-sky-300 border-sky-400/30';
   const fiftyTagLabel =
     status.halfMoves >= 100
       ? translate('status.tags.fiftyReached')
@@ -789,45 +793,52 @@ const AppContent: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a1625] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b0b14] via-[#151225] to-[#2d1b3d] text-gray-200 flex items-center justify-center">
         <div className="text-center">
           <DotLoader />
-          <div className="mt-4 text-lg font-medium">{translate('app.initializing')}</div>
+          <div className="mt-4 text-[15px] font-medium text-gray-300">
+            {translate('app.initializing')}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a1625] to-[#2d1b3d] text-gray-200 font-sans container">
-      <header className="fixed top-0 w-full bg-gray-900/50 backdrop-blur-sm border-b border-gray-800 z-50 h-[60px]">
+    <div className="min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
+      <header className="fixed top-0 w-full border-b border-white/10 bg-black/40 backdrop-blur-xl z-50 h-[64px]">
         {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
-        <div className="max-w-screen-2xl mx-auto px-4 h-full flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-gray-50">NeoChessBoard</h1>
-            <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full">
+        <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500/50 to-indigo-500/50 grid place-items-center ring-1 ring-white/15 shadow-inner">
+              <span className="text-white/90 text-base">♟</span>
+            </div>
+            <h1 className="text-lg sm:text-xl font-semibold text-white tracking-tight">
+              NeoChessBoard
+            </h1>
+            <span className="hidden sm:inline-flex text-[11px] text-gray-300 bg-white/5 px-2.5 py-1 rounded-full ring-1 ring-white/10">
               {themeNames[theme]}
             </span>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2">
             <a
               href="./playground.html"
-              className="px-3 py-1.5 text-sm font-medium text-gray-300 hover:bg-gray-700/50 rounded-md transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
               title={translate('app.playgroundLinkTitle')}
             >
               {translate('app.playgroundLinkText')}
             </a>
             <a
               href="./theme-creator.html"
-              className="px-3 py-1.5 text-sm font-medium text-gray-300 hover:bg-gray-700/50 rounded-md transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
               title={translate('app.themeCreatorTitle')}
             >
               {translate('app.themeCreatorLinkText')}
             </a>
-            <div className="w-px h-6 bg-gray-700" />
+            <div className="hidden sm:block w-px h-6 bg-white/10" />
             <select
               id="demo-language"
-              className="bg-transparent border-0 text-gray-300 text-sm focus:ring-0"
+              className="bg-transparent border-0 text-gray-200 text-sm focus:ring-2 focus:ring-purple-500/70 rounded-md px-2 py-1 hover:bg-white/5"
               value={language}
               onChange={(event) => setLanguage(event.target.value as Language)}
             >
@@ -839,10 +850,10 @@ const AppContent: React.FC = () => {
               </option>
             </select>
             <LoadingButton
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                 theme === 'midnight'
-                  ? 'bg-purple-600 text-white active'
-                  : 'text-gray-300 hover:bg-gray-700/50'
+                  ? 'bg-purple-600 text-white shadow hover:bg-purple-500'
+                  : 'text-gray-200 hover:bg-white/10'
               }`}
               onClick={() => handleThemeChange('midnight')}
               isLoading={isThemeChanging}
@@ -851,10 +862,10 @@ const AppContent: React.FC = () => {
               {translate('app.themes.midnight')}
             </LoadingButton>
             <LoadingButton
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                 theme === 'classic'
-                  ? 'bg-purple-600 text-white active'
-                  : 'text-gray-300 hover:bg-gray-700/50'
+                  ? 'bg-purple-600 text-white shadow hover:bg-purple-500'
+                  : 'text-gray-200 hover:bg-white/10'
               }`}
               onClick={() => handleThemeChange('classic')}
               isLoading={isThemeChanging}
@@ -866,28 +877,26 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-4 lg:px-6 pt-[84px] pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 pt-[88px] pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
           {/* Left Column */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-4 lg:space-y-5">
             <GlassPanel>
               <PanelHeader>{translate('status.title')}</PanelHeader>
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-sm">
                     <div className="text-gray-400">{translate('status.turn.label')}</div>
-                    <div className="text-lg font-bold text-gray-50">
+                    <div className="text-lg font-semibold text-gray-50">
                       {status.turn === 'w' ? whiteLabel : blackLabel}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {translate('status.turn.moveNumber', {
-                        moveNumber: status.moveNumber,
-                      })}
+                      {translate('status.turn.moveNumber', { moveNumber: status.moveNumber })}
                     </div>
                   </div>
                   <div className="text-sm">
                     <div className="text-gray-400">{translate('status.legalMoves.label')}</div>
-                    <div className="text-lg font-bold text-gray-50">{status.legalMoves}</div>
+                    <div className="text-lg font-semibold text-gray-50">{status.legalMoves}</div>
                     <div className="text-xs text-gray-500">
                       {translate('status.legalMoves.hint', {
                         color: status.turn === 'w' ? whiteSideLabel : blackSideLabel,
@@ -896,14 +905,14 @@ const AppContent: React.FC = () => {
                   </div>
                   <div className="text-sm">
                     <div className="text-gray-400">{translate('status.halfMoves.label')}</div>
-                    <div className="text-lg font-bold text-gray-50">{status.halfMoves}</div>
+                    <div className="text-lg font-semibold text-gray-50">{status.halfMoves}</div>
                     <div className="text-xs text-gray-500">
                       {translate('status.halfMoves.hint')}
                     </div>
                   </div>
                   <div className="text-sm">
                     <div className="text-gray-400">{translate('status.fifty.label')}</div>
-                    <div className="text-lg font-bold text-gray-50">{halfMovesRemaining}</div>
+                    <div className="text-lg font-semibold text-gray-50">{halfMovesRemaining}</div>
                     <div className="text-xs text-gray-500">{translate('status.fifty.hint')}</div>
                   </div>
                 </div>
@@ -926,41 +935,39 @@ const AppContent: React.FC = () => {
               <PanelHeader>{translate('pgn.title')}</PanelHeader>
               <div className="p-4">
                 <textarea
-                  className="w-full h-40 bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-200 focus:ring-purple-500 focus:border-purple-500 transition"
+                  className="w-full h-40 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
                   value={pgnText}
                   onChange={(event) => {
                     setPgnText(event.target.value);
-                    if (pgnError) {
-                      setPgnError(null);
-                    }
+                    if (pgnError) setPgnError(null);
                   }}
                   aria-label={translate('pgn.title')}
                   placeholder={translate('pgn.placeholder')}
                 />
                 <div className="grid grid-cols-2 gap-2 mt-3 buttonGroup">
                   <LoadingButton
-                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-medium transition text-white text-sm"
+                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={handleLoadPgn}
                     isLoading={isPgnLoading}
                   >
                     {isPgnLoading ? translate('pgn.loading') : translate('pgn.load')}
                   </LoadingButton>
                   <LoadingButton
-                    className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-sm"
+                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={handleCopyPGN}
                     isLoading={isCopying}
                   >
                     {isCopying ? translate('pgn.copying') : translate('pgn.copy')}
                   </LoadingButton>
                   <LoadingButton
-                    className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-sm"
+                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={handleReset}
                     isLoading={isResetting}
                   >
                     {isResetting ? translate('pgn.resetting') : translate('pgn.reset')}
                   </LoadingButton>
                   <LoadingButton
-                    className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-sm"
+                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={handleExport}
                     isLoading={isExporting}
                   >
@@ -970,7 +977,7 @@ const AppContent: React.FC = () => {
                 {pgnError && <div className="mt-2 text-sm text-red-400">{pgnError}</div>}
                 <p className="mt-2 text-xs text-gray-500">
                   <strong>{translate('pgn.helper.prefix')}</strong> {translate('pgn.helper.middle')}{' '}
-                  <code className="bg-gray-700 px-1 rounded">[%eval ...]</code>{' '}
+                  <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
                   {translate('pgn.helper.suffix')}
                 </p>
               </div>
@@ -980,7 +987,7 @@ const AppContent: React.FC = () => {
               <PanelHeader>{translate('fen.title')}</PanelHeader>
               <div className="p-4">
                 <textarea
-                  className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-200 focus:ring-purple-500 focus:border-purple-500 transition"
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
                   value={fen || ''}
                   onChange={(e) => {
                     setFen(e.target.value);
@@ -999,7 +1006,7 @@ const AppContent: React.FC = () => {
                   <p>
                     <strong>{translate('premoves.instructions')}</strong>
                   </p>
-                  <ul className="list-disc list-inside">
+                  <ul className="list-disc list-inside space-y-0.5">
                     <li>{translate('premoves.step.examples')}</li>
                     <li>{translate('premoves.step.outOfTurn')}</li>
                     <li>{translate('premoves.step.stored')}</li>
@@ -1008,7 +1015,7 @@ const AppContent: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-xs"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={() => {
                       setFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
                       setIsManualFenChange(true);
@@ -1017,7 +1024,7 @@ const AppContent: React.FC = () => {
                     {translate('premoves.sample.opening')}
                   </button>
                   <button
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-xs"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={() => {
                       setFen('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4');
                       setIsManualFenChange(true);
@@ -1026,7 +1033,7 @@ const AppContent: React.FC = () => {
                     {translate('premoves.sample.middleGame')}
                   </button>
                   <button
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md font-medium transition text-white text-xs"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={() => {
                       setFen('4k3/8/8/8/8/8/4P3/4K3 w - - 0 1');
                       setIsManualFenChange(true);
@@ -1069,9 +1076,7 @@ const AppContent: React.FC = () => {
                   onPromotionRequired={handlePromotionRequest}
                   onMove={({ from, to, fen: nextFen }) => {
                     const result = chessRules.move({ from, to });
-                    if (!result.ok) {
-                      return;
-                    }
+                    if (!result.ok) return;
                     setPgnError(null);
                     setPgnText(chessRules.toPgn(false));
                     setFen(nextFen);
@@ -1105,11 +1110,7 @@ const AppContent: React.FC = () => {
                             ];
                       const nextTimeline = [
                         ...ensuredTimeline,
-                        {
-                          ply: nextPly,
-                          fen: nextFen,
-                          san: result.move?.san,
-                        },
+                        { ply: nextPly, fen: nextFen, san: result.move?.san },
                       ];
                       return nextTimeline;
                     });
@@ -1121,12 +1122,12 @@ const AppContent: React.FC = () => {
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
                   }}
                   onUpdate={handleBoardUpdate}
-                  className="w-full aspect-square"
+                  className="w-full aspect-square rounded-xl ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
                 />
                 {boardOptions.allowResize && (
                   <div className="absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none">
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900/80 text-gray-300 text-xs font-medium"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
                       aria-live="polite"
                     >
                       <BoardSizeIcon />
@@ -1134,10 +1135,10 @@ const AppContent: React.FC = () => {
                     </span>
                     <button
                       type="button"
-                      className={`pointer-events-auto w-9 h-9 rounded-lg border grid place-items-center cursor-nwse-resize transition-colors ${
+                      className={`pointer-events-auto w-9 h-9 rounded-lg grid place-items-center cursor-nwse-resize transition-colors ring-1 ${
                         isResizingBoard
-                          ? 'bg-purple-600/30 border-purple-500'
-                          : 'bg-gray-900/80 border-gray-700 hover:border-gray-500'
+                          ? 'bg-purple-600/30 ring-purple-400/60'
+                          : 'bg-black/70 ring-white/10 hover:ring-white/25'
                       }`}
                       onPointerDown={handleBoardResizeStart}
                       onPointerMove={handleBoardResizeMove}
@@ -1225,32 +1226,32 @@ const AppContent: React.FC = () => {
                     <button
                       key={option}
                       type="button"
-                      className={`px-3 py-2 rounded-md text-left transition-colors text-sm ${
-                        boardOptions[option as ToggleableOption]
-                          ? 'bg-purple-600/20 border border-purple-500/30 text-gray-100'
-                          : 'bg-gray-800/50 hover:bg-gray-700/50 border border-transparent'
+                      className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+                        (boardOptions as any)[option]
+                          ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
+                          : 'bg-white/5 hover:bg-white/10 ring-white/10'
                       }`}
                       onClick={() => toggleOption(option as ToggleableOption)}
-                      aria-pressed={boardOptions[option as ToggleableOption]}
+                      aria-pressed={(boardOptions as any)[option]}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-400">{icon}</span>
+                        <span className="text-gray-300">{icon}</span>
                         <span className="font-medium">{translate(label as TranslationKey)}</span>
                       </div>
                     </button>
                   ))}
                   <button
                     type="button"
-                    className={`px-3 py-2 rounded-md text-left transition-colors text-sm ${
+                    className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                       boardOptions.autoFlip
-                        ? 'bg-purple-600/20 border border-purple-500/30 text-gray-100'
-                        : 'bg-gray-800/50 hover:bg-gray-700/50 border border-transparent'
+                        ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
+                        : 'bg-white/5 hover:bg-white/10 ring-white/10'
                     }`}
                     onClick={toggleAutoFlip}
                     aria-pressed={boardOptions.autoFlip}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">
+                      <span className="text-gray-300">
                         <AutoFlipIcon />
                       </span>
                       <span className="font-medium">{translate('options.autoFlip.title')}</span>
@@ -1258,7 +1259,7 @@ const AppContent: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-2 rounded-md text-left transition-colors text-sm bg-gray-800/50 hover:bg-gray-700/50 border border-transparent disabled:opacity-50"
+                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={toggleOrientation}
                     disabled={boardOptions.autoFlip}
                     title={
@@ -1268,7 +1269,7 @@ const AppContent: React.FC = () => {
                     }
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">
+                      <span className="text-gray-300">
                         <OrientationIcon />
                       </span>
                       <span className="font-medium">{translate('options.orientation.title')}</span>
@@ -1276,11 +1277,11 @@ const AppContent: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-2 rounded-md text-left transition-colors text-sm bg-gray-800/50 hover:bg-gray-700/50 border border-transparent"
+                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={addRandomArrow}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">
+                      <span className="text-gray-300">
                         <AddArrowIcon />
                       </span>
                       <span className="font-medium">{translate('options.addArrow.title')}</span>
@@ -1288,11 +1289,11 @@ const AppContent: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-2 rounded-md text-left transition-colors text-sm bg-gray-800/50 hover:bg-gray-700/50 border border-transparent"
+                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={addRandomHighlight}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">
+                      <span className="text-gray-300">
                         <AddHighlightIcon />
                       </span>
                       <span className="font-medium">{translate('options.addHighlight.title')}</span>
@@ -1300,11 +1301,11 @@ const AppContent: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-2 rounded-md text-left transition-colors text-sm bg-red-500/20 hover:bg-red-500/30 border border-transparent"
+                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-red-500/15 hover:bg-red-500/25 ring-1 ring-red-400/30 text-red-300"
                     onClick={clearAll}
                   >
-                    <div className="flex items-center gap-2 text-red-400">
-                      <span className="text-red-400">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-300">
                         <TrashIcon />
                       </span>
                       <span className="font-medium">{translate('options.clearAll.title')}</span>
@@ -1327,7 +1328,7 @@ const AppContent: React.FC = () => {
                       step={50}
                       value={boardOptions.animationDuration}
                       onChange={handleAnimationSpeedChange}
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500 disabled:opacity-50"
+                      className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 disabled:opacity-50"
                       disabled={!boardOptions.showAnimations}
                       aria-valuemin={0}
                       aria-valuemax={2000}
@@ -1346,7 +1347,7 @@ const AppContent: React.FC = () => {
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-4 lg:space-y-5">
             <GlassPanel>
               <PanelHeader>{translate('evaluation.panelTitle')}</PanelHeader>
               <div className="p-4 flex flex-col sm:flex-row lg:flex-col gap-4">
@@ -1361,12 +1362,12 @@ const AppContent: React.FC = () => {
                   <p>{evaluationSummary}</p>
                   <p>
                     {translate('evaluation.instructions.prefix')}{' '}
-                    <code className="bg-gray-700 px-1 rounded">[%eval ...]</code>{' '}
+                    <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
                     {translate('evaluation.instructions.middle')}{' '}
                     <strong>{translate('pgn.load')}</strong>{' '}
                     {translate('evaluation.instructions.suffix')}
                   </p>
-                  <ul className="list-disc list-inside text-xs">
+                  <ul className="list-disc list-inside text-xs space-y-0.5">
                     <li>{translate('evaluation.list.perspective')}</li>
                     <li>{translate('evaluation.list.updates')}</li>
                   </ul>
@@ -1416,21 +1417,23 @@ const AppContent: React.FC = () => {
                 {LIVE_EXAMPLES.map((example) => (
                   <a
                     key={example.href}
-                    className="flex items-center p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg transition-colors"
+                    className="group flex items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ring-1 ring-white/10"
                     href={example.href}
                     target="_blank"
                     rel="noreferrer"
                   >
                     <span className="text-xl mr-3">{example.icon}</span>
                     <div>
-                      <div className="font-semibold text-gray-200 text-sm">
+                      <div className="font-semibold text-gray-100 text-sm">
                         {translate(example.labelKey)}
                       </div>
                       <div className="text-xs text-gray-400">
                         {translate(example.descriptionKey)}
                       </div>
                     </div>
-                    <span className="ml-auto text-gray-500">↗</span>
+                    <span className="ml-auto text-gray-500 transition-transform group-hover:translate-x-0.5">
+                      ↗
+                    </span>
                   </a>
                 ))}
               </div>
