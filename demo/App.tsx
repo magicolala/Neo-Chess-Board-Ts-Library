@@ -550,7 +550,6 @@ const AppContent: React.FC = () => {
       updateStatusSnapshot,
       shouldAnimateMoves,
       clearAutoplayTimer,
-      setIsAutoPlaying,
     ],
   );
 
@@ -570,18 +569,15 @@ const AppContent: React.FC = () => {
 
       return true;
     });
-  }, [jumpToPly, selectedPly, setIsAutoPlaying, timelineMaxPly]);
+  }, [jumpToPly, selectedPly, timelineMaxPly]);
 
-  const handlePlaybackSpeedChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const nextValue = Number(event.target.value);
-      if (!Number.isFinite(nextValue) || nextValue <= 0) {
-        return;
-      }
-      setPlaybackSpeed(nextValue);
-    },
-    [setPlaybackSpeed],
-  );
+  const handlePlaybackSpeedChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number(event.target.value);
+    if (!Number.isFinite(nextValue) || nextValue <= 0) {
+      return;
+    }
+    setPlaybackSpeed(nextValue);
+  }, []);
 
   useEffect(() => {
     if (!isAutoPlaying) {
@@ -665,7 +661,6 @@ const AppContent: React.FC = () => {
       clearAutoplayTimer,
       fenToPlyMap,
       rebuildRulesFromTimeline,
-      setIsAutoPlaying,
       setTimeline,
       syncOrientationWithFen,
       updateEvaluationFromMap,
@@ -751,7 +746,6 @@ const AppContent: React.FC = () => {
     chessRules,
     clearAutoplayTimer,
     pgnText,
-    setIsAutoPlaying,
     syncOrientationWithFen,
     translate,
     updateStatusSnapshot,
@@ -1083,10 +1077,10 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="container min-h-screen bg-[radial-gradient(60rem_60rem_at_10%_-20%,rgba(168,85,247,0.15),transparent),radial-gradient(50rem_50rem_at_110%_10%,rgba(59,130,246,0.12),transparent)] bg-[#0b0e17] text-gray-200 font-sans">
+    <div className="min-h-screen w-full text-gray-200 font-sans">
       <header className="fixed top-0 w-full border-b border-white/10 bg-black/40 backdrop-blur-xl z-50 h-[64px]">
         {isThemeChanging && <LoadingOverlay text={translate('app.themeChanging')} />}
-        <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
+        <div className="w-full max-w-screen-2xl mx-auto px-3 sm:px-4 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-500/50 to-indigo-500/50 grid place-items-center ring-1 ring-white/15 shadow-inner">
               <span className="text-white/90 text-base">♟</span>
@@ -1114,19 +1108,31 @@ const AppContent: React.FC = () => {
               {translate('app.themeCreatorLinkText')}
             </a>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
-            <select
-              id="demo-language"
-              className="bg-transparent border-0 text-gray-200 text-sm focus:ring-2 focus:ring-purple-500/70 rounded-md px-2 py-1 hover:bg-white/5"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as Language)}
-            >
-              <option value="en" className="text-black">
-                {translate('app.languageEnglish')}
-              </option>
-              <option value="fr" className="text-black">
-                {translate('app.languageFrench')}
-              </option>
-            </select>
+            <div className="relative">
+              <select
+                id="demo-language"
+                className="appearance-none bg-transparent border-0 text-gray-200 text-sm focus:ring-2 focus:ring-purple-500/70 rounded-md pl-2 pr-7 py-1 hover:bg-white/5"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value as Language)}
+              >
+                <option value="en" className="text-black">
+                  {translate('app.languageEnglish')}
+                </option>
+                <option value="fr" className="text-black">
+                  {translate('app.languageFrench')}
+                </option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
             <LoadingButton
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
                 theme === 'midnight'

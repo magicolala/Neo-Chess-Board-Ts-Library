@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#0b0e17] bg-fixed;
+    background-image: radial-gradient(60rem 60rem at 10% -20%, rgba(168, 85, 247, 0.15), transparent),
+      radial-gradient(50rem 50rem at 110% 10%, rgba(59, 130, 246, 0.12), transparent);
+  }
+}
