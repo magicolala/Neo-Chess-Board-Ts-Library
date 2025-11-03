@@ -16,6 +16,12 @@ interface PgnPanelProps {
   canGoBack: boolean;
   canGoForward: boolean;
   currentMoveLabel?: string;
+  isAutoplaying: boolean;
+  onAutoplayToggle: () => void;
+  autoplayIntervalMs: number;
+  autoplaySpeedOptions: { min: number; max: number; step: number };
+  onAutoplaySpeedChange: (next: number) => void;
+  canAutoplay: boolean;
 }
 
 interface ExamplePgn {
@@ -69,6 +75,45 @@ const getPgnNotationFromBoard = (board: unknown): PgnNotation | null => {
   return rules.getPgnNotation();
 };
 
+const IconFirst: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <rect x="4" y="5" width="2" height="14" fill="currentColor" />
+    <path d="M18 6L10 12l8 6V6z" fill="currentColor" />
+  </svg>
+);
+
+const IconPrevious: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M16 6L8 12l8 6V6z" fill="currentColor" />
+  </svg>
+);
+
+const IconNext: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M8 6l8 6-8 6V6z" fill="currentColor" />
+  </svg>
+);
+
+const IconLast: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M6 6l8 6-8 6V6z" fill="currentColor" />
+    <rect x="18" y="5" width="2" height="14" fill="currentColor" />
+  </svg>
+);
+
+const IconPlay: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M8 5l10 7-10 7V5z" fill="currentColor" />
+  </svg>
+);
+
+const IconPause: React.FC = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <rect x="7" y="5" width="3" height="14" fill="currentColor" />
+    <rect x="14" y="5" width="3" height="14" fill="currentColor" />
+  </svg>
+);
+
 const PgnPanel: React.FC<PgnPanelProps> = ({
   boardRef,
   pgn,
@@ -78,6 +123,12 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
   canGoBack,
   canGoForward,
   currentMoveLabel,
+  isAutoplaying,
+  onAutoplayToggle,
+  autoplayIntervalMs,
+  autoplaySpeedOptions,
+  onAutoplaySpeedChange,
+  canAutoplay,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -294,6 +345,24 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     return 'Drop a .pgn file here or use one of the example games.';
   }, [error, status]);
 
+  const autoplayButtonLabel = isAutoplaying ? 'Pause autoplay' : 'Play moves automatically';
+  const autoplaySpeedLabel = useMemo(() => {
+    if (autoplayIntervalMs < 1000) {
+      return `${autoplayIntervalMs} ms per move`;
+    }
+    return `${(autoplayIntervalMs / 1000).toFixed(1)} s per move`;
+  }, [autoplayIntervalMs]);
+
+  const handleAutoplaySpeedInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      const value = Number(event.target.value);
+      if (Number.isFinite(value)) {
+        onAutoplaySpeedChange(value);
+      }
+    },
+    [onAutoplaySpeedChange],
+  );
+
   return (
     <div className="playground__pgn-panel">
       <div
@@ -341,9 +410,22 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
       </div>
 
       <div className="playground__pgn-navigation">
-        <span className="playground__pgn-navigation-label" aria-live="polite">
-          {currentMoveLabel ?? 'Start position'}
-        </span>
+        <div className="playground__pgn-navigation-header">
+          <span className="playground__pgn-navigation-label" aria-live="polite">
+            {currentMoveLabel ?? 'Start position'}
+          </span>
+          <button
+            type="button"
+            className="playground__icon-button playground__pgn-autoplay-button"
+            onClick={onAutoplayToggle}
+            aria-label={autoplayButtonLabel}
+            title={autoplayButtonLabel}
+            aria-pressed={isAutoplaying}
+            disabled={!canAutoplay}
+          >
+            {isAutoplaying ? <IconPause /> : <IconPlay />}
+          </button>
+        </div>
         <div
           className="playground__pgn-navigation-buttons"
           role="group"
@@ -351,37 +433,62 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
         >
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('first')}
             disabled={!canGoBack}
+            aria-label="Go to first move"
+            title="Go to first move"
           >
-            First
+            <IconFirst />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('previous')}
             disabled={!canGoBack}
+            aria-label="Go to previous move"
+            title="Go to previous move"
           >
-            Previous
+            <IconPrevious />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('next')}
             disabled={!canGoForward}
+            aria-label="Go to next move"
+            title="Go to next move"
           >
-            Next
+            <IconNext />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('last')}
             disabled={!canGoForward}
+            aria-label="Go to last move"
+            title="Go to last move"
           >
-            Last
+            <IconLast />
           </button>
         </div>
+        <label className="playground__pgn-speed">
+          <span className="playground__pgn-speed-label">
+            <span>Autoplay speed</span>
+            <span>{autoplaySpeedLabel}</span>
+          </span>
+          <input
+            type="range"
+            className="playground__pgn-speed-input"
+            value={autoplayIntervalMs}
+            min={autoplaySpeedOptions.min}
+            max={autoplaySpeedOptions.max}
+            step={autoplaySpeedOptions.step}
+            onChange={handleAutoplaySpeedInputChange}
+            aria-label="Autoplay speed"
+            disabled={!canAutoplay}
+          />
+        </label>
       </div>
 
       <textarea

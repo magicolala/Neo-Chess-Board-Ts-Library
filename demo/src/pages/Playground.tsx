@@ -468,6 +468,12 @@ const STRESS_TEST_DEFAULT_RESIZE_MAX = 600;
 const STRESS_TEST_RESIZE_STEP = 40;
 const STRESS_TEST_DEFAULT_RESIZE_INTERVAL_MS = 420;
 const STRESS_TEST_DEFAULT_RESIZE_ANIMATION_MS = 180;
+
+const AUTOPLAY_DEFAULT_INTERVAL_MS = 1500;
+const AUTOPLAY_MIN_INTERVAL_MS = 250;
+const AUTOPLAY_MAX_INTERVAL_MS = 5000;
+const AUTOPLAY_INTERVAL_STEP_MS = 250;
+
 const PERF_PANEL_ID = 'playground-perf-panel';
 
 const PLAYGROUND_CTA_LINKS: StickyHeaderCtaLinks = {
@@ -517,6 +523,8 @@ const PlaygroundView: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState<number>(() => getInitialBoardSize());
   const [pgn, setPgn] = useState('');
+  const [isAutoplaying, setIsAutoplaying] = useState(false);
+  const [autoplayIntervalMs, setAutoplayIntervalMs] = useState(AUTOPLAY_DEFAULT_INTERVAL_MS);
   const initialFen =
     typeof permalinkSnapshot.fen === 'string' && permalinkSnapshot.fen.trim().length > 0
       ? permalinkSnapshot.fen
@@ -549,6 +557,9 @@ const PlaygroundView: React.FC = () => {
   const plyIndexRef = useRef(0);
   const orientationRef = useRef(orientation);
   const initialFenRef = useRef(initialFen);
+  const autoplayTimerRef = useRef<TimeoutHandle | null>(null);
+  const autoplaySpeedRef = useRef(AUTOPLAY_DEFAULT_INTERVAL_MS);
+  const isAutoplayingRef = useRef(false);
 
   const boardOptions = usePlaygroundState();
   const boardOptionsRef = useRef(boardOptions);
@@ -1010,8 +1021,118 @@ const PlaygroundView: React.FC = () => {
     [boardOptions, pushLog],
   );
 
+  const clearAutoplayTimer = useCallback(() => {
+    if (autoplayTimerRef.current !== null) {
+      globalThis.clearTimeout(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+  }, []);
+
+  const stopAutoplay = useCallback(
+    (options?: { silent?: boolean; reason?: string }) => {
+      if (!isAutoplayingRef.current) {
+        return;
+      }
+
+      isAutoplayingRef.current = false;
+      setIsAutoplaying(false);
+      clearAutoplayTimer();
+
+      if (!options?.silent) {
+        const message = options?.reason ?? 'Autoplay paused.';
+        pushLog(message);
+      }
+    },
+    [clearAutoplayTimer, pushLog],
+  );
+
+  const scheduleAutoplay = useCallback(() => {
+    if (globalThis.window === undefined) {
+      return;
+    }
+
+    clearAutoplayTimer();
+
+    if (!isAutoplayingRef.current) {
+      return;
+    }
+
+    autoplayTimerRef.current = globalThis.setTimeout(() => {
+      const timeline = fenTimelineRef.current;
+
+      if (!isAutoplayingRef.current || timeline.length === 0) {
+        stopAutoplay({ silent: true });
+        return;
+      }
+
+      const maxIndex = timeline.length - 1;
+      if (plyIndexRef.current >= maxIndex) {
+        stopAutoplay({ silent: true });
+        pushLog('Autoplay finished at the end of the game.');
+        return;
+      }
+
+      const nextIndex = Math.min(maxIndex, plyIndexRef.current + 1);
+      applyPly(nextIndex);
+      scheduleAutoplay();
+    }, autoplaySpeedRef.current);
+  }, [applyPly, clearAutoplayTimer, pushLog, stopAutoplay]);
+
+  const startAutoplay = useCallback(() => {
+    const timeline = fenTimelineRef.current;
+
+    if (timeline.length <= 1) {
+      pushLog('Autoplay requires a PGN with at least one move.');
+      return;
+    }
+
+    if (plyIndexRef.current >= timeline.length - 1) {
+      applyPly(0, { logLabel: 'Autoplay restarted from the initial position.' });
+    }
+
+    autoplaySpeedRef.current = autoplayIntervalMs;
+    isAutoplayingRef.current = true;
+    setIsAutoplaying(true);
+    pushLog('Autoplay started.');
+    scheduleAutoplay();
+  }, [applyPly, autoplayIntervalMs, pushLog, scheduleAutoplay]);
+
+  const handleAutoplayToggle = useCallback(() => {
+    if (isAutoplayingRef.current) {
+      stopAutoplay();
+    } else {
+      startAutoplay();
+    }
+  }, [startAutoplay, stopAutoplay]);
+
+  const handleAutoplaySpeedChange = useCallback(
+    (next: number) => {
+      const stepped = Math.round(next / AUTOPLAY_INTERVAL_STEP_MS) * AUTOPLAY_INTERVAL_STEP_MS;
+      const clamped = Math.max(
+        AUTOPLAY_MIN_INTERVAL_MS,
+        Math.min(AUTOPLAY_MAX_INTERVAL_MS, stepped),
+      );
+
+      autoplaySpeedRef.current = clamped;
+      setAutoplayIntervalMs((value) => (value === clamped ? value : clamped));
+
+      if (isAutoplayingRef.current) {
+        scheduleAutoplay();
+      }
+    },
+    [scheduleAutoplay],
+  );
+
+  useEffect(() => {
+    return () => {
+      clearAutoplayTimer();
+      isAutoplayingRef.current = false;
+    };
+  }, [clearAutoplayTimer]);
+
   const rebuildTimelineFromPgn = useCallback(
     (sourcePgn: string, options?: { jumpToEnd?: boolean; logLabel?: string }) => {
+      stopAutoplay({ silent: true });
       const trimmed = sourcePgn.trim();
       let sanitizedPgn = trimmed;
       let startingFen = initialFenRef.current ?? DEFAULT_START_FEN;
@@ -1089,7 +1210,7 @@ const PlaygroundView: React.FC = () => {
         setPgn(sanitizedPgn);
       }
     },
-    [applyPly, setPgn],
+    [applyPly, setPgn, stopAutoplay],
   );
 
   useEffect(() => {
@@ -1417,6 +1538,7 @@ const PlaygroundView: React.FC = () => {
 
   const handleNavigate = useCallback(
     (direction: 'first' | 'previous' | 'next' | 'last') => {
+      stopAutoplay({ reason: 'Autoplay paused due to manual navigation.' });
       const timeline = fenTimelineRef.current;
       if (timeline.length === 0) {
         return;
@@ -1461,7 +1583,7 @@ const PlaygroundView: React.FC = () => {
 
       applyPly(targetIndex, { logLabel: `${verb} ${label}.` });
     },
-    [applyPly],
+    [applyPly, stopAutoplay],
   );
 
   const outputSections = useMemo(
@@ -1477,6 +1599,16 @@ const PlaygroundView: React.FC = () => {
           canGoBack={canNavigateBackward}
           canGoForward={canNavigateForward}
           currentMoveLabel={currentMoveLabel}
+          isAutoplaying={isAutoplaying}
+          onAutoplayToggle={handleAutoplayToggle}
+          autoplayIntervalMs={autoplayIntervalMs}
+          autoplaySpeedOptions={{
+            min: AUTOPLAY_MIN_INTERVAL_MS,
+            max: AUTOPLAY_MAX_INTERVAL_MS,
+            step: AUTOPLAY_INTERVAL_STEP_MS,
+          }}
+          onAutoplaySpeedChange={handleAutoplaySpeedChange}
+          canAutoplay={fenTimeline.length > 1}
         />,
         codePanelElement,
         handleClearLogs,
@@ -1498,6 +1630,11 @@ const PlaygroundView: React.FC = () => {
       canNavigateBackward,
       canNavigateForward,
       currentMoveLabel,
+      isAutoplaying,
+      handleAutoplayToggle,
+      autoplayIntervalMs,
+      handleAutoplaySpeedChange,
+      fenTimeline.length,
     ],
   );
 
@@ -1510,6 +1647,7 @@ const PlaygroundView: React.FC = () => {
     if (isStressTestRunning) {
       stopStressTest('Stress test aborted: manual reset triggered.');
     }
+    stopAutoplay({ silent: true });
     setBoardKey((value) => value + 1);
     setOrientation(DEFAULT_ORIENTATION);
     resetBoardOptions();
@@ -1523,7 +1661,7 @@ const PlaygroundView: React.FC = () => {
     });
     clearPlaygroundPermalink();
     pushToast('Playground reset to defaults and permalink cleared.', { intent: 'success' });
-  }, [isStressTestRunning, resetBoardOptions, stopStressTest, applyPly, pushToast]);
+  }, [isStressTestRunning, resetBoardOptions, stopStressTest, stopAutoplay, applyPly, pushToast]);
 
   const handleStressTest = useCallback(() => {
     if (globalThis.window === undefined) {
@@ -1535,6 +1673,8 @@ const PlaygroundView: React.FC = () => {
       pushLog('Stress test is already running; ignoring duplicate request.');
       return;
     }
+
+    stopAutoplay({ silent: true });
 
     const board = boardRef.current?.getBoard() as StressTestBoardApi | null;
     if (!board) {
