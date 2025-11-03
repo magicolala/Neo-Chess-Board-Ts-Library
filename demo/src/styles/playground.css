@@ -690,10 +690,9 @@
   background: rgba(99, 102, 241, 0.3);
 }
 
+
 .playground__pgn-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: calc(var(--playground-radius) - 8px);
@@ -701,10 +700,53 @@
   background: rgba(15, 23, 42, 0.6);
 }
 
+.playground__pgn-navigation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .playground__pgn-navigation-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--playground-text);
+}
+
+.playground__icon-button {
+  appearance: none;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--playground-text);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.playground__icon-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.playground__icon-button:not(:disabled):hover {
+  background: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(99, 102, 241, 0.28);
+}
+
+.playground__icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+  transform: none;
 }
 
 .playground__pgn-navigation-buttons {
@@ -714,31 +756,31 @@
 }
 
 .playground__pgn-nav-button {
-  appearance: none;
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  border-radius: 999px;
-  padding: 0.35rem 0.9rem;
-  background: rgba(99, 102, 241, 0.18);
-  color: var(--playground-text);
-  font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  width: 2.4rem;
+  height: 2.4rem;
 }
 
-.playground__pgn-nav-button:not(:disabled):hover {
-  background: rgba(99, 102, 241, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 12px 22px rgba(99, 102, 241, 0.28);
+.playground__pgn-autoplay-button {
+  flex: 0 0 auto;
 }
 
-.playground__pgn-nav-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.playground__pgn-speed {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.playground__pgn-speed-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--playground-muted);
+}
+
+.playground__pgn-speed-input {
+  width: 100%;
+  accent-color: #6366f1;
 }
 
 .playground__pgn-textarea {

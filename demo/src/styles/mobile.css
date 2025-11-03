@@ -135,8 +135,17 @@
   }
 
   .playground__pgn-navigation {
+    gap: 1rem;
+  }
+
+  .playground__pgn-navigation-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .playground__pgn-autoplay-button {
+    width: 100%;
   }
 
   .playground__pgn-navigation-buttons {
@@ -148,5 +157,11 @@
 
   .playground__pgn-nav-button {
     width: 100%;
+    height: 2.8rem;
+  }
+
+  .playground__icon-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
