@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconFirst, IconLast, IconNext, IconPrevious } from '../shared/icons/TimelineIcons';
 
 interface PlyNavigatorLabels {
   first: string;
@@ -43,7 +44,7 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
   const moveValueClassName = isAtStart ? 'text-gray-400' : 'font-semibold text-gray-100';
 
   const buttonBaseClass =
-    'px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-md text-sm font-medium text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gray-700/60 text-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 hover:bg-gray-600/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-700/60';
 
   return (
     <div className="p-2 rounded-lg bg-gray-800/50">
@@ -65,8 +66,10 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           onClick={onFirst}
           disabled={isAtStart}
           aria-label={ariaLabels.first}
+          title={labels.first}
         >
-          {labels.first}
+          <IconFirst />
+          <span className="sr-only">{labels.first}</span>
         </button>
         <button
           type="button"
@@ -74,8 +77,10 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           onClick={onPrevious}
           disabled={isAtStart}
           aria-label={ariaLabels.previous}
+          title={labels.previous}
         >
-          {labels.previous}
+          <IconPrevious />
+          <span className="sr-only">{labels.previous}</span>
         </button>
         <button
           type="button"
@@ -83,8 +88,10 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           onClick={onNext}
           disabled={isAtEnd}
           aria-label={ariaLabels.next}
+          title={labels.next}
         >
-          {labels.next}
+          <IconNext />
+          <span className="sr-only">{labels.next}</span>
         </button>
         <button
           type="button"
@@ -92,8 +99,10 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           onClick={onLast}
           disabled={isAtEnd}
           aria-label={ariaLabels.last}
+          title={labels.last}
         >
-          {labels.last}
+          <IconLast />
+          <span className="sr-only">{labels.last}</span>
         </button>
       </div>
     </div>

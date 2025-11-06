@@ -29,6 +29,7 @@ import {
   SquareNamesIcon,
   TrashIcon,
 } from './components/Icons';
+import { IconPause, IconPlay } from './shared/icons/TimelineIcons';
 import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
 import { useBoardSize } from './hooks/useBoardSize';
 import { PlyNavigator } from './components/PlyNavigator';
@@ -107,6 +108,11 @@ const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
 const DEFAULT_BOARD_SIZE = 520;
+
+const AUTOPLAY_DEFAULT_INTERVAL_MS = 1500;
+const AUTOPLAY_MIN_INTERVAL_MS = 250;
+const AUTOPLAY_MAX_INTERVAL_MS = 5000;
+const AUTOPLAY_INTERVAL_STEP_MS = 250;
 
 interface LiveExampleLink {
   href: string;
@@ -205,7 +211,7 @@ const AppContent: React.FC = () => {
   const [currentEvaluation, setCurrentEvaluation] = useState<number | string | undefined>();
   const [selectedPly, setSelectedPly] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1000);
+  const [playbackSpeed, setPlaybackSpeed] = useState(AUTOPLAY_DEFAULT_INTERVAL_MS);
   const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
     showArrows: true,
     showHighlights: true,
@@ -249,6 +255,13 @@ const AppContent: React.FC = () => {
   const selectedPlyRef = useRef(0);
   const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineMaxPly = useMemo(() => plyTimeline.at(-1)?.ply ?? 0, [plyTimeline]);
+
+  const autoplayToggleLabel = isAutoPlaying
+    ? translate('timeline.aria.pause')
+    : translate('timeline.aria.play');
+  const autoplayToggleText = isAutoPlaying
+    ? translate('timeline.playback.pause')
+    : translate('timeline.playback.play');
 
   const clearAutoplayTimer = useCallback(() => {
     if (autoplayTimeoutRef.current !== null) {
@@ -572,11 +585,19 @@ const AppContent: React.FC = () => {
   }, [jumpToPly, selectedPly, timelineMaxPly]);
 
   const handlePlaybackSpeedChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const nextValue = Number(event.target.value);
-    if (!Number.isFinite(nextValue) || nextValue <= 0) {
+    const rawValue = Number(event.target.value);
+    if (!Number.isFinite(rawValue)) {
       return;
     }
-    setPlaybackSpeed(nextValue);
+
+    const steppedValue =
+      Math.round(rawValue / AUTOPLAY_INTERVAL_STEP_MS) * AUTOPLAY_INTERVAL_STEP_MS;
+    const clampedValue = Math.max(
+      AUTOPLAY_MIN_INTERVAL_MS,
+      Math.min(AUTOPLAY_MAX_INTERVAL_MS, steppedValue),
+    );
+
+    setPlaybackSpeed((previous) => (previous === clampedValue ? previous : clampedValue));
   }, []);
 
   useEffect(() => {
@@ -1675,19 +1696,19 @@ const AppContent: React.FC = () => {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
-                    className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-200 bg-purple-500/20 hover:bg-purple-500/30 ring-1 ring-purple-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isAutoPlaying
+                        ? 'bg-purple-500/30 text-purple-100'
+                        : 'bg-white/10 text-gray-200 hover:bg-white/15'
+                    }`}
                     onClick={handleToggleAutoplay}
                     aria-pressed={isAutoPlaying}
-                    aria-label={
-                      isAutoPlaying
-                        ? translate('timeline.aria.pause')
-                        : translate('timeline.aria.play')
-                    }
+                    aria-label={autoplayToggleLabel}
+                    title={autoplayToggleText}
                     disabled={timelineMaxPly <= 0}
                   >
-                    {isAutoPlaying
-                      ? translate('timeline.playback.pause')
-                      : translate('timeline.playback.play')}
+                    {isAutoPlaying ? <IconPause /> : <IconPlay />}
+                    <span className="sr-only">{autoplayToggleText}</span>
                   </button>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-1">
                     <label
@@ -1700,14 +1721,14 @@ const AppContent: React.FC = () => {
                       <input
                         id={playbackSpeedInputId}
                         type="range"
-                        min={250}
-                        max={2000}
-                        step={250}
+                        min={AUTOPLAY_MIN_INTERVAL_MS}
+                        max={AUTOPLAY_MAX_INTERVAL_MS}
+                        step={AUTOPLAY_INTERVAL_STEP_MS}
                         value={playbackSpeed}
                         onChange={handlePlaybackSpeedChange}
                         className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
-                        aria-valuemin={250}
-                        aria-valuemax={2000}
+                        aria-valuemin={AUTOPLAY_MIN_INTERVAL_MS}
+                        aria-valuemax={AUTOPLAY_MAX_INTERVAL_MS}
                         aria-valuenow={playbackSpeed}
                         aria-label={translate('timeline.aria.speed')}
                       />

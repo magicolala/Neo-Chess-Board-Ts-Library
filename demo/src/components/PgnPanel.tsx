@@ -2,6 +2,14 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { NeoChessRef } from '../../../src/react';
 import type { ChessJsRules } from '../../../src/core/ChessJsRules';
 import type { PgnNotation } from '../../../src/core/PgnNotation';
+import {
+  IconFirst,
+  IconLast,
+  IconNext,
+  IconPause,
+  IconPlay,
+  IconPrevious,
+} from '../../shared/icons/TimelineIcons';
 import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 import { useToaster } from './Toaster';
 
@@ -16,6 +24,12 @@ interface PgnPanelProps {
   canGoBack: boolean;
   canGoForward: boolean;
   currentMoveLabel?: string;
+  isAutoplaying: boolean;
+  onAutoplayToggle: () => void;
+  autoplayIntervalMs: number;
+  autoplaySpeedOptions: { min: number; max: number; step: number };
+  onAutoplaySpeedChange: (next: number) => void;
+  canAutoplay: boolean;
 }
 
 interface ExamplePgn {
@@ -78,6 +92,12 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
   canGoBack,
   canGoForward,
   currentMoveLabel,
+  isAutoplaying,
+  onAutoplayToggle,
+  autoplayIntervalMs,
+  autoplaySpeedOptions,
+  onAutoplaySpeedChange,
+  canAutoplay,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -294,6 +314,24 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     return 'Drop a .pgn file here or use one of the example games.';
   }, [error, status]);
 
+  const autoplayButtonLabel = isAutoplaying ? 'Pause autoplay' : 'Play moves automatically';
+  const autoplaySpeedLabel = useMemo(() => {
+    if (autoplayIntervalMs < 1000) {
+      return `${autoplayIntervalMs} ms per move`;
+    }
+    return `${(autoplayIntervalMs / 1000).toFixed(1)} s per move`;
+  }, [autoplayIntervalMs]);
+
+  const handleAutoplaySpeedInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      const value = Number(event.target.value);
+      if (Number.isFinite(value)) {
+        onAutoplaySpeedChange(value);
+      }
+    },
+    [onAutoplaySpeedChange],
+  );
+
   return (
     <div className="playground__pgn-panel">
       <div
@@ -341,9 +379,22 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
       </div>
 
       <div className="playground__pgn-navigation">
-        <span className="playground__pgn-navigation-label" aria-live="polite">
-          {currentMoveLabel ?? 'Start position'}
-        </span>
+        <div className="playground__pgn-navigation-header">
+          <span className="playground__pgn-navigation-label" aria-live="polite">
+            {currentMoveLabel ?? 'Start position'}
+          </span>
+          <button
+            type="button"
+            className="playground__icon-button playground__pgn-autoplay-button"
+            onClick={onAutoplayToggle}
+            aria-label={autoplayButtonLabel}
+            title={autoplayButtonLabel}
+            aria-pressed={isAutoplaying}
+            disabled={!canAutoplay}
+          >
+            {isAutoplaying ? <IconPause /> : <IconPlay />}
+          </button>
+        </div>
         <div
           className="playground__pgn-navigation-buttons"
           role="group"
@@ -351,37 +402,62 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
         >
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('first')}
             disabled={!canGoBack}
+            aria-label="Go to first move"
+            title="Go to first move"
           >
-            First
+            <IconFirst />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('previous')}
             disabled={!canGoBack}
+            aria-label="Go to previous move"
+            title="Go to previous move"
           >
-            Previous
+            <IconPrevious />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('next')}
             disabled={!canGoForward}
+            aria-label="Go to next move"
+            title="Go to next move"
           >
-            Next
+            <IconNext />
           </button>
           <button
             type="button"
-            className="playground__pgn-nav-button"
+            className="playground__icon-button playground__pgn-nav-button"
             onClick={() => onNavigate('last')}
             disabled={!canGoForward}
+            aria-label="Go to last move"
+            title="Go to last move"
           >
-            Last
+            <IconLast />
           </button>
         </div>
+        <label className="playground__pgn-speed">
+          <span className="playground__pgn-speed-label">
+            <span>Autoplay speed</span>
+            <span>{autoplaySpeedLabel}</span>
+          </span>
+          <input
+            type="range"
+            className="playground__pgn-speed-input"
+            value={autoplayIntervalMs}
+            min={autoplaySpeedOptions.min}
+            max={autoplaySpeedOptions.max}
+            step={autoplaySpeedOptions.step}
+            onChange={handleAutoplaySpeedInputChange}
+            aria-label="Autoplay speed"
+            disabled={!canAutoplay}
+          />
+        </label>
       </div>
 
       <textarea

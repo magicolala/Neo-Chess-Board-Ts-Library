@@ -254,8 +254,10 @@ describe('Playground navigation', () => {
       expect(board).toHaveAttribute('data-fen', SCRIPTED_MOVES[1].fen);
     });
 
-    const [previousButton] = await screen.findAllByRole('button', { name: /^Previous$/i });
-    const [nextButton] = await screen.findAllByRole('button', { name: /^Next$/i });
+    const [previousButton] = await screen.findAllByRole('button', {
+      name: /Go to previous move/i,
+    });
+    const [nextButton] = await screen.findAllByRole('button', { name: /Go to next move/i });
 
     await waitFor(() => {
       expect(previousButton).not.toBeDisabled();
