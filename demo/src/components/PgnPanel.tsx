@@ -3,12 +3,12 @@ import type { NeoChessRef } from '../../../src/react';
 import type { ChessJsRules } from '../../../src/core/ChessJsRules';
 import type { PgnNotation } from '../../../src/core/PgnNotation';
 import {
-  IconFirst,
-  IconLast,
-  IconNext,
-  IconPause,
-  IconPlay,
-  IconPrevious,
+  IconFirst as TimelineIconFirst,
+  IconLast as TimelineIconLast,
+  IconNext as TimelineIconNext,
+  IconPause as TimelineIconPause,
+  IconPlay as TimelineIconPlay,
+  IconPrevious as TimelineIconPrevious,
 } from '../../shared/icons/TimelineIcons';
 import { ANALYTICS_EVENTS, trackEvent } from '../utils/analytics';
 import { useToaster } from './Toaster';
@@ -392,7 +392,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             aria-pressed={isAutoplaying}
             disabled={!canAutoplay}
           >
-            {isAutoplaying ? <IconPause /> : <IconPlay />}
+            {isAutoplaying ? <TimelineIconPause /> : <TimelineIconPlay />}
           </button>
         </div>
         <div
@@ -408,7 +408,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             aria-label="Go to first move"
             title="Go to first move"
           >
-            <IconFirst />
+            <TimelineIconFirst />
           </button>
           <button
             type="button"
@@ -418,7 +418,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             aria-label="Go to previous move"
             title="Go to previous move"
           >
-            <IconPrevious />
+            <TimelineIconPrevious />
           </button>
           <button
             type="button"
@@ -428,7 +428,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             aria-label="Go to next move"
             title="Go to next move"
           >
-            <IconNext />
+            <TimelineIconNext />
           </button>
           <button
             type="button"
@@ -438,7 +438,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             aria-label="Go to last move"
             title="Go to last move"
           >
-            <IconLast />
+            <TimelineIconLast />
           </button>
         </div>
         <label className="playground__pgn-speed">
