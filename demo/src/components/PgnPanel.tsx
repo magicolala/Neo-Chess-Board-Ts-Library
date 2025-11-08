@@ -171,6 +171,10 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
         return;
       }
 
+      if (isAutoplaying) {
+        onAutoplayToggle();
+      }
+
       const board = boardRef.current?.getBoard();
       if (!board) {
         const message = 'Chessboard is not ready yet.';
@@ -218,7 +222,15 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
         });
       }
     },
-    [boardRef, handleBoardPgnExport, onLog, onPgnChange, pushToast],
+    [
+      boardRef,
+      handleBoardPgnExport,
+      isAutoplaying,
+      onAutoplayToggle,
+      onLog,
+      onPgnChange,
+      pushToast,
+    ],
   );
 
   const handleFileContent = useCallback(
