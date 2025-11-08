@@ -1,6 +1,9 @@
 import React from 'react';
 
-const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const SvgIcon: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => (
   <svg
     viewBox="0 0 24 24"
     width={24}
@@ -12,6 +15,7 @@ const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     strokeLinejoin="round"
     aria-hidden="true"
     focusable="false"
+    className={className ?? 'h-5 w-5'}
   >
     {children}
   </svg>
@@ -170,5 +174,46 @@ export const TrashIcon: React.FC = () => (
     <path d="M9 7v10a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V7" />
     <path d="M10.5 11v6" />
     <path d="M13.5 11v6" />
+  </SvgIcon>
+);
+
+export const RewindIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M19 18 9 12l10-6v12Z" />
+    <path d="M11 18 5 12l6-6v12Z" />
+  </SvgIcon>
+);
+
+export const StepBackIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m15 18-8-6 8-6v12Z" />
+    <path d="M7 6v12" />
+  </SvgIcon>
+);
+
+export const StepForwardIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m9 6 8 6-8 6V6Z" />
+    <path d="M17 6v12" />
+  </SvgIcon>
+);
+
+export const FastForwardIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M5 18 15 12 5 6v12Z" />
+    <path d="M13 18l6-6-6-6v12Z" />
+  </SvgIcon>
+);
+
+export const PlayIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m8 5 11 7-11 7V5Z" />
+  </SvgIcon>
+);
+
+export const PauseIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M9 5h2v14H9z" />
+    <path d="M13 5h2v14h-2z" />
   </SvgIcon>
 );

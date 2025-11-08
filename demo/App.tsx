@@ -33,6 +33,10 @@ import {
   PreviousIcon,
   SoundIcon,
   SquareNamesIcon,
+  RewindIcon,
+  StepBackIcon,
+  StepForwardIcon,
+  FastForwardIcon,
   TrashIcon,
 } from './components/Icons';
 import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
@@ -198,6 +202,7 @@ const AppContent: React.FC = () => {
   const [pgnText, setPgnText] = useState('');
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [isPgnLoading, setIsPgnLoading] = useState(false);
+  const [isImportingFromFile, setIsImportingFromFile] = useState(false);
   const [evaluationsByPly, setEvaluationsByPly] = useState<Record<number, number | string>>({});
   const [plyAnnotations, setPlyAnnotations] = useState<Record<number, PlyAnnotationInfo>>({});
   const initialFen = chessRules.getFEN();
@@ -228,6 +233,7 @@ const AppContent: React.FC = () => {
   const shouldAnimateMoves = boardOptions.showAnimations && boardOptions.animationDuration > 0;
   const animationSpeedInputId = useId();
   const playbackSpeedInputId = useId();
+  const pgnFileInputId = useId();
   const promotionExtensions = useMemo(() => [createPromotionDialogExtension()], []);
 
   const {
@@ -252,6 +258,7 @@ const AppContent: React.FC = () => {
   });
 
   const boardRef = useRef<NeoChessRef>(null);
+  const pgnFileInputRef = useRef<HTMLInputElement | null>(null);
   const selectedPlyRef = useRef(0);
   const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineMaxPly = useMemo(() => plyTimeline.at(-1)?.ply ?? 0, [plyTimeline]);
@@ -477,7 +484,7 @@ const AppContent: React.FC = () => {
     setEvaluationsByPly(evaluationMap);
     setPlyAnnotations(annotationMap);
     setTimeline(timelineEntries);
-    updateEvaluationFromMap(verboseHistory.length, evaluationMap);
+    updateEvaluationFromMap(0, evaluationMap);
   }, [chessRules, setTimeline, updateEvaluationFromMap]);
 
   const rebuildRulesFromTimeline = useCallback(
@@ -710,54 +717,103 @@ const AppContent: React.FC = () => {
     clearEvaluations,
   ]);
 
-  const handleLoadPgn = useCallback(async () => {
-    const trimmed = pgnText.trim();
-    if (!trimmed) {
-      setPgnError(translate('pgn.error.empty'));
-      return;
-    }
-
-    const normalizedPgn = normalizePgn(trimmed);
-
-    setIsPgnLoading(true);
-    try {
-      setIsAutoPlaying(false);
-      clearAutoplayTimer();
-      setPgnError(null);
-      const success = chessRules.loadPgn(normalizedPgn);
-      const board = boardRef.current?.getBoard();
-      const boardResult = board?.loadPgnWithAnnotations(normalizedPgn);
-
-      if (!success) {
-        setPgnError(translate('pgn.error.load'));
+  const loadPgn = useCallback(
+    async (rawPgn: string) => {
+      const trimmed = rawPgn.trim();
+      if (!trimmed) {
+        setPgnError(translate('pgn.error.empty'));
         return;
       }
 
-      if (board && boardResult === false) {
-        console.warn('PGN annotations failed to load on the board side.');
+      const normalizedPgn = normalizePgn(trimmed);
+
+      setIsPgnLoading(true);
+      try {
+        setIsAutoPlaying(false);
+        clearAutoplayTimer();
+        setPgnError(null);
+
+        const success = chessRules.loadPgn(normalizedPgn);
+        const board = boardRef.current?.getBoard();
+        const boardResult = board?.loadPgnWithAnnotations(normalizedPgn);
+
+        if (!success) {
+          setPgnError(translate('pgn.error.load'));
+          return;
+        }
+
+        if (board && boardResult === false) {
+          console.warn('PGN annotations failed to load on the board side.');
+        }
+
+        const normalizedOutput = chessRules.toPgn(false);
+        syncEvaluationsFromRules();
+
+        const initialTimelineFen =
+          typeof timelineInitialFenRef.current === 'string' &&
+          timelineInitialFenRef.current.trim().length > 0
+            ? timelineInitialFenRef.current
+            : chessRules.getFEN();
+
+        rebuildRulesFromTimeline(0);
+        setFen(initialTimelineFen);
+        board?.loadFEN?.(initialTimelineFen, !shouldAnimateMoves);
+        board?.showPgnAnnotationsForPly?.(0);
+        syncOrientationWithFen(initialTimelineFen);
+        try {
+          const statusRules = new ChessJsRules(initialTimelineFen);
+          setStatus(buildStatusSnapshot(statusRules));
+        } catch (statusError) {
+          console.error('Unable to derive status from the initial timeline FEN:', statusError);
+          updateStatusSnapshot();
+        }
+        setPgnText(normalizedOutput);
+      } catch (error) {
+        console.error('Error while loading the PGN:', error);
+        setPgnError(translate('pgn.error.generic'));
+      } finally {
+        setIsPgnLoading(false);
+      }
+    },
+    [
+      boardRef,
+      chessRules,
+      clearAutoplayTimer,
+      rebuildRulesFromTimeline,
+      syncEvaluationsFromRules,
+      syncOrientationWithFen,
+      shouldAnimateMoves,
+      translate,
+      updateStatusSnapshot,
+    ],
+  );
+
+  const handleLoadPgn = useCallback(() => {
+    void loadPgn(pgnText);
+  }, [loadPgn, pgnText]);
+
+  const handlePgnFileUpload = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
       }
 
-      const updatedFen = chessRules.getFEN();
-      setFen(updatedFen);
-      syncOrientationWithFen(updatedFen);
-      setPgnText(chessRules.toPgn(false));
-      updateStatusSnapshot();
-      syncEvaluationsFromRules();
-    } catch (error) {
-      console.error('Error while loading the PGN:', error);
-      setPgnError(translate('pgn.error.generic'));
-    } finally {
-      setIsPgnLoading(false);
-    }
-  }, [
-    chessRules,
-    clearAutoplayTimer,
-    pgnText,
-    syncOrientationWithFen,
-    translate,
-    updateStatusSnapshot,
-    syncEvaluationsFromRules,
-  ]);
+      try {
+        setIsImportingFromFile(true);
+        const text = await file.text();
+        setPgnText(text);
+        await loadPgn(text);
+      } catch (error) {
+        console.error('Error while reading the PGN file:', error);
+        setPgnError(translate('pgn.error.generic'));
+      } finally {
+        setIsImportingFromFile(false);
+        event.target.value = '';
+      }
+    },
+    [loadPgn, translate],
+  );
 
   const handleCopyPGN = async () => {
     setIsCopying(true);
@@ -1235,7 +1291,23 @@ const AppContent: React.FC = () => {
                   aria-label={translate('pgn.title')}
                   placeholder={translate('pgn.placeholder')}
                 />
+                <input
+                  id={pgnFileInputId}
+                  ref={pgnFileInputRef}
+                  type="file"
+                  accept=".pgn,.txt,text/plain,application/x-chess-pgn"
+                  className="hidden"
+                  onChange={handlePgnFileUpload}
+                />
                 <div className="grid grid-cols-2 gap-2 mt-3 buttonGroup">
+                  <LoadingButton
+                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                    onClick={() => pgnFileInputRef.current?.click()}
+                    isLoading={isImportingFromFile}
+                    disabled={isPgnLoading}
+                  >
+                    {isImportingFromFile ? translate('pgn.importing') : translate('pgn.import')}
+                  </LoadingButton>
                   <LoadingButton
                     className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
                     onClick={handleLoadPgn}
@@ -1690,6 +1762,14 @@ const AppContent: React.FC = () => {
                   positionLabel={translate('timeline.position', {
                     descriptor: formatPlyDescriptor(selectedPly),
                   })}
+                  icons={{
+                    first: <FirstIcon />,
+                    previous: <PreviousIcon />,
+                    next: <NextIcon />,
+                    last: <LastIcon />,
+                    play: <PlayIcon />,
+                    pause: <PauseIcon />,
+                  }}
                   labels={{
                     first: translate('timeline.controls.first'),
                     previous: translate('timeline.controls.previous'),
@@ -1711,14 +1791,6 @@ const AppContent: React.FC = () => {
                     play: translate('timeline.aria.play'),
                     pause: translate('timeline.aria.pause'),
                     speed: translate('timeline.aria.speed'),
-                  }}
-                  icons={{
-                    first: <FirstIcon />,
-                    previous: <PreviousIcon />,
-                    next: <NextIcon />,
-                    last: <LastIcon />,
-                    play: <PlayIcon />,
-                    pause: <PauseIcon />,
                   }}
                   isAutoPlaying={isAutoPlaying}
                   isAutoplayAvailable={isAutoplayAvailable}

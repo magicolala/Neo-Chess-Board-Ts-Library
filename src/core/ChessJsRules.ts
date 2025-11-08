@@ -2,6 +2,7 @@ import { Chess, SQUARES, type Color, type Move as ChessMove } from 'chess.js';
 import type { RulesAdapter, Move, RulesMoveResponse, RulesMoveDetail } from './types';
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
+import { sanitizePgnString } from './PgnSanitizer';
 
 type ChessSquare = (typeof SQUARES)[number];
 
@@ -435,7 +436,8 @@ export class ChessJsRules implements RulesAdapter {
    */
   loadPgn(pgn: string): boolean {
     try {
-      this.chess.loadPgn(pgn);
+      const sanitized = sanitizePgnString(pgn);
+      this.chess.loadPgn(sanitized);
       this.pgnNotation.importFromChessJs(this.chess);
       return true;
     } catch {

@@ -477,6 +477,10 @@ describe('App Component', () => {
         expect(screen.getByText(enTranslations['timeline.title'])).toBeInTheDocument();
       });
 
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(INITIAL_FEN);
+      });
+
       const firstButton = await screen.findByRole('button', {
         name: enTranslations['timeline.aria.first'],
       });
@@ -490,13 +494,12 @@ describe('App Component', () => {
         name: enTranslations['timeline.aria.last'],
       });
 
-      expect(lastButton).toBeDisabled();
+      expect(firstButton).toBeDisabled();
+      expect(previousButton).toBeDisabled();
+      expect(lastButton).not.toBeDisabled();
+      expect(nextButton).not.toBeDisabled();
 
-      await user.click(firstButton);
-      await waitFor(() => {
-        expect(fenTextarea).toHaveValue(INITIAL_FEN);
-      });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(INITIAL_FEN, false);
+      expect(mockBoardLoadFEN).toHaveBeenCalledWith(INITIAL_FEN, false);
 
       await user.click(nextButton);
       await waitFor(() => {
@@ -538,6 +541,11 @@ describe('App Component', () => {
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
       await user.type(pgnTextarea, '1. e4 e5 2. Nf3 Nc6');
       await user.click(screen.getByRole('button', { name: enTranslations['pgn.load'] }));
+
+      const lastButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.last'],
+      });
+      await user.click(lastButton);
 
       await screen.findByText(SANITIZED_BLACK_COMMENT);
       expect(screen.queryByText(/contentReference/)).not.toBeInTheDocument();
@@ -674,6 +682,22 @@ c4 { [%eval 0.12] } 1... e6 { [%eval 0.25] } 2. d4 d5 { [%eval 0.17] }`;
       const rulesInstance = new (require('../../src/core/ChessJsRules').ChessJsRules)();
       const success = rulesInstance.loadPgn(normalized);
       expect(success).toBe(true);
+    });
+
+    it('should strip out engine variations while preserving comments', () => {
+      const lichessPgn = `[Event "rated rapid game"]
+[Site "https://lichess.org/N328qWow"]
+
+1. e4 { [%eval 0.18] [%clk 0:10:00] } (1... c5 { [%eval 0.00] }) 1... c5 { [%eval 0.25] [%clk 0:10:00] } 2. Nf3 { [%eval 0.2] [%clk 0:09:57] } 2... Nc6 { [%eval 0.25] [%clk 0:09:59] } { (the comment stays) } 3. d4 (3. Bb5) 3... cxd4 1-0`;
+
+      const normalized = normalizePgn(lichessPgn);
+
+      expect(normalized).not.toContain('(1... c5 { [%eval 0.00] })');
+      expect(normalized).not.toContain('(3. Bb5)');
+      expect(normalized).toContain('[%clk 0:09:59] (the comment stays)');
+      expect(normalized).toMatch(
+        /2\. Nf3 { \[%eval 0\.2] \[%clk 0:09:57] } 2\.\.\. Nc6 { \[%eval 0\.25] \[%clk 0:09:59] \(the comment stays\) } 3\. d4 3\.\.\. cxd4 1-0/,
+      );
     });
   });
 });
