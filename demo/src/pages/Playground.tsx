@@ -1131,8 +1131,13 @@ const PlaygroundView: React.FC = () => {
   }, [clearAutoplayTimer]);
 
   const rebuildTimelineFromPgn = useCallback(
-    (sourcePgn: string, options?: { jumpToEnd?: boolean; logLabel?: string }) => {
-      stopAutoplay({ silent: true });
+    (
+      sourcePgn: string,
+      options?: { jumpToEnd?: boolean; logLabel?: string; preserveAutoplay?: boolean },
+    ) => {
+      if (!options?.preserveAutoplay) {
+        stopAutoplay({ silent: true });
+      }
       const trimmed = sourcePgn.trim();
       let sanitizedPgn = trimmed;
       let startingFen = initialFenRef.current ?? DEFAULT_START_FEN;
@@ -1214,7 +1219,10 @@ const PlaygroundView: React.FC = () => {
   );
 
   useEffect(() => {
-    rebuildTimelineFromPgn(pgn, { jumpToEnd: true });
+    rebuildTimelineFromPgn(pgn, {
+      jumpToEnd: true,
+      preserveAutoplay: isAutoplayingRef.current,
+    });
   }, [pgn, rebuildTimelineFromPgn]);
 
   const stopStressTest = useCallback(
