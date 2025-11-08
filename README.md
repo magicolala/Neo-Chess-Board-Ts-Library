@@ -8,6 +8,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Docs: MkDocs](https://img.shields.io/badge/docs-mkdocs-blue?style=flat-square)](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/)
+[![API: TypeDoc](https://img.shields.io/badge/API-TypeDoc-informational?style=flat-square)](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/api/)
 
 **A modern, lightweight chess board library built with Canvas and TypeScript**
 
