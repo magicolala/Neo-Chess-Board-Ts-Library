@@ -5,6 +5,10 @@ interface PlyNavigatorLabels {
   previous: string;
   next: string;
   last: string;
+  play: string;
+  pause: string;
+  playbackSpeed: string;
+  playbackSpeedValue: string;
   currentMove: string;
 }
 
@@ -13,6 +17,9 @@ interface PlyNavigatorAriaLabels {
   previous: string;
   next: string;
   last: string;
+  play: string;
+  pause: string;
+  speed: string;
 }
 
 interface PlyNavigatorIcons {
@@ -20,6 +27,8 @@ interface PlyNavigatorIcons {
   previous: React.ReactNode;
   next: React.ReactNode;
   last: React.ReactNode;
+  play: React.ReactNode;
+  pause: React.ReactNode;
 }
 
 export interface PlyNavigatorProps {
@@ -34,6 +43,15 @@ export interface PlyNavigatorProps {
   labels: PlyNavigatorLabels;
   ariaLabels: PlyNavigatorAriaLabels;
   icons: PlyNavigatorIcons;
+  isAutoPlaying: boolean;
+  isAutoplayAvailable: boolean;
+  onToggleAutoplay: () => void;
+  playbackSpeed: number;
+  playbackSpeedInputId: string;
+  playbackSpeedMin: number;
+  playbackSpeedMax: number;
+  playbackSpeedStep: number;
+  onPlaybackSpeedChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
@@ -48,11 +66,24 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
   labels,
   ariaLabels,
   icons,
+  isAutoPlaying,
+  isAutoplayAvailable,
+  onToggleAutoplay,
+  playbackSpeed,
+  playbackSpeedInputId,
+  playbackSpeedMin,
+  playbackSpeedMax,
+  playbackSpeedStep,
+  onPlaybackSpeedChange,
 }) => {
   const moveValueClassName = isAtStart ? 'text-gray-400' : 'font-semibold text-gray-100';
 
   const buttonBaseClass =
-    'h-10 w-full bg-gray-700/50 hover:bg-gray-600/50 rounded-md text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center';
+    'inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-md text-sm font-medium text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const playbackButtonAriaLabel = isAutoPlaying ? ariaLabels.pause : ariaLabels.play;
+  const playbackButtonLabel = isAutoPlaying ? labels.pause : labels.play;
+  const playbackButtonIcon = isAutoPlaying ? icons.pause : icons.play;
 
   return (
     <div className="p-2 rounded-lg bg-gray-800/50">
@@ -75,8 +106,8 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           disabled={isAtStart}
           aria-label={ariaLabels.first}
         >
-          <span className="sr-only">{labels.first}</span>
           {icons.first}
+          <span className="sr-only">{labels.first}</span>
         </button>
         <button
           type="button"
@@ -85,8 +116,8 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           disabled={isAtStart}
           aria-label={ariaLabels.previous}
         >
-          <span className="sr-only">{labels.previous}</span>
           {icons.previous}
+          <span className="sr-only">{labels.previous}</span>
         </button>
         <button
           type="button"
@@ -95,8 +126,8 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           disabled={isAtEnd}
           aria-label={ariaLabels.next}
         >
-          <span className="sr-only">{labels.next}</span>
           {icons.next}
+          <span className="sr-only">{labels.next}</span>
         </button>
         <button
           type="button"
@@ -105,9 +136,44 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
           disabled={isAtEnd}
           aria-label={ariaLabels.last}
         >
-          <span className="sr-only">{labels.last}</span>
           {icons.last}
+          <span className="sr-only">{labels.last}</span>
         </button>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          className={`${buttonBaseClass} sm:w-28`}
+          onClick={onToggleAutoplay}
+          disabled={!isAutoplayAvailable && !isAutoPlaying}
+          aria-label={playbackButtonAriaLabel}
+          aria-pressed={isAutoPlaying}
+        >
+          {playbackButtonIcon}
+          <span className="sr-only">{playbackButtonLabel}</span>
+        </button>
+        <div className="flex-1 flex items-center gap-3">
+          <label htmlFor={playbackSpeedInputId} className="sr-only">
+            {labels.playbackSpeed}
+          </label>
+          <input
+            id={playbackSpeedInputId}
+            type="range"
+            min={playbackSpeedMin}
+            max={playbackSpeedMax}
+            step={playbackSpeedStep}
+            value={playbackSpeed}
+            onChange={onPlaybackSpeedChange}
+            className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
+            aria-valuemin={playbackSpeedMin}
+            aria-valuemax={playbackSpeedMax}
+            aria-valuenow={playbackSpeed}
+            aria-label={ariaLabels.speed}
+          />
+          <span className="text-xs text-gray-400 whitespace-nowrap">
+            {labels.playbackSpeedValue}
+          </span>
+        </div>
       </div>
     </div>
   );
