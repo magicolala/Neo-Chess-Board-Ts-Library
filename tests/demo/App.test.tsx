@@ -477,6 +477,10 @@ describe('App Component', () => {
         expect(screen.getByText(enTranslations['timeline.title'])).toBeInTheDocument();
       });
 
+      await waitFor(() => {
+        expect(fenTextarea).toHaveValue(INITIAL_FEN);
+      });
+
       const firstButton = await screen.findByRole('button', {
         name: enTranslations['timeline.aria.first'],
       });
@@ -490,13 +494,12 @@ describe('App Component', () => {
         name: enTranslations['timeline.aria.last'],
       });
 
-      expect(lastButton).toBeDisabled();
+      expect(firstButton).toBeDisabled();
+      expect(previousButton).toBeDisabled();
+      expect(lastButton).not.toBeDisabled();
+      expect(nextButton).not.toBeDisabled();
 
-      await user.click(firstButton);
-      await waitFor(() => {
-        expect(fenTextarea).toHaveValue(INITIAL_FEN);
-      });
-      expect(mockBoardLoadFEN).toHaveBeenLastCalledWith(INITIAL_FEN, false);
+      expect(mockBoardLoadFEN).toHaveBeenCalledWith(INITIAL_FEN, false);
 
       await user.click(nextButton);
       await waitFor(() => {
@@ -538,6 +541,11 @@ describe('App Component', () => {
       const pgnTextarea = screen.getByRole('textbox', { name: /pgn notation/i });
       await user.type(pgnTextarea, '1. e4 e5 2. Nf3 Nc6');
       await user.click(screen.getByRole('button', { name: enTranslations['pgn.load'] }));
+
+      const lastButton = await screen.findByRole('button', {
+        name: enTranslations['timeline.aria.last'],
+      });
+      await user.click(lastButton);
 
       await screen.findByText(SANITIZED_BLACK_COMMENT);
       expect(screen.queryByText(/contentReference/)).not.toBeInTheDocument();
