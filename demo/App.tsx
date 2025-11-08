@@ -167,7 +167,7 @@ const GlassPanel: React.FC<{
   className?: string;
 }> = ({ children, className = '' }) => (
   <div
-    className={`bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_30px_rgb(2,6,23,0.35)] ${className}`}
+    className={`bg-gray-900/70 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(2,6,23,0.35)] ${className}`}
   >
     {children}
   </div>
@@ -1492,12 +1492,12 @@ const AppContent: React.FC = () => {
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
                   }}
                   onUpdate={handleBoardUpdate}
-                  className="w-full aspect-square rounded-xl ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
+                  className="w-full aspect-square ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
                 />
                 {boardOptions.allowResize && (
                   <div className="absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none">
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
                       aria-live="polite"
                     >
                       <BoardSizeIcon />
@@ -1505,7 +1505,7 @@ const AppContent: React.FC = () => {
                     </span>
                     <button
                       type="button"
-                      className={`pointer-events-auto w-9 h-9 rounded-lg grid place-items-center cursor-nwse-resize transition-colors ring-1 ${
+                      className={`pointer-events-auto w-9 h-9 grid place-items-center cursor-nwse-resize transition-colors ring-1 ${
                         isResizingBoard
                           ? 'bg-purple-600/30 ring-purple-400/60'
                           : 'bg-black/70 ring-white/10 hover:ring-white/25'

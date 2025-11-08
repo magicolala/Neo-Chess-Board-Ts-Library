@@ -79,14 +79,14 @@ export const PlyNavigator: React.FC<PlyNavigatorProps> = ({
   const moveValueClassName = isAtStart ? 'text-gray-400' : 'font-semibold text-gray-100';
 
   const buttonBaseClass =
-    'inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-md text-sm font-medium text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-sm font-medium text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
   const playbackButtonAriaLabel = isAutoPlaying ? ariaLabels.pause : ariaLabels.play;
   const playbackButtonLabel = isAutoPlaying ? labels.pause : labels.play;
   const playbackButtonIcon = isAutoPlaying ? icons.pause : icons.play;
 
   return (
-    <div className="p-2 rounded-lg bg-gray-800/50">
+    <div className="p-2 bg-gray-800/50">
       <div className="flex justify-between items-baseline">
         <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
           {labels.currentMove}
