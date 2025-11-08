@@ -4,6 +4,7 @@
  */
 
 import { ChessJsRules } from '../../src/core/ChessJsRules';
+import { sanitizePgnString } from '../../src/core/PgnSanitizer';
 
 describe('ChessJsRules', () => {
   let rules: ChessJsRules;
@@ -397,6 +398,40 @@ describe('ChessJsRules', () => {
 
       const history = rules.history();
       expect(history).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
+    });
+
+    test('should load Lichess PGN exports containing variations', () => {
+      const lichessPgn = `[Event "rated rapid game"]
+[Site "https://lichess.org/N328qWow"]
+[Date "2025.02.24"]
+[White "boppintothebeat"]
+[Black "metan0ia"]
+[Result "1-0"]
+[GameId "N328qWow"]
+[UTCDate "2025.02.24"]
+[UTCTime "01:16:05"]
+[WhiteElo "2490"]
+[BlackElo "2697"]
+[WhiteRatingDiff "+13"]
+[BlackRatingDiff "-11"]
+[Variant "Standard"]
+[TimeControl "600+0"]
+[ECO "B32"]
+[Opening "Sicilian Defense: Löwenthal Variation"]
+[Termination "Normal"]
+[Annotator "lichess.org"]
+
+1. e4 { [%eval 0.18] [%clk 0:10:00] } 1... c5 { [%eval 0.25] [%clk 0:10:00] } 2. Nf3 { [%eval 0.2] [%clk 0:09:57] } 2... Nc6 { [%eval 0.25] [%clk 0:09:59] } 3. d4 { [%eval 0.27] [%clk 0:09:55] } 3... cxd4 { [%eval 0.35] [%clk 0:09:57] } 4. Nxd4 { [%eval 0.21] [%clk 0:09:51] } 4... e5 { [%eval 0.42] [%clk 0:09:56] } 5. Nb5 { [%eval 0.35] [%clk 0:09:49] } 5... a6 { [%eval 0.58] [%clk 0:09:55] } 6. Nd6+ { [%eval 0.53] [%clk 0:09:48] } 6... Bxd6 { [%eval 0.58] [%clk 0:09:55] } 7. Qxd6 { [%eval 0.64] [%clk 0:09:47] } 7... Qe7 { [%eval 0.6] [%clk 0:09:54] } 8. Qd1 { [%eval 0.7] [%clk 0:09:47] } 8... Nf6 { [%eval 0.74] [%clk 0:09:53] } 9. Nc3 { [%eval 0.81] [%clk 0:09:46] } 9... Nd4 { [%eval 1.16] [%clk 0:09:53] } 10. Be3 { [%eval 1.02] [%clk 0:09:45] } 10... O-O { [%eval 1.1] [%clk 0:09:51] } 11. Bxd4 { [%eval 1.21] [%clk 0:09:41] } 11... d5 { [%eval 1.15] [%clk 0:09:51] } 12. Bb6 { [%eval 1.26] [%clk 0:09:39] } 12... Qb4 { [%eval 1.05] [%clk 0:09:47] } 13. Bc7 { [%eval 1.2] [%clk 0:09:26] } 13... d4 { [%eval 1.06] [%clk 0:09:46] } 14. Bxe5?! { (1.06 → 0.00) Inaccuracy. f3 was best. } { [%eval 0.0] [%clk 0:09:11] } (14. f3 Re8 15. a3 Qe7 16. Ba5 dxc3 17. Bb4 Qc7 18. Bxc3 Be6 19. Qd2 Rac8) 14... dxc3 { [%eval 0.02] [%clk 0:09:44] } 15. Bxc3 { [%eval 0.0] [%clk 0:07:42] } 15... Qxe4+ { [%eval -0.01] [%clk 0:09:43] } 16. Qe2 { [%eval 0.0] [%clk 0:07:41] } 16... Qa4 { [%eval 0.0] [%clk 0:09:42] } 17. Qc4 { [%eval -0.33] [%clk 0:05:42] } 17... Qxc2?! { (-0.33 → 0.68) Inaccuracy. Re8+ was best. } { [%eval 0.68] [%clk 0:07:27] } (17... Re8+ 18. Kd1) 18. Bd3 { [%eval 0.68] [%clk 0:05:21] } 18... Re8+ { [%eval 0.93] [%clk 0:07:25] } 19. Kf1 { [%eval 0.81] [%clk 0:05:20] } 19... Be6?? { (0.81 → 4.58) Blunder. b5 was best. } { [%eval 4.58] [%clk 0:07:25] } (19... b5 20. Qxf7+ Kxf7 21. Bxc2 Be6 22. h4 a5 23. h5 Rac8 24. Bd1 b4 25. Bd2) 20. Qd4 { [%eval 4.35] [%clk 0:04:58] } 20... Rad8 { [%eval 5.44] [%clk 0:06:01] } 21. Bxc2 { [%eval 5.71] [%clk 0:04:51] } 21... Rxd4 { [%eval 5.44] [%clk 0:06:00] } 22. Bxd4 { [%eval 5.52] [%clk 0:04:51] } 22... Bc4+ { [%eval 5.49] [%clk 0:05:59] } 23. Kg1 { [%eval 5.59] [%clk 0:04:50] } 23... Re2 { [%eval 5.51] [%clk 0:05:58] } 24. Bb3 { [%eval 5.72] [%clk 0:04:41] } 24... Bxb3 { [%eval 5.49] [%clk 0:05:50] } 25. axb3 { [%eval 5.42] [%clk 0:04:41] } 25... Ne4 { [%eval 5.46] [%clk 0:05:49] } 26. g3 { [%eval 5.3] [%clk 0:04:35] } 26... f5 { [%eval 6.2] [%clk 0:05:36] } 27. Kg2 { [%eval 5.99] [%clk 0:04:29] } 27... g5 { [%eval 6.55] [%clk 0:05:16] } 28. Rhe1 { [%eval 6.38] [%clk 0:04:27] } 28... Rd2 { [%eval 6.46] [%clk 0:05:12] } 29. Red1 { [%eval 6.2] [%clk 0:04:25] } 29... Re2 { [%eval 6.71] [%clk 0:05:10] } 30. Kf1 { [%eval 6.67] [%clk 0:04:22] } 30... Rc2 { [%eval 6.75] [%clk 0:05:08] } 31. Rac1 { [%eval 6.76] [%clk 0:04:22] } 31... Nd2+ { [%eval 6.8] [%clk 0:05:04] } 32. Ke2 { [%eval 6.75] [%clk 0:04:15] } 32... Rxc1 { [%eval 6.53] [%clk 0:05:03] } 33. Rxc1 { [%eval 6.53] [%clk 0:04:14] } 33... Nxb3 { [%eval 6.75] [%clk 0:05:03] } 34. Rc8+ { [%eval 6.55] [%clk 0:04:11] } 34... Kf7 { [%eval 6.51] [%clk 0:05:02] } 35. Be3 { [%eval 6.38] [%clk 0:04:07] } 35... Kg6 { [%eval 5.96] [%clk 0:04:51] } 36. Bb6 { [%eval 7.24] [%clk 0:03:58] } 36... a5 { [%eval 7.54] [%clk 0:04:44] } 37. Rc3 { [%eval 7.27] [%clk 0:03:54] } 37... a4 { [%eval 7.35] [%clk 0:04:43] } 38. Rc4 { [%eval 7.3] [%clk 0:03:54] } { Black resigns. } 1-0`;
+
+      const sanitized = sanitizePgnString(lichessPgn);
+
+      expect(sanitized).not.toContain('(14. f3');
+      expect(sanitized).not.toMatch(/}\s*{/);
+
+      const success = rules.loadPgn(lichessPgn);
+
+      expect(success).toBe(true);
+      expect(rules.history().at(-1)).toBe('Rc4');
     });
 
     test('should handle invalid PGN', () => {
