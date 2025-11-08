@@ -1,8 +1,51 @@
 import React from 'react';
-import { render, cleanup, waitFor } from '@testing-library/react';
+import { render, cleanup, waitFor, act } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
 import { NeoChessBoard } from '../../src/react/NeoChessBoard';
 import type { NeoChessProps, NeoChessRef } from '../../src/react/NeoChessBoard';
 import type { Theme, BoardEventMap, Arrow } from '../../src/core/types';
+
+type MockRoot = { render: jest.Mock; unmount: jest.Mock };
+
+function getMockRootStore(): Map<HTMLElement, MockRoot> {
+  const key = '__neoChessReactRoots__';
+  const globalStore = globalThis as Record<string, unknown>;
+  if (!globalStore[key]) {
+    globalStore[key] = new Map<HTMLElement, MockRoot>();
+  }
+  return globalStore[key] as Map<HTMLElement, MockRoot>;
+}
+
+jest.mock('react-dom/client', () => {
+  const actual = jest.requireActual('react-dom/client');
+  const roots = getMockRootStore();
+
+  return {
+    ...actual,
+    createRoot: jest.fn((element: HTMLElement) => {
+      const realRoot = actual.createRoot(element);
+      const originalRender = realRoot.render.bind(realRoot);
+      const originalUnmount = realRoot.unmount.bind(realRoot);
+
+      const renderMock = jest.fn((...args: Parameters<typeof originalRender>) => {
+        originalRender(...args);
+      });
+      const unmountMock = jest.fn(() => {
+        roots.delete(element);
+        originalUnmount();
+      });
+
+      realRoot.render = renderMock as typeof realRoot.render;
+      realRoot.unmount = unmountMock as typeof realRoot.unmount;
+
+      roots.set(element, { render: renderMock, unmount: unmountMock });
+
+      return realRoot;
+    }),
+  };
+});
+
+const mockRoots = getMockRootStore();
 
 // Mock the core NeoChessBoard class
 let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Default FEN
@@ -74,6 +117,7 @@ describe('NeoChessBoard React Component', () => {
     cleanup();
     jest.clearAllMocks();
     mockBoard.on.mockImplementation(() => jest.fn());
+    mockRoots.clear();
     currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Reset FEN after each test
   });
 
@@ -556,6 +600,171 @@ describe('NeoChessBoard React Component', () => {
 
       expect(mockBoard.applyTheme).toHaveBeenCalledWith(customTheme);
       expect(mockBoard.setTheme).not.toHaveBeenCalledWith(customTheme);
+    });
+  });
+
+  describe('React renderer integration', () => {
+    it('sanitizes boardStyle entries with nullish values and merges computed styles', async () => {
+      const boardStyleProp = {
+        backgroundColor: 'rgb(10, 20, 30)',
+        borderWidth: 2,
+        padding: null,
+        margin: undefined,
+      } as unknown as React.CSSProperties;
+      const inlineStyle = {
+        outline: '1px solid red',
+        height: null,
+      } as unknown as React.CSSProperties;
+
+      const { container } = render(
+        <NeoChessBoard boardStyle={boardStyleProp} style={inlineStyle} size={300} />,
+      );
+
+      await waitFor(() =>
+        expect(mockBoard.setBoardStyle).toHaveBeenCalledWith({
+          backgroundColor: 'rgb(10, 20, 30)',
+          borderWidth: 2,
+        }),
+      );
+
+      const element = container.firstChild as HTMLElement;
+      expect(element.style.maxWidth).toBe('300px');
+      expect(element.style.maxHeight).toBe('300px');
+      expect(element.style.aspectRatio).toBe('8 / 8');
+      expect(element.style.backgroundColor).toBe('rgb(10, 20, 30)');
+      expect(element.style.borderWidth).toBe('2px');
+      expect(element.style.outline).toBe('1px solid red');
+      expect(element.style.height).toBe('');
+    });
+
+    it('renders React squareRenderer content via createRoot and handles fallback values', async () => {
+      const squareRenderer = jest
+        .fn()
+        .mockReturnValueOnce(<span>React Square</span>)
+        .mockReturnValueOnce('square text')
+        .mockReturnValueOnce(<span>React Square Again</span>)
+        .mockReturnValueOnce(null)
+        .mockReturnValueOnce(<span>React Square Final</span>);
+
+      const { rerender } = render(<NeoChessBoard squareRenderer={squareRenderer} />);
+
+      await waitFor(() =>
+        expect(mockBoard.setSquareRenderer).toHaveBeenCalledWith(expect.any(Function)),
+      );
+
+      const boardSquareRenderer = mockBoard.setSquareRenderer.mock.calls[0][0] as (
+        params: Record<string, unknown>,
+      ) => void;
+      expect(typeof boardSquareRenderer).toBe('function');
+
+      const createRootMock = createRoot as unknown as jest.MockedFunction<typeof createRoot>;
+      const host = document.createElement('div');
+      const params = { element: host } as Record<string, unknown>;
+
+      const initialCreateRootCalls = createRootMock.mock.calls.length;
+
+      act(() => {
+        boardSquareRenderer(params);
+      });
+      expect(squareRenderer).toHaveBeenCalledTimes(1);
+      expect(squareRenderer).toHaveBeenLastCalledWith(expect.objectContaining({ element: host }));
+      const firstRoot = mockRoots.get(host)!;
+      expect(createRootMock).toHaveBeenCalledTimes(initialCreateRootCalls + 1);
+      expect(firstRoot.render).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        boardSquareRenderer(params);
+      });
+      expect(firstRoot.unmount).toHaveBeenCalledTimes(1);
+      expect(host.textContent).toBe('square text');
+      expect(createRootMock).toHaveBeenCalledTimes(initialCreateRootCalls + 1);
+
+      act(() => {
+        boardSquareRenderer(params);
+      });
+      const secondRoot = mockRoots.get(host)!;
+      expect(secondRoot).not.toBe(firstRoot);
+      expect(createRootMock).toHaveBeenCalledTimes(initialCreateRootCalls + 2);
+      expect(secondRoot.render).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        boardSquareRenderer(params);
+      });
+      expect(secondRoot.unmount).toHaveBeenCalledTimes(1);
+      expect(host.textContent).toBe('');
+
+      act(() => {
+        boardSquareRenderer(params);
+      });
+      const thirdRoot = mockRoots.get(host)!;
+      expect(createRootMock).toHaveBeenCalledTimes(initialCreateRootCalls + 3);
+      expect(thirdRoot.render).toHaveBeenCalledTimes(1);
+
+      rerender(<NeoChessBoard />);
+
+      await waitFor(() => expect(thirdRoot.unmount).toHaveBeenCalledTimes(1));
+      await waitFor(() => {
+        const lastCall = mockBoard.setSquareRenderer.mock.calls.at(-1);
+        expect(lastCall).toBeDefined();
+        expect(lastCall?.[0]).toBeUndefined();
+      });
+      expect(mockRoots.has(host)).toBe(false);
+    });
+
+    it('wraps React piece renderers and clears roots when disabled', async () => {
+      const knightRenderer = jest.fn().mockReturnValue(<span>Knight</span>);
+      const queenElement = <div>Queen</div>;
+      const piecesProp = {
+        N: knightRenderer,
+        Q: queenElement,
+        B: null,
+        p: undefined,
+      } as const;
+
+      const { rerender } = render(
+        <NeoChessBoard pieces={piecesProp as unknown as NeoChessProps['pieces']} />,
+      );
+
+      await waitFor(() => expect(mockBoard.setPieceRenderers).toHaveBeenCalled());
+
+      const mappedRenderers = mockBoard.setPieceRenderers.mock.calls[0][0] as Record<
+        string,
+        (params: Record<string, unknown>) => void
+      >;
+
+      expect(mappedRenderers).toBeTruthy();
+      expect(typeof mappedRenderers.N).toBe('function');
+      expect(typeof mappedRenderers.Q).toBe('function');
+      expect(mappedRenderers).not.toHaveProperty('B');
+      expect(mappedRenderers).not.toHaveProperty('p');
+
+      const knightHost = document.createElement('div');
+      act(() => {
+        mappedRenderers.N({ element: knightHost } as Record<string, unknown>);
+      });
+      expect(knightRenderer).toHaveBeenCalledWith(expect.objectContaining({ element: knightHost }));
+      const knightRoot = mockRoots.get(knightHost)!;
+      expect(knightRoot.render).toHaveBeenCalledTimes(1);
+
+      const queenHost = document.createElement('div');
+      act(() => {
+        mappedRenderers.Q({ element: queenHost } as Record<string, unknown>);
+      });
+      const queenRoot = mockRoots.get(queenHost)!;
+      expect(queenRoot.render).toHaveBeenCalledTimes(1);
+      expect(queenRoot.render.mock.calls[0][0]).toBe(queenElement);
+
+      rerender(<NeoChessBoard />);
+
+      await waitFor(() => {
+        expect(knightRoot.unmount).toHaveBeenCalledTimes(1);
+        expect(queenRoot.unmount).toHaveBeenCalledTimes(1);
+      });
+      await waitFor(() => {
+        const lastCall = mockBoard.setPieceRenderers.mock.calls.at(-1);
+        expect(lastCall).toBeDefined();
+        expect(lastCall?.[0]).toBeUndefined();
+      });
     });
   });
 
