@@ -1,0 +1,24 @@
+/* Table sizing */
+:root > * {
+  --md-typeset-table-width: 100%;
+}
+
+.md-typeset table:not([class]) {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1.5em;
+}
+
+/* Code block spacing */
+.md-typeset pre {
+  padding: 1rem;
+  border-radius: 0.375rem;
+}
+
+/* Inline code styling */
+.md-typeset code {
+  font-size: 0.875em;
+  border-radius: 0.25rem;
+  padding: 0.15em 0.35em;
+}
