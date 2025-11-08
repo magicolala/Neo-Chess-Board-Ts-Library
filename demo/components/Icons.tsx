@@ -204,16 +204,3 @@ export const FastForwardIcon: React.FC = () => (
     <path d="M13 18l6-6-6-6v12Z" />
   </SvgIcon>
 );
-
-export const PlayIcon: React.FC = () => (
-  <SvgIcon>
-    <path d="m8 5 11 7-11 7V5Z" />
-  </SvgIcon>
-);
-
-export const PauseIcon: React.FC = () => (
-  <SvgIcon>
-    <path d="M9 5h2v14H9z" />
-    <path d="M13 5h2v14h-2z" />
-  </SvgIcon>
-);

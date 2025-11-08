@@ -33,10 +33,6 @@ import {
   PreviousIcon,
   SoundIcon,
   SquareNamesIcon,
-  RewindIcon,
-  StepBackIcon,
-  StepForwardIcon,
-  FastForwardIcon,
   TrashIcon,
 } from './components/Icons';
 import { EvaluationBar, interpretEvaluationValue } from './components/EvaluationBar';
