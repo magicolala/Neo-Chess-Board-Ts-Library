@@ -167,7 +167,7 @@ const GlassPanel: React.FC<{
   className?: string;
 }> = ({ children, className = '' }) => (
   <div
-    className={`bg-gray-900/70 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_30px_rgb(2,6,23,0.35)] ${className}`}
+    className={`bg-gray-900/70 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(2,6,23,0.35)] ${className}`}
   >
     {children}
   </div>
@@ -1496,7 +1496,7 @@ const AppContent: React.FC = () => {
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
                   }}
                   onUpdate={handleBoardUpdate}
-                  className="w-full aspect-square rounded-xl ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
+                  className="w-full aspect-square ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
                 />
                 {boardOptions.allowResize && (
                   <div
@@ -1507,7 +1507,7 @@ const AppContent: React.FC = () => {
                     }`}
                   >
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
                       aria-live="polite"
                     >
                       <BoardSizeIcon />
@@ -1515,7 +1515,7 @@ const AppContent: React.FC = () => {
                     </span>
                     <button
                       type="button"
-                      className={`pointer-events-auto group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl cursor-nwse-resize transition ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/70 ${
+                      className={`pointer-events-auto group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl cursor-nwse-resize transition-colors ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/70 ${
                         isResizingBoard
                           ? 'bg-purple-500/20 ring-purple-300/60 shadow-[0_10px_30px_rgba(168,85,247,0.35)]'
                           : 'bg-black/60 ring-white/10 hover:bg-black/45 hover:ring-white/25 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.75)]'
