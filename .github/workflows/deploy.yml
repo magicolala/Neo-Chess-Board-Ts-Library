@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate API docs
+        run: npm run docs:api
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -80,10 +83,18 @@ jobs:
           python-version: '3.x'
 
       - name: Install Python dependencies
-        run: pip install mkdocs mkdocs-material mkdocs-static-i18n mkdocs-include-markdown-plugin
+        run: pip install mkdocs mkdocs-material mkdocs-static-i18n mkdocs-include-markdown-plugin mkdocs-awesome-pages-plugin
 
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
+
+      - name: Include generated API docs in artifact
+        run: |
+          mkdir -p dist/docs/mkdocs_docs
+          cp -R mkdocs_docs/api dist/docs/mkdocs_docs/
+
+      - name: Verify API docs included in artifact
+        run: test -d dist/docs/mkdocs_docs/api
 
       - name: Copy static examples
         run: |
@@ -135,6 +146,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate API docs
+        run: npm run docs:api
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -155,10 +169,18 @@ jobs:
           python-version: '3.x'
 
       - name: Install Python dependencies
-        run: pip install mkdocs mkdocs-material mkdocs-static-i18n mkdocs-include-markdown-plugin
+        run: pip install mkdocs mkdocs-material mkdocs-static-i18n mkdocs-include-markdown-plugin mkdocs-awesome-pages-plugin
 
       - name: Build documentation
         run: mkdocs build --site-dir dist/docs
+
+      - name: Include generated API docs in artifact
+        run: |
+          mkdir -p dist/docs/mkdocs_docs
+          cp -R mkdocs_docs/api dist/docs/mkdocs_docs/
+
+      - name: Verify API docs included in artifact
+        run: test -d dist/docs/mkdocs_docs/api
 
       - name: Copy static examples
         run: |
