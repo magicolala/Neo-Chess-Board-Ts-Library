@@ -133,6 +133,27 @@ export class PgnNotation {
    * Import moves from a chess.js game
    */
   importFromChessJs(chess: ChessLike): void {
+    const preservedMoves = new Map<
+      number,
+      {
+        whiteComment?: string;
+        blackComment?: string;
+        whiteAnnotations?: PgnMoveAnnotations;
+        blackAnnotations?: PgnMoveAnnotations;
+        evaluation?: PgnMove['evaluation'];
+      }
+    >();
+
+    for (const move of this.moves) {
+      preservedMoves.set(move.moveNumber, {
+        whiteComment: move.whiteComment,
+        blackComment: move.blackComment,
+        whiteAnnotations: this.cloneAnnotations(move.whiteAnnotations),
+        blackAnnotations: this.cloneAnnotations(move.blackAnnotations),
+        evaluation: move.evaluation ? { ...move.evaluation } : undefined,
+      });
+    }
+
     try {
       if (this.rulesAdapter && typeof this.rulesAdapter.getPGN === 'function') {
         const pgnString = this.rulesAdapter.getPGN();
@@ -183,6 +204,8 @@ export class PgnNotation {
       }
     }
 
+    this.restorePreservedMoveState(preservedMoves);
+
     // Set result based on game state
     if (chess.isCheckmate()) {
       const turn = chess.turn();
@@ -231,6 +254,64 @@ export class PgnNotation {
         const filteredBlackMove =
           blackMove && !['1-0', '0-1', '1/2-1/2', '*'].includes(blackMove) ? blackMove : undefined;
         this.addMove(moveNumber, whiteMove, filteredBlackMove);
+      }
+    }
+  }
+
+  private cloneAnnotations(annotations?: PgnMoveAnnotations): PgnMoveAnnotations | undefined {
+    if (!annotations) {
+      return undefined;
+    }
+
+    return {
+      ...annotations,
+      arrows: annotations.arrows?.map((arrow) => ({ ...arrow })),
+      circles: annotations.circles?.map((circle) => ({ ...circle })),
+    };
+  }
+
+  private restorePreservedMoveState(
+    preservedMoves: Map<
+      number,
+      {
+        whiteComment?: string;
+        blackComment?: string;
+        whiteAnnotations?: PgnMoveAnnotations;
+        blackAnnotations?: PgnMoveAnnotations;
+        evaluation?: PgnMove['evaluation'];
+      }
+    >,
+  ): void {
+    if (preservedMoves.size === 0 || this.moves.length === 0) {
+      return;
+    }
+
+    for (const move of this.moves) {
+      const snapshot = preservedMoves.get(move.moveNumber);
+      if (!snapshot) {
+        continue;
+      }
+
+      if (snapshot.whiteComment && !move.whiteComment) {
+        move.whiteComment = snapshot.whiteComment;
+      }
+
+      if (snapshot.blackComment && !move.blackComment) {
+        move.blackComment = snapshot.blackComment;
+      }
+
+      if (snapshot.whiteAnnotations) {
+        move.whiteAnnotations = this.cloneAnnotations(snapshot.whiteAnnotations);
+        this.updateMoveEvaluation(move, 'white', snapshot.whiteAnnotations.evaluation);
+      } else if (snapshot.evaluation?.white !== undefined) {
+        this.updateMoveEvaluation(move, 'white', snapshot.evaluation.white);
+      }
+
+      if (snapshot.blackAnnotations) {
+        move.blackAnnotations = this.cloneAnnotations(snapshot.blackAnnotations);
+        this.updateMoveEvaluation(move, 'black', snapshot.blackAnnotations.evaluation);
+      } else if (snapshot.evaluation?.black !== undefined) {
+        this.updateMoveEvaluation(move, 'black', snapshot.evaluation.black);
       }
     }
   }

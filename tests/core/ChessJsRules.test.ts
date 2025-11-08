@@ -439,6 +439,52 @@ describe('ChessJsRules', () => {
       expect(success).toBe(false);
     });
 
+    test('should preserve evaluation annotations when exporting PGN', () => {
+      const annotatedPgn = `[Event "Eval Test"]
+[Site "Test"]
+[Date "2025.01.01"]
+[Round "1"]
+[White "Player 1"]
+[Black "Player 2"]
+[Result "*"]
+
+1. e4 { [%eval 0.23] } 1... e5 { [%eval -0.11] } 2. Nf3 { [%eval 0.45] } *`;
+
+      expect(rules.loadPgn(annotatedPgn)).toBe(true);
+
+      const notation = rules.getPgnNotation();
+      const movesBefore = notation.getMovesWithAnnotations();
+      const firstMoveBefore = movesBefore.find((move) => move.moveNumber === 1);
+      const secondMoveBefore = movesBefore.find((move) => move.moveNumber === 2);
+
+      expect(firstMoveBefore).toBeDefined();
+      expect(secondMoveBefore).toBeDefined();
+
+      const firstMove = firstMoveBefore!;
+      const secondMove = secondMoveBefore!;
+
+      expect(firstMove.whiteAnnotations?.evaluation).toBe(0.23);
+      expect(firstMove.evaluation?.white).toBe(0.23);
+      expect(firstMove.blackAnnotations?.evaluation).toBe(-0.11);
+      expect(firstMove.evaluation?.black).toBe(-0.11);
+      expect(secondMove.whiteAnnotations?.evaluation).toBe(0.45);
+      expect(secondMove.evaluation?.white).toBe(0.45);
+
+      const exported = rules.toPgn(false);
+      expect(typeof exported).toBe('string');
+
+      const movesAfter = notation.getMovesWithAnnotations();
+      const firstMoveAfter = movesAfter.find((move) => move.moveNumber === 1);
+      const secondMoveAfter = movesAfter.find((move) => move.moveNumber === 2);
+
+      expect(firstMoveAfter?.whiteAnnotations?.evaluation).toBe(0.23);
+      expect(firstMoveAfter?.evaluation?.white).toBe(0.23);
+      expect(firstMoveAfter?.blackAnnotations?.evaluation).toBe(-0.11);
+      expect(firstMoveAfter?.evaluation?.black).toBe(-0.11);
+      expect(secondMoveAfter?.whiteAnnotations?.evaluation).toBe(0.45);
+      expect(secondMoveAfter?.evaluation?.white).toBe(0.45);
+    });
+
     test('should get PGN notation instance', () => {
       const pgnNotation = rules.getPgnNotation();
       expect(pgnNotation).toBeDefined();
