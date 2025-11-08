@@ -34,7 +34,11 @@ docs_dir: mkdocs_docs
 
 nav:
   - Home: index.md
-  - API Reference: api.md
+  - API Reference:
+      - Overview: api/index.md
+      - Classes: api/classes/
+      - Interfaces: api/interfaces/
+      - Types: api/types/
   - Examples: examples.md
   - Integration Guide: integration.md
   - PGN Features: pgn-features.md
@@ -44,6 +48,7 @@ nav:
 
 plugins:
   - search
+  - awesome-pages
   - i18n:
       languages:
         - locale: en
@@ -56,6 +61,10 @@ plugins:
           nav_translations:
             Home: Accueil
             API Reference: API
+            Overview: Vue d'ensemble
+            Classes: Classes
+            Interfaces: Interfaces
+            Types: Types
             Examples: Exemples
             Integration Guide: Intégration
             PGN Features: Fonctionnalités PGN
@@ -82,3 +91,6 @@ markdown_extensions:
   - pymdownx.keys
   - attr_list
   - md_in_html
+
+extra_css:
+  - stylesheets/extra.css
