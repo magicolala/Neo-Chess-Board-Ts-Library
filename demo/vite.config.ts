@@ -10,7 +10,6 @@ export default defineConfig({
       input: {
         main: './index.html',
         themeCreator: './theme-creator.html',
-        playground: './playground.html',
       },
     },
   },

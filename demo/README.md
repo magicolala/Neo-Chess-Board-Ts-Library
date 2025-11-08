@@ -13,9 +13,10 @@ This guide documents how to run the Neo Chess Board demo locally and the quality
    npm run dev -- --config demo/vite.config.ts --root demo
    ```
 3. Visit the relevant entry points:
-   - Playground: http://localhost:5173/playground.html
    - Theme creator: http://localhost:5173/theme-creator.html
    - Main demo: http://localhost:5173/index.html
+
+> **Note:** The standalone Playground now lives on the hosted demo at https://neo-chess-board.vercel.app/playground.
 
 > **Tip:** Append `--host` to the dev command when you need to share the demo on your LAN (e.g., `npm run dev -- --config demo/vite.config.ts --root demo -- --host`).
 
@@ -43,13 +44,21 @@ Document any deviations in the release notes if a temporary exception is unavoid
 
 ## 3. Lighthouse Audit
 
-Run Lighthouse against each hosted HTML entry point (desktop preset is the baseline):
+Run Lighthouse against the hosted HTML entry points (desktop preset is the baseline). Audit `index.html` and `theme-creator.html`
+from the local server and use the hosted Playground URL if you need its scores:
 ```bash
-npx lighthouse http://localhost:5173/playground.html \
+npx lighthouse http://localhost:5173/index.html \
+  --only-categories=performance,accessibility,best-practices,seo \
+  --preset=desktop --quiet --output=json --output-path=./test-results/lighthouse-main.json
+
+npx lighthouse http://localhost:5173/theme-creator.html \
+  --only-categories=performance,accessibility,best-practices,seo \
+  --preset=desktop --quiet --output=json --output-path=./test-results/lighthouse-theme-creator.json
+
+npx lighthouse https://neo-chess-board.vercel.app/playground \
   --only-categories=performance,accessibility,best-practices,seo \
   --preset=desktop --quiet --output=json --output-path=./test-results/lighthouse-playground.json
 ```
-Repeat for `index.html` and `theme-creator.html`.
 
 **Pass requirements**
 - Performance ≥ 90
@@ -62,11 +71,12 @@ Save the JSON artifacts under `test-results/` so regressions can be tracked betw
 
 ## 4. axe-core Accessibility Scan
 
-Use the axe-core CLI to ensure there are no WCAG regressions:
+Use the axe-core CLI to ensure there are no WCAG regressions. Scan the locally hosted pages and the deployed Playground if
+needed:
 ```bash
-npx @axe-core/cli http://localhost:5173/playground.html --exit
 npx @axe-core/cli http://localhost:5173/theme-creator.html --exit
 npx @axe-core/cli http://localhost:5173/index.html --exit
+npx @axe-core/cli https://neo-chess-board.vercel.app/playground --exit
 ```
 
 **Pass requirements**
