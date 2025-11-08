@@ -1408,7 +1408,11 @@ const AppContent: React.FC = () => {
           {/* Center Column */}
           <div className="lg:col-span-6">
             <GlassPanel className="p-4 sm:p-6">
-              <div ref={boardContainerRef} style={boardContainerStyle} className="relative mx-auto">
+              <div
+                ref={boardContainerRef}
+                style={boardContainerStyle}
+                className="relative mx-auto group"
+              >
                 <NeoChessBoard
                   ref={boardRef}
                   theme={theme}
@@ -1495,7 +1499,13 @@ const AppContent: React.FC = () => {
                   className="w-full aspect-square rounded-xl ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
                 />
                 {boardOptions.allowResize && (
-                  <div className="absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none">
+                  <div
+                    className={`absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none transition-opacity ${
+                      isResizingBoard
+                        ? 'opacity-100'
+                        : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                    }`}
+                  >
                     <span
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
                       aria-live="polite"
