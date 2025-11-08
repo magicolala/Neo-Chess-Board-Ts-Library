@@ -8,6 +8,7 @@ export * from './core/FlatSprites';
 export * from './core/PGN';
 export * from './core/utils';
 export * from './core/NeoChessBoard';
+export * from './core/errors';
 export * from './extensions/ArrowHighlightExtension';
 export * from './extensions/PromotionDialogExtension';
 export * from './extensions/ClockExtension';

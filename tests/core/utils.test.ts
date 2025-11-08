@@ -118,8 +118,20 @@ describe('Chess Utils', () => {
     });
 
     it('throws an explicit error for malformed FEN strings', () => {
-      expect(() => parseFEN('invalid fen')).toThrow(InvalidFENError);
-      expect(() => parseFEN('invalid fen')).toThrow('Invalid FEN');
+      expect.assertions(5);
+      const attempt = () => parseFEN('invalid fen');
+      expect(attempt).toThrow(InvalidFENError);
+      expect(attempt).toThrow('Invalid FEN');
+
+      try {
+        attempt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(InvalidFENError);
+        if (error instanceof InvalidFENError) {
+          expect(error.code).toBe('INVALID_FEN_INVALID_PIECE');
+          expect(error.details).toMatchObject({ character: 'i', rank: 1 });
+        }
+      }
     });
   });
 

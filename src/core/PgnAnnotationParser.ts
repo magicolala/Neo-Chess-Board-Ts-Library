@@ -4,12 +4,14 @@
  */
 
 import type { Square, Arrow, SquareHighlight } from './types';
+import { PgnParseError } from './errors';
 
 export interface ParsedAnnotations {
   arrows: Arrow[];
   highlights: Array<SquareHighlight & { color: string }>;
   textComment: string;
   evaluation?: number | string;
+  issues?: PgnParseError[];
 }
 
 // Regular expressions for parsing annotations
@@ -59,6 +61,7 @@ export const PgnAnnotationParser = {
     const arrows: Arrow[] = [];
     const highlights: Array<SquareHighlight & { color: string }> = [];
     let evaluation: number | string | undefined;
+    const issues: PgnParseError[] = [];
 
     // Parse arrows (%cal)
     const arrowMatches = [...processingComment.matchAll(CAL_REGEX)]; // Use spread to get all matches at once
@@ -66,21 +69,50 @@ export const PgnAnnotationParser = {
       const arrowSpecs = match[1].split(',');
       for (const spec of arrowSpecs) {
         const trimmed = spec.trim();
-        if (trimmed.length >= 5) {
-          const colorCode = trimmed[0];
-          const fromSquare = trimmed.slice(1, 3) as Square;
-          const toSquare = trimmed.slice(3, 5) as Square;
+        if (trimmed.length < 5) {
+          issues.push(
+            new PgnParseError(
+              `Invalid arrow annotation segment "${trimmed}".`,
+              'PGN_PARSE_INVALID_ARROW_SPEC',
+              { details: { spec: trimmed, rawComment: comment } },
+            ),
+          );
+          continue;
+        }
 
-          if (
-            PgnAnnotationParser.isValidSquare(fromSquare) &&
-            PgnAnnotationParser.isValidSquare(toSquare)
-          ) {
-            arrows.push({
-              from: fromSquare,
-              to: toSquare,
-              color: PgnAnnotationParser.colorToHex(colorCode),
-            });
-          }
+        const colorCode = trimmed[0];
+        const fromSquare = trimmed.slice(1, 3) as Square;
+        const toSquare = trimmed.slice(3, 5) as Square;
+
+        const fromValid = PgnAnnotationParser.isValidSquare(fromSquare);
+        const toValid = PgnAnnotationParser.isValidSquare(toSquare);
+
+        if (fromValid && toValid) {
+          arrows.push({
+            from: fromSquare,
+            to: toSquare,
+            color: PgnAnnotationParser.colorToHex(colorCode),
+          });
+        } else {
+          const invalidSquares = [
+            { valid: fromValid, square: fromSquare },
+            { valid: toValid, square: toSquare },
+          ]
+            .filter(({ valid }) => valid === false)
+            .map(({ square }) => square);
+          issues.push(
+            new PgnParseError(
+              `Arrow annotation references invalid square(s) in segment "${trimmed}".`,
+              'PGN_PARSE_INVALID_ARROW_SQUARE',
+              {
+                details: {
+                  spec: trimmed,
+                  invalidSquares,
+                  rawComment: comment,
+                },
+              },
+            ),
+          );
         }
       }
       // Remove this annotation from the processingComment
@@ -93,17 +125,34 @@ export const PgnAnnotationParser = {
       const circleSpecs = match[1].split(',');
       for (const spec of circleSpecs) {
         const trimmed = spec.trim();
-        if (trimmed.length >= 3) {
-          const colorCode = trimmed[0];
-          const square = trimmed.slice(1, 3) as Square;
+        if (trimmed.length < 3) {
+          issues.push(
+            new PgnParseError(
+              `Invalid circle annotation segment "${trimmed}".`,
+              'PGN_PARSE_INVALID_CIRCLE_SPEC',
+              { details: { spec: trimmed, rawComment: comment } },
+            ),
+          );
+          continue;
+        }
 
-          if (PgnAnnotationParser.isValidSquare(square)) {
-            highlights.push({
-              square,
-              type: 'circle',
-              color: PgnAnnotationParser.colorToHex(colorCode),
-            });
-          }
+        const colorCode = trimmed[0];
+        const square = trimmed.slice(1, 3) as Square;
+
+        if (PgnAnnotationParser.isValidSquare(square)) {
+          highlights.push({
+            square,
+            type: 'circle',
+            color: PgnAnnotationParser.colorToHex(colorCode),
+          });
+        } else {
+          issues.push(
+            new PgnParseError(
+              `Circle annotation references invalid square in segment "${trimmed}".`,
+              'PGN_PARSE_INVALID_CIRCLE_SQUARE',
+              { details: { spec: trimmed, square, rawComment: comment } },
+            ),
+          );
         }
       }
       // Remove this annotation from the processingComment
@@ -124,6 +173,7 @@ export const PgnAnnotationParser = {
       highlights,
       textComment: textComment || '',
       evaluation,
+      issues: issues.length > 0 ? issues : undefined,
     };
   },
 
