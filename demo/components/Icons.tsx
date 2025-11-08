@@ -3,6 +3,8 @@ import React from 'react';
 const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <svg
     viewBox="0 0 24 24"
+    width={24}
+    height={24}
     fill="none"
     stroke="currentColor"
     strokeWidth={1.6}
@@ -13,6 +15,45 @@ const SvgIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   >
     {children}
   </svg>
+);
+
+export const FirstIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M7 5v14" />
+    <path d="m17 7-6 5 6 5" />
+  </SvgIcon>
+);
+
+export const PreviousIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m15 7-6 5 6 5" />
+  </SvgIcon>
+);
+
+export const NextIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="m9 7 6 5-6 5" />
+  </SvgIcon>
+);
+
+export const LastIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M17 5v14" />
+    <path d="m7 7 6 5-6 5" />
+  </SvgIcon>
+);
+
+export const PlayIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M9 7v10l8-5z" />
+  </SvgIcon>
+);
+
+export const PauseIcon: React.FC = () => (
+  <SvgIcon>
+    <path d="M9.5 7v10" />
+    <path d="M14.5 7v10" />
+  </SvgIcon>
 );
 
 export const ArrowsIcon: React.FC = () => (

@@ -17,14 +17,20 @@ import { LoadingButton, DotLoader, LoadingOverlay, useLoadingState } from './com
 import {
   AddArrowIcon,
   AddHighlightIcon,
+  AnimationIcon,
   ArrowsIcon,
   AutoFlipIcon,
   BoardSizeIcon,
+  FirstIcon,
   HighlightIcon,
+  LastIcon,
   LegalMovesIcon,
+  NextIcon,
   OrientationIcon,
+  PauseIcon,
+  PlayIcon,
   PremovesIcon,
-  AnimationIcon,
+  PreviousIcon,
   SoundIcon,
   SquareNamesIcon,
   TrashIcon,
@@ -249,6 +255,7 @@ const AppContent: React.FC = () => {
   const selectedPlyRef = useRef(0);
   const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineMaxPly = useMemo(() => plyTimeline.at(-1)?.ply ?? 0, [plyTimeline]);
+  const isAutoplayAvailable = timelineMaxPly > 0;
 
   const clearAutoplayTimer = useCallback(() => {
     if (autoplayTimeoutRef.current !== null) {
@@ -1672,53 +1679,6 @@ const AppContent: React.FC = () => {
             <GlassPanel>
               <PanelHeader>{translate('timeline.title')}</PanelHeader>
               <div className="p-4 space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-200 bg-purple-500/20 hover:bg-purple-500/30 ring-1 ring-purple-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleToggleAutoplay}
-                    aria-pressed={isAutoPlaying}
-                    aria-label={
-                      isAutoPlaying
-                        ? translate('timeline.aria.pause')
-                        : translate('timeline.aria.play')
-                    }
-                    disabled={timelineMaxPly <= 0}
-                  >
-                    {isAutoPlaying
-                      ? translate('timeline.playback.pause')
-                      : translate('timeline.playback.play')}
-                  </button>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-1">
-                    <label
-                      className="text-sm font-medium text-gray-300"
-                      htmlFor={playbackSpeedInputId}
-                    >
-                      {translate('timeline.playback.speed')}
-                    </label>
-                    <div className="flex items-center gap-3 sm:flex-1">
-                      <input
-                        id={playbackSpeedInputId}
-                        type="range"
-                        min={250}
-                        max={2000}
-                        step={250}
-                        value={playbackSpeed}
-                        onChange={handlePlaybackSpeedChange}
-                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
-                        aria-valuemin={250}
-                        aria-valuemax={2000}
-                        aria-valuenow={playbackSpeed}
-                        aria-label={translate('timeline.aria.speed')}
-                      />
-                      <span className="text-sm text-gray-400 w-24 text-right">
-                        {translate('timeline.playback.speedValue', {
-                          milliseconds: playbackSpeed,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
                 <PlyNavigator
                   onFirst={() => jumpToPly(0)}
                   onPrevious={() => jumpToPly(selectedPly - 1)}
@@ -1735,6 +1695,12 @@ const AppContent: React.FC = () => {
                     previous: translate('timeline.controls.previous'),
                     next: translate('timeline.controls.next'),
                     last: translate('timeline.controls.last'),
+                    play: translate('timeline.playback.play'),
+                    pause: translate('timeline.playback.pause'),
+                    playbackSpeed: translate('timeline.playback.speed'),
+                    playbackSpeedValue: translate('timeline.playback.speedValue', {
+                      milliseconds: playbackSpeed,
+                    }),
                     currentMove: translate('timeline.currentMove'),
                   }}
                   ariaLabels={{
@@ -1742,7 +1708,27 @@ const AppContent: React.FC = () => {
                     previous: translate('timeline.aria.previous'),
                     next: translate('timeline.aria.next'),
                     last: translate('timeline.aria.last'),
+                    play: translate('timeline.aria.play'),
+                    pause: translate('timeline.aria.pause'),
+                    speed: translate('timeline.aria.speed'),
                   }}
+                  icons={{
+                    first: <FirstIcon />,
+                    previous: <PreviousIcon />,
+                    next: <NextIcon />,
+                    last: <LastIcon />,
+                    play: <PlayIcon />,
+                    pause: <PauseIcon />,
+                  }}
+                  isAutoPlaying={isAutoPlaying}
+                  isAutoplayAvailable={isAutoplayAvailable}
+                  onToggleAutoplay={handleToggleAutoplay}
+                  playbackSpeed={playbackSpeed}
+                  playbackSpeedInputId={playbackSpeedInputId}
+                  playbackSpeedMin={250}
+                  playbackSpeedMax={2000}
+                  playbackSpeedStep={250}
+                  onPlaybackSpeedChange={handlePlaybackSpeedChange}
                 />
               </div>
             </GlassPanel>
