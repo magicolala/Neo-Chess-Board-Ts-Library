@@ -10,6 +10,9 @@ import type {
   AnimationEasing,
   AnimationEasingName,
 } from './types';
+import { InvalidFENError, type FenErrorCode, type FenErrorDetails } from './errors';
+
+export { InvalidFENError } from './errors';
 
 const DEFAULT_LABEL_COUNT = 26;
 
@@ -215,32 +218,33 @@ export interface ParsedFENState {
   fullmove: number;
 }
 
-export class InvalidFENError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InvalidFENError';
-  }
-}
-
 function validateFenString(fen: string): string[] {
   const trimmedFen = fen.trim();
-  const fail = (reason: string): never => {
-    throw new InvalidFENError(`Invalid FEN: ${reason}`);
+  const baseDetails: FenErrorDetails = { fen: trimmedFen || fen };
+  const fail = (code: FenErrorCode, reason: string, details?: FenErrorDetails): never => {
+    throw new InvalidFENError(`Invalid FEN: ${reason}`, code, {
+      ...baseDetails,
+      ...details,
+    });
   };
 
   if (!trimmedFen) {
-    fail('FEN string cannot be empty.');
+    fail('INVALID_FEN_EMPTY', 'FEN string cannot be empty.');
   }
 
   const parts = trimmedFen.split(/\s+/);
   if (parts.length === 0 || parts.length > 6) {
-    fail(`FEN string must contain between 1 and 6 fields. Received ${parts.length}.`);
+    fail(
+      'INVALID_FEN_FIELD_COUNT',
+      `FEN string must contain between 1 and 6 fields. Received ${parts.length}.`,
+      { fieldValue: String(parts.length) },
+    );
   }
 
   const boardPart = parts[0];
   const rows = boardPart.split('/');
   if (rows.length === 0) {
-    fail('FEN board description must contain at least one rank.');
+    fail('INVALID_FEN_BOARD_EMPTY', 'FEN board description must contain at least one rank.');
   }
 
   const piecePattern = /^[prnbqkPRNBQK]$/;
@@ -260,32 +264,58 @@ function validateFenString(fen: string): string[] {
         }
         const emptyCount = Number.parseInt(digits, 10);
         if (!Number.isFinite(emptyCount) || emptyCount <= 0) {
-          fail(`FEN rank ${index + 1} contains an invalid empty square count: ${digits}.`);
+          fail(
+            'INVALID_FEN_INVALID_EMPTY_SQUARE_COUNT',
+            `FEN rank ${index + 1} contains an invalid empty square count: ${digits}.`,
+            { rank: index + 1, row, digits },
+          );
         }
         totalSquares += emptyCount;
       } else if (piecePattern.test(char)) {
         totalSquares += 1;
         i++;
       } else {
-        fail(`FEN rank ${index + 1} contains an invalid character: '${char}'.`);
+        fail(
+          'INVALID_FEN_INVALID_PIECE',
+          `FEN rank ${index + 1} contains an invalid character: '${char}'.`,
+          { rank: index + 1, row, character: char },
+        );
       }
     }
 
     if (totalSquares === 0) {
-      fail(`FEN rank ${index + 1} must describe at least one square.`);
+      fail(
+        'INVALID_FEN_RANK_NO_SQUARES',
+        `FEN rank ${index + 1} must describe at least one square.`,
+        {
+          rank: index + 1,
+          row,
+        },
+      );
     }
 
     if (describedFiles === null) {
       describedFiles = totalSquares;
     } else if (totalSquares !== describedFiles) {
       fail(
+        'INVALID_FEN_INCONSISTENT_ROW_LENGTH',
         `FEN rank ${index + 1} must describe exactly ${describedFiles} squares but received ${totalSquares}.`,
+        {
+          rank: index + 1,
+          row,
+          expectedFiles: describedFiles,
+          actualFiles: totalSquares,
+        },
       );
     }
   }
 
   if (parts[1] && parts[1] !== 'w' && parts[1] !== 'b') {
-    fail(`FEN active color must be either 'w' or 'b', received '${parts[1]}'.`);
+    fail(
+      'INVALID_FEN_ACTIVE_COLOR',
+      `FEN active color must be either 'w' or 'b', received '${parts[1]}'.`,
+      { fieldValue: parts[1] },
+    );
   }
 
   return parts;

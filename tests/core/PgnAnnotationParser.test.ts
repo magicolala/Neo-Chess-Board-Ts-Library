@@ -145,17 +145,25 @@ describe('PgnAnnotationParser', () => {
         const result = PgnAnnotationParser.parseComment('%cal Rz9z9,Ra1a2');
         expect(result.arrows).toHaveLength(1); // Only the valid one
         expect(result.arrows[0].from).toBe('a1');
+        expect(result.issues).toBeDefined();
+        expect(
+          result.issues?.some((issue) => issue.code === 'PGN_PARSE_INVALID_ARROW_SQUARE'),
+        ).toBe(true);
       });
 
       it('should handle invalid color codes', () => {
         const result = PgnAnnotationParser.parseComment('%cal Xa1a2,Ra2a3');
         expect(result.arrows).toHaveLength(2);
+        expect(result.issues).toBeUndefined();
       });
 
       it('should handle malformed annotations', () => {
         const result = PgnAnnotationParser.parseComment('%cal R,abc,Ra1a2');
         expect(result.arrows).toHaveLength(1); // Only the valid one
         expect(result.arrows[0].from).toBe('a1');
+        expect(
+          result.issues?.filter((issue) => issue.code === 'PGN_PARSE_INVALID_ARROW_SPEC'),
+        ).toHaveLength(2);
       });
 
       it('should return empty arrays for no annotations', () => {
@@ -163,6 +171,7 @@ describe('PgnAnnotationParser', () => {
         expect(result.arrows).toHaveLength(0);
         expect(result.highlights).toHaveLength(0);
         expect(result.textComment).toBe('Just a comment');
+        expect(result.issues).toBeUndefined();
       });
     });
   });

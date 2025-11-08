@@ -1,4 +1,5 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
+import { PgnParseError } from '../../src/core/errors';
 import type {
   Arrow,
   BoardEventMap,
@@ -22,6 +23,7 @@ type MinimalPgnNotation = Pick<
   | 'getMoveAnnotations'
   | 'addMoveAnnotations'
   | 'toPgnWithAnnotations'
+  | 'getParseIssues'
 >;
 
 const getPrivate = <T>(instance: unknown, key: string): T =>
@@ -49,9 +51,16 @@ class StubPgnNotation implements MinimalPgnNotation {
     annotations: PgnMoveAnnotations;
   }> = [];
   public exportValue = '[Event "Stub"]\n\n1. e4 e5';
+  private issues: PgnParseError[] = [];
 
   loadPgnWithAnnotations(pgn: string): void {
     this.lastLoaded = pgn;
+    this.issues = [];
+    if (pgn.includes('Rinvalid')) {
+      this.issues.push(
+        new PgnParseError('Stub invalid annotation', 'PGN_PARSE_INVALID_ARROW_SPEC'),
+      );
+    }
   }
 
   getMovesWithAnnotations(): PgnMove[] {
@@ -76,6 +85,14 @@ class StubPgnNotation implements MinimalPgnNotation {
 
   toPgnWithAnnotations(): string {
     return this.exportValue;
+  }
+
+  getParseIssues(): PgnParseError[] {
+    return [...this.issues];
+  }
+
+  setParseIssues(issues: PgnParseError[]): void {
+    this.issues = [...issues];
   }
 }
 
@@ -333,6 +350,15 @@ describe('NeoChessBoard PGN and notation helpers', () => {
     Reflect.set(board as unknown as Record<string, unknown>, 'rules', errorRules);
 
     expect(board.loadPgnWithAnnotations('1. e4 e5')).toBe(false);
+  });
+
+  it('exposes PGN parsing issues after loading malformed annotations', () => {
+    const malformedPgn = '[Event "Test"]\n\n1. e4 {%cal Rinvalid} e5';
+    const success = board.loadPgnWithAnnotations(malformedPgn);
+    expect(success).toBe(true);
+    const issues = board.getLastPgnLoadIssues();
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues[0]).toBeInstanceOf(PgnParseError);
   });
 
   it('exports PGN with annotations when available', () => {

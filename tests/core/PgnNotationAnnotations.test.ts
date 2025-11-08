@@ -418,6 +418,10 @@ describe('PgnNotation with Annotations', () => {
       // Invalid annotations should be filtered out
       expect(moves[0].whiteAnnotations?.arrows).toHaveLength(0);
       expect(moves[0].blackAnnotations?.circles).toHaveLength(0);
+
+      const issues = pgnNotation.getParseIssues();
+      expect(issues.length).toBeGreaterThan(0);
+      expect(issues.map((issue) => issue.code)).toContain('PGN_PARSE_INVALID_ARROW_SQUARE');
     });
 
     it('should handle empty comments gracefully', () => {
@@ -448,6 +452,8 @@ describe('PgnNotation with Annotations', () => {
         expect(move.blackAnnotations?.arrows || []).toHaveLength(0);
         expect(move.blackAnnotations?.circles || []).toHaveLength(0);
       }
+
+      expect(pgnNotation.getParseIssues()).toHaveLength(0);
     });
   });
 });

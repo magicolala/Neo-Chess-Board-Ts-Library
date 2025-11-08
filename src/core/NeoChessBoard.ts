@@ -25,6 +25,7 @@ import { BoardDomManager } from './BoardDomManager';
 import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager';
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import type { PgnNotation } from './PgnNotation';
+import { PgnParseError } from './errors';
 import type {
   Square,
   Color,
@@ -241,6 +242,7 @@ export class NeoChessBoard {
   // ---- Rules & State ----
   private rules: RulesAdapter;
   private state: BoardState;
+  private lastPgnLoadIssues: PgnParseError[] = [];
 
   // ---- Visual Configuration ----
   private theme: Theme;
@@ -822,18 +824,37 @@ export class NeoChessBoard {
   }
 
   public loadPgnWithAnnotations(pgnString: string): boolean {
+    this.lastPgnLoadIssues = [];
     try {
       const success = this._loadPgnInRules(pgnString);
       if (success) {
         this._displayPgnAnnotations(pgnString);
         this._updateStateAfterPgnLoad();
+        if (this.lastPgnLoadIssues.length === 0) {
+          const notation = this._getPgnNotation();
+          this.lastPgnLoadIssues = notation ? notation.getParseIssues() : [];
+        }
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Error loading PGN with annotations:', error);
+      const normalizedError =
+        error instanceof PgnParseError
+          ? error
+          : new PgnParseError('Failed to load PGN into rules adapter.', 'PGN_IMPORT_FAILED', {
+              cause: error,
+              details: {
+                message: error instanceof Error ? error.message : String(error),
+              },
+            });
+      this.lastPgnLoadIssues = [normalizedError];
+      console.error('Error loading PGN with annotations:', normalizedError);
       return false;
     }
+  }
+
+  public getLastPgnLoadIssues(): readonly PgnParseError[] {
+    return [...this.lastPgnLoadIssues];
   }
 
   public showPgnAnnotationsForPly(ply: number): boolean {
@@ -4639,6 +4660,7 @@ export class NeoChessBoard {
     const pgnNotation = this._getPgnNotation();
     if (pgnNotation) {
       pgnNotation.loadPgnWithAnnotations(pgnString);
+      this.lastPgnLoadIssues = pgnNotation.getParseIssues();
       this._displayAnnotationsFromPgn(pgnNotation);
     }
   }

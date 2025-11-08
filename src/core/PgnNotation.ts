@@ -4,6 +4,7 @@
  * Supports visual annotations (%cal arrows and %csl circles)
  */
 import { PgnAnnotationParser } from './PgnAnnotationParser';
+import { PgnParseError, type PgnParseErrorCode } from './errors';
 import type {
   RulesAdapter,
   PgnMove,
@@ -37,6 +38,7 @@ export class PgnNotation {
   private moves: PgnMove[];
   private result: string;
   private rulesAdapter?: RulesAdapter;
+  private parseIssues: PgnParseError[];
 
   private static isVerboseHistory(
     history: ReturnType<ChessLike['history']>,
@@ -57,6 +59,7 @@ export class PgnNotation {
     };
     this.moves = [];
     this.result = '*'; // Game in progress
+    this.parseIssues = [];
   }
 
   /**
@@ -395,6 +398,7 @@ export class PgnNotation {
     const lines = pgnString.split('\n');
     let inMoves = false;
     let movesText = '';
+    this.parseIssues = [];
 
     for (const line of lines) {
       if (line.startsWith('[')) {
@@ -414,6 +418,10 @@ export class PgnNotation {
     }
   }
 
+  getParseIssues(): PgnParseError[] {
+    return [...this.parseIssues];
+  }
+
   /**
    * Parse moves string with embedded annotations
    */
@@ -421,15 +429,36 @@ export class PgnNotation {
     this.moves = [];
 
     const movePattern = /(\d+)\.(?!\d)(\.{2})?/g;
+    const registerIssue = (
+      code: PgnParseErrorCode,
+      message: string,
+      details?: Record<string, unknown>,
+    ) => {
+      this.parseIssues.push(new PgnParseError(message, code, { details }));
+    };
+
+    const mergeAnnotationIssueDetails = (
+      issue: PgnParseError,
+      moveNumber: number,
+      color: 'white' | 'black',
+    ): Record<string, unknown> => {
+      const baseDetails: Record<string, unknown> = issue.details ? { ...issue.details } : {};
+      baseDetails.moveNumber = moveNumber;
+      baseDetails.color = color;
+      return baseDetails;
+    };
+
     const extractMoveSection = (
       startIndex: number,
+      moveNumber: number,
+      color: 'white' | 'black',
     ): { san?: string; comments: string[]; nextIndex: number } => {
       let index = startIndex;
       const comments: string[] = [];
       const length = movesText.length;
 
       const skipWhitespace = () => {
-        while (index < length && /\s/.test(movesText[index])) {
+        while (index < length && /\s/.test(movesText[index]!)) {
           index++;
         }
       };
@@ -447,6 +476,11 @@ export class PgnNotation {
             if (remaining) {
               comments.push(remaining);
             }
+            registerIssue(
+              'PGN_PARSE_UNTERMINATED_COMMENT',
+              'Unterminated PGN comment detected while parsing annotations.',
+              { moveNumber, color, index },
+            );
             index = length;
             break;
           }
@@ -468,12 +502,27 @@ export class PgnNotation {
 
       const rest = movesText.slice(index);
 
-      if (/^(\d+)\.(?!\d)(\.{2})?/.test(rest) || /^(1-0|0-1|1\/2-1\/2|\*)/.test(rest)) {
+      const resultTokenMatch = /^(1-0|0-1|1\/2-1\/2|\*)/.exec(rest);
+      if (/^(\d+)\.(?!\d)(\.{2})?/.test(rest) || resultTokenMatch) {
+        if (resultTokenMatch) {
+          registerIssue(
+            'PGN_PARSE_RESULT_IN_MOVE',
+            'Game result token encountered before move text.',
+            { moveNumber, color, rawComment: resultTokenMatch[1] },
+          );
+        }
         return { san: undefined, comments, nextIndex: index };
       }
 
       const sanMatch = rest.match(/^([^\s{]+)/);
       if (!sanMatch) {
+        if (rest.trim()) {
+          registerIssue(
+            'PGN_PARSE_MOVE_TEXT_MISSING',
+            'Unable to parse move text segment in PGN.',
+            { moveNumber, color, rawComment: rest.trim().slice(0, 20) },
+          );
+        }
         return { san: undefined, comments, nextIndex: index };
       }
 
@@ -485,7 +534,7 @@ export class PgnNotation {
       return { san, comments, nextIndex: index };
     };
 
-    let match;
+    let match: RegExpExecArray | null;
 
     while ((match = movePattern.exec(movesText)) !== null) {
       const moveNumber = Number.parseInt(match[1], 10);
@@ -510,7 +559,7 @@ export class PgnNotation {
       }
 
       if (!startsWithBlack) {
-        const whiteSection = extractMoveSection(currentIndex);
+        const whiteSection = extractMoveSection(currentIndex, moveNumber, 'white');
         currentIndex = whiteSection.nextIndex;
 
         if (whiteSection.san) {
@@ -527,12 +576,29 @@ export class PgnNotation {
                 evaluation: parsed.evaluation,
               };
               this.updateMoveEvaluation(pgnMove, 'white', parsed.evaluation);
+              if (parsed.issues?.length) {
+                for (const issue of parsed.issues) {
+                  const issueCode = issue.code as PgnParseErrorCode;
+                  this.parseIssues.push(
+                    new PgnParseError(issue.message, issueCode, {
+                      details: mergeAnnotationIssueDetails(issue, moveNumber, 'white'),
+                    }),
+                  );
+                }
+              }
             }
           }
+        } else if (whiteSection.comments.length > 0) {
+          registerIssue(
+            'PGN_PARSE_MOVE_TEXT_MISSING',
+            'Comment found without preceding white move.',
+            { moveNumber, color: 'white', rawComment: whiteSection.comments.join(' ') },
+          );
         }
       }
 
-      const blackSection = extractMoveSection(currentIndex);
+      const blackSection = extractMoveSection(currentIndex, moveNumber, 'black');
+
       if (blackSection.san) {
         pgnMove.black = blackSection.san;
         if (blackSection.comments.length > 0) {
@@ -547,8 +613,24 @@ export class PgnNotation {
               evaluation: parsed.evaluation,
             };
             this.updateMoveEvaluation(pgnMove, 'black', parsed.evaluation);
+            if (parsed.issues?.length) {
+              for (const issue of parsed.issues) {
+                const issueCode = issue.code as PgnParseErrorCode;
+                this.parseIssues.push(
+                  new PgnParseError(issue.message, issueCode, {
+                    details: mergeAnnotationIssueDetails(issue, moveNumber, 'black'),
+                  }),
+                );
+              }
+            }
           }
         }
+      } else if (blackSection.comments.length > 0) {
+        registerIssue(
+          'PGN_PARSE_MOVE_TEXT_MISSING',
+          'Comment found without preceding black move.',
+          { moveNumber, color: 'black', rawComment: blackSection.comments.join(' ') },
+        );
       }
     }
   }
