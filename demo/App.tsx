@@ -47,6 +47,7 @@ import {
 } from './i18n/translations';
 import { pickRandomElement } from './utils/random';
 import { normalizePgn } from './utils/pgn-normalizer';
+import { PlaygroundProviders, PlaygroundView } from './src/pages/Playground';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
   moveNumber: rules.moveNumber(),
@@ -162,6 +163,12 @@ interface BoardFeatureOptions {
   animationDuration: number;
 }
 
+type AppSection = 'demo' | 'playground';
+
+interface AppContentProps {
+  onSelectPlayground?: () => void;
+}
+
 const GlassPanel: React.FC<{
   children: React.ReactNode;
   className?: string;
@@ -181,7 +188,7 @@ const PanelHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-const AppContent: React.FC = () => {
+const AppContent: React.FC<AppContentProps> = ({ onSelectPlayground }) => {
   const { translate, language, setLanguage } = useTranslation();
   const whiteLabel = translate('common.white');
   const blackLabel = translate('common.black');
@@ -1152,13 +1159,24 @@ const AppContent: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="./playground.html"
-              className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-              title={translate('app.playgroundLinkTitle')}
-            >
-              {translate('app.playgroundLinkText')}
-            </a>
+            {onSelectPlayground ? (
+              <button
+                type="button"
+                onClick={onSelectPlayground}
+                className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                title={translate('app.playgroundLinkTitle')}
+              >
+                {translate('app.playgroundLinkText')}
+              </button>
+            ) : (
+              <a
+                href="./playground.html"
+                className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                title={translate('app.playgroundLinkTitle')}
+              >
+                {translate('app.playgroundLinkText')}
+              </a>
+            )}
             <a
               href="./theme-creator.html"
               className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
@@ -1843,13 +1861,96 @@ const AppContent: React.FC = () => {
   );
 };
 
+interface SectionSwitcherProps {
+  activeSection: AppSection;
+  onSectionChange: (section: AppSection) => void;
+  ariaLabel: string;
+  demoLabel: string;
+  playgroundLabel: string;
+}
+
+const SectionSwitcher: React.FC<SectionSwitcherProps> = ({
+  activeSection,
+  onSectionChange,
+  ariaLabel,
+  demoLabel,
+  playgroundLabel,
+}) => (
+  <div className="fixed bottom-6 right-6 z-[60]">
+    <div
+      className="flex overflow-hidden rounded-full border border-white/15 bg-black/60 backdrop-blur-md shadow-lg"
+      role="tablist"
+      aria-label={ariaLabel}
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeSection === 'demo'}
+        className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+          activeSection === 'demo'
+            ? 'bg-purple-500/80 text-white'
+            : 'text-gray-300 hover:text-white hover:bg-white/10'
+        }`}
+        onClick={() => onSectionChange('demo')}
+      >
+        {demoLabel}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeSection === 'playground'}
+        className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+          activeSection === 'playground'
+            ? 'bg-purple-500/80 text-white'
+            : 'text-gray-300 hover:text-white hover:bg-white/10'
+        }`}
+        onClick={() => onSectionChange('playground')}
+      >
+        {playgroundLabel}
+      </button>
+    </div>
+  </div>
+);
+
+const AppShell: React.FC = () => {
+  const { translate } = useTranslation();
+  const [activeSection, setActiveSection] = useState<AppSection>('demo');
+
+  const handleSectionChange = useCallback((section: AppSection) => {
+    setActiveSection(section);
+  }, []);
+
+  const sectionSwitcherLabel = translate('app.sectionSwitcherLabel');
+  const demoLabel = translate('app.section.demo');
+  const playgroundLabel = translate('app.section.playground');
+
+  return (
+    <>
+      {activeSection === 'demo' ? (
+        <AppContent onSelectPlayground={() => handleSectionChange('playground')} />
+      ) : (
+        <PlaygroundProviders>
+          <PlaygroundView />
+        </PlaygroundProviders>
+      )}
+      <SectionSwitcher
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        ariaLabel={sectionSwitcherLabel}
+        demoLabel={demoLabel}
+        playgroundLabel={playgroundLabel}
+      />
+    </>
+  );
+};
+
 export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
   const translationValue = useMemo(() => createTranslationValue(language, setLanguage), [language]);
 
   return (
     <TranslationContext.Provider value={translationValue}>
-      <AppContent />
+      <AppShell />
     </TranslationContext.Provider>
   );
 };
