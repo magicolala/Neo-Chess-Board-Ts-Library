@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useId,
   type ChangeEvent,
+  type KeyboardEvent,
 } from 'react';
 import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
@@ -1867,6 +1868,10 @@ interface SectionSwitcherProps {
   ariaLabel: string;
   demoLabel: string;
   playgroundLabel: string;
+  demoTabId: string;
+  playgroundTabId: string;
+  demoPanelId: string;
+  playgroundPanelId: string;
 }
 
 const SectionSwitcher: React.FC<SectionSwitcherProps> = ({
@@ -1875,42 +1880,86 @@ const SectionSwitcher: React.FC<SectionSwitcherProps> = ({
   ariaLabel,
   demoLabel,
   playgroundLabel,
-}) => (
-  <div className="fixed bottom-6 right-6 z-[60]">
-    <div
-      className="flex overflow-hidden rounded-full border border-white/15 bg-black/60 backdrop-blur-md shadow-lg"
-      role="tablist"
-      aria-label={ariaLabel}
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeSection === 'demo'}
-        className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
-          activeSection === 'demo'
-            ? 'bg-purple-500/80 text-white'
-            : 'text-gray-300 hover:text-white hover:bg-white/10'
-        }`}
-        onClick={() => onSectionChange('demo')}
+  demoTabId,
+  playgroundTabId,
+  demoPanelId,
+  playgroundPanelId,
+}) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, current: AppSection) => {
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'ArrowRight': {
+          event.preventDefault();
+          onSectionChange(current === 'demo' ? 'playground' : 'demo');
+          break;
+        }
+        case 'Home': {
+          event.preventDefault();
+          onSectionChange('demo');
+          break;
+        }
+        case 'End': {
+          event.preventDefault();
+          onSectionChange('playground');
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    },
+    [onSectionChange],
+  );
+
+  const isDemoActive = activeSection === 'demo';
+  const isPlaygroundActive = activeSection === 'playground';
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[60]">
+      <div
+        className="flex overflow-hidden rounded-full border border-white/15 bg-black/60 backdrop-blur-md shadow-lg"
+        role="tablist"
+        aria-label={ariaLabel}
       >
-        {demoLabel}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeSection === 'playground'}
-        className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
-          activeSection === 'playground'
-            ? 'bg-purple-500/80 text-white'
-            : 'text-gray-300 hover:text-white hover:bg-white/10'
-        }`}
-        onClick={() => onSectionChange('playground')}
-      >
-        {playgroundLabel}
-      </button>
+        <button
+          type="button"
+          role="tab"
+          id={demoTabId}
+          aria-controls={demoPanelId}
+          aria-selected={isDemoActive}
+          tabIndex={isDemoActive ? 0 : -1}
+          className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+            isDemoActive
+              ? 'bg-purple-500/80 text-white'
+              : 'text-gray-300 hover:text-white hover:bg-white/10'
+          }`}
+          onClick={() => onSectionChange('demo')}
+          onKeyDown={(event) => handleKeyDown(event, 'demo')}
+        >
+          {demoLabel}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id={playgroundTabId}
+          aria-controls={playgroundPanelId}
+          aria-selected={isPlaygroundActive}
+          tabIndex={isPlaygroundActive ? 0 : -1}
+          className={`px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+            isPlaygroundActive
+              ? 'bg-purple-500/80 text-white'
+              : 'text-gray-300 hover:text-white hover:bg-white/10'
+          }`}
+          onClick={() => onSectionChange('playground')}
+          onKeyDown={(event) => handleKeyDown(event, 'playground')}
+        >
+          {playgroundLabel}
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AppShell: React.FC = () => {
   const { translate } = useTranslation();
@@ -1924,14 +1973,36 @@ const AppShell: React.FC = () => {
   const demoLabel = translate('app.section.demo');
   const playgroundLabel = translate('app.section.playground');
 
+  const sectionIdPrefix = useId();
+  const demoPanelId = `${sectionIdPrefix}-demo-panel`;
+  const playgroundPanelId = `${sectionIdPrefix}-playground-panel`;
+  const demoTabId = `${sectionIdPrefix}-demo-tab`;
+  const playgroundTabId = `${sectionIdPrefix}-playground-tab`;
+
   return (
     <>
       {activeSection === 'demo' ? (
-        <AppContent onSelectPlayground={() => handleSectionChange('playground')} />
+        <div
+          id={demoPanelId}
+          role="tabpanel"
+          aria-labelledby={demoTabId}
+          tabIndex={0}
+          className="min-h-screen"
+        >
+          <AppContent onSelectPlayground={() => handleSectionChange('playground')} />
+        </div>
       ) : (
-        <PlaygroundProviders>
-          <PlaygroundView />
-        </PlaygroundProviders>
+        <div
+          id={playgroundPanelId}
+          role="tabpanel"
+          aria-labelledby={playgroundTabId}
+          tabIndex={0}
+          className="min-h-screen"
+        >
+          <PlaygroundProviders>
+            <PlaygroundView />
+          </PlaygroundProviders>
+        </div>
       )}
       <SectionSwitcher
         activeSection={activeSection}
@@ -1939,6 +2010,10 @@ const AppShell: React.FC = () => {
         ariaLabel={sectionSwitcherLabel}
         demoLabel={demoLabel}
         playgroundLabel={playgroundLabel}
+        demoTabId={demoTabId}
+        playgroundTabId={playgroundTabId}
+        demoPanelId={demoPanelId}
+        playgroundPanelId={playgroundPanelId}
       />
     </>
   );
