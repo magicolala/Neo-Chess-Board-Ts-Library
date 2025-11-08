@@ -437,7 +437,18 @@ export class ChessJsRules implements RulesAdapter {
   loadPgn(pgn: string): boolean {
     try {
       const sanitized = sanitizePgnString(pgn);
-      this.chess.loadPgn(sanitized);
+      const loadResult = this.chess.loadPgn(sanitized) as unknown;
+
+      if (typeof loadResult === 'boolean' && !loadResult) {
+        return false;
+      }
+
+      try {
+        this.pgnNotation.loadPgnWithAnnotations(sanitized);
+      } catch {
+        return false;
+      }
+
       this.pgnNotation.importFromChessJs(this.chess);
       return true;
     } catch {
