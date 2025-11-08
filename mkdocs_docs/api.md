@@ -1,5 +1,7 @@
 # API Documentation
 
+> **Note:** Run `npm run docs:api` to regenerate the full TypeDoc reference in `mkdocs_docs/reference/`. The sections below offer a curated overview of the most commonly used APIs.
+
 ## Core Classes
 
 ### NeoChessBoard

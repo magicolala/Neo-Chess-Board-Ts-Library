@@ -116,3 +116,6 @@ temp/
 test-results/
 playwright-report/
 .npmrc
+
+# Generated API docs
+mkdocs_docs/reference/

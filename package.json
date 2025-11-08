@@ -61,6 +61,7 @@
     "test:ci": "jest --ci --coverage --watchAll=false",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "docs:api": "typedoc --options typedoc.config.cjs",
     "prepublishOnly": "npm run build:lib"
   },
   "peerDependencies": {
@@ -97,6 +98,8 @@
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.16",
     "terser": "^5.43.1",
+    "typedoc": "^0.28.14",
+    "typedoc-plugin-markdown": "^4.2.0",
     "ts-jest": "^29.4.1",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.43.0",
