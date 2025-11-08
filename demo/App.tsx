@@ -1505,10 +1505,10 @@ const AppContent: React.FC = () => {
                     </span>
                     <button
                       type="button"
-                      className={`pointer-events-auto w-9 h-9 grid place-items-center cursor-nwse-resize transition-colors ring-1 ${
+                      className={`pointer-events-auto group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl cursor-nwse-resize transition-colors ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/70 ${
                         isResizingBoard
-                          ? 'bg-purple-600/30 ring-purple-400/60'
-                          : 'bg-black/70 ring-white/10 hover:ring-white/25'
+                          ? 'bg-purple-500/20 ring-purple-300/60 shadow-[0_10px_30px_rgba(168,85,247,0.35)]'
+                          : 'bg-black/60 ring-white/10 hover:bg-black/45 hover:ring-white/25 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.75)]'
                       }`}
                       onPointerDown={handleBoardResizeStart}
                       onPointerMove={handleBoardResizeMove}
@@ -1525,9 +1525,17 @@ const AppContent: React.FC = () => {
                       title={translate('board.resize.tooltip')}
                     >
                       <span
-                        className="w-full h-full relative before:content-[''] before:absolute before:right-2 before:bottom-2.5 before:w-4 before:h-0.5 before:bg-gray-300 before:rotate-[-45deg] after:content-[''] after:absolute after:right-2 after:bottom-[15px] after:w-2.5 after:h-0.5 after:bg-gray-300 after:rotate-[-45deg]"
+                        className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-white/0 to-purple-500/40 opacity-0 transition-opacity duration-300 group-hover:opacity-60 group-focus-visible:opacity-60"
                         aria-hidden="true"
                       />
+                      <span
+                        className="relative -rotate-45 flex flex-col items-center justify-center gap-1.5 text-gray-100"
+                        aria-hidden="true"
+                      >
+                        <span className="h-0.5 w-6 rounded-full bg-current/90" />
+                        <span className="h-0.5 w-4 rounded-full bg-current/70" />
+                        <span className="h-0.5 w-2 rounded-full bg-current/60" />
+                      </span>
                     </button>
                   </div>
                 )}
