@@ -116,3 +116,7 @@ temp/
 test-results/
 playwright-report/
 .npmrc
+
+# Documentation
+!mkdocs_docs/
+!mkdocs_docs/api/
