@@ -750,6 +750,7 @@ const AppContent: React.FC = () => {
             ? timelineInitialFenRef.current
             : chessRules.getFEN();
 
+        rebuildRulesFromTimeline(0);
         setFen(initialTimelineFen);
         board?.loadFEN?.(initialTimelineFen, !shouldAnimateMoves);
         board?.showPgnAnnotationsForPly?.(0);
@@ -773,6 +774,7 @@ const AppContent: React.FC = () => {
       boardRef,
       chessRules,
       clearAutoplayTimer,
+      rebuildRulesFromTimeline,
       syncEvaluationsFromRules,
       syncOrientationWithFen,
       shouldAnimateMoves,
