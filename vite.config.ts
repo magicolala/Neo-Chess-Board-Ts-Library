@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
+const isVercelDeployment = Boolean(process.env.VERCEL);
+
 export default defineConfig({
-  base: '/Neo-Chess-Board-Ts-Library/',
+  base: isVercelDeployment ? '/' : '/Neo-Chess-Board-Ts-Library/',
   plugins: [react()],
   build: {
     lib: {
