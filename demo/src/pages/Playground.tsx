@@ -10,8 +10,6 @@ import {
 } from '../state/playgroundStore';
 import { playgroundThemeMetadata } from '../themes/customThemes';
 import type { PlaygroundThemeMetadata } from '../themes/customThemes';
-import '../styles/playground.css';
-import '../styles/mobile.css';
 import {
   DEFAULT_ORIENTATION,
   clearPlaygroundPermalink,
@@ -507,7 +505,20 @@ interface StressTestRunState {
   originalBoardSize: number;
 }
 
-const PlaygroundView: React.FC = () => {
+let playgroundStylesPromise: Promise<unknown> | null = null;
+
+export const loadPlaygroundStyles = () => {
+  if (!playgroundStylesPromise) {
+    playgroundStylesPromise = Promise.all([
+      import('../styles/playground.css'),
+      import('../styles/mobile.css'),
+    ]);
+  }
+
+  return playgroundStylesPromise;
+};
+
+export const PlaygroundView: React.FC = () => {
   const permalinkSnapshot = useMemo(() => {
     if (globalThis.window === undefined) {
       return {};
@@ -2085,10 +2096,14 @@ const PlaygroundView: React.FC = () => {
   );
 };
 
+export const PlaygroundProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ToasterProvider>{children}</ToasterProvider>
+);
+
 export const Playground: React.FC = () => (
-  <ToasterProvider>
+  <PlaygroundProvider>
     <PlaygroundView />
-  </ToasterProvider>
+  </PlaygroundProvider>
 );
 
 export default Playground;

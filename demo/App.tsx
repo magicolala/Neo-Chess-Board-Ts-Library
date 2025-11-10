@@ -5,6 +5,8 @@ import React, {
   useEffect,
   useCallback,
   useId,
+  Suspense,
+  lazy,
   type ChangeEvent,
 } from 'react';
 import { NeoChessBoard } from '../src/react';
@@ -148,6 +150,19 @@ const LIVE_EXAMPLES: LiveExampleLink[] = [
   },
 ];
 
+const PlaygroundSection = lazy(async () => {
+  const module = await import('./src/pages/Playground');
+  await module.loadPlaygroundStyles();
+
+  const PlaygroundContent: React.FC = () => (
+    <module.PlaygroundProvider>
+      <module.PlaygroundView />
+    </module.PlaygroundProvider>
+  );
+
+  return { default: PlaygroundContent };
+});
+
 interface BoardFeatureOptions {
   showArrows: boolean;
   showHighlights: boolean;
@@ -189,6 +204,18 @@ const AppContent: React.FC = () => {
     midnight: translate('app.themes.midnight'),
     classic: translate('app.themes.classic'),
   };
+  const [activeSection, setActiveSection] = useState<'demo' | 'playground'>('demo');
+  const sectionSwitcherLabel = translate('app.sections.switcherLabel');
+  const sectionOptions = useMemo(
+    () => [
+      { id: 'demo' as const, label: translate('app.sections.demo') },
+      { id: 'playground' as const, label: translate('app.sections.playground') },
+    ],
+    [translate, language],
+  );
+  const handleSectionChange = useCallback((nextSection: 'demo' | 'playground') => {
+    setActiveSection(nextSection);
+  }, []);
   const whiteSideLabel = language === 'fr' ? `les ${whiteLabel}` : whiteLabel;
   const blackSideLabel = language === 'fr' ? `les ${blackLabel}` : blackLabel;
   const chessRules = useMemo(() => new ChessJsRules(), []);
@@ -1152,13 +1179,51 @@ const AppContent: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="./playground.html"
-              className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-              title={translate('app.playgroundLinkTitle')}
+            <div className="sm:hidden">
+              <label htmlFor="demo-section-switcher" className="sr-only">
+                {sectionSwitcherLabel}
+              </label>
+              <select
+                id="demo-section-switcher"
+                className="bg-transparent border border-white/10 text-gray-200 text-sm focus:ring-2 focus:ring-purple-500/70 rounded-md pl-2 pr-7 py-1"
+                value={activeSection}
+                onChange={(event) =>
+                  handleSectionChange(event.target.value as 'demo' | 'playground')
+                }
+              >
+                {sectionOptions.map((option) => (
+                  <option key={option.id} value={option.id} className="text-black">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div
+              className="hidden sm:flex items-center gap-1 bg-white/5 px-1 py-1 rounded-lg ring-1 ring-white/10"
+              role="tablist"
+              aria-label={sectionSwitcherLabel}
             >
-              {translate('app.playgroundLinkText')}
-            </a>
+              {sectionOptions.map((option) => {
+                const isActive = activeSection === option.id;
+
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+                      isActive
+                        ? 'bg-purple-600 text-white shadow hover:bg-purple-500'
+                        : 'text-gray-200 hover:bg-white/10'
+                    }`}
+                    onClick={() => handleSectionChange(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
             <a
               href="./theme-creator.html"
               className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
@@ -1220,635 +1285,660 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 pt-[88px] pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-3 space-y-4 lg:space-y-5">
-            <GlassPanel>
-              <PanelHeader>{translate('status.title')}</PanelHeader>
-              <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-sm">
-                    <div className="text-gray-400">{translate('status.turn.label')}</div>
-                    <div className="text-lg font-semibold text-gray-50">
-                      {status.turn === 'w' ? whiteLabel : blackLabel}
+      {activeSection === 'playground' ? (
+        <div className="pt-[88px] pb-8">
+          <Suspense
+            fallback={
+              <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 py-16 flex justify-center">
+                <DotLoader />
+              </div>
+            }
+          >
+            <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6">
+              <PlaygroundSection />
+            </div>
+          </Suspense>
+        </div>
+      ) : (
+        <main className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 pt-[88px] pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
+            {/* Left Column */}
+            <div className="lg:col-span-3 space-y-4 lg:space-y-5">
+              <GlassPanel>
+                <PanelHeader>{translate('status.title')}</PanelHeader>
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-sm">
+                      <div className="text-gray-400">{translate('status.turn.label')}</div>
+                      <div className="text-lg font-semibold text-gray-50">
+                        {status.turn === 'w' ? whiteLabel : blackLabel}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {translate('status.turn.moveNumber', { moveNumber: status.moveNumber })}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {translate('status.turn.moveNumber', { moveNumber: status.moveNumber })}
+                    <div className="text-sm">
+                      <div className="text-gray-400">{translate('status.legalMoves.label')}</div>
+                      <div className="text-lg font-semibold text-gray-50">{status.legalMoves}</div>
+                      <div className="text-xs text-gray-500">
+                        {translate('status.legalMoves.hint', {
+                          color: status.turn === 'w' ? whiteSideLabel : blackSideLabel,
+                        })}
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-gray-400">{translate('status.halfMoves.label')}</div>
+                      <div className="text-lg font-semibold text-gray-50">{status.halfMoves}</div>
+                      <div className="text-xs text-gray-500">
+                        {translate('status.halfMoves.hint')}
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-gray-400">{translate('status.fifty.label')}</div>
+                      <div className="text-lg font-semibold text-gray-50">{halfMovesRemaining}</div>
+                      <div className="text-xs text-gray-500">{translate('status.fifty.hint')}</div>
                     </div>
                   </div>
-                  <div className="text-sm">
-                    <div className="text-gray-400">{translate('status.legalMoves.label')}</div>
-                    <div className="text-lg font-semibold text-gray-50">{status.legalMoves}</div>
-                    <div className="text-xs text-gray-500">
-                      {translate('status.legalMoves.hint', {
-                        color: status.turn === 'w' ? whiteSideLabel : blackSideLabel,
-                      })}
-                    </div>
-                  </div>
-                  <div className="text-sm">
-                    <div className="text-gray-400">{translate('status.halfMoves.label')}</div>
-                    <div className="text-lg font-semibold text-gray-50">{status.halfMoves}</div>
-                    <div className="text-xs text-gray-500">
-                      {translate('status.halfMoves.hint')}
-                    </div>
-                  </div>
-                  <div className="text-sm">
-                    <div className="text-gray-400">{translate('status.fifty.label')}</div>
-                    <div className="text-lg font-semibold text-gray-50">{halfMovesRemaining}</div>
-                    <div className="text-xs text-gray-500">{translate('status.fifty.hint')}</div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span
-                    className={`px-2.5 py-1 text-xs font-medium rounded-full border ${gameTagClass}`}
-                  >
-                    {gameTagLabel}
-                  </span>
-                  <span
-                    className={`px-2.5 py-1 text-xs font-medium rounded-full border ${fiftyTagClass}`}
-                  >
-                    {fiftyTagLabel}
-                  </span>
-                </div>
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('pgn.title')}</PanelHeader>
-              <div className="p-4">
-                <textarea
-                  className="w-full h-40 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
-                  value={pgnText}
-                  onChange={(event) => {
-                    setPgnText(event.target.value);
-                    if (pgnError) setPgnError(null);
-                  }}
-                  aria-label={translate('pgn.title')}
-                  placeholder={translate('pgn.placeholder')}
-                />
-                <input
-                  id={pgnFileInputId}
-                  ref={pgnFileInputRef}
-                  type="file"
-                  accept=".pgn,.txt,text/plain,application/x-chess-pgn"
-                  className="hidden"
-                  onChange={handlePgnFileUpload}
-                />
-                <div className="grid grid-cols-2 gap-2 mt-3 buttonGroup">
-                  <LoadingButton
-                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={() => pgnFileInputRef.current?.click()}
-                    isLoading={isImportingFromFile}
-                    disabled={isPgnLoading}
-                  >
-                    {isImportingFromFile ? translate('pgn.importing') : translate('pgn.import')}
-                  </LoadingButton>
-                  <LoadingButton
-                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={handleLoadPgn}
-                    isLoading={isPgnLoading}
-                  >
-                    {isPgnLoading ? translate('pgn.loading') : translate('pgn.load')}
-                  </LoadingButton>
-                  <LoadingButton
-                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={handleCopyPGN}
-                    isLoading={isCopying}
-                  >
-                    {isCopying ? translate('pgn.copying') : translate('pgn.copy')}
-                  </LoadingButton>
-                  <LoadingButton
-                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={handleReset}
-                    isLoading={isResetting}
-                  >
-                    {isResetting ? translate('pgn.resetting') : translate('pgn.reset')}
-                  </LoadingButton>
-                  <LoadingButton
-                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={handleExport}
-                    isLoading={isExporting}
-                  >
-                    {isExporting ? translate('pgn.exporting') : translate('pgn.export')}
-                  </LoadingButton>
-                </div>
-                {pgnError && <div className="mt-2 text-sm text-red-400">{pgnError}</div>}
-                <p className="mt-2 text-xs text-gray-500">
-                  <strong>{translate('pgn.helper.prefix')}</strong> {translate('pgn.helper.middle')}{' '}
-                  <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
-                  {translate('pgn.helper.suffix')}
-                </p>
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('fen.title')}</PanelHeader>
-              <div className="p-4">
-                <textarea
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
-                  value={fen || ''}
-                  onChange={(e) => {
-                    setFen(e.target.value);
-                    setIsManualFenChange(true);
-                  }}
-                  aria-label={translate('fen.title')}
-                  placeholder={translate('fen.placeholder')}
-                />
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('premoves.title')}</PanelHeader>
-              <div className="p-4">
-                <div className="text-xs text-gray-400 space-y-1 mb-3">
-                  <p>
-                    <strong>{translate('premoves.instructions')}</strong>
-                  </p>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    <li>{translate('premoves.step.examples')}</li>
-                    <li>{translate('premoves.step.outOfTurn')}</li>
-                    <li>{translate('premoves.step.stored')}</li>
-                    <li>{translate('premoves.step.execute')}</li>
-                  </ul>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={() => {
-                      setFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
-                      setIsManualFenChange(true);
-                    }}
-                  >
-                    {translate('premoves.sample.opening')}
-                  </button>
-                  <button
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={() => {
-                      setFen('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4');
-                      setIsManualFenChange(true);
-                    }}
-                  >
-                    {translate('premoves.sample.middleGame')}
-                  </button>
-                  <button
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={() => {
-                      setFen('4k3/8/8/8/8/8/4P3/4K3 w - - 0 1');
-                      setIsManualFenChange(true);
-                    }}
-                  >
-                    {translate('premoves.sample.endgame')}
-                  </button>
-                </div>
-              </div>
-            </GlassPanel>
-          </div>
-
-          {/* Center Column */}
-          <div className="lg:col-span-6">
-            <GlassPanel className="p-4 sm:p-6">
-              <div
-                ref={boardContainerRef}
-                style={boardContainerStyle}
-                className="relative mx-auto group"
-              >
-                <NeoChessBoard
-                  ref={boardRef}
-                  theme={theme}
-                  fen={fen}
-                  size={boardSize}
-                  showSquareNames={boardOptions.showSquareNames}
-                  showArrows={boardOptions.showArrows}
-                  showHighlights={boardOptions.showHighlights}
-                  allowPremoves={boardOptions.allowPremoves}
-                  soundEnabled={boardOptions.soundEnabled}
-                  showAnimations={boardOptions.showAnimations}
-                  animation={{ duration: boardOptions.animationDuration }}
-                  soundUrl={moveSound}
-                  soundEventUrls={{
-                    move: moveSound,
-                    capture: moveSound,
-                    check: moveSound,
-                    checkmate: moveSound,
-                  }}
-                  orientation={boardOptions.orientation}
-                  highlightLegal={boardOptions.highlightLegal}
-                  autoFlip={boardOptions.autoFlip}
-                  extensions={promotionExtensions}
-                  onPromotionRequired={handlePromotionRequest}
-                  onMove={({ from, to, fen: nextFen }) => {
-                    const result = chessRules.move({ from, to });
-                    if (!result.ok) return;
-                    setPgnError(null);
-                    setPgnText(chessRules.toPgn(false));
-                    setFen(nextFen);
-                    syncOrientationWithFen(nextFen);
-                    updateStatusSnapshot();
-                    const basePly = selectedPlyRef.current;
-                    const nextPly = basePly + 1;
-                    const truncatedEvaluationMap = Object.entries(evaluationsByPly).reduce<
-                      Record<number, number | string>
-                    >((accumulator, [plyKey, value]) => {
-                      const numericPly = Number(plyKey);
-                      if (!Number.isNaN(numericPly) && numericPly <= basePly) {
-                        accumulator[numericPly] = value;
-                      }
-                      return accumulator;
-                    }, {});
-                    setEvaluationsByPly(truncatedEvaluationMap);
-                    setPlyAnnotations((previousAnnotations) => {
-                      const nextAnnotations: Record<number, PlyAnnotationInfo> = {};
-                      for (const [plyKey, info] of Object.entries(previousAnnotations)) {
-                        const numericPly = Number(plyKey);
-                        if (!Number.isNaN(numericPly) && numericPly <= basePly) {
-                          nextAnnotations[numericPly] = info;
-                        }
-                      }
-                      return nextAnnotations;
-                    });
-                    setTimeline((previousTimeline) => {
-                      const trimmedTimeline = previousTimeline.filter(
-                        (entry) => entry.ply <= basePly,
-                      );
-                      const ensuredTimeline =
-                        trimmedTimeline.length > 0
-                          ? trimmedTimeline
-                          : [
-                              {
-                                ply: 0,
-                                fen: previousTimeline[0]?.fen ?? nextFen,
-                                san: previousTimeline[0]?.san,
-                              },
-                            ];
-                      const nextTimeline = [
-                        ...ensuredTimeline,
-                        { ply: nextPly, fen: nextFen, san: result.move?.san },
-                      ];
-                      return nextTimeline;
-                    });
-                    timelineMovesRef.current = chessRules.getHistory().map((move) => ({
-                      from: move.from,
-                      to: move.to,
-                      promotion: move.promotion,
-                    }));
-                    updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
-                    boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
-                  }}
-                  onUpdate={handleBoardUpdate}
-                  className="w-full aspect-square ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
-                />
-                {boardOptions.allowResize && (
-                  <div
-                    className={`absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none transition-opacity ${
-                      isResizingBoard
-                        ? 'opacity-100'
-                        : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-                    }`}
-                  >
+                  <div className="flex flex-wrap gap-2">
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
-                      aria-live="polite"
+                      className={`px-2.5 py-1 text-xs font-medium rounded-full border ${gameTagClass}`}
                     >
-                      <BoardSizeIcon />
-                      {boardSizeLabel}
+                      {gameTagLabel}
                     </span>
-                    <button
-                      type="button"
-                      className={`pointer-events-auto group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl cursor-nwse-resize transition-colors ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/70 ${
-                        isResizingBoard
-                          ? 'bg-purple-500/20 ring-purple-300/60 shadow-[0_10px_30px_rgba(168,85,247,0.35)]'
-                          : 'bg-black/60 ring-white/10 hover:bg-black/45 hover:ring-white/25 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.75)]'
-                      }`}
-                      onPointerDown={handleBoardResizeStart}
-                      onPointerMove={handleBoardResizeMove}
-                      onPointerUp={handleBoardResizeEnd}
-                      onPointerCancel={handleBoardResizeCancel}
-                      onDoubleClick={handleBoardResizeReset}
-                      onKeyDown={handleBoardResizeKeyDown}
-                      role="slider"
-                      aria-label={translate('board.resize.ariaLabel')}
-                      aria-valuemin={minBoardSize}
-                      aria-valuemax={maxBoardSize}
-                      aria-valuenow={boardSize}
-                      aria-valuetext={boardSizeLabel}
-                      title={translate('board.resize.tooltip')}
+                    <span
+                      className={`px-2.5 py-1 text-xs font-medium rounded-full border ${fiftyTagClass}`}
                     >
-                      <span
-                        className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-white/0 to-purple-500/40 opacity-0 transition-opacity duration-300 group-hover:opacity-60 group-focus-visible:opacity-60"
-                        aria-hidden="true"
-                      />
-                      <span
-                        className="relative -rotate-45 flex flex-col items-center justify-center gap-1.5 text-gray-100"
-                        aria-hidden="true"
-                      >
-                        <span className="h-0.5 w-6 rounded-full bg-current/90" />
-                        <span className="h-0.5 w-4 rounded-full bg-current/70" />
-                        <span className="h-0.5 w-2 rounded-full bg-current/60" />
-                      </span>
+                      {fiftyTagLabel}
+                    </span>
+                  </div>
+                </div>
+              </GlassPanel>
+
+              <GlassPanel>
+                <PanelHeader>{translate('pgn.title')}</PanelHeader>
+                <div className="p-4">
+                  <textarea
+                    className="w-full h-40 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
+                    value={pgnText}
+                    onChange={(event) => {
+                      setPgnText(event.target.value);
+                      if (pgnError) setPgnError(null);
+                    }}
+                    aria-label={translate('pgn.title')}
+                    placeholder={translate('pgn.placeholder')}
+                  />
+                  <input
+                    id={pgnFileInputId}
+                    ref={pgnFileInputRef}
+                    type="file"
+                    accept=".pgn,.txt,text/plain,application/x-chess-pgn"
+                    className="hidden"
+                    onChange={handlePgnFileUpload}
+                  />
+                  <div className="grid grid-cols-2 gap-2 mt-3 buttonGroup">
+                    <LoadingButton
+                      className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={() => pgnFileInputRef.current?.click()}
+                      isLoading={isImportingFromFile}
+                      disabled={isPgnLoading}
+                    >
+                      {isImportingFromFile ? translate('pgn.importing') : translate('pgn.import')}
+                    </LoadingButton>
+                    <LoadingButton
+                      className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={handleLoadPgn}
+                      isLoading={isPgnLoading}
+                    >
+                      {isPgnLoading ? translate('pgn.loading') : translate('pgn.load')}
+                    </LoadingButton>
+                    <LoadingButton
+                      className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={handleCopyPGN}
+                      isLoading={isCopying}
+                    >
+                      {isCopying ? translate('pgn.copying') : translate('pgn.copy')}
+                    </LoadingButton>
+                    <LoadingButton
+                      className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={handleReset}
+                      isLoading={isResetting}
+                    >
+                      {isResetting ? translate('pgn.resetting') : translate('pgn.reset')}
+                    </LoadingButton>
+                    <LoadingButton
+                      className="w-full px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={handleExport}
+                      isLoading={isExporting}
+                    >
+                      {isExporting ? translate('pgn.exporting') : translate('pgn.export')}
+                    </LoadingButton>
+                  </div>
+                  {pgnError && <div className="mt-2 text-sm text-red-400">{pgnError}</div>}
+                  <p className="mt-2 text-xs text-gray-500">
+                    <strong>{translate('pgn.helper.prefix')}</strong>{' '}
+                    {translate('pgn.helper.middle')}{' '}
+                    <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
+                    {translate('pgn.helper.suffix')}
+                  </p>
+                </div>
+              </GlassPanel>
+
+              <GlassPanel>
+                <PanelHeader>{translate('fen.title')}</PanelHeader>
+                <div className="p-4">
+                  <textarea
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-200 focus:ring-2 focus:ring-purple-500/70 focus:border-purple-500/70 transition placeholder:text-gray-500 font-mono/[*]"
+                    value={fen || ''}
+                    onChange={(e) => {
+                      setFen(e.target.value);
+                      setIsManualFenChange(true);
+                    }}
+                    aria-label={translate('fen.title')}
+                    placeholder={translate('fen.placeholder')}
+                  />
+                </div>
+              </GlassPanel>
+
+              <GlassPanel>
+                <PanelHeader>{translate('premoves.title')}</PanelHeader>
+                <div className="p-4">
+                  <div className="text-xs text-gray-400 space-y-1 mb-3">
+                    <p>
+                      <strong>{translate('premoves.instructions')}</strong>
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>{translate('premoves.step.examples')}</li>
+                      <li>{translate('premoves.step.outOfTurn')}</li>
+                      <li>{translate('premoves.step.stored')}</li>
+                      <li>{translate('premoves.step.execute')}</li>
+                    </ul>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={() => {
+                        setFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
+                        setIsManualFenChange(true);
+                      }}
+                    >
+                      {translate('premoves.sample.opening')}
+                    </button>
+                    <button
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={() => {
+                        setFen(
+                          'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
+                        );
+                        setIsManualFenChange(true);
+                      }}
+                    >
+                      {translate('premoves.sample.middleGame')}
+                    </button>
+                    <button
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/15 rounded-md font-medium transition text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={() => {
+                        setFen('4k3/8/8/8/8/8/4P3/4K3 w - - 0 1');
+                        setIsManualFenChange(true);
+                      }}
+                    >
+                      {translate('premoves.sample.endgame')}
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              </GlassPanel>
+            </div>
 
-              <div className="mt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {optionToggleDescriptors.map(({ option, icon, label }) => (
+            {/* Center Column */}
+            <div className="lg:col-span-6">
+              <GlassPanel className="p-4 sm:p-6">
+                <div
+                  ref={boardContainerRef}
+                  style={boardContainerStyle}
+                  className="relative mx-auto group"
+                >
+                  <NeoChessBoard
+                    ref={boardRef}
+                    theme={theme}
+                    fen={fen}
+                    size={boardSize}
+                    showSquareNames={boardOptions.showSquareNames}
+                    showArrows={boardOptions.showArrows}
+                    showHighlights={boardOptions.showHighlights}
+                    allowPremoves={boardOptions.allowPremoves}
+                    soundEnabled={boardOptions.soundEnabled}
+                    showAnimations={boardOptions.showAnimations}
+                    animation={{ duration: boardOptions.animationDuration }}
+                    soundUrl={moveSound}
+                    soundEventUrls={{
+                      move: moveSound,
+                      capture: moveSound,
+                      check: moveSound,
+                      checkmate: moveSound,
+                    }}
+                    orientation={boardOptions.orientation}
+                    highlightLegal={boardOptions.highlightLegal}
+                    autoFlip={boardOptions.autoFlip}
+                    extensions={promotionExtensions}
+                    onPromotionRequired={handlePromotionRequest}
+                    onMove={({ from, to, fen: nextFen }) => {
+                      const result = chessRules.move({ from, to });
+                      if (!result.ok) return;
+                      setPgnError(null);
+                      setPgnText(chessRules.toPgn(false));
+                      setFen(nextFen);
+                      syncOrientationWithFen(nextFen);
+                      updateStatusSnapshot();
+                      const basePly = selectedPlyRef.current;
+                      const nextPly = basePly + 1;
+                      const truncatedEvaluationMap = Object.entries(evaluationsByPly).reduce<
+                        Record<number, number | string>
+                      >((accumulator, [plyKey, value]) => {
+                        const numericPly = Number(plyKey);
+                        if (!Number.isNaN(numericPly) && numericPly <= basePly) {
+                          accumulator[numericPly] = value;
+                        }
+                        return accumulator;
+                      }, {});
+                      setEvaluationsByPly(truncatedEvaluationMap);
+                      setPlyAnnotations((previousAnnotations) => {
+                        const nextAnnotations: Record<number, PlyAnnotationInfo> = {};
+                        for (const [plyKey, info] of Object.entries(previousAnnotations)) {
+                          const numericPly = Number(plyKey);
+                          if (!Number.isNaN(numericPly) && numericPly <= basePly) {
+                            nextAnnotations[numericPly] = info;
+                          }
+                        }
+                        return nextAnnotations;
+                      });
+                      setTimeline((previousTimeline) => {
+                        const trimmedTimeline = previousTimeline.filter(
+                          (entry) => entry.ply <= basePly,
+                        );
+                        const ensuredTimeline =
+                          trimmedTimeline.length > 0
+                            ? trimmedTimeline
+                            : [
+                                {
+                                  ply: 0,
+                                  fen: previousTimeline[0]?.fen ?? nextFen,
+                                  san: previousTimeline[0]?.san,
+                                },
+                              ];
+                        const nextTimeline = [
+                          ...ensuredTimeline,
+                          { ply: nextPly, fen: nextFen, san: result.move?.san },
+                        ];
+                        return nextTimeline;
+                      });
+                      timelineMovesRef.current = chessRules.getHistory().map((move) => ({
+                        from: move.from,
+                        to: move.to,
+                        promotion: move.promotion,
+                      }));
+                      updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
+                      boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
+                    }}
+                    onUpdate={handleBoardUpdate}
+                    className="w-full aspect-square ring-1 ring-white/10 shadow-[0_20px_70px_-30px_rgba(124,58,237,0.35)]"
+                  />
+                  {boardOptions.allowResize && (
+                    <div
+                      className={`absolute right-2 bottom-2 flex items-end gap-2 pointer-events-none transition-opacity ${
+                        isResizingBoard
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                      }`}
+                    >
+                      <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 ring-1 ring-white/10 text-gray-200 text-xs font-medium shadow"
+                        aria-live="polite"
+                      >
+                        <BoardSizeIcon />
+                        {boardSizeLabel}
+                      </span>
+                      <button
+                        type="button"
+                        className={`pointer-events-auto group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl cursor-nwse-resize transition-colors ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/70 ${
+                          isResizingBoard
+                            ? 'bg-purple-500/20 ring-purple-300/60 shadow-[0_10px_30px_rgba(168,85,247,0.35)]'
+                            : 'bg-black/60 ring-white/10 hover:bg-black/45 hover:ring-white/25 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.75)]'
+                        }`}
+                        onPointerDown={handleBoardResizeStart}
+                        onPointerMove={handleBoardResizeMove}
+                        onPointerUp={handleBoardResizeEnd}
+                        onPointerCancel={handleBoardResizeCancel}
+                        onDoubleClick={handleBoardResizeReset}
+                        onKeyDown={handleBoardResizeKeyDown}
+                        role="slider"
+                        aria-label={translate('board.resize.ariaLabel')}
+                        aria-valuemin={minBoardSize}
+                        aria-valuemax={maxBoardSize}
+                        aria-valuenow={boardSize}
+                        aria-valuetext={boardSizeLabel}
+                        title={translate('board.resize.tooltip')}
+                      >
+                        <span
+                          className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 via-white/0 to-purple-500/40 opacity-0 transition-opacity duration-300 group-hover:opacity-60 group-focus-visible:opacity-60"
+                          aria-hidden="true"
+                        />
+                        <span
+                          className="relative -rotate-45 flex flex-col items-center justify-center gap-1.5 text-gray-100"
+                          aria-hidden="true"
+                        >
+                          <span className="h-0.5 w-6 rounded-full bg-current/90" />
+                          <span className="h-0.5 w-4 rounded-full bg-current/70" />
+                          <span className="h-0.5 w-2 rounded-full bg-current/60" />
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {optionToggleDescriptors.map(({ option, icon, label }) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
+                          boardOptions[option]
+                            ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
+                            : 'bg-white/5 hover:bg-white/10 ring-white/10'
+                        }`}
+                        onClick={() => toggleOption(option)}
+                        aria-pressed={boardOptions[option]}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-300">{icon}</span>
+                          <span className="font-medium">{translate(label)}</span>
+                        </div>
+                      </button>
+                    ))}
                     <button
-                      key={option}
                       type="button"
                       className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
-                        boardOptions[option]
+                        boardOptions.autoFlip
                           ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
                           : 'bg-white/5 hover:bg-white/10 ring-white/10'
                       }`}
-                      onClick={() => toggleOption(option)}
-                      aria-pressed={boardOptions[option]}
+                      onClick={toggleAutoFlip}
+                      aria-pressed={boardOptions.autoFlip}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-300">{icon}</span>
-                        <span className="font-medium">{translate(label)}</span>
+                        <span className="text-gray-300">
+                          <AutoFlipIcon />
+                        </span>
+                        <span className="font-medium">{translate('options.autoFlip.title')}</span>
                       </div>
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={`px-3 py-2 rounded-lg text-left transition-colors text-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 ${
-                      boardOptions.autoFlip
-                        ? 'bg-purple-600/15 ring-purple-400/40 text-gray-100'
-                        : 'bg-white/5 hover:bg-white/10 ring-white/10'
-                    }`}
-                    onClick={toggleAutoFlip}
-                    aria-pressed={boardOptions.autoFlip}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-300">
-                        <AutoFlipIcon />
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={toggleOrientation}
+                      disabled={boardOptions.autoFlip}
+                      title={
+                        boardOptions.autoFlip
+                          ? translate('board.orientation.autoDisabled')
+                          : undefined
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300">
+                          <OrientationIcon />
+                        </span>
+                        <span className="font-medium">
+                          {translate('options.orientation.title')}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={addRandomArrow}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300">
+                          <AddArrowIcon />
+                        </span>
+                        <span className="font-medium">{translate('options.addArrow.title')}</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+                      onClick={addRandomHighlight}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300">
+                          <AddHighlightIcon />
+                        </span>
+                        <span className="font-medium">
+                          {translate('options.addHighlight.title')}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-red-500/15 hover:bg-red-500/25 ring-1 ring-red-400/30 text-red-300"
+                      onClick={clearAll}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-300">
+                          <TrashIcon />
+                        </span>
+                        <span className="font-medium">{translate('options.clearAll.title')}</span>
+                      </div>
+                    </button>
+                  </div>
+                  <div className="mt-4" aria-disabled={!boardOptions.showAnimations}>
+                    <label
+                      className="text-sm font-medium text-gray-300"
+                      htmlFor={animationSpeedInputId}
+                    >
+                      {translate('options.animationSpeed.label')}
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        id={animationSpeedInputId}
+                        type="range"
+                        min={0}
+                        max={2000}
+                        step={50}
+                        value={boardOptions.animationDuration}
+                        onChange={handleAnimationSpeedChange}
+                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 disabled:opacity-50"
+                        disabled={!boardOptions.showAnimations}
+                        aria-valuemin={0}
+                        aria-valuemax={2000}
+                        aria-valuenow={boardOptions.animationDuration}
+                        aria-label={translate('options.animationSpeed.label')}
+                      />
+                      <span className="text-sm text-gray-400 w-24 text-right">
+                        {translate('options.animationSpeed.value', {
+                          milliseconds: boardOptions.animationDuration,
+                        })}
                       </span>
-                      <span className="font-medium">{translate('options.autoFlip.title')}</span>
                     </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={toggleOrientation}
-                    disabled={boardOptions.autoFlip}
-                    title={
-                      boardOptions.autoFlip
-                        ? translate('board.orientation.autoDisabled')
-                        : undefined
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-300">
-                        <OrientationIcon />
-                      </span>
-                      <span className="font-medium">{translate('options.orientation.title')}</span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={addRandomArrow}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-300">
-                        <AddArrowIcon />
-                      </span>
-                      <span className="font-medium">{translate('options.addArrow.title')}</span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-white/5 hover:bg-white/10 ring-1 ring-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
-                    onClick={addRandomHighlight}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-300">
-                        <AddHighlightIcon />
-                      </span>
-                      <span className="font-medium">{translate('options.addHighlight.title')}</span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 rounded-lg text-left transition-colors text-sm bg-red-500/15 hover:bg-red-500/25 ring-1 ring-red-400/30 text-red-300"
-                    onClick={clearAll}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-300">
-                        <TrashIcon />
-                      </span>
-                      <span className="font-medium">{translate('options.clearAll.title')}</span>
-                    </div>
-                  </button>
-                </div>
-                <div className="mt-4" aria-disabled={!boardOptions.showAnimations}>
-                  <label
-                    className="text-sm font-medium text-gray-300"
-                    htmlFor={animationSpeedInputId}
-                  >
-                    {translate('options.animationSpeed.label')}
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      id={animationSpeedInputId}
-                      type="range"
-                      min={0}
-                      max={2000}
-                      step={50}
-                      value={boardOptions.animationDuration}
-                      onChange={handleAnimationSpeedChange}
-                      className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 disabled:opacity-50"
-                      disabled={!boardOptions.showAnimations}
-                      aria-valuemin={0}
-                      aria-valuemax={2000}
-                      aria-valuenow={boardOptions.animationDuration}
-                      aria-label={translate('options.animationSpeed.label')}
-                    />
-                    <span className="text-sm text-gray-400 w-24 text-right">
-                      {translate('options.animationSpeed.value', {
-                        milliseconds: boardOptions.animationDuration,
-                      })}
-                    </span>
                   </div>
                 </div>
-              </div>
-            </GlassPanel>
-          </div>
+              </GlassPanel>
+            </div>
 
-          {/* Right Column */}
-          <div className="lg:col-span-3 space-y-4 lg:space-y-5">
-            <GlassPanel>
-              <PanelHeader>{translate('evaluation.panelTitle')}</PanelHeader>
-              <div className="p-4 flex flex-col sm:flex-row lg:flex-col gap-4">
-                <div className="flex-shrink-0 mx-auto">
-                  <EvaluationBar
-                    evaluation={currentEvaluation}
-                    orientation={boardOptions.orientation}
-                    ply={currentPly}
+            {/* Right Column */}
+            <div className="lg:col-span-3 space-y-4 lg:space-y-5">
+              <GlassPanel>
+                <PanelHeader>{translate('evaluation.panelTitle')}</PanelHeader>
+                <div className="p-4 flex flex-col sm:flex-row lg:flex-col gap-4">
+                  <div className="flex-shrink-0 mx-auto">
+                    <EvaluationBar
+                      evaluation={currentEvaluation}
+                      orientation={boardOptions.orientation}
+                      ply={currentPly}
+                    />
+                  </div>
+                  <div className="text-sm text-gray-400 space-y-2">
+                    <p>{evaluationSummary}</p>
+                    <p>
+                      {translate('evaluation.instructions.prefix')}{' '}
+                      <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
+                      {translate('evaluation.instructions.middle')}{' '}
+                      <strong>{translate('pgn.load')}</strong>{' '}
+                      {translate('evaluation.instructions.suffix')}
+                    </p>
+                    <ul className="list-disc list-inside text-xs space-y-0.5">
+                      <li>{translate('evaluation.list.perspective')}</li>
+                      <li>{translate('evaluation.list.updates')}</li>
+                    </ul>
+                  </div>
+                </div>
+              </GlassPanel>
+
+              <GlassPanel>
+                <PanelHeader>{translate('comments.title')}</PanelHeader>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em]">
+                      {translate('comments.current')}
+                    </span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        selectedPly <= 0 ? 'text-gray-400' : 'text-gray-100'
+                      }`}
+                    >
+                      {formatPlyDescriptor(selectedPly)}
+                    </span>
+                  </div>
+                  {selectedPly > 0 && sanForSelectedPly ? (
+                    <div className="flex items-center gap-2 text-xs text-purple-200">
+                      <span className="uppercase tracking-[0.14em] text-gray-500">
+                        {translate('comments.sanLabel')}
+                      </span>
+                      <code className="px-2 py-1 rounded-md bg-purple-500/10 font-mono text-sm text-purple-200">
+                        {sanForSelectedPly}
+                      </code>
+                    </div>
+                  ) : null}
+                  {commentForSelectedPly ? (
+                    <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+                      {commentForSelectedPly}
+                    </p>
+                  ) : selectedPly > 0 ? (
+                    <p className="text-sm text-gray-500 italic">
+                      {translate('comments.noComment')}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      {translate('comments.noMoveSelected')}
+                    </p>
+                  )}
+                  {annotationBadges.length > 0 && (
+                    <div className="pt-1 space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+                        {translate('comments.annotationsTitle')}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {annotationBadges.map((badge) => (
+                          <span
+                            key={badge}
+                            className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-xs text-gray-200"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </GlassPanel>
+
+              <GlassPanel>
+                <PanelHeader>{translate('timeline.title')}</PanelHeader>
+                <div className="p-4 space-y-4">
+                  <PlyNavigator
+                    onFirst={() => jumpToPly(0)}
+                    onPrevious={() => jumpToPly(selectedPly - 1)}
+                    onNext={() => jumpToPly(selectedPly + 1)}
+                    onLast={() => jumpToPly(timelineMaxPly)}
+                    isAtStart={selectedPly <= 0}
+                    isAtEnd={plyTimeline.length === 0 || selectedPly >= timelineMaxPly}
+                    moveLabel={selectedTimelineEntry?.san || translate('timeline.start')}
+                    positionLabel={translate('timeline.position', {
+                      descriptor: formatPlyDescriptor(selectedPly),
+                    })}
+                    icons={{
+                      first: <FirstIcon />,
+                      previous: <PreviousIcon />,
+                      next: <NextIcon />,
+                      last: <LastIcon />,
+                      play: <PlayIcon />,
+                      pause: <PauseIcon />,
+                    }}
+                    labels={{
+                      first: translate('timeline.controls.first'),
+                      previous: translate('timeline.controls.previous'),
+                      next: translate('timeline.controls.next'),
+                      last: translate('timeline.controls.last'),
+                      play: translate('timeline.playback.play'),
+                      pause: translate('timeline.playback.pause'),
+                      playbackSpeed: translate('timeline.playback.speed'),
+                      playbackSpeedValue: translate('timeline.playback.speedValue', {
+                        milliseconds: playbackSpeed,
+                      }),
+                      currentMove: translate('timeline.currentMove'),
+                    }}
+                    ariaLabels={{
+                      first: translate('timeline.aria.first'),
+                      previous: translate('timeline.aria.previous'),
+                      next: translate('timeline.aria.next'),
+                      last: translate('timeline.aria.last'),
+                      play: translate('timeline.aria.play'),
+                      pause: translate('timeline.aria.pause'),
+                      speed: translate('timeline.aria.speed'),
+                    }}
+                    isAutoPlaying={isAutoPlaying}
+                    isAutoplayAvailable={isAutoplayAvailable}
+                    onToggleAutoplay={handleToggleAutoplay}
+                    playbackSpeed={playbackSpeed}
+                    playbackSpeedInputId={playbackSpeedInputId}
+                    playbackSpeedMin={250}
+                    playbackSpeedMax={2000}
+                    playbackSpeedStep={250}
+                    onPlaybackSpeedChange={handlePlaybackSpeedChange}
                   />
                 </div>
-                <div className="text-sm text-gray-400 space-y-2">
-                  <p>{evaluationSummary}</p>
-                  <p>
-                    {translate('evaluation.instructions.prefix')}{' '}
-                    <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
-                    {translate('evaluation.instructions.middle')}{' '}
-                    <strong>{translate('pgn.load')}</strong>{' '}
-                    {translate('evaluation.instructions.suffix')}
-                  </p>
-                  <ul className="list-disc list-inside text-xs space-y-0.5">
-                    <li>{translate('evaluation.list.perspective')}</li>
-                    <li>{translate('evaluation.list.updates')}</li>
-                  </ul>
-                </div>
-              </div>
-            </GlassPanel>
+              </GlassPanel>
 
-            <GlassPanel>
-              <PanelHeader>{translate('comments.title')}</PanelHeader>
-              <div className="p-4 space-y-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em]">
-                    {translate('comments.current')}
-                  </span>
-                  <span
-                    className={`text-sm font-semibold ${
-                      selectedPly <= 0 ? 'text-gray-400' : 'text-gray-100'
-                    }`}
-                  >
-                    {formatPlyDescriptor(selectedPly)}
-                  </span>
-                </div>
-                {selectedPly > 0 && sanForSelectedPly ? (
-                  <div className="flex items-center gap-2 text-xs text-purple-200">
-                    <span className="uppercase tracking-[0.14em] text-gray-500">
-                      {translate('comments.sanLabel')}
-                    </span>
-                    <code className="px-2 py-1 rounded-md bg-purple-500/10 font-mono text-sm text-purple-200">
-                      {sanForSelectedPly}
-                    </code>
-                  </div>
-                ) : null}
-                {commentForSelectedPly ? (
-                  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-                    {commentForSelectedPly}
-                  </p>
-                ) : selectedPly > 0 ? (
-                  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">
-                    {translate('comments.noMoveSelected')}
-                  </p>
-                )}
-                {annotationBadges.length > 0 && (
-                  <div className="pt-1 space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
-                      {translate('comments.annotationsTitle')}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {annotationBadges.map((badge) => (
-                        <span
-                          key={badge}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-xs text-gray-200"
-                        >
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('timeline.title')}</PanelHeader>
-              <div className="p-4 space-y-4">
-                <PlyNavigator
-                  onFirst={() => jumpToPly(0)}
-                  onPrevious={() => jumpToPly(selectedPly - 1)}
-                  onNext={() => jumpToPly(selectedPly + 1)}
-                  onLast={() => jumpToPly(timelineMaxPly)}
-                  isAtStart={selectedPly <= 0}
-                  isAtEnd={plyTimeline.length === 0 || selectedPly >= timelineMaxPly}
-                  moveLabel={selectedTimelineEntry?.san || translate('timeline.start')}
-                  positionLabel={translate('timeline.position', {
-                    descriptor: formatPlyDescriptor(selectedPly),
-                  })}
-                  icons={{
-                    first: <FirstIcon />,
-                    previous: <PreviousIcon />,
-                    next: <NextIcon />,
-                    last: <LastIcon />,
-                    play: <PlayIcon />,
-                    pause: <PauseIcon />,
-                  }}
-                  labels={{
-                    first: translate('timeline.controls.first'),
-                    previous: translate('timeline.controls.previous'),
-                    next: translate('timeline.controls.next'),
-                    last: translate('timeline.controls.last'),
-                    play: translate('timeline.playback.play'),
-                    pause: translate('timeline.playback.pause'),
-                    playbackSpeed: translate('timeline.playback.speed'),
-                    playbackSpeedValue: translate('timeline.playback.speedValue', {
-                      milliseconds: playbackSpeed,
-                    }),
-                    currentMove: translate('timeline.currentMove'),
-                  }}
-                  ariaLabels={{
-                    first: translate('timeline.aria.first'),
-                    previous: translate('timeline.aria.previous'),
-                    next: translate('timeline.aria.next'),
-                    last: translate('timeline.aria.last'),
-                    play: translate('timeline.aria.play'),
-                    pause: translate('timeline.aria.pause'),
-                    speed: translate('timeline.aria.speed'),
-                  }}
-                  isAutoPlaying={isAutoPlaying}
-                  isAutoplayAvailable={isAutoplayAvailable}
-                  onToggleAutoplay={handleToggleAutoplay}
-                  playbackSpeed={playbackSpeed}
-                  playbackSpeedInputId={playbackSpeedInputId}
-                  playbackSpeedMin={250}
-                  playbackSpeedMax={2000}
-                  playbackSpeedStep={250}
-                  onPlaybackSpeedChange={handlePlaybackSpeedChange}
-                />
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('examples.title')}</PanelHeader>
-              <div className="p-4 space-y-3">
-                {LIVE_EXAMPLES.map((example) => (
-                  <a
-                    key={example.href}
-                    className="group flex items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ring-1 ring-white/10"
-                    href={example.href}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span className="text-xl mr-3">{example.icon}</span>
-                    <div>
-                      <div className="font-semibold text-gray-100 text-sm">
-                        {translate(example.labelKey)}
+              <GlassPanel>
+                <PanelHeader>{translate('examples.title')}</PanelHeader>
+                <div className="p-4 space-y-3">
+                  {LIVE_EXAMPLES.map((example) => (
+                    <a
+                      key={example.href}
+                      className="group flex items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors ring-1 ring-white/10"
+                      href={example.href}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <span className="text-xl mr-3">{example.icon}</span>
+                      <div>
+                        <div className="font-semibold text-gray-100 text-sm">
+                          {translate(example.labelKey)}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {translate(example.descriptionKey)}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-400">
-                        {translate(example.descriptionKey)}
-                      </div>
-                    </div>
-                    <span className="ml-auto text-gray-500 transition-transform group-hover:translate-x-0.5">
-                      ↗
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </GlassPanel>
+                      <span className="ml-auto text-gray-500 transition-transform group-hover:translate-x-0.5">
+                        ↗
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </GlassPanel>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 };
