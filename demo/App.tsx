@@ -1681,89 +1681,7 @@ const AppContent: React.FC = () => {
 
           {/* Right Column */}
           <div className="lg:col-span-3 space-y-4 lg:space-y-5">
-            <GlassPanel>
-              <PanelHeader>{translate('evaluation.panelTitle')}</PanelHeader>
-              <div className="p-4 flex flex-col sm:flex-row lg:flex-col gap-4">
-                <div className="flex-shrink-0 mx-auto">
-                  <EvaluationBar
-                    evaluation={currentEvaluation}
-                    orientation={boardOptions.orientation}
-                    ply={currentPly}
-                  />
-                </div>
-                <div className="text-sm text-gray-400 space-y-2">
-                  <p>{evaluationSummary}</p>
-                  <p>
-                    {translate('evaluation.instructions.prefix')}{' '}
-                    <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
-                    {translate('evaluation.instructions.middle')}{' '}
-                    <strong>{translate('pgn.load')}</strong>{' '}
-                    {translate('evaluation.instructions.suffix')}
-                  </p>
-                  <ul className="list-disc list-inside text-xs space-y-0.5">
-                    <li>{translate('evaluation.list.perspective')}</li>
-                    <li>{translate('evaluation.list.updates')}</li>
-                  </ul>
-                </div>
-              </div>
-            </GlassPanel>
-
-            <GlassPanel>
-              <PanelHeader>{translate('comments.title')}</PanelHeader>
-              <div className="p-4 space-y-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em]">
-                    {translate('comments.current')}
-                  </span>
-                  <span
-                    className={`text-sm font-semibold ${
-                      selectedPly <= 0 ? 'text-gray-400' : 'text-gray-100'
-                    }`}
-                  >
-                    {formatPlyDescriptor(selectedPly)}
-                  </span>
-                </div>
-                {selectedPly > 0 && sanForSelectedPly ? (
-                  <div className="flex items-center gap-2 text-xs text-purple-200">
-                    <span className="uppercase tracking-[0.14em] text-gray-500">
-                      {translate('comments.sanLabel')}
-                    </span>
-                    <code className="px-2 py-1 rounded-md bg-purple-500/10 font-mono text-sm text-purple-200">
-                      {sanForSelectedPly}
-                    </code>
-                  </div>
-                ) : null}
-                {commentForSelectedPly ? (
-                  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-                    {commentForSelectedPly}
-                  </p>
-                ) : selectedPly > 0 ? (
-                  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">
-                    {translate('comments.noMoveSelected')}
-                  </p>
-                )}
-                {annotationBadges.length > 0 && (
-                  <div className="pt-1 space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
-                      {translate('comments.annotationsTitle')}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {annotationBadges.map((badge) => (
-                        <span
-                          key={badge}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-xs text-gray-200"
-                        >
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GlassPanel>
-
+            {' '}
             <GlassPanel>
               <PanelHeader>{translate('timeline.title')}</PanelHeader>
               <div className="p-4 space-y-4">
@@ -1820,7 +1738,87 @@ const AppContent: React.FC = () => {
                 />
               </div>
             </GlassPanel>
-
+            <GlassPanel>
+              <PanelHeader>{translate('evaluation.panelTitle')}</PanelHeader>
+              <div className="p-4 flex flex-col sm:flex-row lg:flex-col gap-4">
+                <div className="flex-shrink-0 mx-auto">
+                  <EvaluationBar
+                    evaluation={currentEvaluation}
+                    orientation={boardOptions.orientation}
+                    ply={currentPly}
+                  />
+                </div>
+                <div className="text-sm text-gray-400 space-y-2">
+                  <p>{evaluationSummary}</p>
+                  <p>
+                    {translate('evaluation.instructions.prefix')}{' '}
+                    <code className="bg-white/10 px-1 rounded">[%eval ...]</code>{' '}
+                    {translate('evaluation.instructions.middle')}{' '}
+                    <strong>{translate('pgn.load')}</strong>{' '}
+                    {translate('evaluation.instructions.suffix')}
+                  </p>
+                  <ul className="list-disc list-inside text-xs space-y-0.5">
+                    <li>{translate('evaluation.list.perspective')}</li>
+                    <li>{translate('evaluation.list.updates')}</li>
+                  </ul>
+                </div>
+              </div>
+            </GlassPanel>
+            <GlassPanel>
+              <PanelHeader>{translate('comments.title')}</PanelHeader>
+              <div className="p-4 space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em]">
+                    {translate('comments.current')}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      selectedPly <= 0 ? 'text-gray-400' : 'text-gray-100'
+                    }`}
+                  >
+                    {formatPlyDescriptor(selectedPly)}
+                  </span>
+                </div>
+                {selectedPly > 0 && sanForSelectedPly ? (
+                  <div className="flex items-center gap-2 text-xs text-purple-200">
+                    <span className="uppercase tracking-[0.14em] text-gray-500">
+                      {translate('comments.sanLabel')}
+                    </span>
+                    <code className="px-2 py-1 rounded-md bg-purple-500/10 font-mono text-sm text-purple-200">
+                      {sanForSelectedPly}
+                    </code>
+                  </div>
+                ) : null}
+                {commentForSelectedPly ? (
+                  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+                    {commentForSelectedPly}
+                  </p>
+                ) : selectedPly > 0 ? (
+                  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    {translate('comments.noMoveSelected')}
+                  </p>
+                )}
+                {annotationBadges.length > 0 && (
+                  <div className="pt-1 space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+                      {translate('comments.annotationsTitle')}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {annotationBadges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/10 text-xs text-gray-200"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </GlassPanel>
             <GlassPanel>
               <PanelHeader>{translate('examples.title')}</PanelHeader>
               <div className="p-4 space-y-3">
