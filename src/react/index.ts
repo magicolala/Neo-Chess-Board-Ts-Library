@@ -19,7 +19,6 @@ export type {
   RulesAdapter,
   SquareDataType,
   ClockState,
-  ClockStateUpdate,
   ClockCallbacks,
   ClockConfig,
 } from '../core/types';

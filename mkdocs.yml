@@ -39,6 +39,7 @@ nav:
   - Home: index.md
   - API Reference:
       - Overview: api/index.md
+      - Clock Manager: api/clock.md
       - Classes: api/classes/
       - Interfaces: api/interfaces/
       - Types: api/types/
@@ -48,6 +49,8 @@ nav:
   - Themes: themes.md
   - Extensions: extensions.md
   - Clean Code: clean-code.md
+  - Guides:
+      - Time Controls: guides/time-controls.md
 
 plugins:
   - search
@@ -74,6 +77,9 @@ plugins:
             Themes: Thèmes
             Extensions: Extensions
             Clean Code: Code propre
+            Clock Manager: Gestionnaire d'horloge
+            Guides: Guides
+            Time Controls: Contrôles de temps
   - include-markdown:
       rewrite_relative_urls: true
       comments: true

@@ -66,7 +66,7 @@ Internally the extension uses `context.registerExtensionPoint('update', ...)` to
 
 ## Clock overlay extension
 
-`createClockExtension` renders a lightweight clock UI that synchronises with the board's built-in timers. It listens to `clockChange`, `clockStart`, and `clockPause` events, applies increments after every move, and exposes a small imperative API for manual control.【F:src/extensions/ClockExtension.ts†L1-L409】
+`createClockExtension` renders a lightweight clock UI that synchronises with the board's built-in timers. It listens to `clock:change`, `clock:start`, `clock:pause`, and `clock:flag` events, highlights the active side, and exposes a small imperative API for manual control.【F:src/extensions/clockExtension.ts†L1-L273】
 
 ```ts
 import { NeoChessBoard, createClockExtension } from '@magicolala/neo-chess-board';
@@ -81,6 +81,14 @@ const board = new NeoChessBoard(container, {
   extensions: [
     createClockExtension({
       labels: { w: 'You', b: 'Opponent' },
+      showTenths: true,
+      highlightActive: true,
+      formatTime(ms, { color }) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const suffix = color === 'w' ? '⏱️' : '⌛️';
+        return `${minutes}:${(seconds % 60).toString().padStart(2, '0')} ${suffix}`;
+      },
       onReady(api) {
         api.startClock();
       },
@@ -89,7 +97,7 @@ const board = new NeoChessBoard(container, {
 });
 ```
 
-The returned API mirrors the board helpers so you can pause, resume, or set the remaining time programmatically. When the extension is not available you can still drive the timers through `board.updateClockState()` as demonstrated in `examples/clock-demo.html`.
+The returned API mirrors the board helpers so you can pause, resume, or adjust the remaining time programmatically. When the extension is not available you can still drive the timers through `board.startClock()`, `board.pauseClock()`, `board.resetClock()`, and `board.addClockTime()` as demonstrated in `examples/clock-demo.html`.
 
 ## Subscribing to board events
 

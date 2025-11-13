@@ -182,103 +182,6 @@
 
       let overlayApi = null;
 
-      const now =
-        typeof performance !== 'undefined' && typeof performance.now === 'function'
-          ? () => performance.now()
-          : () => Date.now();
-      const win = typeof window !== 'undefined' ? window : undefined;
-      const requestFrame = win?.requestAnimationFrame?.bind(win) ?? ((cb) => setTimeout(() => cb(now()), 16));
-      const cancelFrame =
-        win?.cancelAnimationFrame?.bind(win) ?? ((handle) => clearTimeout(handle));
-
-      const fallbackTicker = (() => {
-        let handle = null;
-        let running = false;
-        let lastTimestamp = 0;
-
-        const stop = () => {
-          if (!running) {
-            return;
-          }
-          running = false;
-          if (handle !== null) {
-            cancelFrame(handle);
-            handle = null;
-          }
-          lastTimestamp = 0;
-        };
-
-        const tick = (timestamp) => {
-          handle = null;
-
-          if (overlayApi || !running) {
-            stop();
-            return;
-          }
-
-          const state = board.getClockState();
-          if (!state || !state.isRunning || !state.active) {
-            stop();
-            return;
-          }
-
-          const previous = lastTimestamp || state.lastUpdatedAt || timestamp;
-          const elapsed = Math.max(0, timestamp - previous);
-
-          if (elapsed > 0) {
-            const activeKey = state.active === 'w' ? 'white' : 'black';
-            const side = state[activeKey];
-            if (side) {
-              const remaining = Math.max(0, side.remaining - elapsed);
-              const update = { timestamp };
-              const sideUpdate = { remaining };
-              if (remaining === 0) {
-                sideUpdate.isFlagged = true;
-                update.running = false;
-                update.paused = true;
-                update.active = null;
-              }
-              if (activeKey === 'white') {
-                update.white = sideUpdate;
-              } else {
-                update.black = sideUpdate;
-              }
-              board.updateClockState(update);
-            }
-          }
-
-          if (!running) {
-            stop();
-            return;
-          }
-
-          lastTimestamp = timestamp;
-          handle = requestFrame(tick);
-        };
-
-        const start = () => {
-          if (overlayApi || running) {
-            return;
-          }
-          running = true;
-          lastTimestamp = 0;
-          handle = requestFrame(tick);
-        };
-
-        const sync = (state) => {
-          if (!running) {
-            return;
-          }
-          if (!state || !state.isRunning || !state.active) {
-            stop();
-            return;
-          }
-          lastTimestamp = state.lastUpdatedAt ?? now();
-        };
-
-        return { start, stop, sync };
-      })();
-
       const board = new NeoChessBoard(boardRoot, {
         soundEnabled: false,
         allowDragging: false,
@@ -290,13 +193,16 @@
         },
         extensions: [
           createClockExtension({
+            highlightActive: true,
+            showTenths: true,
             onReady(api) {
               overlayApi = api;
-              fallbackTicker.stop();
             },
           }),
         ],
       });
+
+      const getClockController = () => overlayApi ?? board;
 
       const renderTimes = (state) => {
         if (!state) return;
@@ -304,91 +210,50 @@
         blackDisplay.textContent = formatTime(state.black.remaining);
       };
 
-      board.on('clockChange', (state) => {
+      board.on('clock:change', (state) => {
         renderTimes(state);
         if (state.isRunning) {
           flagDisplay.textContent = '';
         }
-        if (!overlayApi) {
-          fallbackTicker.sync(state);
-        }
       });
 
-      board.on('clockFlag', ({ color }) => {
+      board.on('clock:flag', ({ color }) => {
         flagDisplay.textContent = `${color === 'w' ? 'White' : 'Black'} flagged!`;
       });
 
-      board.on('clockStart', () => {
-        if (!overlayApi) {
-          fallbackTicker.start();
-        }
+      board.on('clock:start', () => {
+        flagDisplay.textContent = '';
       });
 
-      board.on('clockPause', () => {
-        fallbackTicker.stop();
+      board.on('clock:pause', () => {
+        renderTimes(board.getClockState());
       });
 
-      const startClock = () => {
-        if (overlayApi) {
-          overlayApi.startClock();
-        } else {
-          const state = board.getClockState();
-          const activeColor = state?.active ?? board.getTurn();
-          board.updateClockState({
-            running: true,
-            paused: false,
-            active: activeColor,
-            timestamp: now(),
-          });
-          fallbackTicker.start();
-        }
-      };
-
-      startButton.addEventListener('click', startClock);
+      startButton.addEventListener('click', () => {
+        getClockController().startClock();
+      });
 
       pauseButton.addEventListener('click', () => {
-        if (overlayApi) {
-          overlayApi.pauseClock();
-        } else {
-          board.updateClockState({ running: false, paused: true, active: null, timestamp: null });
-          fallbackTicker.stop();
-        }
+        getClockController().pauseClock();
       });
 
       resetButton.addEventListener('click', () => {
-        board.setClockConfig({
+        getClockController().resetClock({
           initial: { w: 300_000, b: 300_000 },
           increment: 2_000,
           active: 'w',
           paused: true,
         });
-        fallbackTicker.stop();
+        flagDisplay.textContent = '';
+        renderTimes(board.getClockState());
       });
 
       addWhiteButton.addEventListener('click', () => {
-        const state = board.getClockState();
-        if (overlayApi) {
-          overlayApi.setTime('w', (state?.white.remaining ?? 0) + 10_000);
-        } else {
-          const remaining = (state?.white.remaining ?? 0) + 10_000;
-          board.updateClockState({
-            white: { remaining, isFlagged: false },
-            timestamp: now(),
-          });
-        }
+        getClockController().addClockTime('w', 10_000);
       });
 
       addBlackButton.addEventListener('click', () => {
-        const state = board.getClockState();
-        if (overlayApi) {
-          overlayApi.setTime('b', (state?.black.remaining ?? 0) + 10_000);
-        } else {
-          const remaining = (state?.black.remaining ?? 0) + 10_000;
-          board.updateClockState({
-            black: { remaining, isFlagged: false },
-            timestamp: now(),
-          });
-        }
+        getClockController().addClockTime('b', 10_000);
       });
 
       renderTimes(board.getClockState());

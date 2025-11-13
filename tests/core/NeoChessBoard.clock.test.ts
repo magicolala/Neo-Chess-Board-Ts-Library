@@ -13,8 +13,9 @@ describe('NeoChessBoard clock integration', () => {
     root.remove();
   });
 
-  function expectState(state: ClockState | null): asserts state is ClockState {
+  function expectState(state: ClockState | null): ClockState {
     expect(state).not.toBeNull();
+    return state!;
   }
 
   it('initializes the clock state from options', () => {
@@ -32,8 +33,7 @@ describe('NeoChessBoard clock integration', () => {
       },
     });
 
-    const state = board.getClockState();
-    expectState(state);
+    const state = expectState(board.getClockState());
     expect(state.white.remaining).toBe(300_000);
     expect(state.black.remaining).toBe(180_000);
     expect(state.white.increment).toBe(2000);
@@ -60,31 +60,29 @@ describe('NeoChessBoard clock integration', () => {
     const changeSpy = jest.fn();
     const flagSpy = jest.fn();
 
-    board.on('clockStart', startSpy);
-    board.on('clockPause', pauseSpy);
-    board.on('clockChange', changeSpy);
-    board.on('clockFlag', flagSpy);
+    board.on('clock:start', startSpy);
+    board.on('clock:pause', pauseSpy);
+    board.on('clock:change', changeSpy);
+    board.on('clock:flag', flagSpy);
 
-    board.updateClockState({ running: true, paused: false, timestamp: 42 });
-    const runningState = board.getClockState();
-    expectState(runningState);
+    board.startClock();
+    const runningState = expectState(board.getClockState());
     expect(runningState.isRunning).toBe(true);
     expect(startSpy).toHaveBeenCalledTimes(1);
     expect(changeSpy).toHaveBeenCalled();
 
-    board.updateClockState({ white: { remaining: 0 } });
+    board.setClockTime('w', 0);
     expect(flagSpy).toHaveBeenCalledWith(expect.objectContaining({ color: 'w' }));
 
-    board.updateClockState({ running: false, paused: true, timestamp: null });
-    const pausedState = board.getClockState();
-    expectState(pausedState);
+    board.pauseClock();
+    const pausedState = expectState(board.getClockState());
     expect(pausedState.isRunning).toBe(false);
     expect(pauseSpy).toHaveBeenCalledTimes(1);
 
     board.destroy();
   });
 
-  it('reconfigures the clock when setClockConfig is called', () => {
+  it('reconfigures the clock when resetClock is called', () => {
     const board = new NeoChessBoard(root, {
       soundEnabled: false,
       clock: {
@@ -94,22 +92,37 @@ describe('NeoChessBoard clock integration', () => {
       },
     });
 
-    board.updateClockState({ white: { remaining: 2000 } });
-    board.setClockConfig({
+    board.setClockTime('w', 2000);
+    board.resetClock({
       initial: { w: 4000, b: 8000 },
       increment: { w: 1000, b: 2000 },
       active: 'b',
       paused: true,
     });
 
-    const state = board.getClockState();
-    expectState(state);
+    const state = expectState(board.getClockState());
     expect(state.white.remaining).toBe(4000);
     expect(state.black.remaining).toBe(8000);
     expect(state.white.increment).toBe(1000);
     expect(state.black.increment).toBe(2000);
     expect(state.active).toBe('b');
     expect(state.isRunning).toBe(false);
+
+    board.destroy();
+  });
+
+  it('removes the clock when resetClock receives null', () => {
+    const board = new NeoChessBoard(root, {
+      soundEnabled: false,
+      clock: {
+        initial: 5000,
+        active: 'w',
+      },
+    });
+
+    expect(board.getClockState()).not.toBeNull();
+    board.resetClock(null);
+    expect(board.getClockState()).toBeNull();
 
     board.destroy();
   });
@@ -124,11 +137,10 @@ describe('NeoChessBoard clock integration', () => {
       },
     });
 
-    board.updateClockState({ running: true, paused: false, timestamp: 0 });
+    board.startClock();
     board.setFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1');
 
-    const state = board.getClockState();
-    expectState(state);
+    const state = expectState(board.getClockState());
     expect(state.active).toBe('b');
 
     board.destroy();

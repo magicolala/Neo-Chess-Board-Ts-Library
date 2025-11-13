@@ -2,6 +2,8 @@ import type { ThemeName } from './themes';
 import type { NeoChessBoard } from './NeoChessBoard';
 import type { EventBus } from './EventBus';
 import type { PgnNotation } from './PgnNotation';
+import type { ClockConfig, ClockState } from '../clock/types';
+export type { ClockCallbacks, ClockConfig, ClockState } from '../clock/types';
 
 export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';
@@ -183,53 +185,6 @@ export type BoardSoundEventColor = 'white' | 'black';
 export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
 export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
 
-export interface ClockSideState {
-  initial: number;
-  increment: number;
-  remaining: number;
-  isFlagged: boolean;
-}
-
-export interface ClockState {
-  white: ClockSideState;
-  black: ClockSideState;
-  active: Color | null;
-  isPaused: boolean;
-  isRunning: boolean;
-  lastUpdatedAt: number | null;
-}
-
-export interface ClockStateUpdate {
-  white?: Partial<ClockSideState>;
-  black?: Partial<ClockSideState>;
-  active?: Color | null;
-  paused?: boolean;
-  running?: boolean;
-  timestamp?: number | null;
-}
-
-export interface ClockCallbacks {
-  onClockStart?(state: ClockState): void;
-  onClockPause?(state: ClockState): void;
-  onClockChange?(state: ClockState): void;
-  onFlag?(payload: { color: Color; state: ClockState }): void;
-}
-
-export interface ClockSideConfig {
-  initial?: number;
-  increment?: number;
-  remaining?: number;
-}
-
-export interface ClockConfig {
-  initial?: number | Partial<Record<Color, number>>;
-  increment?: number | Partial<Record<Color, number>>;
-  sides?: Partial<Record<Color, ClockSideConfig>>;
-  active?: Color | null;
-  paused?: boolean;
-  callbacks?: ClockCallbacks;
-}
-
 export interface PremoveAppliedEvent {
   from: Square;
   to: Square;
@@ -252,10 +207,10 @@ export interface BoardEventMap {
   promotion: PromotionRequest;
   premoveApplied: PremoveAppliedEvent;
   premoveInvalidated: PremoveInvalidatedEvent;
-  clockChange: ClockState;
-  clockStart: ClockState;
-  clockPause: ClockState;
-  clockFlag: { color: Color; state: ClockState };
+  'clock:change': ClockState;
+  'clock:start': void;
+  'clock:pause': void;
+  'clock:flag': { color: Color; remaining: number };
   squareClick: SquarePointerEventPayload;
   squareMouseDown: SquarePointerEventPayload;
   squareMouseUp: SquarePointerEventPayload;
