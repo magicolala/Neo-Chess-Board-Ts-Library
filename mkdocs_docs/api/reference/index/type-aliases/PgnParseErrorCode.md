@@ -1,0 +1,7 @@
+[**@magicolala/neo-chess-board**](../../README.md)
+
+***
+
+> **PgnParseErrorCode** = `"PGN_PARSE_UNTERMINATED_COMMENT"` \| `"PGN_PARSE_INVALID_ARROW_SPEC"` \| `"PGN_PARSE_INVALID_ARROW_SQUARE"` \| `"PGN_PARSE_INVALID_CIRCLE_SPEC"` \| `"PGN_PARSE_INVALID_CIRCLE_SQUARE"` \| `"PGN_PARSE_MOVE_TEXT_MISSING"` \| `"PGN_PARSE_RESULT_IN_MOVE"` \| `"PGN_IMPORT_FAILED"`
+
+Defined in: src/core/errors.ts:70
