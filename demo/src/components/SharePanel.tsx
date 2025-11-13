@@ -14,7 +14,7 @@ export interface SharePanelProps {
 
 type CopyIntent = 'iframe' | 'link';
 
-const FALLBACK_PLAYGROUND_URL = 'https://neo-chess-board.vercel.app/playground';
+const FALLBACK_PLAYGROUND_URL = 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/';
 
 const COPY_MESSAGES: Record<CopyIntent, { success: string; failure: string }> = {
   iframe: {

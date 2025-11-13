@@ -21,7 +21,7 @@ export interface StickyHeaderProps {
 }
 
 const DEFAULT_CTA_LINKS: StickyHeaderCtaLinks = {
-  tryPlayground: 'https://neo-chess-board.vercel.app/playground',
+  tryPlayground: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/',
   docs: 'https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/',
   install: 'https://www.npmjs.com/package/@magicolala/neo-chess-board',
   github: 'https://github.com/magicolala/Neo-Chess-Board-Ts-Library',

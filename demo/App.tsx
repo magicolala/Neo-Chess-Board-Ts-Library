@@ -1153,7 +1153,7 @@ const AppContent: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href="https://neo-chess-board.vercel.app/playground"
+              href="https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/"
               className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
               title={translate('app.playgroundLinkTitle')}
               rel="noreferrer"

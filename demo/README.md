@@ -16,7 +16,7 @@ This guide documents how to run the Neo Chess Board demo locally and the quality
    - Theme creator: http://localhost:5173/theme-creator.html
    - Main demo: http://localhost:5173/index.html
 
-> **Note:** The standalone Playground now lives on the hosted demo at https://neo-chess-board.vercel.app/playground.
+> **Note:** The standalone Playground now lives on the hosted demo at https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/
 
 > **Tip:** Append `--host` to the dev command when you need to share the demo on your LAN (e.g., `npm run dev -- --config demo/vite.config.ts --root demo -- --host`).
 
@@ -55,7 +55,7 @@ npx lighthouse http://localhost:5173/theme-creator.html \
   --only-categories=performance,accessibility,best-practices,seo \
   --preset=desktop --quiet --output=json --output-path=./test-results/lighthouse-theme-creator.json
 
-npx lighthouse https://neo-chess-board.vercel.app/playground \
+npx lighthouse https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/ \
   --only-categories=performance,accessibility,best-practices,seo \
   --preset=desktop --quiet --output=json --output-path=./test-results/lighthouse-playground.json
 ```
@@ -76,7 +76,7 @@ needed:
 ```bash
 npx @axe-core/cli http://localhost:5173/theme-creator.html --exit
 npx @axe-core/cli http://localhost:5173/index.html --exit
-npx @axe-core/cli https://neo-chess-board.vercel.app/playground --exit
+npx @axe-core/cli https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/ --exit
 ```
 
 **Pass requirements**
