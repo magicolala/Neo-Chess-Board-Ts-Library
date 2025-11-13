@@ -40,9 +40,19 @@ nav:
   - API Reference:
       - Overview: api/index.md
       - Clock Manager: api/clock.md
-      - Classes: api/classes/
-      - Interfaces: api/interfaces/
-      - Types: api/types/
+      - Core API:
+          - Summary: api/reference/index/README.md
+          - Classes: api/reference/index/classes/
+          - Functions: api/reference/index/functions/
+          - Interfaces: api/reference/index/interfaces/
+          - Type Aliases: api/reference/index/type-aliases/
+          - Variables: api/reference/index/variables/
+      - React API:
+          - Summary: api/reference/react/README.md
+          - Functions: api/reference/react/functions/
+          - Interfaces: api/reference/react/interfaces/
+          - Type Aliases: api/reference/react/type-aliases/
+          - Variables: api/reference/react/variables/
   - Examples: examples.md
   - Integration Guide: integration.md
   - PGN Features: pgn-features.md
@@ -68,9 +78,14 @@ plugins:
             Home: Accueil
             API Reference: API
             Overview: Vue d'ensemble
+            Core API: API principale
+            Summary: Résumé
             Classes: Classes
+            Functions: Fonctions
             Interfaces: Interfaces
-            Types: Types
+            Type Aliases: Alias de type
+            Variables: Variables
+            React API: API React
             Examples: Exemples
             Integration Guide: Intégration
             PGN Features: Fonctionnalités PGN

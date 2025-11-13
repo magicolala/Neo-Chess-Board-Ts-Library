@@ -1,0 +1,7 @@
+[**@magicolala/neo-chess-board**](../../README.md)
+
+***
+
+> **FenErrorCode** = `"INVALID_FEN_GENERIC"` \| `"INVALID_FEN_EMPTY"` \| `"INVALID_FEN_FIELD_COUNT"` \| `"INVALID_FEN_BOARD_EMPTY"` \| `"INVALID_FEN_INVALID_EMPTY_SQUARE_COUNT"` \| `"INVALID_FEN_INVALID_PIECE"` \| `"INVALID_FEN_RANK_NO_SQUARES"` \| `"INVALID_FEN_INCONSISTENT_ROW_LENGTH"` \| `"INVALID_FEN_ACTIVE_COLOR"`
+
+Defined in: src/core/errors.ts:25
