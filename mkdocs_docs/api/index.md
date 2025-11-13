@@ -139,19 +139,25 @@ Swap the audio clips used for move sounds. When sounds are enabled the board rei
 
 Return the current clock snapshot or `null` when no `clock` configuration has been provided.
 
-##### `setClockConfig(clock?: ClockConfig): void`
+##### `startClock(): void`
 
-Initialise or update the game clock. Passing `undefined` removes the active clock configuration.
+Start (or resume) the active side's timer. When a delay is configured it is applied before subtracting from the remaining time.
 
-##### `updateClockState(update: ClockStateUpdate): ClockState | null`
+##### `pauseClock(): void`
 
-Apply a partial state update (for example decrementing the active side or toggling the running flag). The method returns the
-normalised `ClockState` or `null` when the board is not clock-enabled.
+Pause the running timer without losing any Bronstein delay that may still be available.
 
-##### `setClockCallbacks(callbacks?: ClockCallbacks | null): void`
+##### `resetClock(config?: Partial<ClockConfig> | null): void`
 
-Update the callback hooks fired alongside the `clockChange`, `clockStart`, `clockPause`, and `clockFlag` bus events without
-reinitialising the timer values.
+Reset the clock to its initial values. Pass a partial `ClockConfig` to change the control or `null` to remove the active clock.
+
+##### `setClockTime(color: Color, milliseconds: number): void`
+
+Force a side's remaining time to a specific value. Useful for adjudications or synchronising with an external arbiter.
+
+##### `addClockTime(color: Color, milliseconds: number): void`
+
+Increment a side's timer. If the clock had previously flagged this clears the flag as long as the new time is positive.
 
 ##### `setSoundEventUrls(soundEventUrls: BoardOptions['soundEventUrls']): void`
 
@@ -724,7 +730,7 @@ function App() {
 }
 ```
 
-When the clock option is enabled the board also emits `clockChange`, `clockStart`, `clockPause`, and `clockFlag` events. Combine the chessboard with `ChessJsRules` (or another rules adapter) if you need richer game-state insights such as detecting checks or stalemates.
+When the clock option is enabled the board also emits `clock:change`, `clock:start`, `clock:pause`, and `clock:flag` events. Combine the chessboard with `ChessJsRules` (or another rules adapter) if you need richer game-state insights such as detecting checks or stalemates.
 
 ## Type Definitions
 
@@ -819,28 +825,28 @@ interface ClockConfig {
 }
 
 interface ClockCallbacks {
-  onClockStart?(state: ClockState): void;
-  onClockPause?(state: ClockState): void;
   onClockChange?(state: ClockState): void;
-  onFlag?(payload: { color: Color; state: ClockState }): void;
+  onClockStart?(): void;
+  onClockPause?(): void;
+  onFlag?(payload: { color: Color; remaining: number }): void;
+}
+
+interface ClockSideState {
+  initial: number;
+  increment: number;
+  delay: number;
+  remaining: number;
+  delayRemaining: number;
+  isFlagged: boolean;
 }
 
 interface ClockState {
-  white: { initial: number; increment: number; remaining: number; isFlagged: boolean };
-  black: { initial: number; increment: number; remaining: number; isFlagged: boolean };
+  white: ClockSideState;
+  black: ClockSideState;
   active: Color | null;
   isPaused: boolean;
   isRunning: boolean;
   lastUpdatedAt: number | null;
-}
-
-interface ClockStateUpdate {
-  active?: Color | null;
-  paused?: boolean;
-  running?: boolean;
-  timestamp?: number | null;
-  white?: Partial<ClockState['white']>;
-  black?: Partial<ClockState['black']>;
 }
 ```
 

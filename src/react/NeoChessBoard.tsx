@@ -5,9 +5,8 @@ import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
 import type {
   BoardEventMap,
   BoardOptions,
-  ClockCallbacks,
+  ClockConfig,
   ClockState,
-  ClockStateUpdate,
   Color,
   Piece,
   PieceRendererMap,
@@ -156,9 +155,9 @@ export interface NeoChessProps
   onPieceDrag?: (e: BoardEventMap['pieceDrag']) => void;
   onPieceDrop?: (e: BoardEventMap['pieceDrop']) => void;
   onClockChange?: (state: ClockState) => void;
-  onClockStart?: (state: ClockState) => void;
-  onClockPause?: (state: ClockState) => void;
-  onClockFlag?: (e: BoardEventMap['clockFlag']) => void;
+  onClockStart?: () => void;
+  onClockPause?: () => void;
+  onClockFlag?: (e: BoardEventMap['clock:flag']) => void;
 }
 
 export interface NeoChessRef {
@@ -171,12 +170,11 @@ export interface NeoChessRef {
   clearArrows: () => void;
   clearHighlights: () => void;
   getClockState: () => ClockState | null;
-  setClockConfig: (clock?: BoardOptions['clock']) => void;
-  updateClockState: (update: ClockStateUpdate) => void;
-  setClockCallbacks: (callbacks?: ClockCallbacks | null) => void;
-  startClock: (color?: Color | null) => void;
+  startClock: () => void;
   pauseClock: () => void;
   setClockTime: (color: Color, milliseconds: number) => void;
+  addClockTime: (color: Color, milliseconds: number) => void;
+  resetClock: (config?: Partial<ClockConfig> | null) => void;
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(

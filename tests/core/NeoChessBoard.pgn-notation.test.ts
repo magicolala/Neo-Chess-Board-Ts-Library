@@ -478,10 +478,11 @@ describe('NeoChessBoard configuration side-effects', () => {
     const pauseSpy = jest.fn();
     const flagSpy = jest.fn();
 
-    board.setClockConfig({
+    board.resetClock({
       initial: 1000,
       increment: { w: 500, b: 0 },
       active: 'w',
+      paused: true,
       callbacks: {
         onClockChange: changeSpy,
         onClockStart: startSpy,
@@ -491,16 +492,14 @@ describe('NeoChessBoard configuration side-effects', () => {
     });
 
     expect(changeSpy).toHaveBeenCalledTimes(1);
+
+    board.startClock();
     expect(startSpy).toHaveBeenCalledTimes(1);
 
-    const updated = board.updateClockState({ white: { remaining: 0 } });
-    expect(updated?.white.remaining).toBe(0);
-    expect(flagSpy).toHaveBeenCalledWith({
-      color: 'w',
-      state: expect.objectContaining({ white: expect.objectContaining({ isFlagged: true }) }),
-    });
+    board.setClockTime('w', 0);
+    expect(flagSpy).toHaveBeenCalledWith({ color: 'w', remaining: 0 });
 
-    board.updateClockState({ active: null, running: false });
+    board.pauseClock();
     expect(pauseSpy).toHaveBeenCalledTimes(1);
   });
 
