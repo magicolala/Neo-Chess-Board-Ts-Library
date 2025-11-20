@@ -728,6 +728,8 @@ function FullChessGame() {
 
 ### Position Setup Tool
 
+Use the `allowDragging` prop to toggle piece movement while editing. Using `draggable` is not supported on `NeoChessBoard` and will cause a TypeScript unknown-prop error.
+
 ```typescript
 import React, { useState } from 'react';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
@@ -814,7 +816,8 @@ function PositionEditor() {
         <div>
           <NeoChessBoard
             position={currentFEN}
-            draggable={!editMode}
+            // allowDragging controls piece movement; `draggable` is not a supported prop
+            allowDragging={!editMode}
             onSquareClick={editMode ? handleSquareClick : undefined}
           />
         </div>
