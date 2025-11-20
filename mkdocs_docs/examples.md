@@ -728,49 +728,66 @@ function FullChessGame() {
 
 ### Position Setup Tool
 
-Use the `allowDragging` prop to toggle piece movement while editing. Using `draggable` is not supported on `NeoChessBoard` and will cause a TypeScript unknown-prop error.
+Use the `allowDragging` prop to toggle piece movement while editing. Using `draggable` is not supported on `NeoChessBoard` and will cause a TypeScript unknown-prop error. The helper `ChessJsRules` keeps the FEN string valid every time you add or clear a piece, so the textarea always shows a position the board can load. When responding to `squareClick`, rely on the provided payload—`file`/`rank` pairs are not sent and the handler must use the `square` string directly to stay in sync with board events.
+
+Click any square with the “Clear” option (or with no piece selected) to remove its content. Whenever you leave edit mode, the component reloads the current FEN to ensure the rendered board matches the editor buffer.
 
 ```typescript
-import React, { useState } from 'react';
-import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { NeoChessBoard, type NeoChessRef } from '@magicolala/neo-chess-board/react';
+import { ChessJsRules, START_FEN, type BoardEventMap, type Square } from '@magicolala/neo-chess-board';
 
-interface Piece {
-  type: string;
-  color: 'white' | 'black';
-}
-
-interface Square {
-  file: string;
-  rank: number;
-}
+type PieceTool = { type: 'p' | 'n' | 'b' | 'r' | 'q' | 'k'; color: 'w' | 'b' };
 
 function PositionEditor() {
+  const initialFen = START_FEN;
   const [editMode, setEditMode] = useState(false);
-  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
-  const [currentFEN, setCurrentFEN] = useState('start');
+  const [selectedPiece, setSelectedPiece] = useState<PieceTool | null>(null);
+  const [currentFEN, setCurrentFEN] = useState(initialFen);
+  const boardRef = useRef<NeoChessRef>(null);
+  const rulesRef = useRef(new ChessJsRules(initialFen));
 
-  const pieces = [
-    { type: 'king', color: 'white' },
-    { type: 'queen', color: 'white' },
-    { type: 'rook', color: 'white' },
-    { type: 'bishop', color: 'white' },
-    { type: 'knight', color: 'white' },
-    { type: 'pawn', color: 'white' },
-    { type: 'king', color: 'black' },
-    { type: 'queen', color: 'black' },
-    { type: 'rook', color: 'black' },
-    { type: 'bishop', color: 'black' },
-    { type: 'knight', color: 'black' },
-    { type: 'pawn', color: 'black' },
+  const pieces: PieceTool[] = [
+    { type: 'k', color: 'w' },
+    { type: 'q', color: 'w' },
+    { type: 'r', color: 'w' },
+    { type: 'b', color: 'w' },
+    { type: 'n', color: 'w' },
+    { type: 'p', color: 'w' },
+    { type: 'k', color: 'b' },
+    { type: 'q', color: 'b' },
+    { type: 'r', color: 'b' },
+    { type: 'b', color: 'b' },
+    { type: 'n', color: 'b' },
+    { type: 'p', color: 'b' },
   ];
 
-  const handleSquareClick = (square: Square) => {
+  const handleSquareClick = (event: BoardEventMap['squareClick']) => {
+    const square: Square = event.square;
+
     if (editMode && selectedPiece) {
-      // Place selected piece on clicked square
-      // Implementation depends on board API
-      console.log(`Placing ${selectedPiece.color} ${selectedPiece.type} on ${square.file}${square.rank}`);
+      const { type, color } = selectedPiece;
+      rulesRef.current.getChessInstance().put({ type, color }, square);
+    } else {
+      rulesRef.current.getChessInstance().remove(square);
     }
+
+    const nextFen = rulesRef.current.getFEN();
+    setCurrentFEN(nextFen);
+    boardRef.current?.getBoard()?.setPosition(nextFen, true);
   };
+
+  const syncFen = (newFen: string) => {
+    rulesRef.current.setFEN(newFen);
+    setCurrentFEN(newFen);
+  };
+
+  useEffect(() => {
+    rulesRef.current.setFEN(currentFEN);
+    if (!editMode) {
+      boardRef.current?.getBoard()?.setPosition(currentFEN, true);
+    }
+  }, [editMode, currentFEN]);
 
   return (
     <div>
@@ -793,6 +810,18 @@ function PositionEditor() {
         <div style={{ marginBottom: '20px' }}>
           <h3>Select Piece to Place:</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', maxWidth: '400px' }}>
+            <button
+              onClick={() => setSelectedPiece(null)}
+              style={{
+                padding: '10px',
+                backgroundColor: selectedPiece === null ? '#007bff' : '#f8f9fa',
+                color: selectedPiece === null ? 'white' : 'black',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+              }}
+            >
+              Clear
+            </button>
             {pieces.map((piece, index) => (
               <button
                 key={index}
@@ -806,7 +835,8 @@ function PositionEditor() {
                   textTransform: 'capitalize'
                 }}
               >
-                {piece.color} {piece.type}
+                {piece.color === 'w' ? 'white' : 'black'}{' '}
+                {{ k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' }[piece.type]}
               </button>
             ))}
           </div>
@@ -815,8 +845,8 @@ function PositionEditor() {
       <div style={{ display: 'flex', gap: '20px' }}>
         <div>
           <NeoChessBoard
+            ref={boardRef}
             position={currentFEN}
-            // allowDragging controls piece movement; `draggable` is not a supported prop
             allowDragging={!editMode}
             onSquareClick={editMode ? handleSquareClick : undefined}
           />
@@ -825,7 +855,7 @@ function PositionEditor() {
           <h3>FEN String</h3>
           <textarea
             value={currentFEN}
-            onChange={(e) => setCurrentFEN(e.target.value)}
+            onChange={(e) => syncFen(e.target.value)}
             style={{
               width: '100%',
               height: '100px',
@@ -834,7 +864,7 @@ function PositionEditor() {
             }}
           />
           <div style={{ marginTop: '10px' }}>
-            <button onClick={() => setCurrentFEN('start')}>
+            <button onClick={() => syncFen(initialFen)}>
               Reset to Start
             </button>
             <button
