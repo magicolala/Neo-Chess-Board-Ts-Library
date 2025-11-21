@@ -31,17 +31,17 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.js"
-    }
+      "import": "./dist/react/index.js"
+    },
+    "./style.css": "./dist/style.css"
   },
   "files": [
     "dist",
+    "dist/style.css",
     "README.md",
     "LICENSE"
   ],
