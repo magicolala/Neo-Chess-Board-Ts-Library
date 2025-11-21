@@ -51,8 +51,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:css && tsc -p tsconfig.json && vite build",
-    "build:lib": "npm run build:css && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && vite build && npm run build:css",
+    "build:lib": "tsc -p tsconfig.json && npm run build:css",
     "build:css": "tailwindcss -i ./src/index.css -o ./dist/style.css --minify",
     "build:demo": "cd demo && vite build --mode production",
     "preview": "vite preview",
