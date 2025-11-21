@@ -14,6 +14,7 @@ export default defineConfig({
       name: 'NeoChessBoard',
       formats: ['es', 'cjs'],
     },
+    emptyOutDir: false,
     rollupOptions: {
       external: ['react', 'react-dom', 'chess.js'],
       output: {
