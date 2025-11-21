@@ -1,0 +1,15 @@
+@import './extensions/clock-display.css';
+
+.ncb-root {
+  display: block;
+  max-width: 100%;
+  aspect-ratio: auto 606 / 606;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.ncb-root canvas {
+  image-rendering: optimizeQuality;
+  aspect-ratio: auto 606 / 606;
+}

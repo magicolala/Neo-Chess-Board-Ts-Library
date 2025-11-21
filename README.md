@@ -100,7 +100,10 @@ pnpm add @magicolala/neo-chess-board
 
 ### Basic Usage (React)
 
+Import the packaged stylesheet to enable the built-in board and extension styles, then render the React component:
+
 ```tsx
+import '@magicolala/neo-chess-board/style.css';
 import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
 
 function ChessApp() {
