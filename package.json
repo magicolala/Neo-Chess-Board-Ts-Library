@@ -1,5 +1,5 @@
 {
-  "name": "@magicolala/neo-chess-board",
+  "name": "neo-chess-board",
   "version": "1.0.1",
   "description": "Canvas chessboard library with React bindings and PGN recorder (Chessbook-like feel)",
   "author": "Cédric Oloa",

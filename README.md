@@ -4,7 +4,7 @@
 
 ![Neo Chess Board](https://img.shields.io/badge/Neo_Chess_Board-v1.0.0-blue?style=for-the-badge&logo=chess&logoColor=white)
 
-[![GitHub Package](https://img.shields.io/static/v1?label=GitHub%20Packages&message=v1.0.0&color=0A66C2&style=flat-square)](https://github.com/magicolala/Neo-Chess-Board-Ts-Library/pkgs/npm/neo-chess-board)
+[![npm](https://img.shields.io/npm/v/neo-chess-board.svg?style=flat-square)](https://www.npmjs.com/package/neo-chess-board)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -77,25 +77,14 @@
 
 ### Installation
 
-Neo Chess Board is distributed via GitHub Packages. Configure npm to use the GitHub registry for the `@magicolala` scope:
-
-**Step 1:** Create a [GitHub Personal Access Token](https://docs.github.com/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with `read:packages` permission.
-
-**Step 2:** Add to your `.npmrc` file:
-
-```ini
-@magicolala:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-```
-
-**Step 3:** Install the package:
+Install Neo Chess Board from npm:
 
 ```bash
-npm install @magicolala/neo-chess-board
+npm install neo-chess-board
 # or
-yarn add @magicolala/neo-chess-board
+yarn add neo-chess-board
 # or
-pnpm add @magicolala/neo-chess-board
+pnpm add neo-chess-board
 ```
 
 ### Basic Usage (React)
@@ -103,8 +92,8 @@ pnpm add @magicolala/neo-chess-board
 Import the packaged stylesheet to enable the built-in board and extension styles, then render the React component:
 
 ```tsx
-import '@magicolala/neo-chess-board/style.css';
-import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
+import 'neo-chess-board/style.css';
+import { NeoChessBoard } from 'neo-chess-board/react';
 
 function ChessApp() {
   return (
