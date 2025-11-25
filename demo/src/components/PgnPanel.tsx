@@ -145,22 +145,26 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     }
 
     const doc = document;
-    const isTypingTarget = (eventTarget: EventTarget | null): boolean => {
-      if (!eventTarget || !(eventTarget instanceof HTMLElement)) {
+    const shouldIgnoreKeyboardEvent = (event: KeyboardEvent): boolean => {
+      const target = event.target;
+      if (!target || !(target instanceof HTMLElement)) {
         return false;
       }
-      if (eventTarget.isContentEditable) {
+      if (target.isContentEditable) {
         return true;
       }
-      const tagName = eventTarget.tagName.toLowerCase();
-      return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+      const tagName = target.tagName.toLowerCase();
+      if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+        return true;
+      }
+      return Boolean(target.closest('.ncb-a11y-square') || target.closest('[data-square]'));
     };
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+      if (event.altKey || event.ctrlKey || event.metaKey) {
         return;
       }
-      if (isTypingTarget(event.target)) {
+      if (shouldIgnoreKeyboardEvent(event)) {
         return;
       }
 
