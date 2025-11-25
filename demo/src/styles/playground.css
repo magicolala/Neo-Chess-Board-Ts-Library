@@ -755,6 +755,13 @@
   gap: 0.5rem;
 }
 
+.playground__pgn-navigation-shortcuts {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--playground-muted);
+  line-height: 1.4;
+}
+
 .playground__pgn-nav-button {
   width: 2.4rem;
   height: 2.4rem;

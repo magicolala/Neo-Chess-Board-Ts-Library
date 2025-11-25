@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NeoChessRef } from '../../../src/react';
 import type { ChessJsRules } from '../../../src/core/ChessJsRules';
 import type { PgnNotation } from '../../../src/core/PgnNotation';
@@ -135,7 +135,82 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loadingExample, setLoadingExample] = useState<string | null>(null);
+  const keyboardShortcutHint =
+    'Keyboard shortcuts: ←/→ to move, Home to jump to start, End to jump to last move.';
   const { pushToast } = useToaster();
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const doc = document;
+    const isTypingTarget = (eventTarget: EventTarget | null): boolean => {
+      if (!eventTarget || !(eventTarget instanceof HTMLElement)) {
+        return false;
+      }
+      if (eventTarget.isContentEditable) {
+        return true;
+      }
+      const tagName = eventTarget.tagName.toLowerCase();
+      return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    };
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      if (isTypingTarget(event.target)) {
+        return;
+      }
+
+      let direction: PgnNavigationDirection | null = null;
+      switch (event.key) {
+        case 'ArrowLeft': {
+          if (!canGoBack) {
+            return;
+          }
+          direction = 'previous';
+          break;
+        }
+        case 'ArrowRight': {
+          if (!canGoForward) {
+            return;
+          }
+          direction = 'next';
+          break;
+        }
+        case 'Home': {
+          if (!canGoBack) {
+            return;
+          }
+          direction = 'first';
+          break;
+        }
+        case 'End': {
+          if (!canGoForward) {
+            return;
+          }
+          direction = 'last';
+          break;
+        }
+        default:
+          break;
+      }
+
+      if (!direction) {
+        return;
+      }
+
+      event.preventDefault();
+      onNavigate(direction);
+    };
+
+    doc.addEventListener('keydown', handleKeyDown);
+    return () => {
+      doc.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [canGoBack, canGoForward, onNavigate]);
 
   const resetTransientMessages = useCallback(() => {
     setError(null);
@@ -484,6 +559,9 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             <IconLast />
           </button>
         </div>
+        <p className="playground__pgn-navigation-shortcuts" role="note">
+          {keyboardShortcutHint}
+        </p>
         <label className="playground__pgn-speed">
           <span className="playground__pgn-speed-label">
             <span>Autoplay speed</span>
