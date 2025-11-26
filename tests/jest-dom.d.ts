@@ -8,6 +8,8 @@ declare global {
       toHaveAttribute(attr: string, value?: string): R;
       toHaveValue(value: string | string[] | number): R;
       toHaveStyle(css: string | Record<string, string | number>): R;
+      toBeDisabled(): R;
+      toBeEnabled(): R;
     }
   }
 }

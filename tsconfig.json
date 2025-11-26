@@ -16,7 +16,7 @@
     "allowImportingTsExtensions": false,
     "noEmit": false
   },
-  "include": ["src", "tests/assets.d.ts"],
+  "include": ["src", "tests/assets.d.ts", "tests/jest-dom.d.ts"],
   "ts-node": {
     "esm": true
   }

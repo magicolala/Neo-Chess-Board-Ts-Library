@@ -843,7 +843,9 @@ export class NeoChessBoard {
               },
             });
       this.lastPgnLoadIssues = [normalizedError];
-      console.error('Error loading PGN with annotations:', normalizedError);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Error loading PGN with annotations:', normalizedError);
+      }
       return false;
     }
   }

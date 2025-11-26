@@ -16,6 +16,8 @@ import type { PgnNotation } from '../../src/core/PgnNotation';
 import type { BoardAudioManager } from '../../src/core/BoardAudioManager';
 import type { EventBus } from '../../src/core/EventBus';
 
+const originalConsoleError = console.error;
+
 type MinimalPgnNotation = Pick<
   PgnNotation,
   | 'loadPgnWithAnnotations'
@@ -237,6 +239,17 @@ describe('NeoChessBoard PGN and notation helpers', () => {
 
     Reflect.set(board as unknown as Record<string, unknown>, 'drawingManager', drawingManagerMock);
     jest.spyOn(board, 'renderAll').mockImplementation(() => {});
+  });
+
+  beforeAll(() => {
+    // Silence expected error logging when loading malformed PGNs in tests
+    // eslint-disable-next-line no-console
+    console.error = () => {};
+  });
+
+  afterAll(() => {
+    // eslint-disable-next-line no-console
+    console.error = originalConsoleError;
   });
 
   afterEach(() => {

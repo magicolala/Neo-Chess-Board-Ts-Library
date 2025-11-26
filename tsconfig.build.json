@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false
+  },
+  "include": ["src"],
+  "exclude": [
+    "tests",
+    "demo",
+    "examples",
+    "mkdocs_docs",
+    "scripts",
+    "coverage",
+    "node_modules",
+    "dist"
+  ]
+}
