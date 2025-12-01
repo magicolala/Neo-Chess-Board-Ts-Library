@@ -127,6 +127,19 @@ board.on('move', ({ from, to, fen }) => {
 });
 ```
 
+### Headless logic (Node-friendly)
+
+Use the new `ChessGame` core to validate moves, manage FEN/PGN, and drive clocks without any DOM or canvas dependencies. `NeoChessBoard` composes this class internally for rendering, but you can also use it directly in server-side environments:
+
+```ts
+import { ChessGame } from 'neo-chess-board';
+
+const game = new ChessGame({ fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' });
+
+game.move({ from: 'e2', to: 'e4' });
+console.log(game.getFEN());
+```
+
 ### 🔊 Event-aware sound cues
 
 Customize the audio feedback per event or per side. Provide a single clip for all moves or tailor captures, checks, promotions, mates, and illegal move warnings for each color:

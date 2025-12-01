@@ -23,13 +23,13 @@ import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
 import { FlatSprites } from './FlatSprites';
-import { ChessJsRules } from './ChessJsRules';
 import type { DrawingManager } from './DrawingManager';
 import { BoardDomManager } from './BoardDomManager';
 import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager';
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
 import type { PgnNotation } from './PgnNotation';
+import { ChessGame } from './logic/ChessGame';
 import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
 import type {
@@ -220,6 +220,7 @@ export type RenderObserver = (commands: RenderDebugRect[]) => void;
 export class NeoChessBoard {
   // ---- Event & DOM ----
   public bus = new EventBus<BoardEventMap>();
+  private game!: ChessGame;
   private root: HTMLElement;
   private cBoard!: HTMLCanvasElement;
   private cPieces!: HTMLCanvasElement;
@@ -249,8 +250,21 @@ export class NeoChessBoard {
   private cameraEffectsOptions: BoardCameraEffectsOptions = {};
 
   // ---- Rules & State ----
-  private rules: RulesAdapter;
-  private state: BoardState;
+  private get rules(): RulesAdapter {
+    return this.game.rules;
+  }
+
+  private set rules(adapter: RulesAdapter) {
+    this.game.rules = adapter;
+  }
+
+  private get state(): BoardState {
+    return this.game.state;
+  }
+
+  private set state(next: BoardState) {
+    this.game.state = next;
+  }
   private lastPgnLoadIssues: PgnParseError[] = [];
 
   // ---- Visual Configuration ----
@@ -269,7 +283,13 @@ export class NeoChessBoard {
   private interactive: boolean;
   private showCoords: boolean;
   private highlightLegal: boolean;
-  private allowPremoves: boolean;
+  private get allowPremoves(): boolean {
+    return this.game.allowPremoves;
+  }
+
+  private set allowPremoves(value: boolean) {
+    this.game.allowPremoves = value;
+  }
   private showArrows: boolean;
   private showHighlights: boolean;
   private rightClickHighlights: boolean;
@@ -310,13 +330,38 @@ export class NeoChessBoard {
   // ---- Audio ----
 
   // ---- Interaction State ----
-  private _lastMove: { from: Square; to: Square } | null = null;
-  private _premove: { from: Square; to: Square; promotion?: PromotionPiece } | null = null;
-  private _premoveQueues: Record<Color, Premove[]> = { w: [], b: [] };
-  private _premoveSettings: { multi: boolean; colors: Record<Color, boolean> } = {
-    multi: false,
-    colors: { w: true, b: true },
-  };
+  private get _lastMove(): { from: Square; to: Square } | null {
+    return this.game.lastMove;
+  }
+
+  private set _lastMove(move: { from: Square; to: Square } | null) {
+    this.game.lastMove = move;
+  }
+
+  private get _premove(): { from: Square; to: Square; promotion?: PromotionPiece } | null {
+    const premove = this.game.premove;
+    return premove ? { ...premove } : null;
+  }
+
+  private set _premove(premove: { from: Square; to: Square; promotion?: PromotionPiece } | null) {
+    this.game.premove = premove ? { ...premove } : null;
+  }
+
+  private get _premoveQueues(): Record<Color, Premove[]> {
+    return this.game.premoveQueues;
+  }
+
+  private set _premoveQueues(queues: Record<Color, Premove[]>) {
+    this.game.premoveQueues = queues;
+  }
+
+  private get _premoveSettings(): { multi: boolean; colors: Record<Color, boolean> } {
+    return this.game.premoveSettings;
+  }
+
+  private set _premoveSettings(settings: { multi: boolean; colors: Record<Color, boolean> }) {
+    this.game.premoveSettings = settings;
+  }
   public readonly premove: BoardPremoveController;
   private _selected: Square | null = null;
   private _legalCached: Move[] | null = null;
@@ -359,7 +404,13 @@ export class NeoChessBoard {
   private inlinePromotionToken: number | null = null;
 
   // ---- Clock ----
-  private clockManager: ClockManager | null = null;
+  private get clockManager(): ClockManager | null {
+    return this.game.clockManager;
+  }
+
+  private set clockManager(manager: ClockManager | null) {
+    this.game.clockManager = manager;
+  }
 
   // ---- Extensions ----
   private extensionStates: ExtensionState[] = [];
@@ -431,14 +482,32 @@ export class NeoChessBoard {
         : DEFAULT_ANIMATION_MS;
     this.showAnimations = options.showAnimations !== false;
 
+    const premoveSettings: BoardPremoveSettings = options.premove ?? {};
+    const allowPremovesDefault = options.allowPremoves !== false;
+    const allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
+    const initialFen = options.fen ?? options.position;
+
+    this.game = new ChessGame({
+      fen: initialFen,
+      rulesAdapter: options.rulesAdapter,
+      premove: premoveSettings,
+      allowPremoves,
+      clock: options.clock,
+      bus: this.bus,
+      geometry: {
+        files: this.filesCount,
+        ranks: this.ranksCount,
+        fileLabels: this.fileLabels,
+        rankLabels: this.rankLabels,
+      },
+    });
+
     // Initialize feature flags
     this.interactive = options.interactive !== false;
     this.showCoords = options.showCoordinates || false;
     this.highlightLegal = options.highlightLegal !== false;
-    const premoveSettings: BoardPremoveSettings = options.premove ?? {};
     this._applyInitialPremoveSettings(premoveSettings);
-    const allowPremovesDefault = options.allowPremoves !== false;
-    this.allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
+    this.allowPremoves = allowPremoves;
     this.showArrows = options.showArrows !== false;
     this.showHighlights = options.showHighlights !== false;
     this.rightClickHighlights = options.rightClickHighlights !== false;
@@ -506,15 +575,8 @@ export class NeoChessBoard {
     this._updatePromotionOptions(options.promotion);
 
     // Initialize rules and state
-    this.rules = options.rulesAdapter || new ChessJsRules();
-    const initialFen = options.fen ?? options.position;
-    if (initialFen) {
-      this.rules.setFEN(initialFen);
-    }
-    this.state = this._parseFEN(this.rules.getFEN());
+    this.state = this.game.state;
     this._syncOrientationFromTurn(true);
-
-    this._initializeClock(options.clock);
 
     // Initialize extensions
     this._initializeExtensions(options.extensions);
