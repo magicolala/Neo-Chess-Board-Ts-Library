@@ -18,6 +18,7 @@ import type {
 
 const DEFAULT_THROTTLE_MS = 150;
 const DEFAULT_STOP_TIMEOUT_MS = 1500;
+const DEFAULT_MOVETIME_MS = 500;
 
 class MockStockfishTransport implements EngineTransport {
   private listeners: Array<(message: string) => void> = [];
@@ -153,12 +154,17 @@ export class StockfishEngine {
     this.currentRequest = request;
     this.latestLines.clear();
 
+    const depth = request.depth ?? this.options.depth;
+    const movetimeMs =
+      request.movetimeMs ?? (depth === undefined ? DEFAULT_MOVETIME_MS : undefined);
+    const multiPv = request.multiPv ?? this.options.multiPv;
+
     this.transport?.postMessage(buildPositionCommand(request.fen, request.limitMoves));
     this.transport?.postMessage(
       buildGoCommand({
-        depth: request.depth ?? this.options.depth,
-        movetimeMs: request.movetimeMs,
-        multiPv: request.multiPv ?? this.options.multiPv,
+        depth,
+        movetimeMs,
+        multiPv,
       }),
     );
 
