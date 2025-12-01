@@ -69,9 +69,16 @@ function normalizeCssStyle(
   return normalized;
 }
 
+function scheduleRootUnmount(root: Root, onComplete?: () => void): void {
+  setTimeout(() => {
+    root.unmount();
+    onComplete?.();
+  });
+}
+
 function unmountRoots(map: Map<HTMLElement, Root>): void {
   for (const root of map.values()) {
-    root.unmount();
+    scheduleRootUnmount(root);
   }
   map.clear();
 }
@@ -89,12 +96,18 @@ function renderReactContent(
   root.render(content);
 }
 
-function unmountReactContent(element: HTMLElement, roots: Map<HTMLElement, Root>): void {
+function unmountReactContent(
+  element: HTMLElement,
+  roots: Map<HTMLElement, Root>,
+  onUnmount?: () => void,
+): void {
   const root = roots.get(element);
   if (root) {
-    root.unmount();
     roots.delete(element);
+    scheduleRootUnmount(root, onUnmount);
+    return;
   }
+  onUnmount?.();
 }
 
 function isDomNode(value: unknown): value is Node {
@@ -110,8 +123,9 @@ function handleRendererResult(
     return;
   }
   if (result === null) {
-    unmountReactContent(element, roots);
-    element.innerHTML = '';
+    unmountReactContent(element, roots, () => {
+      element.innerHTML = '';
+    });
     return;
   }
   if (isValidElement(result)) {
@@ -119,14 +133,16 @@ function handleRendererResult(
     return;
   }
   if (isDomNode(result)) {
-    unmountReactContent(element, roots);
-    element.innerHTML = '';
-    element.append(result);
+    unmountReactContent(element, roots, () => {
+      element.innerHTML = '';
+      element.append(result);
+    });
     return;
   }
   if (typeof result === 'string' || typeof result === 'number') {
-    unmountReactContent(element, roots);
-    element.textContent = String(result);
+    unmountReactContent(element, roots, () => {
+      element.textContent = String(result);
+    });
     return;
   }
 
