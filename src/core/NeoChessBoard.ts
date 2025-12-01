@@ -1,6 +1,8 @@
 import { Chess } from 'chess.js';
 import { ClockManager } from '../clock/ClockManager';
 import type { ClockEvents } from '../clock/types';
+import { CameraEffects } from '../effects/CameraEffects';
+import type { CameraTransform } from '../effects/types';
 import { EventBus } from './EventBus';
 import {
   parseFEN,
@@ -26,6 +28,7 @@ import type { DrawingManager } from './DrawingManager';
 import { BoardDomManager } from './BoardDomManager';
 import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager';
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
+import { CanvasRenderer } from '../rendering/CanvasRenderer';
 import type { PgnNotation } from './PgnNotation';
 import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
@@ -42,6 +45,7 @@ import type {
   BoardPremoveEnableOptions,
   BoardPremoveControllerConfig,
   BoardPremoveSettings,
+  BoardCameraEffectsOptions,
   Theme,
   Piece,
   PieceSet,
@@ -58,6 +62,7 @@ import type {
   PromotionMode,
   PromotionPiece,
   PromotionOptions,
+  RulesMoveDetail,
   RulesMoveResponse,
   PgnMoveAnnotations,
   ArrowStyleOptions,
@@ -222,6 +227,7 @@ export class NeoChessBoard {
   private ctxB!: CanvasRenderingContext2D;
   private ctxP!: CanvasRenderingContext2D;
   private ctxO!: CanvasRenderingContext2D;
+  private canvasRenderer!: CanvasRenderer;
   private domOverlay?: HTMLDivElement;
   private squareLayer?: HTMLDivElement;
   private pieceLayer?: HTMLDivElement;
@@ -239,6 +245,8 @@ export class NeoChessBoard {
   private pieceElements = new Map<Square, HTMLDivElement>();
   private captureEffectManager?: CaptureEffectManager;
   private boardId?: string;
+  public cameraEffects: CameraEffects | null = null;
+  private cameraEffectsOptions: BoardCameraEffectsOptions = {};
 
   // ---- Rules & State ----
   private rules: RulesAdapter;
@@ -440,6 +448,22 @@ export class NeoChessBoard {
     const showNotationOption = options.showNotation ?? options.showSquareNames;
     this.showSquareNames = Boolean(showNotationOption);
     this.autoFlip = options.autoFlip ?? false;
+    const cameraEffectsOptions = options.cameraEffects ?? {};
+    this.cameraEffectsOptions = {
+      ...cameraEffectsOptions,
+      enabled: cameraEffectsOptions.enabled !== false,
+      maxZoom: cameraEffectsOptions.maxZoom ?? 3,
+      minZoom: cameraEffectsOptions.minZoom ?? 0.5,
+      defaultDuration: cameraEffectsOptions.defaultDuration,
+      defaultEasing: cameraEffectsOptions.defaultEasing,
+      zoomOnMove: cameraEffectsOptions.zoomOnMove ?? false,
+      shakeOnCapture: cameraEffectsOptions.shakeOnCapture !== false,
+      shakeOnCheckmate: cameraEffectsOptions.shakeOnCheckmate !== false,
+      captureShakeIntensity: cameraEffectsOptions.captureShakeIntensity ?? 0.3,
+      captureShakeDuration: cameraEffectsOptions.captureShakeDuration ?? 200,
+      checkmateShakeIntensity: cameraEffectsOptions.checkmateShakeIntensity ?? 0.8,
+      checkmateShakeDuration: cameraEffectsOptions.checkmateShakeDuration ?? 600,
+    };
     this.allowAutoScroll = options.allowAutoScroll === true;
     this.allowDragging = options.allowDragging !== false;
     this.allowDragOffBoard = options.allowDragOffBoard !== false;
@@ -540,6 +564,20 @@ export class NeoChessBoard {
     this.squareElements.clear();
     this.pieceElements.clear();
     this._applyNotationStyles();
+
+    this.cameraEffects = new CameraEffects(
+      {
+        getViewportSize: () => this._getViewportSize(),
+        getSquareBounds: (square) => this._getSquareBounds(square as Square),
+        requestRender: () => this.renderAll(),
+        emit: (event, payload) => this.bus.emit(event, payload as BoardEventMap[typeof event]),
+      },
+      this.cameraEffectsOptions,
+    );
+
+    this.canvasRenderer = new CanvasRenderer(
+      () => this.cameraEffects?.getCurrentTransform() ?? null,
+    );
 
     this._invokeExtensionHook('onInit');
 
@@ -1559,6 +1597,29 @@ export class NeoChessBoard {
   }
 
   // ============================================================================
+  // Public API - Camera Effects
+  // ============================================================================
+
+  public zoomToSquare(square: Square, scale = 2): Promise<void> {
+    if (!this.cameraEffects) return Promise.resolve();
+    return this.cameraEffects.zoomTo({ square, scale });
+  }
+
+  public zoomToMove(from: Square, to: Square, scale = 1.8): Promise<void> {
+    if (!this.cameraEffects) return Promise.resolve();
+    return this.cameraEffects.zoomTo({ squares: [from, to], scale });
+  }
+
+  public resetCamera(animated = true): Promise<void> {
+    if (!this.cameraEffects) return Promise.resolve();
+    return this.cameraEffects.reset(animated);
+  }
+
+  public getCameraTransform(): CameraTransform | null {
+    return this.cameraEffects?.getCurrentTransform() ?? null;
+  }
+
+  // ============================================================================
   // Public API - Event Management
   // ============================================================================
 
@@ -1594,10 +1655,12 @@ export class NeoChessBoard {
   }
 
   public renderAll(): void {
+    const cameraTransform = this.cameraEffects?.getCurrentTransform() ?? null;
+    this._applyCameraDomTransforms(cameraTransform);
     this._invokeExtensionHook('onBeforeRender');
     this._startRenderCaptureFrame();
-    this._drawBoard();
-    this._renderPiecesAndOverlayLayers();
+    this._drawBoard(cameraTransform);
+    this._renderPiecesAndOverlayLayers(cameraTransform);
     this._flushRenderCaptureFrame();
     this._invokeExtensionHook('onAfterRender');
     this._updateInlinePromotionPosition();
@@ -1622,6 +1685,9 @@ export class NeoChessBoard {
     this.inlinePromotionContainer = undefined;
     this.inlinePromotionButtons = [];
     this.inlinePromotionToken = null;
+    this.cameraEffects?.destroy();
+    this.cameraEffects = null;
+    this._applyCameraDomTransforms(null);
   }
 
   // ============================================================================
@@ -1883,7 +1949,7 @@ export class NeoChessBoard {
     this._recordRenderRect(layer, 'sprite', dx, dy, dWidth, dHeight);
   }
 
-  private _drawBoard(): void {
+  private _drawBoard(transform?: CameraTransform | null): void {
     const { light, dark, boardBorder } = this.theme;
     const ctx = this.ctxB;
     const s = this.square;
@@ -1891,6 +1957,7 @@ export class NeoChessBoard {
     const H = this.cBoard.height;
 
     this._clearCanvas(ctx, 'board', 0, 0, W, H);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cBoard, transform);
     ctx.fillStyle = boardBorder;
     this._fillCanvas(ctx, 'board', 0, 0, W, H);
 
@@ -1916,14 +1983,17 @@ export class NeoChessBoard {
     }
 
     this._renderSquareOverlays();
+
+    this.canvasRenderer.restore(ctx, appliedTransform);
   }
 
-  private _drawPieces(): void {
+  private _drawPieces(transform?: CameraTransform | null): void {
     const ctx = this.ctxP;
     const W = this.cPieces.width;
     const H = this.cPieces.height;
 
     this._clearCanvas(ctx, 'pieces', 0, 0, W, H);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cPieces, transform);
 
     const draggingSq = this._dragging?.from;
     const activeDomPieces = new Set<Square>();
@@ -1972,6 +2042,8 @@ export class NeoChessBoard {
     if (this._dragging) {
       this._drawDraggingPiece();
     }
+
+    this.canvasRenderer.restore(ctx, appliedTransform);
   }
 
   private _drawGhostPiece(piece: string, square: Square): void {
@@ -2196,12 +2268,17 @@ export class NeoChessBoard {
     );
   }
 
-  private _drawOverlay(): void {
+  private _drawOverlay(transform?: CameraTransform | null): void {
     const ctx = this.ctxO;
     const W = this.cOverlay.width;
     const H = this.cOverlay.height;
 
     this._clearCanvas(ctx, 'overlay', 0, 0, W, H);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(
+      ctx,
+      this.cOverlay,
+      transform,
+    );
 
     this._drawLastMoveHighlight();
     this._drawCustomHighlights();
@@ -2212,16 +2289,51 @@ export class NeoChessBoard {
     this._drawCheckStatusHighlight();
     this._drawHoverHighlight();
     this._drawDrawingManagerElements();
+
+    this.canvasRenderer.restore(ctx, appliedTransform);
   }
 
-  private _renderPiecesAndOverlayLayers(): void {
+  private _applyCameraDomTransforms(transform: CameraTransform | null): void {
+    const cssTransform = this._formatCssCameraTransform(transform);
+
+    if (this.domOverlay) {
+      this.domOverlay.style.transform = cssTransform;
+    }
+    if (this.pieceLayer) {
+      this.pieceLayer.style.transform = cssTransform;
+    }
+    if (this.squareLayer) {
+      this.squareLayer.style.transform = cssTransform;
+    }
+  }
+
+  private _formatCssCameraTransform(transform: CameraTransform | null): string {
+    if (!transform) {
+      return '';
+    }
+
+    const dpr = this.dpr || 1;
+    const width = this.cOverlay ? this.cOverlay.width / dpr : this.sizePx;
+    const height = this.cOverlay ? this.cOverlay.height / dpr : this.sizePx;
+
+    return [
+      `translate(${width / 2}px, ${height / 2}px)`,
+      `scale(${transform.scale})`,
+      `rotate(${transform.rotation}deg)`,
+      `translate(${width / -2 + transform.x / dpr}px, ${height / -2 + transform.y / dpr}px)`,
+    ].join(' ');
+  }
+
+  private _renderPiecesAndOverlayLayers(transform?: CameraTransform | null): void {
     const alreadyCapturing = this.isRenderCaptureActive;
     if (!alreadyCapturing) {
       this._startRenderCaptureFrame();
     }
 
-    this._drawPieces();
-    this._drawOverlay();
+    const cameraTransform = transform ?? this.cameraEffects?.getCurrentTransform() ?? null;
+    this._applyCameraDomTransforms(cameraTransform);
+    this._drawPieces(cameraTransform);
+    this._drawOverlay(cameraTransform);
 
     if (!alreadyCapturing) {
       this._flushRenderCaptureFrame();
@@ -2456,6 +2568,44 @@ export class NeoChessBoard {
   // ============================================================================
   // Private - Coordinate Conversion
   // ============================================================================
+
+  private _getViewportSize(): { width: number; height: number } {
+    return {
+      width: this.cOverlay?.width ?? 0,
+      height: this.cOverlay?.height ?? 0,
+    };
+  }
+
+  private _getSquareBounds(square: Square): { x: number; y: number; size: number } | null {
+    if (!square) {
+      return null;
+    }
+    const { x, y } = this._sqToXY(square);
+    return { x, y, size: this.square };
+  }
+
+  private _applyInverseCameraTransform(point: Point): Point {
+    const transform = this.cameraEffects?.getCurrentTransform();
+    if (!transform) {
+      return point;
+    }
+
+    const { width, height } = this._getViewportSize();
+    const scale = transform.scale || 1;
+    const rad = (-transform.rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const dx = (point.x - width / 2) / scale;
+    const dy = (point.y - height / 2) / scale;
+    const rx = dx * cos - dy * sin;
+    const ry = dx * sin + dy * cos;
+
+    return {
+      x: rx + width / 2 - transform.x,
+      y: ry + height / 2 - transform.y,
+    };
+  }
 
   private _sqToXY(square: Square): Point {
     const { f, r } = this._squareToIndices(square);
@@ -2950,13 +3100,24 @@ export class NeoChessBoard {
     if (this.allowDragOffBoard) {
       x = clamp(x, 0, this.cOverlay.width);
       y = clamp(y, 0, this.cOverlay.height);
-    } else {
-      if (x < 0 || y < 0 || x > this.cOverlay.width || y > this.cOverlay.height) {
-        return null;
-      }
+    } else if (x < 0 || y < 0 || x > this.cOverlay.width || y > this.cOverlay.height) {
+      return null;
+    }
+    const adjusted = this._applyInverseCameraTransform({ x, y });
+    if (
+      !this.allowDragOffBoard &&
+      (adjusted.x < 0 ||
+        adjusted.y < 0 ||
+        adjusted.x > this.cOverlay.width ||
+        adjusted.y > this.cOverlay.height)
+    ) {
+      return null;
     }
 
-    return { x, y };
+    return {
+      x: this.allowDragOffBoard ? clamp(adjusted.x, 0, this.cOverlay.width) : adjusted.x,
+      y: this.allowDragOffBoard ? clamp(adjusted.y, 0, this.cOverlay.height) : adjusted.y,
+    };
   }
 
   private _updateCursor(cursor: string): void {
@@ -3189,6 +3350,7 @@ export class NeoChessBoard {
     const oldState = this.state;
     const newState = this._parseFEN(fen);
     const movingColor = oldState.turn === 'w' ? 'white' : 'black';
+    const moveDetail = legal.move as RulesMoveDetail | undefined;
 
     this.state = newState;
     this._syncOrientationFromTurn(false);
@@ -3208,7 +3370,8 @@ export class NeoChessBoard {
     }
     this.audioManager.playSound(eventType, movingColor);
     this._animateTo(newState, oldState);
-    this._emitMoveEvent(from, to, fen);
+    this._triggerCameraEffectsForMove(from, to, legal);
+    this._emitMoveEvent(from, to, fen, moveDetail ?? null);
 
     this.clockManager?.switchActive();
 
@@ -3253,6 +3416,41 @@ export class NeoChessBoard {
     }
 
     return 'move';
+  }
+
+  private _triggerCameraEffectsForMove(from: Square, to: Square, legal: RulesMoveResponse): void {
+    if (!this.cameraEffects || this.cameraEffectsOptions.enabled === false) {
+      return;
+    }
+
+    if (this.cameraEffectsOptions.zoomOnMove) {
+      this.zoomToMove(from, to).catch(() => {});
+    }
+
+    const moveDetail = legal.move as { captured?: unknown; san?: string } | undefined;
+    const capturedPiece = moveDetail?.captured as string | null | undefined;
+    const san = moveDetail?.san;
+    const isCheckmate =
+      this.rules.isCheckmate?.() === true || (typeof san === 'string' && san.includes('#'));
+
+    if (isCheckmate && this.cameraEffectsOptions.shakeOnCheckmate !== false) {
+      this.cameraEffects
+        .shake(
+          this.cameraEffectsOptions.checkmateShakeIntensity ?? 0.8,
+          this.cameraEffectsOptions.checkmateShakeDuration ?? 600,
+        )
+        .catch(() => {});
+      return;
+    }
+
+    if (capturedPiece && this.cameraEffectsOptions.shakeOnCapture !== false) {
+      this.cameraEffects
+        .shake(
+          this.cameraEffectsOptions.captureShakeIntensity ?? 0.3,
+          this.cameraEffectsOptions.captureShakeDuration ?? 200,
+        )
+        .catch(() => {});
+    }
   }
 
   private _processMoveFailure(
@@ -4180,8 +4378,11 @@ export class NeoChessBoard {
     progress: number,
   ): void {
     const ctx = this.ctxP;
+    const transform = this.cameraEffects?.getCurrentTransform() ?? null;
+    this._applyCameraDomTransforms(transform);
     this._startRenderCaptureFrame();
     this._clearCanvas(ctx, 'pieces', 0, 0, this.cPieces.width, this.cPieces.height);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cPieces, transform);
 
     for (let r = 0; r < this.ranksCount; r++) {
       for (let f = 0; f < this.filesCount; f++) {
@@ -4199,7 +4400,9 @@ export class NeoChessBoard {
       }
     }
 
-    this._drawOverlay();
+    this.canvasRenderer.restore(ctx, appliedTransform);
+
+    this._drawOverlay(transform);
     this._flushRenderCaptureFrame();
   }
 
@@ -4646,8 +4849,19 @@ export class NeoChessBoard {
     this._notifyExtensionEvent('onUpdate', updatePayload);
   }
 
-  private _emitMoveEvent(from: Square, to: Square, fen: string): void {
-    const movePayload = { from, to, fen } as BoardEventMap['move'];
+  private _emitMoveEvent(
+    from: Square,
+    to: Square,
+    fen: string,
+    detail?: RulesMoveDetail | null,
+  ): void {
+    const movePayload = {
+      from,
+      to,
+      fen,
+      captured: detail?.captured ?? undefined,
+      san: detail?.san ?? undefined,
+    } as BoardEventMap['move'];
     this.bus.emit('move', movePayload);
     this._notifyExtensionEvent('onMove', movePayload);
   }

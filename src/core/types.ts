@@ -3,6 +3,7 @@ import type { NeoChessBoard } from './NeoChessBoard';
 import type { EventBus } from './EventBus';
 import type { PgnNotation } from './PgnNotation';
 import type { ClockConfig, ClockState } from '../clock/types';
+import type { CameraEffectsOptions, CameraEventPayloadMap } from '../effects/types';
 export type { ClockCallbacks, ClockConfig, ClockState } from '../clock/types';
 
 export type Square = `${string}${number}`;
@@ -223,8 +224,8 @@ export interface PremoveInvalidatedEvent {
   reason?: string;
 }
 
-export interface BoardEventMap {
-  move: { from: Square; to: Square; fen: string };
+export interface BoardEventMap extends CameraEventPayloadMap {
+  move: { from: Square; to: Square; fen: string; captured?: string | null; san?: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };
   promotion: PromotionRequest;
@@ -436,6 +437,16 @@ export type PieceRenderer = (params: PieceRendererParams) => void;
 
 export type PieceRendererMap = Partial<Record<Piece, PieceRenderer>>;
 
+export interface BoardCameraEffectsOptions extends CameraEffectsOptions {
+  zoomOnMove?: boolean;
+  shakeOnCapture?: boolean;
+  shakeOnCheckmate?: boolean;
+  captureShakeIntensity?: number;
+  captureShakeDuration?: number;
+  checkmateShakeIntensity?: number;
+  checkmateShakeDuration?: number;
+}
+
 export interface BoardOptions {
   size?: number;
   orientation?: 'white' | 'black';
@@ -450,6 +461,7 @@ export interface BoardOptions {
   animationMs?: number;
   animationDurationInMs?: number;
   animationEasing?: AnimationEasing;
+  cameraEffects?: BoardCameraEffectsOptions;
   showAnimations?: boolean;
   highlightLegal?: boolean;
   fen?: string;
