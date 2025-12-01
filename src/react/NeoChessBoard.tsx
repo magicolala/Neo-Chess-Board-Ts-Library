@@ -65,42 +65,65 @@ function normalizeCssStyle(
   return normalized;
 }
 
-function scheduleRootUnmount(root: Root, onComplete?: () => void): void {
-  setTimeout(() => {
-    root.unmount();
+type RootEntry = {
+  root: Root;
+  unmountId?: ReturnType<typeof setTimeout>;
+};
+
+function scheduleRootUnmount(
+  element: HTMLElement,
+  entry: RootEntry,
+  roots: Map<HTMLElement, RootEntry>,
+  onComplete?: () => void,
+): void {
+  if (entry.unmountId) {
+    clearTimeout(entry.unmountId);
+  }
+  entry.unmountId = setTimeout(() => {
+    entry.unmountId = undefined;
+    entry.root.unmount();
+    roots.delete(element);
     onComplete?.();
   });
 }
 
-function unmountRoots(map: Map<HTMLElement, Root>): void {
-  for (const root of map.values()) {
-    scheduleRootUnmount(root);
+function unmountRoots(map: Map<HTMLElement, RootEntry>): void {
+  for (const [element, entry] of map) {
+    scheduleRootUnmount(element, entry, map);
   }
-  map.clear();
+}
+
+function getOrCreateRootEntry(element: HTMLElement, roots: Map<HTMLElement, RootEntry>): RootEntry {
+  const entry = roots.get(element);
+  if (entry) {
+    if (entry.unmountId) {
+      clearTimeout(entry.unmountId);
+      entry.unmountId = undefined;
+    }
+    return entry;
+  }
+  const newEntry: RootEntry = { root: createRoot(element) };
+  roots.set(element, newEntry);
+  return newEntry;
 }
 
 function renderReactContent(
   element: HTMLElement,
   content: ReactNode,
-  roots: Map<HTMLElement, Root>,
+  roots: Map<HTMLElement, RootEntry>,
 ): void {
-  let root = roots.get(element);
-  if (!root) {
-    root = createRoot(element);
-    roots.set(element, root);
-  }
-  root.render(content);
+  const entry = getOrCreateRootEntry(element, roots);
+  entry.root.render(content);
 }
 
 function unmountReactContent(
   element: HTMLElement,
-  roots: Map<HTMLElement, Root>,
+  roots: Map<HTMLElement, RootEntry>,
   onUnmount?: () => void,
 ): void {
-  const root = roots.get(element);
-  if (root) {
-    roots.delete(element);
-    scheduleRootUnmount(root, onUnmount);
+  const entry = roots.get(element);
+  if (entry) {
+    scheduleRootUnmount(element, entry, roots, onUnmount);
     return;
   }
   onUnmount?.();
@@ -113,7 +136,7 @@ function isDomNode(value: unknown): value is Node {
 function handleRendererResult(
   result: unknown,
   element: HTMLElement,
-  roots: Map<HTMLElement, Root>,
+  roots: Map<HTMLElement, RootEntry>,
 ): void {
   if (result === undefined) {
     return;
@@ -226,8 +249,8 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     },
     ref,
   ) => {
-    const squareRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
-    const pieceRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
+    const squareRendererRootsRef = useRef<Map<HTMLElement, RootEntry>>(new Map());
+    const pieceRendererRootsRef = useRef<Map<HTMLElement, RootEntry>>(new Map());
 
     const normalizedBoardStyle = useMemo(
       () => normalizeInlineStyle(boardStyleProp),
