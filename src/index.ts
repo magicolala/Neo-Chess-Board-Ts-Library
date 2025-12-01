@@ -24,3 +24,4 @@ export * from './core/extensions/AccessibilityExtension';
 export * from './engine/StockfishEngine';
 export * from './engine/UCIProtocol';
 export * from './engine/types';
+export * from './agents';
