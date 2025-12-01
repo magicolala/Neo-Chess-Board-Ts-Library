@@ -51,22 +51,27 @@ export class ChessJsRules implements RulesAdapter {
    * Set a position from a FEN string
    */
   setFEN(fen: string): void {
+    const normalizedFen = this.normalizeFenInput(fen);
     try {
-      console.log('Attempting to load FEN:', fen);
-      // Ensure FEN has all 6 parts, adding default if missing
-      const fenParts = fen.split(' ');
-      if (fenParts.length === 4) {
-        // Missing en passant, halfmove clock and fullmove number
-        fen += ' - 0 1'; // Default values
-      } else if (fenParts.length === 5) {
-        // Missing fullmove number
-        fen += ' 1'; // Default value
-      }
-      this.chess.load(fen);
+      this.chess.load(normalizedFen);
     } catch (error) {
-      console.error('Invalid FEN:', fen, error);
-      throw new Error(`Invalid FEN: ${fen}`);
+      console.error('Invalid FEN:', normalizedFen, error);
+      throw new Error(`Invalid FEN: ${normalizedFen}`);
     }
+  }
+
+  private normalizeFenInput(fen: string): string {
+    const fenParts = fen.trim().split(/\s+/);
+
+    if (fenParts.length === 4) {
+      // Missing en passant, halfmove clock and fullmove number
+      fenParts.push('-', '0', '1');
+    } else if (fenParts.length === 5) {
+      // Missing fullmove number
+      fenParts.push('1');
+    }
+
+    return fenParts.join(' ');
   }
 
   /**
