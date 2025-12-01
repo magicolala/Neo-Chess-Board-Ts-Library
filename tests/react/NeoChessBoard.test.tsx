@@ -675,8 +675,8 @@ describe('NeoChessBoard React Component', () => {
       act(() => {
         boardSquareRenderer(params);
       });
-      expect(firstRoot.unmount).toHaveBeenCalledTimes(1);
-      expect(host.textContent).toBe('square text');
+      await waitFor(() => expect(firstRoot.unmount).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(host.textContent).toBe('square text'));
       expect(createRootMock).toHaveBeenCalledTimes(initialCreateRootCalls + 1);
 
       act(() => {
@@ -690,8 +690,8 @@ describe('NeoChessBoard React Component', () => {
       act(() => {
         boardSquareRenderer(params);
       });
-      expect(secondRoot.unmount).toHaveBeenCalledTimes(1);
-      expect(host.textContent).toBe('');
+      await waitFor(() => expect(secondRoot.unmount).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(host.textContent).toBe(''));
 
       act(() => {
         boardSquareRenderer(params);
