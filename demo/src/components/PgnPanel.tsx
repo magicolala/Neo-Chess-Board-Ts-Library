@@ -198,8 +198,9 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
           direction = 'last';
           break;
         }
-        default:
+        default: {
           break;
+        }
       }
 
       if (!direction) {

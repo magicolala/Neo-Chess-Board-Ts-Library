@@ -185,6 +185,29 @@ export type BoardSoundEventColor = 'white' | 'black';
 export type BoardSoundEventUrl = string | Partial<Record<BoardSoundEventColor, string>>;
 export type BoardSoundEventUrls = Partial<Record<BoardSoundEventType, BoardSoundEventUrl>>;
 
+export type CaptureEffectType = 'sparkles' | 'ripple';
+
+export interface CaptureEffectRendererParams {
+  from: Square;
+  to: Square;
+  overlay: HTMLElement;
+  container: HTMLElement;
+  palette: string[];
+  durationMs: number;
+  effect: CaptureEffectType;
+  board: NeoChessBoard;
+}
+
+export type CaptureEffectRenderer = (params: CaptureEffectRendererParams) => void | (() => void);
+
+export interface CaptureEffectOptions {
+  enabled?: boolean;
+  durationMs?: number;
+  palette?: string[];
+  effect?: CaptureEffectType;
+  renderer?: CaptureEffectRenderer;
+}
+
 export interface PremoveAppliedEvent {
   from: Square;
   to: Square;
@@ -455,6 +478,7 @@ export interface BoardOptions {
   soundUrl?: string;
   soundUrls?: Partial<Record<'white' | 'black', string>>;
   soundEventUrls?: BoardSoundEventUrls;
+  captureEffect?: CaptureEffectOptions;
   extensions?: ExtensionConfig[];
   onPromotionRequired?: (request: PromotionRequest) => void | Promise<void>;
   allowDrawingArrows?: boolean;
