@@ -153,6 +153,26 @@ When a specific clip is missing the board gracefully falls back to the move conf
 
 Available sound event keys: `move`, `capture`, `check`, `checkmate`, `promote`, and `illegal`.
 
+## 🤖 AI Analysis with Stockfish
+
+Neo Chess Board ships with an optional Stockfish integration powered by WebAssembly. Use the new `StockfishEngine` helper and extensions to enable real-time analysis or to play against an AI opponent.
+
+```ts
+import { createEngineExtension, createAIPlayerExtension } from 'neo-chess-board';
+
+const board = new NeoChessBoard(container, {
+  extensions: [
+    createEngineExtension({
+      autoStart: true,
+      onResult: (result) => console.log('Engine score', result.lines[0]?.score),
+    }),
+    createAIPlayerExtension({ aiColor: 'black', movetimeMs: 200 })
+  ],
+});
+```
+
+The engine runs in an isolated worker transport (mocked during testing) to keep the UI responsive. Configure skill level, depth, or Multi-PV via the `engine` options passed to the extension factories.
+
 ## 🎨 Themes
 
 Neo Chess Board includes two beautiful themes out of the box, and you can easily create your own.
