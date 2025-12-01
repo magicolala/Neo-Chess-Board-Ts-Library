@@ -345,6 +345,14 @@ describe('ChessJsRules', () => {
       consoleErrorSpy.mockRestore();
     });
 
+    test('should normalize whitespace in FEN strings', () => {
+      const messyFen = '  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR   w   KQkq   -   0   1  ';
+
+      rules.setFEN(messyFen);
+
+      expect(rules.getFEN()).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    });
+
     test('should handle invalid move with proper error response', () => {
       const moveResult = rules.move({ from: 'e2', to: 'e5' }); // Invalid move
       expect(moveResult.ok).toBe(false);
