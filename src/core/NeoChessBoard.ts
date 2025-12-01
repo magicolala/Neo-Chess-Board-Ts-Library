@@ -28,6 +28,7 @@ import { BoardAudioManager, type BoardSoundEventType } from './BoardAudioManager
 import { BoardEventManager, type BoardPointerEventPoint } from './BoardEventManager';
 import type { PgnNotation } from './PgnNotation';
 import { PgnParseError } from './errors';
+import { CaptureEffectManager } from './CaptureEffectManager';
 import type {
   Square,
   Color,
@@ -236,6 +237,7 @@ export class NeoChessBoard {
   private customPieceRenderers?: PieceRendererMap;
   private squareElements = new Map<Square, HTMLDivElement>();
   private pieceElements = new Map<Square, HTMLDivElement>();
+  private captureEffectManager?: CaptureEffectManager;
   private boardId?: string;
 
   // ---- Rules & State ----
@@ -529,6 +531,12 @@ export class NeoChessBoard {
     this.pieceLayer = domResult.pieceLayer;
     this.drawingManager = domResult.drawingManager;
     this.sprites = domResult.sprites;
+    this.captureEffectManager = new CaptureEffectManager({
+      overlayRoot: this.domOverlay ?? this.root,
+      getSquareBounds: (square) => this._squareCssBounds(square),
+      options: options.captureEffect,
+      board: this,
+    });
     this.squareElements.clear();
     this.pieceElements.clear();
     this._applyNotationStyles();
@@ -1601,6 +1609,8 @@ export class NeoChessBoard {
     this._cancelPendingPromotion();
     this.eventManager?.detach();
     this.domManager.disconnect();
+    this.captureEffectManager?.destroy();
+    this.captureEffectManager = undefined;
     this._disposeExtensions();
     this._hideInlinePromotion();
     this.root.innerHTML = '';
@@ -2452,6 +2462,12 @@ export class NeoChessBoard {
     return this._calculateSquarePosition(f, r);
   }
 
+  private _squareCssBounds(square: Square): { left: number; top: number; size: number } {
+    const { x, y } = this._sqToXY(square);
+    const scale = this.dpr || 1;
+    return { left: x / scale, top: y / scale, size: this.square / scale };
+  }
+
   private _squareCenter(square: Square): Point {
     const origin = this._sqToXY(square);
     return { x: origin.x + this.square / 2, y: origin.y + this.square / 2 };
@@ -3187,6 +3203,9 @@ export class NeoChessBoard {
     }
 
     const eventType = this._determineSoundEventType(legal);
+    if (eventType === 'capture') {
+      this.captureEffectManager?.trigger(from, to);
+    }
     this.audioManager.playSound(eventType, movingColor);
     this._animateTo(newState, oldState);
     this._emitMoveEvent(from, to, fen);

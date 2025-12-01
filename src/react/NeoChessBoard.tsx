@@ -8,6 +8,8 @@ import type {
   ClockConfig,
   ClockState,
   Color,
+  CaptureEffectRenderer,
+  CaptureEffectRendererParams,
   Piece,
   PieceRendererMap,
   PieceRendererParams,
@@ -26,6 +28,8 @@ type ReactPieceRenderer =
   | ReactNode;
 
 type ReactPieceRendererMap = Partial<Record<Piece, ReactPieceRenderer>>;
+
+type ReactCaptureEffectRenderer = (params: CaptureEffectRendererParams) => ReactNode | void;
 
 function isPieceRendererFunction(
   renderer: ReactPieceRenderer,
@@ -142,6 +146,7 @@ export interface NeoChessProps
   boardOrientation?: BoardOptions['orientation'];
   squareRenderer?: BoardOptions['squareRenderer'] | ReactSquareRenderer;
   pieces?: BoardOptions['pieces'] | ReactPieceRendererMap;
+  captureEffectRenderer?: ReactCaptureEffectRenderer;
   onMove?: (e: BoardEventMap['move']) => void;
   onIllegal?: (e: BoardEventMap['illegal']) => void;
   onUpdate?: (e: BoardEventMap['update']) => void;
@@ -206,12 +211,14 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onClockPause,
       onClockFlag,
       size,
+      captureEffectRenderer: captureEffectRendererProp,
       ...restOptions
     },
     ref,
   ) => {
     const squareRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
     const pieceRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
+    const captureEffectRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
 
     const normalizedBoardStyle = useMemo(
       () => normalizeInlineStyle(boardStyleProp),
@@ -264,6 +271,22 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       return hasRenderer ? mapped : undefined;
     }, [piecesProp]);
 
+    const normalizedCaptureEffectRenderer = useMemo<CaptureEffectRenderer | undefined>(() => {
+      if (captureEffectRendererProp === undefined) {
+        return;
+      }
+      if (!captureEffectRendererProp) {
+        return;
+      }
+      return (params) => {
+        const result = captureEffectRendererProp(params);
+        handleRendererResult(result, params.container, captureEffectRootsRef.current);
+        return () => {
+          unmountReactContent(params.container, captureEffectRootsRef.current);
+        };
+      };
+    }, [captureEffectRendererProp]);
+
     const options = useMemo<UpdatableBoardOptions>(() => {
       const typedOptions = { ...restOptions } as UpdatableBoardOptions;
       if (typeof size === 'number') {
@@ -280,6 +303,13 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       typedOptions.boardStyle = normalizedBoardStyle;
       typedOptions.squareRenderer = normalizedSquareRenderer;
       typedOptions.pieces = normalizedPieceRenderers;
+      if (normalizedCaptureEffectRenderer) {
+        typedOptions.captureEffect = restOptions.captureEffect
+          ? { ...restOptions.captureEffect, renderer: normalizedCaptureEffectRenderer }
+          : { renderer: normalizedCaptureEffectRenderer };
+      } else if (restOptions.captureEffect) {
+        typedOptions.captureEffect = { ...restOptions.captureEffect };
+      }
       return typedOptions;
     }, [
       restOptions,
@@ -290,6 +320,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       normalizedBoardStyle,
       normalizedSquareRenderer,
       normalizedPieceRenderers,
+      normalizedCaptureEffectRenderer,
     ]);
 
     const computedStyle = useMemo<CSSProperties | undefined>(() => {
@@ -380,9 +411,16 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     }, [piecesProp]);
 
     useEffect(() => {
+      if (!captureEffectRendererProp) {
+        unmountRoots(captureEffectRootsRef.current);
+      }
+    }, [captureEffectRendererProp]);
+
+    useEffect(() => {
       if (!isReady) {
         unmountRoots(squareRendererRootsRef.current);
         unmountRoots(pieceRendererRootsRef.current);
+        unmountRoots(captureEffectRootsRef.current);
       }
     }, [isReady]);
 
@@ -390,6 +428,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       () => () => {
         unmountRoots(squareRendererRootsRef.current);
         unmountRoots(pieceRendererRootsRef.current);
+        unmountRoots(captureEffectRootsRef.current);
       },
       [],
     );

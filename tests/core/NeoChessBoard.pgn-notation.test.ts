@@ -243,12 +243,10 @@ describe('NeoChessBoard PGN and notation helpers', () => {
 
   beforeAll(() => {
     // Silence expected error logging when loading malformed PGNs in tests
-    // eslint-disable-next-line no-console
     console.error = () => {};
   });
 
   afterAll(() => {
-    // eslint-disable-next-line no-console
     console.error = originalConsoleError;
   });
 

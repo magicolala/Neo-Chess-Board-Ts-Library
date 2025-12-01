@@ -784,6 +784,13 @@ interface BoardOptions {
       string | Partial<Record<'white' | 'black', string>>
     >
   >;
+  captureEffect?: {
+    enabled?: boolean;
+    durationMs?: number;
+    palette?: string[];
+    effect?: 'sparkles' | 'ripple';
+    renderer?: CaptureEffectRenderer;
+  };
   onPromotionRequired?: (request: PromotionRequest) => void;
   promotion?: { autoQueen?: boolean; ui?: 'dialog' | 'inline' };
 }
@@ -792,6 +799,8 @@ interface BoardOptions {
 > **Tip:** Use the `animation` object to configure move animations. `AnimationEasing` accepts the built-in names (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`) or a custom function that receives progress from 0 to 1.
 
 > **Note:** When `showSquareNames` is enabled, the file letters and rank numbers remain on the bottom and left edges even when the board flips orientation, mirroring the behaviour of chess.com.
+
+Enable `captureEffect.enabled` to overlay a short particle burst on the captured square. Tune it with `durationMs`, `palette`, or an alternate `effect` style. Advanced consumers can pass `renderer` (or the React prop `captureEffectRenderer`) to draw custom visuals on the provided overlay container instead of the built-in sparkles.
 
 ### BoardConfiguration
 
