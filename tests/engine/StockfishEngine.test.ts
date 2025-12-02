@@ -32,18 +32,54 @@ class RecordingTransport implements EngineTransport {
 
   private async handle(message: string): Promise<void> {
     const [command] = message.split(' ');
+    switch (command) {
+      case 'uci': {
+        this.emit('uciok');
+        break;
+      }
+      case 'isready': {
+        this.emit('readyok');
+        break;
+      }
+      case 'go': {
+        setTimeout(() => this.emit('bestmove e2e4'), 10);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+
+  private emit(message: string): void {
+    this.listeners.forEach((listener) => listener(message));
+  }
+}
+
+class IdleTransport implements EngineTransport {
+  messages: string[] = [];
+  private listeners: Array<(message: string) => void> = [];
+
+  postMessage(message: string): void {
+    this.messages.push(message);
+    const [command] = message.split(' ');
     if (command === 'uci') {
       this.emit('uciok');
-      return;
-    }
-    if (command === 'isready') {
+    } else if (command === 'isready') {
       this.emit('readyok');
-      return;
     }
-    if (command === 'go') {
-      setTimeout(() => this.emit('bestmove e2e4'), 10);
-      return;
-    }
+  }
+
+  terminate(): void {
+    this.listeners = [];
+  }
+
+  onMessage(callback: (message: string) => void): void {
+    this.listeners.push(callback);
+  }
+
+  onError(): void {
+    // no-op for idle mock
   }
 
   private emit(message: string): void {
@@ -78,6 +114,25 @@ describe('StockfishEngine (mock transport)', () => {
     const goCommand = transport.messages.find((message) => message.startsWith('go'));
     expect(goCommand).toBeDefined();
     expect(goCommand).toContain('movetime');
+
+    engine.terminate();
+  });
+
+  it('sends a stop command if a search exceeds the stop timeout', async () => {
+    const transport = new IdleTransport();
+    const engine = new StockfishEngine({
+      transportFactory: () => transport,
+      stopTimeoutMs: 30,
+    });
+
+    await expect(
+      engine.analyze({
+        fen: START_FEN,
+        movetimeMs: 10_000,
+      }),
+    ).rejects.toThrow('Engine timeout');
+
+    expect(transport.messages).toContain('stop');
 
     engine.terminate();
   });
