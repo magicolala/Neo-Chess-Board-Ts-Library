@@ -55,7 +55,7 @@ export class PgnParserWorkerManager {
       this.worker.addEventListener('error', (error: ErrorEvent) => {
         console.error('PgnParserWorker error:', error);
         // Rejeter toutes les requêtes en attente
-        for (const [_id, request] of this.pendingRequests.entries()) {
+        for (const request of this.pendingRequests.values()) {
           clearTimeout(request.timeout);
           request.reject(new Error(`Worker error: ${error.message}`));
         }
@@ -173,7 +173,7 @@ export class PgnParserWorkerManager {
    */
   terminate(): void {
     // Annuler toutes les requêtes en attente
-    for (const [_id, request] of this.pendingRequests.entries()) {
+    for (const request of this.pendingRequests.values()) {
       clearTimeout(request.timeout);
       request.reject(new Error('Worker terminated'));
     }

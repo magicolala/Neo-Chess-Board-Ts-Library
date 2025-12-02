@@ -52,7 +52,7 @@ export class LegalMovesWorkerManager {
       this.worker.addEventListener('error', (error: ErrorEvent) => {
         console.error('LegalMovesWorker error:', error);
         // Rejeter toutes les requêtes en attente
-        for (const [_id, request] of this.pendingRequests.entries()) {
+        for (const request of this.pendingRequests.values()) {
           clearTimeout(request.timeout);
           request.reject(new Error(`Worker error: ${error.message}`));
         }
@@ -150,7 +150,7 @@ export class LegalMovesWorkerManager {
    */
   terminate(): void {
     // Annuler toutes les requêtes en attente
-    for (const [_id, request] of this.pendingRequests.entries()) {
+    for (const request of this.pendingRequests.values()) {
       clearTimeout(request.timeout);
       request.reject(new Error('Worker terminated'));
     }
