@@ -41,7 +41,8 @@ export class LegalMovesWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', import.meta.url), {
+      const baseUrl = globalThis.location?.href ?? 'about:blank';
+      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', baseUrl), {
         type: 'module',
       });
 

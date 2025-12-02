@@ -47,27 +47,39 @@ describe('PgnParserWorker Logic', () => {
       const movesText = '1. e4 e5 2. Nf3 Nc6 1-0';
 
       const moves: Array<{ moveNumber: number; white?: string; black?: string }> = [];
-      const movePattern = /(\d+)\.(?!\d)(\.{2})?\s*([^\s{]+)?(?:\s*\{([^}]*)\})?/g;
-      let match;
 
-      while ((match = movePattern.exec(movesText)) !== null) {
-        const moveNumber = Number.parseInt(match[1]!, 10);
-        const existingIndex = moves.findIndex((m) => m.moveNumber === moveNumber);
-        const isBlackMove = match[2] === '..' || existingIndex >= 0;
-        const san = match[3]?.trim();
+      // 1. Enlever les commentaires et le résultat
+      const cleanedMovesText = movesText
+        .replace(/{[^}]*}/g, '')
+        .replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '')
+        .trim();
 
-        if (san && !['1-0', '0-1', '1/2-1/2', '*'].includes(san)) {
-          const move: { moveNumber: number; white?: string; black?: string } = {
-            moveNumber,
-            white: isBlackMove ? undefined : san,
-            black: isBlackMove ? san : undefined,
-          };
+      // 2. Séparer en tokens
+      const tokens = cleanedMovesText.split(/\s+/);
 
-          if (existingIndex >= 0) {
-            moves[existingIndex]!.black = move.black;
-          } else {
+      let currentMoveNumber = 0;
+      let isWhiteMove = true;
+
+      for (const token of tokens) {
+        if (token.endsWith('.')) {
+          const moveNumber = Number.parseInt(token.slice(0, -1), 10);
+          if (!isNaN(moveNumber)) {
+            currentMoveNumber = moveNumber;
+            isWhiteMove = true;
+          }
+        } else if (currentMoveNumber > 0 && token) {
+          let move = moves.find((m) => m.moveNumber === currentMoveNumber);
+          if (!move) {
+            move = { moveNumber: currentMoveNumber };
             moves.push(move);
           }
+
+          if (isWhiteMove) {
+            move.white = token;
+          } else {
+            move.black = token;
+          }
+          isWhiteMove = !isWhiteMove;
         }
       }
 
