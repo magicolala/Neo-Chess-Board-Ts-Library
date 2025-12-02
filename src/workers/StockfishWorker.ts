@@ -18,37 +18,20 @@ let stockfishReady = false;
 /**
  * Initialise Stockfish en chargeant le binaire WASM
  *
- * @param stockfishPath Chemin vers le binaire Stockfish (optionnel pour l'instant)
+ * @param _stockfishPath Chemin vers le binaire Stockfish (optionnel pour l'instant)
  */
-async function initStockfish(stockfishPath?: string): Promise<void> {
+async function initStockfish(_stockfishPath?: string): Promise<void> {
   if (stockfishInstance) {
     return;
   }
 
   try {
-    // Option 1: Utiliser stockfish.js (recommandé)
-    // Décommentez et installez: npm install stockfish.js
-    /*
-    const Stockfish = await import('stockfish.js');
-    stockfishInstance = Stockfish.default();
-    stockfishInstance.onmessage = (line: string) => {
-      if (line) {
-        self.postMessage({ type: 'output', content: line });
-      }
-    };
-    */
-
-    // Option 2: Charger depuis un fichier WASM externe
-    // Si vous avez un fichier stockfish.wasm dans public/
-    /*
-    const wasmUrl = stockfishPath || '/stockfish.wasm';
-    const response = await fetch(wasmUrl);
-    const wasmBuffer = await response.arrayBuffer();
-    // Initialiser Stockfish avec le buffer WASM
-    */
-
     // Option 3: Simulation pour le développement (actuellement actif)
     // Cette simulation permet de tester l'intégration sans le vrai Stockfish
+    // Pour utiliser le vrai Stockfish:
+    // 1. Installer stockfish.js : npm install stockfish.js
+    // 2. Importer et initialiser Stockfish dans ce worker
+    // 3. Connecter les callbacks onmessage de Stockfish aux messages du worker
     stockfishInstance = createMockStockfish();
 
     stockfishReady = true;
@@ -67,7 +50,7 @@ async function initStockfish(stockfishPath?: string): Promise<void> {
  * Remplacez cette fonction par l'initialisation réelle de Stockfish
  */
 function createMockStockfish(): { postMessage: (message: string) => void } {
-  let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  let _currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   let analysisDepth = 0;
   let analysisTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -95,9 +78,9 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
       if (command === 'position') {
         const fenMatch = message.match(/fen\s+(.+?)(?:\s+moves|$)/);
         if (fenMatch) {
-          currentFen = fenMatch[1];
+          _currentFen = fenMatch[1];
         } else if (message.includes('startpos')) {
-          currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+          _currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
         }
         return;
       }
@@ -144,7 +127,6 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
           analysisTimer = null;
         }
         self.postMessage({ type: 'output', content: 'bestmove 0000' });
-        return;
       }
     },
   };
@@ -153,7 +135,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
 /**
  * Gère les messages reçus du thread principal
  */
-globalThis.onmessage = async (event: MessageEvent) => {
+globalThis.addEventListener('message', async (event: MessageEvent) => {
   const { type, command, stockfishPath } = event.data as {
     type?: string;
     command?: string;
@@ -181,7 +163,7 @@ globalThis.onmessage = async (event: MessageEvent) => {
       });
     }
   }
-};
+});
 
 /**
  * Gère les erreurs du Worker

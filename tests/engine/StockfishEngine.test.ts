@@ -1,4 +1,5 @@
 import { StockfishEngine } from '../../src/engine/StockfishEngine';
+import type { EngineTransport } from '../../src/engine/types';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -46,7 +47,7 @@ describe('StockfishEngine (mock transport)', () => {
 
     const engine = new StockfishEngine({
       variant: 'chess960',
-      transportFactory: () => mockTransport as any,
+      transportFactory: () => mockTransport as EngineTransport,
     });
 
     await engine.init();

@@ -1,6 +1,6 @@
 import { type ChessGame } from '../core/logic/ChessGame';
 import { EventBus } from '../core/EventBus';
-import type { EngineLine, EngineScore } from '../engine/types';
+import type { EngineScore } from '../engine/types';
 import {
   parseInfo,
   parseBestMove,
@@ -90,16 +90,16 @@ export class StockfishAgent {
         type: 'module',
       });
 
-      this.worker.onmessage = (event: MessageEvent) => {
+      this.worker.addEventListener('message', (event: MessageEvent) => {
         this.handleWorkerMessage(event.data);
-      };
+      });
 
-      this.worker.onerror = (error: ErrorEvent) => {
+      this.worker.addEventListener('error', (error: ErrorEvent) => {
         this.bus.emit('error', {
           message: 'Erreur du Worker Stockfish',
           cause: error,
         });
-      };
+      });
 
       // Envoyer le chemin Stockfish au worker (optionnel pour l'instant)
       if (this.worker) {
@@ -146,7 +146,7 @@ export class StockfishAgent {
       this.parseUCIOutput(message.content);
     } else if (message.type === 'ready') {
       this.isReady = true;
-      this.bus.emit('ready', undefined);
+      this.bus.emit('ready');
     } else if (message.type === 'error') {
       this.bus.emit('error', {
         message: message.content || 'Erreur inconnue du Worker',
@@ -190,7 +190,7 @@ export class StockfishAgent {
     // Gérer les réponses UCI standard
     if ((line === 'uciok' || line === 'readyok') && !this.isReady) {
       this.isReady = true;
-      this.bus.emit('ready', undefined);
+      this.bus.emit('ready');
     }
   }
 
