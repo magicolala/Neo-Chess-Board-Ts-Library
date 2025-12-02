@@ -1,4 +1,11 @@
-import type { RulesAdapter, Move, Square, Color, RulesMoveResponse, RulesMoveDetail } from './types';
+import type {
+  RulesAdapter,
+  Move,
+  Square,
+  Color,
+  RulesMoveResponse,
+  RulesMoveDetail,
+} from './types';
 import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN, type ParsedFENState } from './utils';
 import {
   canRedo,

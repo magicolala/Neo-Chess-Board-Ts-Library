@@ -17,7 +17,6 @@ import {
   reset as resetHistory,
   undo as undoHistory,
   type HistoryStoreState,
-  type MoveState,
 } from './state/historyStore';
 
 type ChessSquare = (typeof SQUARES)[number];
@@ -97,7 +96,8 @@ export class ChessJsRules implements RulesAdapter {
     const replay = this.createChessInstance(initialFen);
     let nextStore = createHistoryStore(initialFen);
 
-    for (const move of undoneMoves.reverse()) {
+    for (let index = undoneMoves.length - 1; index >= 0; index -= 1) {
+      const move = undoneMoves[index];
       const applied = replay.move(move);
       if (applied) {
         const moveDetail = {

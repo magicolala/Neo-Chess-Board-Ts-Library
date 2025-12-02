@@ -20,7 +20,10 @@ function cloneMoveState(move: MoveState): MoveState {
   };
 }
 
-export function createHistoryStore(initialFen: string, initialState?: Partial<MoveState>): HistoryStoreState {
+export function createHistoryStore(
+  initialFen: string,
+  initialState?: Partial<MoveState>,
+): HistoryStoreState {
   return {
     past: [],
     present: {
@@ -34,22 +37,27 @@ export function createHistoryStore(initialFen: string, initialState?: Partial<Mo
 
 export function makeMove(state: HistoryStoreState, next: MoveState): HistoryStoreState {
   return {
-    past: [...state.past.map(cloneMoveState), cloneMoveState(state.present)],
+    past: [...state.past.map((entry) => cloneMoveState(entry)), cloneMoveState(state.present)],
     present: cloneMoveState(next),
     future: [],
   };
 }
 
-export function undo(
-  state: HistoryStoreState,
-): { state: HistoryStoreState; previous?: MoveState; undone?: MoveState } {
+export function undo(state: HistoryStoreState): {
+  state: HistoryStoreState;
+  previous?: MoveState;
+  undone?: MoveState;
+} {
   if (state.past.length === 0) {
     return { state };
   }
 
-  const previous = cloneMoveState(state.past[state.past.length - 1]);
-  const remainingPast = state.past.slice(0, -1).map(cloneMoveState);
-  const future = [cloneMoveState(state.present), ...state.future.map(cloneMoveState)];
+  const previous = cloneMoveState(state.past.at(-1));
+  const remainingPast = state.past.slice(0, -1).map((entry) => cloneMoveState(entry));
+  const future = [
+    cloneMoveState(state.present),
+    ...state.future.map((entry) => cloneMoveState(entry)),
+  ];
 
   return {
     state: {
@@ -62,9 +70,11 @@ export function undo(
   };
 }
 
-export function redo(
-  state: HistoryStoreState,
-): { state: HistoryStoreState; next?: MoveState; restored?: MoveState } {
+export function redo(state: HistoryStoreState): {
+  state: HistoryStoreState;
+  next?: MoveState;
+  restored?: MoveState;
+} {
   const [next, ...future] = state.future;
   if (!next) {
     return { state };
@@ -72,16 +82,20 @@ export function redo(
 
   return {
     state: {
-      past: [...state.past.map(cloneMoveState), cloneMoveState(state.present)],
+      past: [...state.past.map((entry) => cloneMoveState(entry)), cloneMoveState(state.present)],
       present: cloneMoveState(next),
-      future: future.map(cloneMoveState),
+      future: future.map((entry) => cloneMoveState(entry)),
     },
     next,
     restored: next,
   };
 }
 
-export function reset(state: HistoryStoreState, fen: string, initialState?: Partial<MoveState>): HistoryStoreState {
+export function reset(
+  state: HistoryStoreState,
+  fen: string,
+  initialState?: Partial<MoveState>,
+): HistoryStoreState {
   return {
     past: [],
     present: {
@@ -107,27 +121,29 @@ export function canRedo(state: HistoryStoreState): boolean {
 
 export function getHistory(state: HistoryStoreState): string[] {
   const timeline = [...state.past.slice(1), state.present];
-  return timeline
-    .map((entry) => entry.san ?? entry.move?.san)
-    .filter((value): value is string => Boolean(value));
+  return timeline.map((entry) => entry.san ?? entry.move?.san).filter(Boolean);
 }
 
 export function getVerboseHistory(state: HistoryStoreState): RulesMoveDetail[] {
   const timeline = [...state.past.slice(1), state.present];
   return timeline
-    .map((entry) => (entry.move && entry.move.san ? ({ ...entry.move } as RulesMoveDetail) : undefined))
-    .filter((value): value is RulesMoveDetail => Boolean(value));
+    .map((entry) =>
+      entry.move && entry.move.san ? ({ ...entry.move } as RulesMoveDetail) : undefined,
+    )
+    .filter(Boolean);
 }
 
 export function getLastMoveState(state: HistoryStoreState): MoveState | undefined {
-  const withMove = [...state.past.slice(1), state.present].filter((entry) => entry.move || entry.san);
+  const withMove = [...state.past.slice(1), state.present].filter(
+    (entry) => entry.move || entry.san,
+  );
   return withMove.at(-1);
 }
 
 export function cloneHistoryStore(state: HistoryStoreState): HistoryStoreState {
   return {
-    past: state.past.map(cloneMoveState),
+    past: state.past.map((entry) => cloneMoveState(entry)),
     present: cloneMoveState(state.present),
-    future: state.future.map(cloneMoveState),
+    future: state.future.map((entry) => cloneMoveState(entry)),
   };
 }

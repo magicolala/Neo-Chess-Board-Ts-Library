@@ -50,7 +50,10 @@ describe('historyStore', () => {
 
   it('clears future moves when a new move is made after undo', () => {
     let store = createHistoryStore('start');
-    store = makeSequence(store, [buildMoveState('fen-after-e4', 'e4'), buildMoveState('fen-after-e5', 'e5')]);
+    store = makeSequence(store, [
+      buildMoveState('fen-after-e4', 'e4'),
+      buildMoveState('fen-after-e5', 'e5'),
+    ]);
 
     const { state: undoneState } = undo(store);
     expect(canRedo(undoneState)).toBe(true);

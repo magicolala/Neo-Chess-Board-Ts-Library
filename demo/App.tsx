@@ -73,6 +73,9 @@ interface TimelineMove {
   promotion?: string;
 }
 
+const normalizePromotion = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
 interface PlyAnnotationInfo {
   moveNumber: number;
   color: 'white' | 'black';
@@ -431,7 +434,7 @@ const AppContent: React.FC = () => {
     const verboseHistory = chessRules.getHistory().map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion,
+      promotion: normalizePromotion(move.promotion),
     }));
 
     let timelineRules: ChessJsRules;
@@ -461,7 +464,7 @@ const AppContent: React.FC = () => {
       const result = timelineRules.move({
         from: move.from,
         to: move.to,
-        promotion: move.promotion,
+        promotion: normalizePromotion(move.promotion),
       });
       if (result.ok) {
         const plyIndex = index + 1;
@@ -513,7 +516,7 @@ const AppContent: React.FC = () => {
         const response = chessRules.move({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         });
 
         if (!response.ok) {
@@ -659,7 +662,7 @@ const AppContent: React.FC = () => {
         timelineMovesRef.current = chessRules.getHistory().map((move) => ({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         }));
         setCurrentEvaluation(undefined);
         setCurrentPly(fallbackPly);
@@ -1492,7 +1495,7 @@ const AppContent: React.FC = () => {
                     timelineMovesRef.current = chessRules.getHistory().map((move) => ({
                       from: move.from,
                       to: move.to,
-                      promotion: move.promotion,
+                      promotion: normalizePromotion(move.promotion),
                     }));
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
