@@ -41,10 +41,9 @@ export class LegalMovesWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/LegalMovesWorker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', import.meta.url), {
+        type: 'module',
+      });
 
       this.worker.addEventListener('message', (event: MessageEvent<LegalMovesWorkerResponse>) => {
         this.handleWorkerMessage(event.data);
@@ -88,9 +87,7 @@ export class LegalMovesWorkerManager {
   /**
    * Envoie une requête au Worker et retourne une Promise
    */
-  private sendRequest(
-    message: Omit<LegalMovesWorkerMessage, 'id'>,
-  ): Promise<Move[]> {
+  private sendRequest(message: Omit<LegalMovesWorkerMessage, 'id'>): Promise<Move[]> {
     if (!this.worker) {
       return Promise.reject(new Error('Worker not initialized'));
     }
@@ -133,10 +130,7 @@ export class LegalMovesWorkerManager {
   /**
    * Calcule les coups légaux de manière approfondie
    */
-  async calculateDeep(
-    fen: string,
-    options?: { includeAllPieces?: boolean },
-  ): Promise<Move[]> {
+  async calculateDeep(fen: string, options?: { includeAllPieces?: boolean }): Promise<Move[]> {
     return this.sendRequest({
       type: 'calculateDeep',
       fen,
@@ -168,4 +162,3 @@ export class LegalMovesWorkerManager {
     }
   }
 }
-
