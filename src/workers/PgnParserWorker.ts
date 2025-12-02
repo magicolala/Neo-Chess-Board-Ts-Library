@@ -5,10 +5,10 @@
  * vers un thread séparé pour maintenir l'UI fluide.
  */
 
-import { PgnAnnotationParser, type ParsedAnnotations } from '../core/PgnAnnotationParser';
+import { PgnAnnotationParser } from '../core/PgnAnnotationParser';
 import { PgnParseError, type PgnParseErrorCode } from '../core/errors';
 import type { PgnMetadata } from '../core/PgnNotation';
-import type { PgnMove, SquareHighlight } from '../core/types';
+import type { PgnMove } from '../core/types';
 
 export interface PgnParserWorkerMessage {
   type: 'parsePgn' | 'parsePgnBatch' | 'validatePgn';
@@ -65,7 +65,10 @@ function parseMetadata(pgnString: string): PgnMetadata {
 /**
  * Parse les coups d'un PGN (version simplifiée)
  */
-function parseMoves(pgnString: string, includeAnnotations: boolean): {
+function parseMoves(
+  pgnString: string,
+  includeAnnotations: boolean,
+): {
   moves: PgnMove[];
   result: string;
   parseIssues: PgnParseError[];
@@ -74,7 +77,6 @@ function parseMoves(pgnString: string, includeAnnotations: boolean): {
   const parseIssues: PgnParseError[] = [];
   let result = '*';
 
-  // Extraire la section des coups (après les headers)
   const lines = pgnString.split('\n');
   let movesText = '';
   let inHeaders = true;
@@ -92,56 +94,64 @@ function parseMoves(pgnString: string, includeAnnotations: boolean): {
     }
   }
 
-  // Extraire le résultat final
   const resultMatch = movesText.match(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/);
   if (resultMatch) {
     result = resultMatch[1]!;
     movesText = movesText.replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '');
   }
 
-  // Pattern pour matcher les coups avec annotations
-  const movePattern = /(\d+)\.(?!\d)(\.{2})?\s*([^\s{]+)?(?:\s*\{([^}]*)\})?/g;
-  let match;
+  const tokens = movesText.match(/{[^}]*}|\S+/g) || [];
+  let currentMoveNumber = 0;
+  let isWhiteMove = true;
 
-  while ((match = movePattern.exec(movesText)) !== null) {
-    const moveNumber = Number.parseInt(match[1]!, 10);
-    const isBlackMove = match[2] === '..';
-    const san = match[3]?.trim();
-    const comment = match[4]?.trim();
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
 
-    if (san && !['1-0', '0-1', '1/2-1/2', '*'].includes(san)) {
-      const move: PgnMove = {
-        moveNumber,
-        white: isBlackMove ? undefined : san,
-        black: isBlackMove ? san : undefined,
-      };
+    if (token.endsWith('...')) {
+      currentMoveNumber = Number.parseInt(token.slice(0, -3), 10);
+      isWhiteMove = false;
+      continue;
+    }
 
+    if (token.endsWith('.')) {
+      currentMoveNumber = Number.parseInt(token.slice(0, -1), 10);
+      isWhiteMove = true;
+      continue;
+    }
+
+    if (token.startsWith('{')) {
+      continue;
+    }
+
+    const san = token;
+    let move = moves.find((m) => m.moveNumber === currentMoveNumber);
+    if (!move) {
+      move = { moveNumber: currentMoveNumber };
+      moves.push(move);
+    }
+
+    let comment: string | undefined;
+    if (i + 1 < tokens.length && tokens[i + 1].startsWith('{')) {
+      comment = tokens[i + 1].slice(1, -1).trim();
+    }
+
+    const addAnnotations = (targetMove: PgnMove, side: 'white' | 'black') => {
       if (comment && includeAnnotations) {
         try {
           const annotations = PgnAnnotationParser.parseComment(comment);
-          if (isBlackMove) {
-            move.blackComment = annotations.textComment;
-            move.blackAnnotations = {
-              arrows: annotations.arrows,
-              circles: annotations.highlights.map((h): SquareHighlight => ({
-                square: h.square,
-                type: 'circle',
-                color: h.color,
-              })),
-              evaluation: annotations.evaluation,
-            };
-          } else {
-            move.whiteComment = annotations.textComment;
-            move.whiteAnnotations = {
-              arrows: annotations.arrows,
-              circles: annotations.highlights.map((h): SquareHighlight => ({
-                square: h.square,
-                type: 'circle',
-                color: h.color,
-              })),
-              evaluation: annotations.evaluation,
-            };
-          }
+          const annotationProp = side === 'white' ? 'whiteAnnotations' : 'blackAnnotations';
+          const commentProp = side === 'white' ? 'whiteComment' : 'blackComment';
+
+          targetMove[commentProp] = annotations.textComment;
+          targetMove[annotationProp] = {
+            arrows: annotations.arrows,
+            circles: annotations.highlights.map((h) => ({
+              square: h.square,
+              type: 'circle',
+              color: h.color,
+            })),
+            evaluation: annotations.evaluation,
+          };
 
           if (annotations.issues) {
             parseIssues.push(...annotations.issues);
@@ -151,28 +161,25 @@ function parseMoves(pgnString: string, includeAnnotations: boolean): {
             new PgnParseError(
               `Failed to parse annotations: ${error instanceof Error ? error.message : String(error)}`,
               'PGN_IMPORT_FAILED',
-              { details: { moveNumber, comment } },
+              { details: { moveNumber: currentMoveNumber, comment } },
             ),
           );
         }
       } else if (comment) {
-        if (isBlackMove) {
-          move.blackComment = comment;
-        } else {
-          move.whiteComment = comment;
-        }
+        const commentProp = side === 'white' ? 'whiteComment' : 'blackComment';
+        targetMove[commentProp] = comment;
       }
+    };
 
-      // Vérifier si le coup existe déjà (pour les coups noirs)
-      const existingIndex = moves.findIndex((m) => m.moveNumber === moveNumber);
-      if (existingIndex >= 0) {
-        moves[existingIndex]!.black = move.black;
-        moves[existingIndex]!.blackComment = move.blackComment;
-        moves[existingIndex]!.blackAnnotations = move.blackAnnotations;
-      } else {
-        moves.push(move);
-      }
+    if (isWhiteMove) {
+      move.white = san;
+      addAnnotations(move, 'white');
+    } else {
+      move.black = san;
+      addAnnotations(move, 'black');
     }
+
+    isWhiteMove = !isWhiteMove;
   }
 
   return { moves, result, parseIssues };
@@ -232,7 +239,7 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
 
   try {
     switch (type) {
-      case 'parsePgn':
+      case 'parsePgn': {
         if (!pgn) {
           throw new Error('pgn is required for parsePgn');
         }
@@ -243,8 +250,9 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           result,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      case 'parsePgnBatch':
+      case 'parsePgnBatch': {
         if (!pgns || pgns.length === 0) {
           throw new Error('pgns array is required for parsePgnBatch');
         }
@@ -255,8 +263,9 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           results,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      case 'validatePgn':
+      case 'validatePgn': {
         if (!pgn) {
           throw new Error('pgn is required for validatePgn');
         }
@@ -267,9 +276,11 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           valid,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      default:
+      default: {
         throw new Error(`Unknown message type: ${type}`);
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -290,4 +301,3 @@ self.addEventListener('error', (error: ErrorEvent) => {
     error: `Worker error: ${error.message}`,
   } as PgnParserWorkerResponse);
 });
-

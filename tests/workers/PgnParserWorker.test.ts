@@ -47,27 +47,39 @@ describe('PgnParserWorker Logic', () => {
       const movesText = '1. e4 e5 2. Nf3 Nc6 1-0';
 
       const moves: Array<{ moveNumber: number; white?: string; black?: string }> = [];
-      const movePattern = /(\d+)\.(?!\d)(\.{2})?\s*([^\s{]+)?(?:\s*\{([^}]*)\})?/g;
-      let match;
 
-      while ((match = movePattern.exec(movesText)) !== null) {
-        const moveNumber = Number.parseInt(match[1]!, 10);
-        const isBlackMove = match[2] === '..';
-        const san = match[3]?.trim();
+      // 1. Enlever les commentaires et le résultat
+      const cleanedMovesText = movesText
+        .replaceAll(/{[^}]*}/g, '')
+        .replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '')
+        .trim();
 
-        if (san && !['1-0', '0-1', '1/2-1/2', '*'].includes(san)) {
-          const move: { moveNumber: number; white?: string; black?: string } = {
-            moveNumber,
-            white: isBlackMove ? undefined : san,
-            black: isBlackMove ? san : undefined,
-          };
+      // 2. Séparer en tokens
+      const tokens = cleanedMovesText.split(/\s+/);
 
-          const existingIndex = moves.findIndex((m) => m.moveNumber === moveNumber);
-          if (existingIndex >= 0) {
-            moves[existingIndex]!.black = move.black;
-          } else {
+      let currentMoveNumber = 0;
+      let isWhiteMove = true;
+
+      for (const token of tokens) {
+        if (token.endsWith('.')) {
+          const moveNumber = Number.parseInt(token.slice(0, -1), 10);
+          if (!Number.isNaN(moveNumber)) {
+            currentMoveNumber = moveNumber;
+            isWhiteMove = true;
+          }
+        } else if (currentMoveNumber > 0 && token) {
+          let move = moves.find((m) => m.moveNumber === currentMoveNumber);
+          if (!move) {
+            move = { moveNumber: currentMoveNumber };
             moves.push(move);
           }
+
+          if (isWhiteMove) {
+            move.white = token;
+          } else {
+            move.black = token;
+          }
+          isWhiteMove = !isWhiteMove;
         }
       }
 
@@ -105,13 +117,14 @@ describe('PgnParserWorker Logic', () => {
     });
 
     it('should reject invalid PGN', () => {
-      const invalidPgn = '';
+      const invalidPgn: string = '';
 
-      const isValid =
+      const isValid = Boolean(
         invalidPgn &&
-        invalidPgn.trim().length > 0 &&
-        invalidPgn.includes('[') &&
-        (/\d+\./.test(invalidPgn) || /(1-0|0-1|1\/2-1\/2|\*)/.test(invalidPgn));
+          invalidPgn.trim().length > 0 &&
+          invalidPgn.includes('[') &&
+          (/\d+\./.test(invalidPgn) || /(1-0|0-1|1\/2-1\/2|\*)/.test(invalidPgn)),
+      );
 
       expect(isValid).toBe(false);
     });
@@ -125,6 +138,9 @@ describe('PgnParserWorkerManager', () => {
     terminate: jest.Mock;
     addEventListener: jest.Mock;
   };
+  let messageHandler: ((event: MessageEvent) => void) | null = null;
+  let errorHandler: ((event: ErrorEvent) => void) | null = null;
+  let lastRequestId: string | null = null;
   let PgnParserWorkerManager: typeof import('../../src/core/PgnParserWorkerManager').PgnParserWorkerManager;
 
   beforeEach(async () => {
@@ -136,6 +152,89 @@ describe('PgnParserWorkerManager', () => {
 
     // Mock Worker constructor
     globalThis.Worker = jest.fn().mockImplementation(() => mockWorker) as unknown as typeof Worker;
+
+    // Capture event handlers registered by the manager during construction
+    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
+      if (event === 'message') messageHandler = handler as (ev: MessageEvent) => void;
+      if (event === 'error') errorHandler = handler as (ev: ErrorEvent) => void;
+    });
+
+    // Capture posted messages and auto-respond so the manager resolves requests
+    (mockWorker.postMessage as jest.Mock).mockImplementation((message: unknown) => {
+      const msg = message as { id?: string; type?: string; pgn?: string; pgns?: string[] };
+      if (msg && msg.id) {
+        lastRequestId = msg.id as string;
+      }
+
+      // Auto-respond appropriately depending on the request type
+      if (msg && msg.id) {
+        switch (msg.type) {
+          case 'parsePgn': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    result: {
+                      metadata: { Event: 'Test', Site: 'Test' },
+                      moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
+                      result: '1-0',
+                      parseIssues: [],
+                    },
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          case 'parsePgnBatch': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    results: [
+                      {
+                        metadata: { Event: 'Game 1' },
+                        moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
+                        result: '1-0',
+                        parseIssues: [],
+                      },
+                      {
+                        metadata: { Event: 'Game 2' },
+                        moves: [{ moveNumber: 1, white: 'd4', black: 'd5' }],
+                        result: '1-0',
+                        parseIssues: [],
+                      },
+                    ],
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          case 'validatePgn': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    valid: true,
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }
+    });
 
     const module = await import('../../src/core/PgnParserWorkerManager');
     PgnParserWorkerManager = module.PgnParserWorkerManager;
@@ -173,7 +272,7 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       result: {
         metadata: { Event: 'Test', Site: 'Test' },
         moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
@@ -182,16 +281,12 @@ describe('PgnParserWorkerManager', () => {
       },
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.parsePgn(pgnString);
 
-    if (messageHandler) {
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
       messageHandler({ data: mockResponse } as MessageEvent);
     }
 
@@ -213,7 +308,7 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       results: [
         {
           metadata: { Event: 'Game 1' },
@@ -230,16 +325,12 @@ describe('PgnParserWorkerManager', () => {
       ],
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.parsePgnBatch(pgns);
 
-    if (messageHandler) {
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
       messageHandler({ data: mockResponse } as MessageEvent);
     }
 
@@ -257,20 +348,16 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       valid: true,
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.validatePgn(pgnString);
 
-    if (messageHandler) {
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
       messageHandler({ data: mockResponse } as MessageEvent);
     }
 
@@ -286,4 +373,3 @@ describe('PgnParserWorkerManager', () => {
     expect(mockWorker.terminate).toHaveBeenCalled();
   });
 });
-

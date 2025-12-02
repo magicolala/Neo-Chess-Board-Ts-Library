@@ -32,7 +32,7 @@ export class LegalMovesWorkerManager {
   private readonly timeout: number;
 
   constructor(options: LegalMovesWorkerManagerOptions = {}) {
-    this.timeout = options.timeout ?? 5000;
+    this.timeout = options.timeout ?? 30000;
     this.initWorker();
   }
 
@@ -41,7 +41,8 @@ export class LegalMovesWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', import.meta.url), {
+      const baseUrl = globalThis.location?.href ?? 'about:blank';
+      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', baseUrl), {
         type: 'module',
       });
 
@@ -52,7 +53,7 @@ export class LegalMovesWorkerManager {
       this.worker.addEventListener('error', (error: ErrorEvent) => {
         console.error('LegalMovesWorker error:', error);
         // Rejeter toutes les requêtes en attente
-        for (const [id, request] of this.pendingRequests.entries()) {
+        for (const request of this.pendingRequests.values()) {
           clearTimeout(request.timeout);
           request.reject(new Error(`Worker error: ${error.message}`));
         }
@@ -150,7 +151,7 @@ export class LegalMovesWorkerManager {
    */
   terminate(): void {
     // Annuler toutes les requêtes en attente
-    for (const [id, request] of this.pendingRequests.entries()) {
+    for (const request of this.pendingRequests.values()) {
       clearTimeout(request.timeout);
       request.reject(new Error('Worker terminated'));
     }

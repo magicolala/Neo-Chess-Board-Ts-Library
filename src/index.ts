@@ -24,5 +24,10 @@ export * from './core/extensions/AccessibilityExtension';
 export * from './engine/StockfishEngine';
 export * from './engine/UCIProtocol';
 export * from './engine/types';
-export * from './agents';
+// Agents module uses Web Workers and import.meta which is not compatible with Node/Jest ESM transform
+// Re-exporting agents from the main index pulls the module into the Node test environment and
+// causes TypeScript compile errors (import.meta). Keep agents separate to avoid runtime type errors
+// and allow Node-based tests to import core utilities safely. If you need agents in consuming code,
+// import directly from 'neo-chess-board/src/agents' or add a browser-only entry point.
+// export * from './agents';
 export * from './utils/chess960';

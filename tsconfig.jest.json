@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "include": ["src", "tests", "demo", "tests/assets.d.ts", "tests/jest-dom.d.ts"]
+}

@@ -10,6 +10,8 @@ import type {
   ParsedPgnResult,
 } from '../workers/PgnParserWorker';
 
+type ParsedPgnWorkerResult = ParsedPgnResult | ParsedPgnResult[] | boolean;
+
 export interface PgnParserWorkerManagerOptions {
   /**
    * Délai d'attente maximum pour une requête (en ms)
@@ -23,7 +25,7 @@ export class PgnParserWorkerManager {
   private pendingRequests = new Map<
     string,
     {
-      resolve: (result: ParsedPgnResult | ParsedPgnResult[] | boolean) => void;
+      resolve: (result: ParsedPgnWorkerResult) => void;
       reject: (error: Error) => void;
       timeout: ReturnType<typeof setTimeout>;
     }
@@ -32,7 +34,7 @@ export class PgnParserWorkerManager {
   private readonly timeout: number;
 
   constructor(options: PgnParserWorkerManagerOptions = {}) {
-    this.timeout = options.timeout ?? 30000; // 30s pour les gros fichiers
+    this.timeout = options.timeout ?? 30_000; // 30s pour les gros fichiers
     this.initWorker();
   }
 
@@ -41,10 +43,10 @@ export class PgnParserWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/PgnParserWorker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      const baseUrl = globalThis.location?.href ?? 'http://localhost/';
+      this.worker = new Worker(new URL('../workers/PgnParserWorker.ts', baseUrl), {
+        type: 'module',
+      });
 
       this.worker.addEventListener('message', (event: MessageEvent<PgnParserWorkerResponse>) => {
         this.handleWorkerMessage(event.data);
@@ -53,7 +55,7 @@ export class PgnParserWorkerManager {
       this.worker.addEventListener('error', (error: ErrorEvent) => {
         console.error('PgnParserWorker error:', error);
         // Rejeter toutes les requêtes en attente
-        for (const [id, request] of this.pendingRequests.entries()) {
+        for (const request of this.pendingRequests.values()) {
           clearTimeout(request.timeout);
           request.reject(new Error(`Worker error: ${error.message}`));
         }
@@ -83,10 +85,10 @@ export class PgnParserWorkerManager {
         request.resolve(data.result);
       } else if (data.results !== undefined) {
         request.resolve(data.results);
-      } else if (data.valid !== undefined) {
-        request.resolve(data.valid);
-      } else {
+      } else if (data.valid === undefined) {
         request.reject(new Error('Invalid response from worker'));
+      } else {
+        request.resolve(data.valid);
       }
     } else {
       request.reject(new Error(data.error || 'Unknown error from worker'));
@@ -96,7 +98,7 @@ export class PgnParserWorkerManager {
   /**
    * Envoie une requête au Worker et retourne une Promise
    */
-  private sendRequest<T extends ParsedPgnResult | ParsedPgnResult[] | boolean>(
+  private sendRequest<T extends ParsedPgnWorkerResult>(
     message: Omit<PgnParserWorkerMessage, 'id'>,
   ): Promise<T> {
     if (!this.worker) {
@@ -113,7 +115,7 @@ export class PgnParserWorkerManager {
       }, this.timeout);
 
       this.pendingRequests.set(id, {
-        resolve: resolve as (result: ParsedPgnResult | ParsedPgnResult[] | boolean) => void,
+        resolve: resolve as (result: ParsedPgnWorkerResult) => void,
         reject,
         timeout,
       });
@@ -171,7 +173,7 @@ export class PgnParserWorkerManager {
    */
   terminate(): void {
     // Annuler toutes les requêtes en attente
-    for (const [id, request] of this.pendingRequests.entries()) {
+    for (const request of this.pendingRequests.values()) {
       clearTimeout(request.timeout);
       request.reject(new Error('Worker terminated'));
     }
@@ -183,4 +185,3 @@ export class PgnParserWorkerManager {
     }
   }
 }
-

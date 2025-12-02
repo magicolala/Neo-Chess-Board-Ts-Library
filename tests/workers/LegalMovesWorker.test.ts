@@ -8,12 +8,6 @@
 import { LightRules } from '../../src/core/LightRules';
 import { START_FEN } from '../../src/core/utils';
 
-// Mock the Worker environment
-const mockWorkerMessage = (data: unknown) => {
-  const event = new MessageEvent('message', { data });
-  globalThis.dispatchEvent(event);
-};
-
 describe('LegalMovesWorker Logic', () => {
   // Test the core logic that would run in the Worker
   describe('calculateAllMoves', () => {
@@ -90,6 +84,9 @@ describe('LegalMovesWorkerManager', () => {
     terminate: jest.Mock;
     addEventListener: jest.Mock;
   };
+  let messageHandler: ((event: MessageEvent) => void) | null = null;
+  let errorHandler: ((event: ErrorEvent) => void) | null = null;
+  let lastRequestId: string | null = null;
   let LegalMovesWorkerManager: typeof import('../../src/core/LegalMovesWorkerManager').LegalMovesWorkerManager;
 
   beforeEach(async () => {
@@ -101,6 +98,35 @@ describe('LegalMovesWorkerManager', () => {
 
     // Mock Worker constructor
     globalThis.Worker = jest.fn().mockImplementation(() => mockWorker) as unknown as typeof Worker;
+
+    // Capture event handlers registered by the manager during construction
+    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
+      if (event === 'message') messageHandler = handler as (ev: MessageEvent) => void;
+      if (event === 'error') errorHandler = handler as (ev: ErrorEvent) => void;
+    });
+
+    // Capture posted messages to extract request IDs used by the manager
+    (mockWorker.postMessage as jest.Mock).mockImplementation((message: unknown) => {
+      const msg = message as { id?: string; type?: string; [key: string]: unknown };
+      if (msg && msg.id) {
+        lastRequestId = msg.id as string;
+      }
+
+      // Auto-respond to calculateAllMoves requests so sendRequest resolves in tests
+      if (msg && msg.id && msg.type === 'calculateAllMoves') {
+        setTimeout(() => {
+          if (messageHandler) {
+            messageHandler({
+              data: {
+                type: 'success',
+                id: msg.id,
+                moves: [{ from: 'e2', to: 'e4' }],
+              },
+            } as MessageEvent);
+          }
+        }, 0);
+      }
+    });
 
     const module = await import('../../src/core/LegalMovesWorkerManager');
     LegalMovesWorkerManager = module.LegalMovesWorkerManager;
@@ -131,25 +157,20 @@ describe('LegalMovesWorkerManager', () => {
   it('should send calculateAllMoves request', async () => {
     const manager = new LegalMovesWorkerManager();
 
-    // Mock response
+    // Mock response - use request id captured from postMessage
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       moves: [{ from: 'e2', to: 'e4' }],
     };
 
-    // Set up event listener to capture the handler
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.calculateAllMoves(START_FEN);
 
-    // Simulate Worker response
-    if (messageHandler) {
+    // Wait for the message to be posted and ID to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Simulate Worker response using the handler captured during construction
+    if (messageHandler && lastRequestId) {
       messageHandler({ data: mockResponse } as MessageEvent);
     }
 
@@ -161,16 +182,9 @@ describe('LegalMovesWorkerManager', () => {
   it('should handle Worker errors', async () => {
     const manager = new LegalMovesWorkerManager();
 
-    let errorHandler: ((event: ErrorEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'error') {
-        errorHandler = handler as (event: ErrorEvent) => void;
-      }
-    });
-
     const promise = manager.calculateAllMoves(START_FEN);
 
-    // Simulate Worker error
+    // Simulate Worker error using the handler captured during construction
     if (errorHandler) {
       errorHandler({ message: 'Worker error' } as ErrorEvent);
     }
@@ -186,4 +200,3 @@ describe('LegalMovesWorkerManager', () => {
     expect(mockWorker.terminate).toHaveBeenCalled();
   });
 });
-
