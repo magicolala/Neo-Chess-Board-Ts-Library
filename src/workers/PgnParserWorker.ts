@@ -5,7 +5,7 @@
  * vers un thread séparé pour maintenir l'UI fluide.
  */
 
-import { PgnAnnotationParser, type ParsedAnnotations } from '../core/PgnAnnotationParser';
+import { PgnAnnotationParser } from '../core/PgnAnnotationParser';
 import { PgnParseError, type PgnParseErrorCode } from '../core/errors';
 import type { PgnMetadata } from '../core/PgnNotation';
 import type { PgnMove, SquareHighlight } from '../core/types';

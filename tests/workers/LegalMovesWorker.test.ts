@@ -8,12 +8,6 @@
 import { LightRules } from '../../src/core/LightRules';
 import { START_FEN } from '../../src/core/utils';
 
-// Mock the Worker environment
-const mockWorkerMessage = (data: unknown) => {
-  const event = new MessageEvent('message', { data });
-  globalThis.dispatchEvent(event);
-};
-
 describe('LegalMovesWorker Logic', () => {
   // Test the core logic that would run in the Worker
   describe('calculateAllMoves', () => {

@@ -10,6 +10,8 @@ import type {
   ParsedPgnResult,
 } from '../workers/PgnParserWorker';
 
+type ParsedPgnWorkerResult = ParsedPgnResult | ParsedPgnResult[] | boolean;
+
 export interface PgnParserWorkerManagerOptions {
   /**
    * Délai d'attente maximum pour une requête (en ms)
@@ -23,7 +25,7 @@ export class PgnParserWorkerManager {
   private pendingRequests = new Map<
     string,
     {
-      resolve: (result: ParsedPgnResult | ParsedPgnResult[] | boolean) => void;
+      resolve: (result: ParsedPgnWorkerResult) => void;
       reject: (error: Error) => void;
       timeout: ReturnType<typeof setTimeout>;
     }
@@ -53,7 +55,7 @@ export class PgnParserWorkerManager {
       this.worker.addEventListener('error', (error: ErrorEvent) => {
         console.error('PgnParserWorker error:', error);
         // Rejeter toutes les requêtes en attente
-        for (const [id, request] of this.pendingRequests.entries()) {
+        for (const [_id, request] of this.pendingRequests.entries()) {
           clearTimeout(request.timeout);
           request.reject(new Error(`Worker error: ${error.message}`));
         }
@@ -96,7 +98,7 @@ export class PgnParserWorkerManager {
   /**
    * Envoie une requête au Worker et retourne une Promise
    */
-  private sendRequest<T extends ParsedPgnResult | ParsedPgnResult[] | boolean>(
+  private sendRequest<T extends ParsedPgnWorkerResult>(
     message: Omit<PgnParserWorkerMessage, 'id'>,
   ): Promise<T> {
     if (!this.worker) {
@@ -113,7 +115,7 @@ export class PgnParserWorkerManager {
       }, this.timeout);
 
       this.pendingRequests.set(id, {
-        resolve: resolve as (result: ParsedPgnResult | ParsedPgnResult[] | boolean) => void,
+        resolve: resolve as (result: ParsedPgnWorkerResult) => void,
         reject,
         timeout,
       });
@@ -171,7 +173,7 @@ export class PgnParserWorkerManager {
    */
   terminate(): void {
     // Annuler toutes les requêtes en attente
-    for (const [id, request] of this.pendingRequests.entries()) {
+    for (const [_id, request] of this.pendingRequests.entries()) {
       clearTimeout(request.timeout);
       request.reject(new Error('Worker terminated'));
     }
