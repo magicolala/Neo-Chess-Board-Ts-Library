@@ -1,4 +1,3 @@
-import { Chess } from 'chess.js';
 import { ClockManager } from '../clock/ClockManager';
 import type { ClockEvents } from '../clock/types';
 import { CameraEffects } from '../effects/CameraEffects';
@@ -35,6 +34,7 @@ import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
 import { LegalMovesWorkerManager } from './LegalMovesWorkerManager';
 import { PgnParserWorkerManager } from './PgnParserWorkerManager';
+import { RuleEngine } from './RuleEngine';
 import type {
   Square,
   Color,
@@ -132,19 +132,10 @@ const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
 ];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
-const COORDINATE_MOVE_REGEX =
-  /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/;
 const PGN_COMMENT_REGEX = /\s*\{[^{}]*\}\s*/g;
 const MULTIPLE_SPACE_REGEX = /[ \t]{2,}/g;
 const SPACED_NEWLINE_REGEX = / ?\n ?/g;
 const MULTIPLE_NEWLINES_REGEX = /\n{3,}/g;
-
-type NormalizedNotationMove = {
-  from: Square;
-  to: Square;
-  promotion?: PromotionPiece;
-  san?: string;
-};
 
 const PIECE_INDEX_MAP: Record<string, number> = {
   k: 0,
@@ -232,6 +223,7 @@ export class NeoChessBoard {
   private ctxP!: CanvasRenderingContext2D;
   private ctxO!: CanvasRenderingContext2D;
   private canvasRenderer!: CanvasRenderer;
+  private ruleEngine!: RuleEngine;
   private domOverlay?: HTMLDivElement;
   private squareLayer?: HTMLDivElement;
   private pieceLayer?: HTMLDivElement;
@@ -516,6 +508,7 @@ export class NeoChessBoard {
         rankLabels: this.rankLabels,
       },
     });
+    this.ruleEngine = new RuleEngine(() => this.rules);
 
     // Initialize feature flags
     this.interactive = options.interactive !== false;
@@ -881,7 +874,7 @@ export class NeoChessBoard {
       }
     }
 
-    const parsed = this._parseCoordinateNotation(sanitizedNotation);
+    const parsed = this.ruleEngine.parseCoordinateNotation(sanitizedNotation);
     if (!parsed) {
       return false;
     }
@@ -1124,49 +1117,23 @@ export class NeoChessBoard {
     const normalizedFrom = from.toLowerCase() as MoveNotation;
     const normalizedTo = to.toLowerCase() as MoveNotation;
 
-    if (!notation.trim()) {
-      return null;
-    }
-
-    if (normalizedFrom === normalizedTo) {
-      return notation.trim();
-    }
-
-    const normalizedMove = this._normalizeNotationInput(notation, normalizedFrom);
-    if (!normalizedMove) {
-      return null;
-    }
-
-    switch (normalizedTo) {
-      case 'san': {
-        return this._resolveSanFromMove(normalizedMove);
-      }
-      case 'uci': {
-        return this._formatUciFromMove(normalizedMove);
-      }
-      case 'coord': {
-        return this._formatCoordinateFromMove(normalizedMove);
-      }
-      default: {
-        return null;
-      }
-    }
+    return this.ruleEngine.convertMoveNotation(notation, normalizedFrom, normalizedTo);
   }
 
   public sanToUci(san: string): string | null {
-    return this.convertMoveNotation(san, 'san', 'uci');
+    return this.ruleEngine.sanToUci(san);
   }
 
   public sanToCoordinates(san: string): string | null {
-    return this.convertMoveNotation(san, 'san', 'coord');
+    return this.ruleEngine.sanToCoordinates(san);
   }
 
   public uciToSan(uci: string): string | null {
-    return this.convertMoveNotation(uci, 'uci', 'san');
+    return this.ruleEngine.uciToSan(uci);
   }
 
   public uciToCoordinates(uci: string): string | null {
-    return this.convertMoveNotation(uci, 'uci', 'coord');
+    return this.ruleEngine.uciToCoordinates(uci);
   }
 
   public coordinatesToSan(coordinates: string): string | null {
@@ -3294,22 +3261,6 @@ export class NeoChessBoard {
   // Private - Move Logic
   // ============================================================================
 
-  private _parseCoordinateNotation(
-    notation: string,
-  ): { from: Square; to: Square; promotion?: PromotionPiece } | null {
-    const cleaned = notation.trim();
-    if (!cleaned) return null;
-
-    const match = COORDINATE_MOVE_REGEX.exec(cleaned);
-    if (!match) return null;
-
-    return {
-      from: match[1] as Square,
-      to: match[2] as Square,
-      promotion: match[3]?.toLowerCase() as PromotionPiece | undefined,
-    };
-  }
-
   private _stripPgnComments(pgn: string): string {
     return pgn
       .replaceAll(PGN_COMMENT_REGEX, ' ')
@@ -3317,97 +3268,6 @@ export class NeoChessBoard {
       .replaceAll(SPACED_NEWLINE_REGEX, '\n')
       .replaceAll(MULTIPLE_NEWLINES_REGEX, '\n\n')
       .trim();
-  }
-
-  private _normalizeNotationInput(
-    notation: string,
-    from: MoveNotation,
-  ): NormalizedNotationMove | null {
-    if (from === 'san') {
-      return this._normalizeMoveFromSan(notation);
-    }
-
-    if (from === 'uci' || from === 'coord') {
-      const parsed = this._parseCoordinateNotation(notation);
-      if (!parsed) {
-        return null;
-      }
-
-      return {
-        from: parsed.from.toLowerCase() as Square,
-        to: parsed.to.toLowerCase() as Square,
-        promotion: parsed.promotion,
-      };
-    }
-
-    return null;
-  }
-
-  private _resolveSanFromMove(move: NormalizedNotationMove): string | null {
-    if (move.san) {
-      return move.san;
-    }
-
-    const chess = this._createNotationChess();
-    if (!chess) {
-      return null;
-    }
-
-    try {
-      const result = chess.move({
-        from: move.from,
-        to: move.to,
-        promotion: move.promotion,
-      });
-
-      return result?.san ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  private _formatUciFromMove(move: NormalizedNotationMove): string | null {
-    if (!move.from || !move.to) {
-      return null;
-    }
-
-    const promotion = move.promotion ? move.promotion.toLowerCase() : '';
-    return `${move.from}${move.to}${promotion}`;
-  }
-
-  private _formatCoordinateFromMove(move: NormalizedNotationMove): string | null {
-    return this._formatUciFromMove(move);
-  }
-
-  private _createNotationChess(): Chess | null {
-    try {
-      return new Chess(this.rules.getFEN());
-    } catch {
-      return null;
-    }
-  }
-
-  private _normalizeMoveFromSan(san: string): NormalizedNotationMove | null {
-    const chess = this._createNotationChess();
-    if (!chess) {
-      return null;
-    }
-
-    try {
-      const move = chess.move(san);
-      if (!move) {
-        return null;
-      }
-
-      return {
-        from: move.from as Square,
-        to: move.to as Square,
-        promotion: (move.promotion as PromotionPiece | undefined) ?? undefined,
-        san: move.san,
-      };
-    } catch {
-      return null;
-    }
   }
 
   private _handleClickMove(target: Square): void {
