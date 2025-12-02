@@ -1,5 +1,5 @@
 const config = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
   testTimeout: 10_000,
   testEnvironmentOptions: {
@@ -8,7 +8,13 @@ const config = {
   roots: ['<rootDir>/src', '<rootDir>/tests', '<rootDir>/demo'],
   testMatch: ['**/__tests__/**/*.{ts,tsx}', '**/*.(test|spec).{ts,tsx}'],
   transform: {
-    [String.raw`^.+\.(ts|tsx)$`]: ['ts-jest', { useESM: true }],
+    [String.raw`^.+\.(ts|tsx)$`]: [
+      'ts-jest',
+      {
+        useESM: true,
+        tsconfig: '<rootDir>/tsconfig.jest.json',
+      },
+    ],
   },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],

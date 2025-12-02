@@ -43,10 +43,10 @@ export class PgnParserWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/PgnParserWorker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      const baseUrl = globalThis.location?.href ?? 'http://localhost/';
+      this.worker = new Worker(new URL('../workers/PgnParserWorker.ts', baseUrl), {
+        type: 'module',
+      });
 
       this.worker.addEventListener('message', (event: MessageEvent<PgnParserWorkerResponse>) => {
         this.handleWorkerMessage(event.data);

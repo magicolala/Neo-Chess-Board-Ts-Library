@@ -52,7 +52,8 @@ describe('PgnParserWorker Logic', () => {
 
       while ((match = movePattern.exec(movesText)) !== null) {
         const moveNumber = Number.parseInt(match[1]!, 10);
-        const isBlackMove = match[2] === '..';
+        const existingIndex = moves.findIndex((m) => m.moveNumber === moveNumber);
+        const isBlackMove = match[2] === '..' || existingIndex >= 0;
         const san = match[3]?.trim();
 
         if (san && !['1-0', '0-1', '1/2-1/2', '*'].includes(san)) {
@@ -62,7 +63,6 @@ describe('PgnParserWorker Logic', () => {
             black: isBlackMove ? san : undefined,
           };
 
-          const existingIndex = moves.findIndex((m) => m.moveNumber === moveNumber);
           if (existingIndex >= 0) {
             moves[existingIndex]!.black = move.black;
           } else {
@@ -105,13 +105,14 @@ describe('PgnParserWorker Logic', () => {
     });
 
     it('should reject invalid PGN', () => {
-      const invalidPgn = '';
+      const invalidPgn: string = '';
 
-      const isValid =
+      const isValid = Boolean(
         invalidPgn &&
-        invalidPgn.trim().length > 0 &&
-        invalidPgn.includes('[') &&
-        (/\d+\./.test(invalidPgn) || /(1-0|0-1|1\/2-1\/2|\*)/.test(invalidPgn));
+          invalidPgn.trim().length > 0 &&
+          invalidPgn.includes('[') &&
+          (/\d+\./.test(invalidPgn) || /(1-0|0-1|1\/2-1\/2|\*)/.test(invalidPgn)),
+      );
 
       expect(isValid).toBe(false);
     });
@@ -192,7 +193,8 @@ describe('PgnParserWorkerManager', () => {
     const promise = manager.parsePgn(pgnString);
 
     if (messageHandler) {
-      messageHandler({ data: mockResponse } as MessageEvent);
+      const handler: (event: MessageEvent) => void = messageHandler;
+      handler({ data: mockResponse } as MessageEvent);
     }
 
     const result = await promise;
@@ -240,7 +242,8 @@ describe('PgnParserWorkerManager', () => {
     const promise = manager.parsePgnBatch(pgns);
 
     if (messageHandler) {
-      messageHandler({ data: mockResponse } as MessageEvent);
+      const handler: (event: MessageEvent) => void = messageHandler;
+      handler({ data: mockResponse } as MessageEvent);
     }
 
     const results = await promise;
@@ -271,7 +274,8 @@ describe('PgnParserWorkerManager', () => {
     const promise = manager.validatePgn(pgnString);
 
     if (messageHandler) {
-      messageHandler({ data: mockResponse } as MessageEvent);
+      const handler: (event: MessageEvent) => void = messageHandler;
+      handler({ data: mockResponse } as MessageEvent);
     }
 
     const result = await promise;

@@ -144,7 +144,8 @@ describe('LegalMovesWorkerManager', () => {
 
     // Simulate Worker response
     if (messageHandler) {
-      messageHandler({ data: mockResponse } as MessageEvent);
+      const handler: (event: MessageEvent) => void = messageHandler;
+      handler({ data: mockResponse } as MessageEvent);
     }
 
     const result = await promise;
@@ -166,7 +167,8 @@ describe('LegalMovesWorkerManager', () => {
 
     // Simulate Worker error
     if (errorHandler) {
-      errorHandler({ message: 'Worker error' } as ErrorEvent);
+      const handler: (event: ErrorEvent) => void = errorHandler;
+      handler({ message: 'Worker error' } as ErrorEvent);
     }
 
     await expect(promise).rejects.toThrow();

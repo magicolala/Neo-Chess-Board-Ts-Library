@@ -41,10 +41,10 @@ export class LegalMovesWorkerManager {
    */
   private initWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/LegalMovesWorker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      const baseUrl = globalThis.location?.href ?? 'http://localhost/';
+      this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', baseUrl), {
+        type: 'module',
+      });
 
       this.worker.addEventListener('message', (event: MessageEvent<LegalMovesWorkerResponse>) => {
         this.handleWorkerMessage(event.data);
