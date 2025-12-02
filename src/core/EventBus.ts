@@ -10,10 +10,15 @@ export class EventBus<T extends Record<string, unknown>> {
   off<K extends keyof T>(type: K, fn: (p: T[K]) => void) {
     this.map.get(type)?.delete(fn as ListenerValue<T>);
   }
-  emit<K extends keyof T>(type: K, payload: T[K]) {
+  emit<K extends keyof T>(
+    type: K,
+    ...payload: T[K] extends void ? [payload?: T[K]] : [payload: T[K]]
+  ) {
+    const [data] = payload;
+
     this.map.get(type)?.forEach((fn) => {
       try {
-        fn(payload);
+        fn(data as T[K]);
       } catch (error) {
         console.error(error);
       }

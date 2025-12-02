@@ -29,7 +29,7 @@ export interface EngineAnalysis {
 export interface StockfishAgentEventMap {
   analysisUpdate: EngineAnalysis;
   error: { message: string; cause?: unknown };
-  ready: void;
+  ready: undefined;
   [event: string]: unknown;
 }
 
