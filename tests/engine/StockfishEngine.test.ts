@@ -32,17 +32,22 @@ class RecordingTransport implements EngineTransport {
 
   private async handle(message: string): Promise<void> {
     const [command] = message.split(' ');
-    if (command === 'uci') {
-      this.emit('uciok');
-      return;
-    }
-    if (command === 'isready') {
-      this.emit('readyok');
-      return;
-    }
-    if (command === 'go') {
-      setTimeout(() => this.emit('bestmove e2e4'), 10);
-      return;
+    switch (command) {
+      case 'uci': {
+        this.emit('uciok');
+        break;
+      }
+      case 'isready': {
+        this.emit('readyok');
+        break;
+      }
+      case 'go': {
+        setTimeout(() => this.emit('bestmove e2e4'), 10);
+        break;
+      }
+      default: {
+        break;
+      }
     }
   }
 
