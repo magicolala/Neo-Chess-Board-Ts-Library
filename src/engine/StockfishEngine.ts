@@ -155,8 +155,11 @@ export class StockfishEngine {
     this.latestLines.clear();
 
     const depth = request.depth ?? this.options.depth;
-    const movetimeMs =
-      request.movetimeMs ?? (depth === undefined ? DEFAULT_MOVETIME_MS : undefined);
+    let movetimeMs = request.movetimeMs;
+    const usedDefaultMovetime = depth === undefined && movetimeMs === undefined;
+    if (usedDefaultMovetime) {
+      movetimeMs = DEFAULT_MOVETIME_MS;
+    }
     const multiPv = request.multiPv ?? this.options.multiPv;
 
     this.transport?.postMessage(buildPositionCommand(request.fen, request.limitMoves));
@@ -178,6 +181,7 @@ export class StockfishEngine {
         resolve(this.buildResult(payload.move, payload.ponder));
       });
       const stopGuard = setTimeout(() => {
+        this.stop(usedDefaultMovetime ? 'Default-bounded search timed out' : 'Engine timeout');
         disposeAll();
         reject(new Error('Engine timeout'));
       }, this.options.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS);
