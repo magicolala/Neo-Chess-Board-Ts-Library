@@ -1,7 +1,12 @@
-import { ChessGame } from '../core/logic/ChessGame';
+import { type ChessGame } from '../core/logic/ChessGame';
 import { EventBus } from '../core/EventBus';
 import type { EngineLine, EngineScore } from '../engine/types';
-import { parseInfo, parseBestMove, buildPositionCommand, buildGoCommand } from '../engine/UCIProtocol';
+import {
+  parseInfo,
+  parseBestMove,
+  buildPositionCommand,
+  buildGoCommand,
+} from '../engine/UCIProtocol';
 
 /**
  * Interface pour les résultats d'analyse du moteur
@@ -25,6 +30,7 @@ export interface StockfishAgentEventMap {
   analysisUpdate: EngineAnalysis;
   error: { message: string; cause?: unknown };
   ready: void;
+  [event: string]: unknown;
 }
 
 /**
@@ -182,11 +188,9 @@ export class StockfishAgent {
     }
 
     // Gérer les réponses UCI standard
-    if (line === 'uciok' || line === 'readyok') {
-      if (!this.isReady) {
-        this.isReady = true;
-        this.bus.emit('ready', undefined);
-      }
+    if ((line === 'uciok' || line === 'readyok') && !this.isReady) {
+      this.isReady = true;
+      this.bus.emit('ready', undefined);
     }
   }
 
@@ -247,4 +251,3 @@ export class StockfishAgent {
     this.currentFen = null;
   }
 }
-

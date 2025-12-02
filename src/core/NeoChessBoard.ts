@@ -19,6 +19,7 @@ import {
   DEFAULT_ANIMATION_EASING as DEFAULT_ANIMATION_EASING_NAME,
   resolveAnimationEasing,
 } from './utils';
+import { generateChess960Start } from '../utils/chess960';
 import type { ParsedFENState } from './utils';
 import { resolveTheme } from './themes';
 import type { ThemeName } from './themes';
@@ -485,10 +486,17 @@ export class NeoChessBoard {
     const premoveSettings: BoardPremoveSettings = options.premove ?? {};
     const allowPremovesDefault = options.allowPremoves !== false;
     const allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
-    const initialFen = options.fen ?? options.position;
+    const variant = options.variant ?? 'standard';
+
+    // Generate Chess960 starting position if variant is chess960 and no FEN provided
+    let initialFen = options.fen ?? options.position;
+    if (variant === 'chess960' && !initialFen) {
+      initialFen = generateChess960Start();
+    }
 
     this.game = new ChessGame({
       fen: initialFen,
+      variant,
       rulesAdapter: options.rulesAdapter,
       premove: premoveSettings,
       allowPremoves,

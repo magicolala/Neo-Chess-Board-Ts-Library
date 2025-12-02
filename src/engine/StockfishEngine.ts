@@ -135,6 +135,11 @@ export class StockfishEngine {
       this.transport?.postMessage('uci');
       this.transport?.postMessage('isready');
     });
+
+    // Configure Chess960 after engine is ready
+    if (this.options.variant === 'chess960') {
+      this.setOption('UCI_Chess960', true);
+    }
   }
 
   on<K extends keyof EngineEventMap>(

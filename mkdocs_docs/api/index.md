@@ -479,17 +479,35 @@ Returns the current game result.
 
 ### ChessJsRules
 
-Adapter for `chess.js` providing comprehensive chess rule validation and PGN integration.
+Adapter for `chess.js` providing comprehensive chess rule validation and PGN integration. Supports both standard chess and Chess960 (Fischer Random Chess).
 
 #### Constructor
 
 ```typescript
-constructor(fen?: string)
+constructor(fenOrOptions?: string | ChessJsRulesOptions)
 ```
 
 **Parameters:**
 
-- `fen?: string` - Optional initial FEN string to load.
+- `fenOrOptions?: string | ChessJsRulesOptions` - Optional initial FEN string or options object.
+  - `fen?: string` - Optional initial FEN string to load.
+  - `variant?: 'standard' | 'chess960'` - Chess variant (default: 'standard').
+
+**Example:**
+
+```typescript
+// Standard chess
+const rules = new ChessJsRules();
+
+// Chess960
+const rules960 = new ChessJsRules({ variant: 'chess960' });
+
+// Chess960 with initial position
+const rules960WithFen = new ChessJsRules({ 
+  variant: 'chess960', 
+  fen: generateChess960Start(42) 
+});
+```
 
 #### Methods
 
@@ -755,6 +773,7 @@ interface BoardOptions {
   highlightLegal?: boolean;
   fen?: string;
   position?: string;
+  variant?: 'standard' | 'chess960';
   rulesAdapter?: RulesAdapter;
   clock?: ClockConfig;
   allowAutoScroll?: boolean;

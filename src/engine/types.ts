@@ -15,6 +15,7 @@ export interface EngineOptionMap {
   readonly wasmUrl?: string;
   readonly moves?: string[];
   readonly debug?: boolean;
+  readonly variant?: 'standard' | 'chess960';
 }
 
 export interface EngineAnalysisRequest {

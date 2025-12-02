@@ -14,6 +14,7 @@ export type ColorInput = Color | NamedPlayerColor;
 export type PremoveColorListInput = ColorInput | PremoveColorOption | ColorInput[];
 export type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
 export type BoardOrientation = 'white' | 'black';
+export type Variant = 'standard' | 'chess960';
 
 export interface SquareDataType {
   square: Square;
@@ -466,6 +467,7 @@ export interface BoardOptions {
   highlightLegal?: boolean;
   fen?: string;
   position?: string;
+  variant?: Variant;
   rulesAdapter?: RulesAdapter;
   // Additional options
   allowAutoScroll?: boolean;

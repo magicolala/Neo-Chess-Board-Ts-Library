@@ -1,10 +1,15 @@
 import { Chess, SQUARES, type Color, type Move as ChessMove } from 'chess.js';
-import type { RulesAdapter, Move, RulesMoveResponse, RulesMoveDetail } from './types';
+import type { RulesAdapter, Move, RulesMoveResponse, RulesMoveDetail, Variant } from './types';
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
 import { sanitizePgnString } from './PgnSanitizer';
 
 type ChessSquare = (typeof SQUARES)[number];
+
+export interface ChessJsRulesOptions {
+  fen?: string;
+  variant?: Variant;
+}
 
 /**
  * Rules adapter built on chess.js to provide full move validation
@@ -13,6 +18,7 @@ export class ChessJsRules implements RulesAdapter {
   private chess: Chess;
   private pgnNotation: PgnNotation;
   public readonly supportsSanMoves = true;
+  private readonly variant: Variant;
 
   private normalizePromotion(symbol: ChessMove['promotion']): Move['promotion'] {
     return symbol === 'q' || symbol === 'r' || symbol === 'b' || symbol === 'n'
@@ -35,9 +41,38 @@ export class ChessJsRules implements RulesAdapter {
     return this.chess;
   }
 
-  constructor(fen?: string) {
-    this.chess = new Chess(fen);
+  constructor(fenOrOptions?: string | ChessJsRulesOptions) {
+    let fen: string | undefined;
+    let variant: Variant = 'standard';
+
+    if (typeof fenOrOptions === 'string') {
+      fen = fenOrOptions;
+    } else if (fenOrOptions) {
+      fen = fenOrOptions.fen;
+      variant = fenOrOptions.variant ?? 'standard';
+    }
+
+    this.variant = variant;
+
+    // chess.js supports Chess960 by loading a Chess960 FEN
+    // The engine automatically detects Chess960 from the FEN structure
+    if (variant === 'chess960') {
+      this.chess = new Chess();
+      if (fen) {
+        this.chess.load(fen);
+      }
+    } else {
+      this.chess = new Chess(fen);
+    }
+
     this.pgnNotation = new PgnNotation();
+  }
+
+  /**
+   * Get the current variant
+   */
+  getVariant(): Variant {
+    return this.variant;
   }
 
   /**
@@ -374,7 +409,10 @@ export class ChessJsRules implements RulesAdapter {
    * Create a copy of the current state
    */
   clone(): ChessJsRules {
-    return new ChessJsRules(this.chess.fen());
+    return new ChessJsRules({
+      fen: this.chess.fen(),
+      variant: this.variant,
+    });
   }
 
   /**

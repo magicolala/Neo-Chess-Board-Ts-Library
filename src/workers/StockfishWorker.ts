@@ -1,9 +1,9 @@
 /**
  * Web Worker pour exécuter Stockfish et gérer la communication UCI
- * 
+ *
  * Ce worker charge le binaire Stockfish (WASM) et gère toutes les
  * communications UCI avec le moteur d'échecs.
- * 
+ *
  * Pour utiliser avec le vrai Stockfish, vous devez :
  * 1. Installer stockfish.js : npm install stockfish.js
  * 2. Importer et initialiser Stockfish dans ce worker
@@ -17,7 +17,7 @@ let stockfishReady = false;
 
 /**
  * Initialise Stockfish en chargeant le binaire WASM
- * 
+ *
  * @param stockfishPath Chemin vers le binaire Stockfish (optionnel pour l'instant)
  */
 async function initStockfish(stockfishPath?: string): Promise<void> {
@@ -110,7 +110,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
 
         // Extraire la profondeur de la commande
         const depthMatch = message.match(/depth\s+(\d+)/);
-        const targetDepth = depthMatch ? parseInt(depthMatch[1], 10) : 20;
+        const targetDepth = depthMatch ? Number.parseInt(depthMatch[1], 10) : 20;
 
         // Simuler une analyse progressive
         analysisDepth = 0;
@@ -153,7 +153,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
 /**
  * Gère les messages reçus du thread principal
  */
-self.onmessage = async (event: MessageEvent) => {
+globalThis.onmessage = async (event: MessageEvent) => {
   const { type, command, stockfishPath } = event.data as {
     type?: string;
     command?: string;
@@ -186,10 +186,9 @@ self.onmessage = async (event: MessageEvent) => {
 /**
  * Gère les erreurs du Worker
  */
-self.onerror = (error: ErrorEvent) => {
+self.addEventListener('error', (error: ErrorEvent) => {
   self.postMessage({
     type: 'error',
     content: `Erreur du Worker: ${error.message}`,
   });
-};
-
+});

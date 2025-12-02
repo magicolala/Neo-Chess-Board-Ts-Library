@@ -11,6 +11,7 @@ import type {
   RulesAdapter,
   RulesMoveResponse,
   Square,
+  Variant,
 } from '../types';
 import {
   START_FEN,
@@ -26,6 +27,7 @@ const DEFAULT_RANKS = 8;
 
 export interface ChessGameOptions {
   fen?: string;
+  variant?: Variant;
   rulesAdapter?: RulesAdapter;
   premove?: BoardPremoveSettings;
   allowPremoves?: boolean;
@@ -71,7 +73,13 @@ export class ChessGame {
     this.rankLabels = geometry.rankLabels ?? generateRankLabels(geometry.ranks);
 
     this.bus = options.bus ?? new EventBus<BoardEventMap>();
-    this._rules = options.rulesAdapter ?? new ChessJsRules();
+    const variant = options.variant ?? 'standard';
+    this._rules =
+      options.rulesAdapter ??
+      new ChessJsRules({
+        variant,
+        fen: options.fen,
+      });
 
     const premoveSettings: BoardPremoveSettings = options.premove ?? {};
     this._applyInitialPremoveSettings(premoveSettings);
@@ -80,8 +88,14 @@ export class ChessGame {
     }
 
     const initialFen = options.fen ?? START_FEN;
-    this._rules.setFEN(initialFen);
-    this._state = this._parseFEN(this._rules.getFEN());
+    if (options.rulesAdapter) {
+      // Custom rules adapter provided, set FEN explicitly
+      this._rules.setFEN(initialFen);
+      this._state = this._parseFEN(this._rules.getFEN());
+    } else {
+      // Rules adapter was just created, FEN already set in constructor
+      this._state = this._parseFEN(this._rules.getFEN());
+    }
 
     this._initializeClock(options.clock);
   }

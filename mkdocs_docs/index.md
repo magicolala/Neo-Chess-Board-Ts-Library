@@ -152,6 +152,7 @@ The Theme Creator keeps saved palettes in `localStorage`, so you can revisit and
 - [Examples](examples.md)
 - [PGN Features](pgn-features.md)
 - [Themes](themes.md)
+- [Chess960 Guide](guides/chess960.md)
 
 ### Core Components
 
