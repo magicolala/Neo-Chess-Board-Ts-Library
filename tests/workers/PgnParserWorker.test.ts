@@ -138,6 +138,9 @@ describe('PgnParserWorkerManager', () => {
     terminate: jest.Mock;
     addEventListener: jest.Mock;
   };
+  let messageHandler: ((event: MessageEvent) => void) | null = null;
+  let errorHandler: ((event: ErrorEvent) => void) | null = null;
+  let lastRequestId: string | null = null;
   let PgnParserWorkerManager: typeof import('../../src/core/PgnParserWorkerManager').PgnParserWorkerManager;
 
   beforeEach(async () => {
@@ -149,6 +152,89 @@ describe('PgnParserWorkerManager', () => {
 
     // Mock Worker constructor
     globalThis.Worker = jest.fn().mockImplementation(() => mockWorker) as unknown as typeof Worker;
+
+    // Capture event handlers registered by the manager during construction
+    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
+      if (event === 'message') messageHandler = handler as (ev: MessageEvent) => void;
+      if (event === 'error') errorHandler = handler as (ev: ErrorEvent) => void;
+    });
+
+    // Capture posted messages and auto-respond so the manager resolves requests
+    (mockWorker.postMessage as jest.Mock).mockImplementation((message: unknown) => {
+      const msg = message as { id?: string; type?: string; pgn?: string; pgns?: string[] };
+      if (msg && msg.id) {
+        lastRequestId = msg.id as string;
+      }
+
+      // Auto-respond appropriately depending on the request type
+      if (msg && msg.id) {
+        switch (msg.type) {
+          case 'parsePgn': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    result: {
+                      metadata: { Event: 'Test', Site: 'Test' },
+                      moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
+                      result: '1-0',
+                      parseIssues: [],
+                    },
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          case 'parsePgnBatch': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    results: [
+                      {
+                        metadata: { Event: 'Game 1' },
+                        moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
+                        result: '1-0',
+                        parseIssues: [],
+                      },
+                      {
+                        metadata: { Event: 'Game 2' },
+                        moves: [{ moveNumber: 1, white: 'd4', black: 'd5' }],
+                        result: '1-0',
+                        parseIssues: [],
+                      },
+                    ],
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          case 'validatePgn': {
+            setTimeout(() => {
+              if (messageHandler) {
+                messageHandler({
+                  data: {
+                    type: 'success',
+                    id: msg.id,
+                    valid: true,
+                  },
+                } as MessageEvent);
+              }
+            }, 0);
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }
+    });
 
     const module = await import('../../src/core/PgnParserWorkerManager');
     PgnParserWorkerManager = module.PgnParserWorkerManager;
@@ -186,7 +272,7 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       result: {
         metadata: { Event: 'Test', Site: 'Test' },
         moves: [{ moveNumber: 1, white: 'e4', black: 'e5' }],
@@ -195,18 +281,13 @@ describe('PgnParserWorkerManager', () => {
       },
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.parsePgn(pgnString);
 
-    if (messageHandler) {
-      const handler: (event: MessageEvent) => void = messageHandler;
-      handler({ data: mockResponse } as MessageEvent);
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
+      messageHandler({ data: mockResponse } as MessageEvent);
     }
 
     const result = await promise;
@@ -227,7 +308,7 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       results: [
         {
           metadata: { Event: 'Game 1' },
@@ -244,18 +325,13 @@ describe('PgnParserWorkerManager', () => {
       ],
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.parsePgnBatch(pgns);
 
-    if (messageHandler) {
-      const handler: (event: MessageEvent) => void = messageHandler;
-      handler({ data: mockResponse } as MessageEvent);
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
+      messageHandler({ data: mockResponse } as MessageEvent);
     }
 
     const results = await promise;
@@ -272,22 +348,17 @@ describe('PgnParserWorkerManager', () => {
 
     const mockResponse = {
       type: 'success',
-      id: 'req_0_1234567890',
+      id: lastRequestId,
       valid: true,
     };
 
-    let messageHandler: ((event: MessageEvent) => void) | null = null;
-    mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
-      if (event === 'message') {
-        messageHandler = handler as (event: MessageEvent) => void;
-      }
-    });
-
     const promise = manager.validatePgn(pgnString);
 
-    if (messageHandler) {
-      const handler: (event: MessageEvent) => void = messageHandler;
-      handler({ data: mockResponse } as MessageEvent);
+    // Wait for the request id to be captured
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    if (messageHandler && lastRequestId) {
+      messageHandler({ data: mockResponse } as MessageEvent);
     }
 
     const result = await promise;
