@@ -56,6 +56,37 @@ class RecordingTransport implements EngineTransport {
   }
 }
 
+class IdleTransport implements EngineTransport {
+  messages: string[] = [];
+  private listeners: Array<(message: string) => void> = [];
+
+  postMessage(message: string): void {
+    this.messages.push(message);
+    const [command] = message.split(' ');
+    if (command === 'uci') {
+      this.emit('uciok');
+    } else if (command === 'isready') {
+      this.emit('readyok');
+    }
+  }
+
+  terminate(): void {
+    this.listeners = [];
+  }
+
+  onMessage(callback: (message: string) => void): void {
+    this.listeners.push(callback);
+  }
+
+  onError(): void {
+    // no-op for idle mock
+  }
+
+  private emit(message: string): void {
+    this.listeners.forEach((listener) => listener(message));
+  }
+}
+
 describe('StockfishEngine (mock transport)', () => {
   it('emits ready and computes a best move', async () => {
     const engine = new StockfishEngine();
@@ -83,6 +114,25 @@ describe('StockfishEngine (mock transport)', () => {
     const goCommand = transport.messages.find((message) => message.startsWith('go'));
     expect(goCommand).toBeDefined();
     expect(goCommand).toContain('movetime');
+
+    engine.terminate();
+  });
+
+  it('sends a stop command if a search exceeds the stop timeout', async () => {
+    const transport = new IdleTransport();
+    const engine = new StockfishEngine({
+      transportFactory: () => transport,
+      stopTimeoutMs: 30,
+    });
+
+    await expect(
+      engine.analyze({
+        fen: START_FEN,
+        movetimeMs: 10_000,
+      }),
+    ).rejects.toThrow('Engine timeout');
+
+    expect(transport.messages).toContain('stop');
 
     engine.terminate();
   });
