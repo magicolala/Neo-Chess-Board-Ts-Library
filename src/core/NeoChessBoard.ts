@@ -3675,7 +3675,7 @@ export class NeoChessBoard {
           .calculateMovesFrom(fen, square)
           .then((moves) => {
             // Only update if still the same selection
-            if (this._selected === square) {
+            if (this._selected === square && this.rules.getFEN() === fen) {
               this._legalCached = moves;
               this.renderAll();
             }
@@ -3683,8 +3683,10 @@ export class NeoChessBoard {
           .catch((error) => {
             console.warn('Worker calculation failed, falling back to sync:', error);
             // Fallback to synchronous calculation
-            this._legalCached = this.rules.movesFrom(square);
-            this.renderAll();
+            if (this._selected === square) {
+              this._legalCached = this.rules.movesFrom(square);
+              this.renderAll();
+            }
           });
       } else {
         // Synchronous calculation (default or fallback)
