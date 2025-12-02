@@ -933,6 +933,54 @@ export class NeoChessBoard {
     return true;
   }
 
+  public redoMove(immediate = false): boolean {
+    if (typeof this.rules.redo !== 'function') {
+      return false;
+    }
+
+    const previousState = this.state;
+    const redone = this.rules.redo();
+
+    if (!redone) {
+      return false;
+    }
+
+    this._cancelPendingPromotion();
+    this._pendingPromotion = null;
+    this.drawingManager?.clearPromotionPreview();
+
+    const fen = this.rules.getFEN();
+    const newState = this._parseFEN(fen);
+
+    this.state = newState;
+    this._syncOrientationFromTurn(false);
+    this._lastMove = null;
+    this._clearInteractionState();
+    this._premove = null;
+    this._premoveQueues.w = [];
+    this._premoveQueues.b = [];
+    this._syncPremoveDisplay(undefined, false);
+
+    if (immediate || !this.showAnimations || this.animationMs <= 0) {
+      this._clearAnimation();
+      this.renderAll();
+    } else {
+      this._animateTo(newState, previousState);
+    }
+
+    const lastMove = this.rules.getLastMove?.();
+    if (lastMove && (lastMove as RulesMoveDetail).from && (lastMove as RulesMoveDetail).to) {
+      this._lastMove = {
+        from: (lastMove as RulesMoveDetail).from as Square,
+        to: (lastMove as RulesMoveDetail).to as Square,
+      };
+      this._emitMoveEvent(this._lastMove.from, this._lastMove.to, fen, lastMove as RulesMoveDetail);
+    }
+
+    this._emitUpdateEvent();
+    return true;
+  }
+
   // ============================================================================
   // Public API - PGN Management
   // ============================================================================

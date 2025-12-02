@@ -3,6 +3,22 @@ import type { RulesAdapter, Move, RulesMoveResponse, RulesMoveDetail, Variant } 
 import { PgnNotation } from './PgnNotation';
 import type { PgnMetadata } from './PgnNotation';
 import { sanitizePgnString } from './PgnSanitizer';
+import {
+  canRedo,
+  canUndo,
+  cloneHistoryStore,
+  createHistoryStore,
+  getCurrentFen,
+  getHistory as getHistorySelector,
+  getLastMoveState,
+  getVerboseHistory,
+  makeMove,
+  redo as redoHistory,
+  reset as resetHistory,
+  undo as undoHistory,
+  type HistoryStoreState,
+  type MoveState,
+} from './state/historyStore';
 
 type ChessSquare = (typeof SQUARES)[number];
 
@@ -19,6 +35,7 @@ export class ChessJsRules implements RulesAdapter {
   private pgnNotation: PgnNotation;
   public readonly supportsSanMoves = true;
   private readonly variant: Variant;
+  private historyStore: HistoryStoreState;
 
   private normalizePromotion(symbol: ChessMove['promotion']): Move['promotion'] {
     return symbol === 'q' || symbol === 'r' || symbol === 'b' || symbol === 'n'
@@ -27,7 +44,7 @@ export class ChessJsRules implements RulesAdapter {
   }
 
   private getFenParts(fen?: string): string[] {
-    const fenString = (fen ?? this.chess.fen()).trim();
+    const fenString = (fen ?? getCurrentFen(this.historyStore)).trim();
     const parts = fenString.split(/\s+/);
 
     if (parts.length < 6) {
@@ -35,6 +52,70 @@ export class ChessJsRules implements RulesAdapter {
     }
 
     return parts;
+  }
+
+  private getInitialFen(): string {
+    return this.historyStore.past[0]?.fen ?? this.historyStore.present.fen;
+  }
+
+  private applyHistoryStoreToChess(): void {
+    const baseFen = this.getInitialFen();
+    const chess = this.createChessInstance(baseFen);
+    const timeline = [...this.historyStore.past.slice(1), this.historyStore.present];
+
+    for (const entry of timeline) {
+      const move = entry.move ?? (entry.san ? { san: entry.san } : undefined);
+
+      if (!move) {
+        continue;
+      }
+
+      if ('from' in move && 'to' in move && move.from && move.to) {
+        const replayMove = move as unknown as ChessMove;
+        chess.move({
+          from: replayMove.from,
+          to: replayMove.to,
+          promotion: replayMove.promotion,
+        });
+      } else if (move.san) {
+        chess.move(move.san);
+      }
+    }
+
+    this.chess = chess;
+  }
+
+  private rebuildHistoryStoreFromChess(): void {
+    const undoneMoves: ChessMove[] = [];
+    let undone: ChessMove | null;
+
+    while ((undone = this.chess.undo())) {
+      undoneMoves.push(undone);
+    }
+
+    const initialFen = this.chess.fen();
+    const replay = this.createChessInstance(initialFen);
+    let nextStore = createHistoryStore(initialFen);
+
+    for (const move of undoneMoves.reverse()) {
+      const applied = replay.move(move);
+      if (applied) {
+        const moveDetail = {
+          ...applied,
+          from: applied.from,
+          to: applied.to,
+          san: applied.san,
+        } as RulesMoveDetail;
+        nextStore = makeMove(nextStore, {
+          fen: replay.fen(),
+          san: applied.san,
+          move: moveDetail,
+        });
+      }
+    }
+
+    this.chess = replay;
+    this.historyStore = nextStore;
   }
 
   public getChessInstance(): Chess {
@@ -56,16 +137,23 @@ export class ChessJsRules implements RulesAdapter {
 
     // chess.js supports Chess960 by loading a Chess960 FEN
     // The engine automatically detects Chess960 from the FEN structure
-    if (variant === 'chess960') {
-      this.chess = new Chess();
-      if (fen) {
-        this.chess.load(fen);
-      }
-    } else {
-      this.chess = new Chess(fen);
-    }
+    this.chess = this.createChessInstance(fen);
+
+    this.historyStore = createHistoryStore(this.chess.fen());
 
     this.pgnNotation = new PgnNotation();
+  }
+
+  private createChessInstance(fen?: string): Chess {
+    if (this.variant === 'chess960') {
+      const chess = new Chess();
+      if (fen) {
+        chess.load(fen);
+      }
+      return chess;
+    }
+
+    return new Chess(fen);
   }
 
   /**
@@ -79,7 +167,7 @@ export class ChessJsRules implements RulesAdapter {
    * Get the current position in FEN format
    */
   getFEN(): string {
-    return this.chess.fen();
+    return getCurrentFen(this.historyStore);
   }
 
   /**
@@ -88,7 +176,9 @@ export class ChessJsRules implements RulesAdapter {
   setFEN(fen: string): void {
     const normalizedFen = this.normalizeFenInput(fen);
     try {
+      this.chess = this.createChessInstance();
       this.chess.load(normalizedFen);
+      this.historyStore = resetHistory(this.historyStore, this.chess.fen());
     } catch (error) {
       console.error('Invalid FEN:', normalizedFen, error);
       throw new Error(`Invalid FEN: ${normalizedFen}`);
@@ -125,6 +215,20 @@ export class ChessJsRules implements RulesAdapter {
               promotion: moveData.promotion as 'q' | 'r' | 'b' | 'n' | undefined,
             });
 
+      if (chessMove) {
+        const moveDetail = {
+          ...chessMove,
+          from: chessMove.from,
+          to: chessMove.to,
+          san: chessMove.san,
+        } as RulesMoveDetail;
+        this.historyStore = makeMove(this.historyStore, {
+          fen: this.chess.fen(),
+          san: chessMove.san,
+          move: moveDetail,
+        });
+      }
+
       return this.normalizeMoveResponse(chessMove);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -146,7 +250,7 @@ export class ChessJsRules implements RulesAdapter {
       san: move.san,
     };
 
-    return { ok: true, fen: this.chess.fen(), move: normalizedMove };
+    return { ok: true, fen: getCurrentFen(this.historyStore), move: normalizedMove };
   }
 
   /**
@@ -188,7 +292,7 @@ export class ChessJsRules implements RulesAdapter {
   isLegalMove(from: string, to: string, promotion?: string): boolean {
     try {
       // Create a copy to test the move without altering the actual game state
-      const testChess = new Chess(this.chess.fen());
+      const testChess = new Chess(getCurrentFen(this.historyStore));
       const move = testChess.move({
         from,
         to,
@@ -280,29 +384,62 @@ export class ChessJsRules implements RulesAdapter {
    * Undo the last move
    */
   undo(): boolean {
-    const move = this.chess.undo();
-    return move !== null;
+    const { state, previous } = undoHistory(this.historyStore);
+    if (!previous) {
+      return false;
+    }
+
+    this.historyStore = state;
+    this.applyHistoryStoreToChess();
+    return true;
+  }
+
+  redo(): boolean {
+    const { state, next } = redoHistory(this.historyStore);
+    if (!next) {
+      return false;
+    }
+
+    this.historyStore = state;
+    this.applyHistoryStoreToChess();
+    return true;
+  }
+
+  /**
+   * Check whether undo is available
+   */
+  canUndo(): boolean {
+    return canUndo(this.historyStore);
+  }
+
+  /**
+   * Check whether redo is available
+   */
+  canRedo(): boolean {
+    return canRedo(this.historyStore);
   }
 
   /**
    * Get the list of moves played
    */
   history(): string[] {
-    return this.chess.history();
+    return getHistorySelector(this.historyStore);
   }
 
   /**
    * Get the detailed move history
    */
-  getHistory(): ChessMove[] {
-    return this.chess.history({ verbose: true });
+  getHistory(): RulesMoveDetail[] {
+    return getVerboseHistory(this.historyStore);
   }
 
   /**
    * Reset the game to the initial position
    */
   reset(): void {
-    this.chess.reset();
+    const initialFen = this.getInitialFen();
+    this.chess = this.createChessInstance(initialFen);
+    this.historyStore = resetHistory(this.historyStore, initialFen);
   }
 
   /**
@@ -398,7 +535,7 @@ export class ChessJsRules implements RulesAdapter {
    * Get the halfmove clock since the last capture or pawn move
    */
   halfMoves(): number {
-    const fenParts = this.getFenParts();
+    const fenParts = this.getFenParts(getCurrentFen(this.historyStore));
     const halfMoveField = fenParts[4] ?? '0';
     const halfMoveCount = Number.parseInt(halfMoveField, 10);
 
@@ -409,10 +546,14 @@ export class ChessJsRules implements RulesAdapter {
    * Create a copy of the current state
    */
   clone(): ChessJsRules {
-    return new ChessJsRules({
-      fen: this.chess.fen(),
+    const clone = new ChessJsRules({
+      fen: this.getFEN(),
       variant: this.variant,
     });
+
+    clone.historyStore = cloneHistoryStore(this.historyStore);
+    clone.applyHistoryStoreToChess();
+    return clone;
   }
 
   /**
@@ -431,17 +572,26 @@ export class ChessJsRules implements RulesAdapter {
   /**
    * Get information about the last move played
    */
-  getLastMove(): ChessMove | null {
-    const history = this.chess.history({ verbose: true }) as ChessMove[];
-    const lastMove = history.at(-1);
-    return lastMove ?? null;
+  getLastMove(): RulesMoveDetail | null {
+    const lastMoveState = getLastMoveState(this.historyStore);
+    if (!lastMoveState?.move) {
+      return null;
+    }
+
+    const { from, to, san } = lastMoveState.move;
+
+    if (!from || !to) {
+      return null;
+    }
+
+    return { ...lastMoveState.move, from, to, san } as RulesMoveDetail;
   }
 
   /**
    * Generate the FEN string for the current position
    */
   generateFEN(): string {
-    return this.chess.fen();
+    return getCurrentFen(this.historyStore);
   }
 
   /**
@@ -493,6 +643,7 @@ export class ChessJsRules implements RulesAdapter {
       }
 
       this.pgnNotation.importFromChessJs(this.chess);
+      this.rebuildHistoryStoreFromChess();
       return true;
     } catch {
       return false;
@@ -503,7 +654,7 @@ export class ChessJsRules implements RulesAdapter {
    * Get the PGN notation for the most recent move
    */
   getLastMoveNotation(): string | null {
-    const history = this.chess.history();
+    const history = getHistorySelector(this.historyStore);
     const lastMove = history.at(-1);
     return lastMove ?? null;
   }
@@ -512,6 +663,6 @@ export class ChessJsRules implements RulesAdapter {
    * Retrieve the entire move history in PGN notation
    */
   getPgnMoves(): string[] {
-    return this.chess.history();
+    return getHistorySelector(this.historyStore);
   }
 }
