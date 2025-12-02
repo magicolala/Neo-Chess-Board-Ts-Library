@@ -146,7 +146,7 @@ export class StockfishAgent {
       this.parseUCIOutput(message.content);
     } else if (message.type === 'ready') {
       this.isReady = true;
-      this.bus.emit('ready');
+      this.bus.emit('ready', undefined);
     } else if (message.type === 'error') {
       this.bus.emit('error', {
         message: message.content || 'Erreur inconnue du Worker',
@@ -190,7 +190,7 @@ export class StockfishAgent {
     // Gérer les réponses UCI standard
     if ((line === 'uciok' || line === 'readyok') && !this.isReady) {
       this.isReady = true;
-      this.bus.emit('ready');
+      this.bus.emit('ready', undefined);
     }
   }
 

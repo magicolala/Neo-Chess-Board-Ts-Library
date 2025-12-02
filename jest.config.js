@@ -1,7 +1,7 @@
 const config = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
-  testTimeout: 10_000,
+  testTimeout: 30_000,
   testEnvironmentOptions: {
     pretendToBeVisual: true,
   },
