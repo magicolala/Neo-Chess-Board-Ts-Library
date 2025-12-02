@@ -32,7 +32,7 @@ export class LegalMovesWorkerManager {
   private readonly timeout: number;
 
   constructor(options: LegalMovesWorkerManagerOptions = {}) {
-    this.timeout = options.timeout ?? 30000;
+    this.timeout = options.timeout ?? 30_000;
     this.initWorker();
   }
 

@@ -139,7 +139,6 @@ describe('PgnParserWorkerManager', () => {
     addEventListener: jest.Mock;
   };
   let messageHandler: ((event: MessageEvent) => void) | null = null;
-  let errorHandler: ((event: ErrorEvent) => void) | null = null;
   let lastRequestId: string | null = null;
   let PgnParserWorkerManager: typeof import('../../src/core/PgnParserWorkerManager').PgnParserWorkerManager;
 
@@ -156,7 +155,6 @@ describe('PgnParserWorkerManager', () => {
     // Capture event handlers registered by the manager during construction
     mockWorker.addEventListener.mockImplementation((event: string, handler: unknown) => {
       if (event === 'message') messageHandler = handler as (ev: MessageEvent) => void;
-      if (event === 'error') errorHandler = handler as (ev: ErrorEvent) => void;
     });
 
     // Capture posted messages and auto-respond so the manager resolves requests
