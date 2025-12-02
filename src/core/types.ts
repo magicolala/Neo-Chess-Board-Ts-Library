@@ -515,6 +515,10 @@ export interface BoardOptions {
   pieces?: PieceRendererMap;
   promotion?: PromotionOptions;
   clock?: ClockConfig;
+  // Web Worker options for performance
+  useWorkerForLegalMoves?: boolean;
+  useWorkerForPgnParsing?: boolean;
+  pgnWorkerThreshold?: number; // Taille en bytes (default: 100KB)
 }
 
 export interface BoardPremoveSettings {

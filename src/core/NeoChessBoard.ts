@@ -33,6 +33,8 @@ import type { PgnNotation } from './PgnNotation';
 import { ChessGame } from './logic/ChessGame';
 import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
+import { LegalMovesWorkerManager } from './LegalMovesWorkerManager';
+import { PgnParserWorkerManager } from './PgnParserWorkerManager';
 import type {
   Square,
   Color,
@@ -366,6 +368,11 @@ export class NeoChessBoard {
   public readonly premove: BoardPremoveController;
   private _selected: Square | null = null;
   private _legalCached: Move[] | null = null;
+  private _legalMovesWorkerManager?: LegalMovesWorkerManager;
+  private _pgnParserWorkerManager?: PgnParserWorkerManager;
+  private _useWorkerForLegalMoves: boolean;
+  private _useWorkerForPgnParsing: boolean;
+  private _pgnWorkerThreshold: number;
   private _dragging: DraggingState | null = null;
   private _hoverSq: Square | null = null;
   private _pointerSquare: Square | null = null;
@@ -570,6 +577,29 @@ export class NeoChessBoard {
     this.onArrowsChange = options.onArrowsChange;
     this.controlledArrows = options.arrows;
     this.premove = this._createPremoveController();
+
+    // Initialize Web Workers for performance
+    this._useWorkerForLegalMoves = options.useWorkerForLegalMoves ?? false;
+    this._useWorkerForPgnParsing = options.useWorkerForPgnParsing ?? true;
+    this._pgnWorkerThreshold = options.pgnWorkerThreshold ?? 100 * 1024; // 100KB default
+
+    if (this._useWorkerForLegalMoves) {
+      try {
+        this._legalMovesWorkerManager = new LegalMovesWorkerManager();
+      } catch (error) {
+        console.warn('Failed to initialize LegalMovesWorkerManager:', error);
+        this._useWorkerForLegalMoves = false;
+      }
+    }
+
+    if (this._useWorkerForPgnParsing) {
+      try {
+        this._pgnParserWorkerManager = new PgnParserWorkerManager();
+      } catch (error) {
+        console.warn('Failed to initialize PgnParserWorkerManager:', error);
+        this._useWorkerForPgnParsing = false;
+      }
+    }
 
     // Initialize sound configuration
     this.audioManager = new BoardAudioManager({
@@ -935,6 +965,8 @@ export class NeoChessBoard {
   }
 
   public loadPgnWithAnnotations(pgnString: string): boolean {
+    // Synchronous version - always uses main thread
+    // For Worker-based parsing, use loadPgnWithAnnotationsAsync()
     this.lastPgnLoadIssues = [];
     try {
       const success = this._loadPgnInRules(pgnString);
@@ -948,6 +980,67 @@ export class NeoChessBoard {
         return true;
       }
       return false;
+    } catch (error) {
+      const normalizedError =
+        error instanceof PgnParseError
+          ? error
+          : new PgnParseError('Failed to load PGN into rules adapter.', 'PGN_IMPORT_FAILED', {
+              cause: error,
+              details: {
+                message: error instanceof Error ? error.message : String(error),
+              },
+            });
+      this.lastPgnLoadIssues = [normalizedError];
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Error loading PGN with annotations:', normalizedError);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Load PGN with annotations asynchronously using Web Worker
+   * This method is non-blocking and should be used for large files
+   */
+  public async loadPgnWithAnnotationsAsync(pgnString: string): Promise<boolean> {
+    this.lastPgnLoadIssues = [];
+    try {
+      const pgnSize = new Blob([pgnString]).size;
+      const shouldUseWorker =
+        this._useWorkerForPgnParsing &&
+        this._pgnParserWorkerManager?.isAvailable() &&
+        pgnSize >= this._pgnWorkerThreshold;
+
+      if (shouldUseWorker) {
+        try {
+          const parsedResult = await this._pgnParserWorkerManager!.parsePgn(pgnString, {
+            includeAnnotations: true,
+          });
+
+          // Load the PGN into rules (still synchronous, but parsing was async)
+          const success = this._loadPgnInRules(pgnString);
+          if (success) {
+            this._displayPgnAnnotations(pgnString);
+            this._updateStateAfterPgnLoad();
+            if (parsedResult.parseIssues.length > 0) {
+              this.lastPgnLoadIssues = parsedResult.parseIssues.map(
+                (issue) => new PgnParseError(issue.message, issue.code, { details: issue.details }),
+              );
+            } else {
+              const notation = this._getPgnNotation();
+              this.lastPgnLoadIssues = notation ? notation.getParseIssues() : [];
+            }
+            return true;
+          }
+          return false;
+        } catch (workerError) {
+          console.warn('Worker parsing failed, falling back to sync:', workerError);
+          // Fall through to synchronous parsing
+        }
+      }
+
+      // Fallback to synchronous parsing
+      return this.loadPgnWithAnnotations(pgnString);
     } catch (error) {
       const normalizedError =
         error instanceof PgnParseError
@@ -1737,6 +1830,9 @@ export class NeoChessBoard {
   }
 
   public destroy(): void {
+    // Terminate Web Workers
+    this._legalMovesWorkerManager?.terminate();
+    this._pgnParserWorkerManager?.terminate();
     this.clockManager?.destroy();
     this.clockManager = null;
     this._cancelPendingPromotion();
@@ -3570,7 +3666,30 @@ export class NeoChessBoard {
     this._selected = square;
 
     if (side === this.state.turn) {
-      this._legalCached = this.rules.movesFrom(square);
+      // Use Worker if enabled and available
+      if (this._useWorkerForLegalMoves && this._legalMovesWorkerManager?.isAvailable()) {
+        // Calculate asynchronously with Worker
+        const fen = this.rules.getFEN();
+        this._legalCached = null; // Clear cache while calculating
+        this._legalMovesWorkerManager
+          .calculateMovesFrom(fen, square)
+          .then((moves) => {
+            // Only update if still the same selection
+            if (this._selected === square) {
+              this._legalCached = moves;
+              this.renderAll();
+            }
+          })
+          .catch((error) => {
+            console.warn('Worker calculation failed, falling back to sync:', error);
+            // Fallback to synchronous calculation
+            this._legalCached = this.rules.movesFrom(square);
+            this.renderAll();
+          });
+      } else {
+        // Synchronous calculation (default or fallback)
+        this._legalCached = this.rules.movesFrom(square);
+      }
     } else if (this.allowPremoves) {
       this._legalCached = [];
     } else {
