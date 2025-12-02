@@ -25,14 +25,23 @@ npm run test && npm run build  # Verify baseline works
 ```text
 neo-chess-board/
 ├── src/                    # Library source code
-│   ├── components/        # React components
-│   ├── utils/            # Helper functions
-│   └── types/            # TypeScript definitions
+│   ├── agents/            # Stockfish agent and analysis
+│   ├── clock/             # Clock management
+│   ├── core/              # Core chess board logic
+│   │   ├── logic/        # Chess game logic
+│   │   └── extensions/   # Board extensions
+│   ├── effects/           # Visual effects (camera, easing)
+│   ├── engine/            # Stockfish engine integration
+│   ├── extensions/        # High-level extensions
+│   ├── rendering/         # Rendering utilities
+│   ├── react/             # React component wrappers
+│   ├── utils/             # Helper functions
+│   └── workers/           # Web Workers (Stockfish)
 ├── demo/                  # Standalone demo application
-├── examples/             # Usage examples
-├── mkdocs_docs/          # User documentation (MkDocs)
-├── tests/                # Jest test files
-└── dist/                 # Build output (gitignored)
+├── examples/              # Usage examples
+├── mkdocs_docs/           # User documentation (MkDocs)
+├── tests/                 # Jest test files
+└── dist/                  # Build output (gitignored)
 ```
 
 ## 🛠️ Development Workflows
@@ -269,9 +278,15 @@ function PieceRenderer({ piece }: Props) {
 }
 
 // ❌ NEVER: Untyped external data
-function loadGame(data: any) {  // WRONG
+function loadGame(data: any) {  // WRONG - use unknown instead
   return data.fen;
 }
+
+// ❌ NEVER: Using any in tests
+const mockTransport = createMock() as any;  // WRONG - use proper type like EngineTransport
+
+// ❌ NEVER: Using onmessage/onerror in Workers
+worker.onmessage = (event) => { ... };  // WRONG - use addEventListener
 
 // ✅ CORRECT: Validation and typing
 function loadGame(data: unknown): GameState {
@@ -280,6 +295,13 @@ function loadGame(data: unknown): GameState {
   }
   return data;
 }
+
+// ✅ CORRECT: Using proper types in tests
+const mockTransport = createMock() as EngineTransport;
+
+// ✅ CORRECT: Using addEventListener in Workers
+worker.addEventListener('message', (event) => { ... });
+worker.addEventListener('error', (error) => { ... });
 ```
 
 ### Workflow Anti-Patterns
@@ -323,9 +345,12 @@ npm run test -- ChessBoard.test.tsx  # Targeted testing
 
 1. **Check existing patterns** in similar components
 2. **Maintain consistency** with naming and structure
-3. **Add TypeScript types** for all new code
+3. **Add TypeScript types** for all new code (avoid `any`, use `unknown` when needed)
 4. **Include tests** for new functionality
 5. **Update documentation** if API changed
+6. **Use `addEventListener`** instead of `onmessage`/`onerror` for Workers
+7. **Prefix unused parameters** with `_` (e.g., `_unusedParam`)
+8. **Remove commented code** - use version control instead
 
 ### Communication Patterns
 
@@ -438,6 +463,15 @@ npm outdated       # Check major versions
 
 **Issue**: Demo doesn't reflect library changes
 **Solution**: Rebuild library: `npm run build:lib`, then restart demo
+
+**Issue**: ESLint errors about unused imports/variables
+**Solution**: Remove unused imports, prefix unused parameters with `_`, or use the variable
+
+**Issue**: ESLint errors about `onmessage`/`onerror` in Workers
+**Solution**: Use `addEventListener('message', ...)` and `addEventListener('error', ...)` instead
+
+**Issue**: ESLint errors about useless `undefined`
+**Solution**: Remove `undefined` from function calls (e.g., `emit('event')` instead of `emit('event', undefined)`)
 
 ### Debug Commands
 
