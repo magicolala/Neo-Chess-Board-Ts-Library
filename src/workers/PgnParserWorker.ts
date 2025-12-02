@@ -8,7 +8,7 @@
 import { PgnAnnotationParser } from '../core/PgnAnnotationParser';
 import { PgnParseError, type PgnParseErrorCode } from '../core/errors';
 import type { PgnMetadata } from '../core/PgnNotation';
-import type { PgnMove, SquareHighlight } from '../core/types';
+import type { PgnMove } from '../core/types';
 
 export interface PgnParserWorkerMessage {
   type: 'parsePgn' | 'parsePgnBatch' | 'validatePgn';
@@ -133,7 +133,6 @@ function parseMoves(
     let comment: string | undefined;
     if (i + 1 < tokens.length && tokens[i + 1].startsWith('{')) {
       comment = tokens[i + 1].slice(1, -1).trim();
-      i++;
     }
 
     const addAnnotations = (targetMove: PgnMove, side: 'white' | 'black') => {
@@ -240,7 +239,7 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
 
   try {
     switch (type) {
-      case 'parsePgn':
+      case 'parsePgn': {
         if (!pgn) {
           throw new Error('pgn is required for parsePgn');
         }
@@ -251,8 +250,9 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           result,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      case 'parsePgnBatch':
+      case 'parsePgnBatch': {
         if (!pgns || pgns.length === 0) {
           throw new Error('pgns array is required for parsePgnBatch');
         }
@@ -263,8 +263,9 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           results,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      case 'validatePgn':
+      case 'validatePgn': {
         if (!pgn) {
           throw new Error('pgn is required for validatePgn');
         }
@@ -275,9 +276,11 @@ globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessa
           valid,
         } as PgnParserWorkerResponse);
         break;
+      }
 
-      default:
+      default: {
         throw new Error(`Unknown message type: ${type}`);
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -298,4 +301,3 @@ self.addEventListener('error', (error: ErrorEvent) => {
     error: `Worker error: ${error.message}`,
   } as PgnParserWorkerResponse);
 });
-

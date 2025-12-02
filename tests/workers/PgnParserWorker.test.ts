@@ -50,7 +50,7 @@ describe('PgnParserWorker Logic', () => {
 
       // 1. Enlever les commentaires et le résultat
       const cleanedMovesText = movesText
-        .replace(/{[^}]*}/g, '')
+        .replaceAll(/{[^}]*}/g, '')
         .replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '')
         .trim();
 
@@ -63,7 +63,7 @@ describe('PgnParserWorker Logic', () => {
       for (const token of tokens) {
         if (token.endsWith('.')) {
           const moveNumber = Number.parseInt(token.slice(0, -1), 10);
-          if (!isNaN(moveNumber)) {
+          if (!Number.isNaN(moveNumber)) {
             currentMoveNumber = moveNumber;
             isWhiteMove = true;
           }
@@ -302,4 +302,3 @@ describe('PgnParserWorkerManager', () => {
     expect(mockWorker.terminate).toHaveBeenCalled();
   });
 });
-

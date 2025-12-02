@@ -182,4 +182,3 @@ describe('LegalMovesWorkerManager', () => {
     expect(mockWorker.terminate).toHaveBeenCalled();
   });
 });
-

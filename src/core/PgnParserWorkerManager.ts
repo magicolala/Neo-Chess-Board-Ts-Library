@@ -34,7 +34,7 @@ export class PgnParserWorkerManager {
   private readonly timeout: number;
 
   constructor(options: PgnParserWorkerManagerOptions = {}) {
-    this.timeout = options.timeout ?? 30000; // 30s pour les gros fichiers
+    this.timeout = options.timeout ?? 30_000; // 30s pour les gros fichiers
     this.initWorker();
   }
 
@@ -85,10 +85,10 @@ export class PgnParserWorkerManager {
         request.resolve(data.result);
       } else if (data.results !== undefined) {
         request.resolve(data.results);
-      } else if (data.valid !== undefined) {
-        request.resolve(data.valid);
-      } else {
+      } else if (data.valid === undefined) {
         request.reject(new Error('Invalid response from worker'));
+      } else {
+        request.resolve(data.valid);
       }
     } else {
       request.reject(new Error(data.error || 'Unknown error from worker'));
@@ -185,4 +185,3 @@ export class PgnParserWorkerManager {
     }
   }
 }
-

@@ -119,23 +119,27 @@ globalThis.addEventListener('message', (event: MessageEvent<LegalMovesWorkerMess
     let moves: Move[] = [];
 
     switch (type) {
-      case 'calculateAllMoves':
+      case 'calculateAllMoves': {
         moves = calculateAllMoves(fen);
         break;
+      }
 
-      case 'calculateMovesFrom':
+      case 'calculateMovesFrom': {
         if (!square) {
           throw new Error('square is required for calculateMovesFrom');
         }
         moves = calculateMovesFrom(fen, square);
         break;
+      }
 
-      case 'calculateDeep':
+      case 'calculateDeep': {
         moves = calculateDeep(fen, options);
         break;
+      }
 
-      default:
+      default: {
         throw new Error(`Unknown message type: ${type}`);
+      }
     }
 
     const response: LegalMovesWorkerResponse = {
@@ -166,4 +170,3 @@ self.addEventListener('error', (error: ErrorEvent) => {
     error: `Worker error: ${error.message}`,
   } as LegalMovesWorkerResponse);
 });
-
