@@ -1409,11 +1409,11 @@ const AppContent: React.FC = () => {
 
           {/* Center Column */}
           <div className="lg:col-span-6">
-            <GlassPanel className="p-4 sm:p-6">
+            <GlassPanel className="p-4 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
               <div
                 ref={boardContainerRef}
                 style={boardContainerStyle}
-                className="relative mx-auto group"
+                className="relative mx-auto group rounded-lg shadow-inner"
               >
                 <NeoChessBoard
                   ref={boardRef}
