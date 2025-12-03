@@ -14,15 +14,15 @@ Successfully activated **7 SonarJS code quality rules** with pragmatic threshold
 
 ### Rules Activated
 
-| Rule | Status | Threshold | Impact |
-|------|--------|-----------|--------|
-| `sonarjs/cognitive-complexity` | ✅ Active | 25 per function | 13 functions flagged for refactoring |
-| `sonarjs/no-nested-conditional` | ✅ Active | N/A | 35+ ternary operators identified |
-| `sonarjs/no-nested-functions` | ✅ Active | 4+ levels | 9 locations with deep nesting |
-| `sonarjs/no-identical-functions` | ✅ Active | N/A | 2 duplicate implementations found |
-| `sonarjs/constructor-for-side-effects` | ✅ Active | N/A | 3 useless instantiations in tests |
-| `sonarjs/pseudo-random` | ✅ Active | N/A | 2 Math.random() usages (acceptable) |
-| `sonarjs/slow-regex` | ⭕ Disabled | N/A | PGN patterns with controlled input |
+| Rule                                   | Status      | Threshold       | Impact                               |
+| -------------------------------------- | ----------- | --------------- | ------------------------------------ |
+| `sonarjs/cognitive-complexity`         | ✅ Active   | 25 per function | 13 functions flagged for refactoring |
+| `sonarjs/no-nested-conditional`        | ✅ Active   | N/A             | 35+ ternary operators identified     |
+| `sonarjs/no-nested-functions`          | ✅ Active   | 4+ levels       | 9 locations with deep nesting        |
+| `sonarjs/no-identical-functions`       | ✅ Active   | N/A             | 2 duplicate implementations found    |
+| `sonarjs/constructor-for-side-effects` | ✅ Active   | N/A             | 3 useless instantiations in tests    |
+| `sonarjs/pseudo-random`                | ✅ Active   | N/A             | 2 Math.random() usages (acceptable)  |
+| `sonarjs/slow-regex`                   | ⭕ Disabled | N/A             | PGN patterns with controlled input   |
 
 ### Code Changes Made
 
@@ -88,9 +88,10 @@ Successfully activated **7 SonarJS code quality rules** with pragmatic threshold
 ### Phase 1: Quick Wins (1-2 hours)
 
 #### 1. Extract Nested Ternary Operators
+
 ```typescript
 // ❌ Current (nested)
-<Component 
+<Component
   className={isDark ? 'dark' : isHighlight ? 'highlight' : 'light'}
 />
 
@@ -102,6 +103,7 @@ const themeName = isDark ? 'dark' : isHighlight ? 'highlight' : 'light';
 **Files**: App.tsx, EvaluationBar.tsx, DrawingManager.tsx
 
 #### 2. Consolidate Identical Functions
+
 ```typescript
 // In App.tsx (lines 930, 949)
 // In NeoChessBoard.ts (lines 2241, 2339)
@@ -111,6 +113,7 @@ const themeName = isDark ? 'dark' : isHighlight ? 'highlight' : 'light';
 **Estimated Impact**: -2 warnings
 
 #### 3. Remove Constructor Side Effects
+
 ```typescript
 // ❌ Current
 new NeoChessBoard();
@@ -139,6 +142,7 @@ Target: Functions with complexity 25-35
 ```
 
 **Files**:
+
 - src/clock/ClockManager.ts (19)
 - src/core/PgnAnnotationParser.ts (24)
 - src/utils/chess960.ts (29)
@@ -154,7 +158,9 @@ function outer() {
     return function level2() {
       return function level3() {
         return function level4() {
-          return function level5() { /* code */ };
+          return function level5() {
+            /* code */
+          };
         };
       };
     };
@@ -162,12 +168,15 @@ function outer() {
 }
 
 // ✅ After: Module-level with dependencies
-const innerHandler = (deps) => (data) => { /* code */ };
+const innerHandler = (deps) => (data) => {
+  /* code */
+};
 const level4Handler = (deps) => innerHandler(deps);
 const level3Handler = (deps) => level4Handler(deps);
 ```
 
 **Files**:
+
 - src/extensions/PromotionDialogExtension.ts
 - src/extensions/createCameraEffectsExtension.ts
 
@@ -207,32 +216,35 @@ These require significant refactoring:
 
 ## 📊 Quality Metrics - Before & After
 
-| Metric | Before | After | Status |
-|--------|--------|-------|--------|
-| ESLint Errors | 0 | 0 | ✅ Maintained |
-| ESLint Warnings | 122 | 85 | ✅ 30% Reduction |
-| SonarJS Rules Active | 0 | 7 | ✅ Activated |
-| Test Coverage | 598/598 | 598/598 | ✅ Maintained |
-| Build Success | ✅ | ✅ | ✅ Maintained |
-| Type Strictness | 100% | 100% | ✅ Maintained |
+| Metric               | Before  | After   | Status           |
+| -------------------- | ------- | ------- | ---------------- |
+| ESLint Errors        | 0       | 0       | ✅ Maintained    |
+| ESLint Warnings      | 122     | 85      | ✅ 30% Reduction |
+| SonarJS Rules Active | 0       | 7       | ✅ Activated     |
+| Test Coverage        | 598/598 | 598/598 | ✅ Maintained    |
+| Build Success        | ✅      | ✅      | ✅ Maintained    |
+| Type Strictness      | 100%    | 100%    | ✅ Maintained    |
 
 ---
 
 ## 🚀 Implementation Strategy
 
 ### Incremental Improvement
+
 - Configure rules as **warnings** (not errors) for gradual adoption
 - Team can address violations in sprints
 - No breaking changes to existing functionality
 - Build pipeline unaffected
 
 ### Developer Experience
+
 - Clear guidance in AGENTS.MD
 - Actionable warning messages
 - Code examples for compliance
 - Low friction for improvements
 
 ### Sustainability
+
 - Rules are now documented
 - New code must follow thresholds
 - Existing code can be refactored gradually
@@ -243,20 +255,24 @@ These require significant refactoring:
 ## 📝 Next Steps
 
 ### For Immediate Action
+
 1. ✅ Review AGENTS.MD SonarQube section
 2. ✅ Understand the 85 warnings in detail
 3. ✅ Plan refactoring sprints
 
 ### For Short Term (This Sprint)
+
 - [ ] Fix constructor-for-side-effects (3 warnings, 30 min)
 - [ ] Extract nested ternary operators (35 warnings, 2 hours)
 - [ ] Consolidate identical functions (2 warnings, 30 min)
 
 ### For Medium Term (Next 2 Sprints)
+
 - [ ] Reduce cognitive complexity in secondary functions (25-35 range)
 - [ ] Extract nested functions (9 warnings, 2-3 hours)
 
 ### For Long Term (Ongoing)
+
 - [ ] Address high-complexity functions (35-67 range)
 - [ ] Monitor new violations
 - [ ] Consider stricter thresholds as code improves
