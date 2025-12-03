@@ -63,8 +63,16 @@ describe('RuleEngine', () => {
   it('parses coordinate notation with optional promotions', () => {
     const engine = new RuleEngine(() => new ChessJsRules());
 
-    expect(engine.parseCoordinateNotation('a7a8q')).toEqual({ from: 'a7', to: 'a8', promotion: 'q' });
-    expect(engine.parseCoordinateNotation('h2-h1')).toEqual({ from: 'h2', to: 'h1', promotion: undefined });
+    expect(engine.parseCoordinateNotation('a7a8q')).toEqual({
+      from: 'a7',
+      to: 'a8',
+      promotion: 'q',
+    });
+    expect(engine.parseCoordinateNotation('h2-h1')).toEqual({
+      from: 'h2',
+      to: 'h1',
+      promotion: undefined,
+    });
     expect(engine.parseCoordinateNotation('invalid')).toBeNull();
   });
 
