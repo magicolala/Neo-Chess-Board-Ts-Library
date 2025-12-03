@@ -418,6 +418,31 @@ Closes #123
 - **Move Validation**: < 5ms per move
 - **FEN Parsing**: < 10ms per position
 
+## 🎯 SonarQube Rules Configuration
+
+### Active SonarJS Rules
+
+All SonarJS rules are **ENABLED as warnings** to maintain code quality while allowing builds to succeed:
+
+| Rule | Threshold | Status | Notes |
+|------|-----------|--------|-------|
+| `cognitive-complexity` | 25 per function | ⚠️ warn | Refactor functions exceeding complexity |
+| `no-nested-conditional` | N/A | ⚠️ warn | Extract nested ternary to variables |
+| `no-nested-functions` | 4 levels | ⚠️ warn | Move nested functions to module level |
+| `no-identical-functions` | N/A | ⚠️ warn | Consolidate duplicate function logic |
+| `constructor-for-side-effects` | N/A | ⚠️ warn | Use constructors only for object creation |
+| `pseudo-random` | N/A | ⚠️ warn | Math.random() acceptable for non-crypto usage |
+| `slow-regex` | N/A | ⭕ off | Disabled - PGN patterns use controlled input |
+
+### Current Violations: 85 warnings
+
+**Distribution**:
+- Cognitive Complexity: 13 functions (range: 25-67)
+- Nested Conditionals: 35+ ternary operations
+- Nested Functions: 9 locations (5+ levels deep)
+- Identical Functions: 2 instances
+- Constructor-for-side-effects: 3 test locations
+
 ## 🛡️ Security & Safety
 
 ### Input Validation
