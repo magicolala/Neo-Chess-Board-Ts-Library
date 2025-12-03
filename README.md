@@ -1,4 +1,4 @@
-# 🏁 Neo Chess Board
+# ♟️ Neo Chess Board
 
 <div align="center">
 
@@ -6,35 +6,22 @@
 
 [![npm](https://img.shields.io/npm/v/neo-chess-board.svg?style=flat-square)](https://www.npmjs.com/package/neo-chess-board)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Jest](https://img.shields.io/badge/Jest-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Docs: MkDocs](https://img.shields.io/badge/docs-mkdocs-blue?style=flat-square)](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/docs/)
-[![API: TypeDoc](https://img.shields.io/badge/API-TypeDoc-informational?style=flat-square)](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/api/)
 
 **A modern, lightweight chess board library built with Canvas and TypeScript**
 
-*Chessbook-inspired performance meets developer-friendly APIs*
+_Type-safe • Zero dependencies • Performance optimized • React ready_
 
-[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](#-documentation) • [⚡ Quick Start](#-quick-start) • [🎨 Themes](#-themes)
+[🎮 Live Demo](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/) • [📖 Documentation](mkdocs_docs/) • [⚡ Quick Start](#quick-start) • [✨ Features](#features)
 
 </div>
 
 ---
 
-## ✨ Why Neo Chess Board?
-
-| Feature                | Neo Chess Board          | Other Libraries      |
-|------------------------|--------------------------|----------------------|
-| **Bundle Size**        | 🟢 ~15kb (minified)      | 🔴 50-200kb          |
-| **Dependencies**       | 🟢 Zero core deps        | 🔴 Multiple          |
-| **TypeScript**         | 🟢 Full native support   | 🟡 Partial/types-only|
-| **React Integration**  | 🟢 Native hooks & SSR    | 🔴 Wrapper required  |
-| **Performance**        | 🟢 Canvas optimized      | 🟡 DOM-heavy         |
-| **Customization**      | 🟢 Themes + piece sets   | 🔴 Limited options   |
-| **PGN Support**        | 🟢 Built-in w/ annotations| 🔴 External library |
-| **Accessibility**      | 🟢 Optional extension    | 🔴 None/limited      |
-
-## 🎯 Key Features
+## ✨ Features
 
 ### 🚀 Performance & Modern Stack
 
@@ -179,7 +166,7 @@ const board = new NeoChessBoard(container, {
       autoStart: true,
       onResult: (result) => console.log('Engine score', result.lines[0]?.score),
     }),
-    createAIPlayerExtension({ aiColor: 'black', movetimeMs: 200 })
+    createAIPlayerExtension({ aiColor: 'black', movetimeMs: 200 }),
   ],
 });
 ```
@@ -192,10 +179,10 @@ Neo Chess Board includes two beautiful themes out of the box, and you can easily
 
 ### Built-in Themes
 
-| Theme        | Description               | Best For                    |
-|--------------|---------------------------|-----------------------------|
-| **Classic**  | Light & clean design      | Traditional chess apps      |
-| **Midnight** | Dark & modern aesthetic   | Night mode, modern UIs      |
+| Theme        | Description             | Best For               |
+| ------------ | ----------------------- | ---------------------- |
+| **Classic**  | Light & clean design    | Traditional chess apps |
+| **Midnight** | Dark & modern aesthetic | Night mode, modern UIs |
 
 ```tsx
 // Use built-in themes
@@ -259,7 +246,7 @@ const customPieces: PieceSet = {
   },
 };
 
-<NeoChessBoard theme="midnight" pieceSet={customPieces} />
+<NeoChessBoard theme="midnight" pieceSet={customPieces} />;
 ```
 
 **Features:**
@@ -277,57 +264,54 @@ const customPieces: PieceSet = {
 ```typescript
 interface NeoChessProps {
   // Position & State
-  fen?: string;                    // FEN position string
+  fen?: string; // FEN position string
   orientation?: 'white' | 'black'; // Board orientation
-  autoFlip?: boolean;              // Follow active player
-  
+  autoFlip?: boolean; // Follow active player
+
   // Visual Styling
-  theme?: ThemeName | Theme;       // Built-in name or custom object
-  pieceSet?: PieceSet;             // Custom piece images
-  showCoordinates?: boolean;       // Show rank/file labels
-  
+  theme?: ThemeName | Theme; // Built-in name or custom object
+  pieceSet?: PieceSet; // Custom piece images
+  showCoordinates?: boolean; // Show rank/file labels
+
   // Interaction
-  interactive?: boolean;           // Enable drag & drop
-  highlightLegal?: boolean;        // Show legal move indicators
-  allowDragging?: boolean;         // Enable pointer dragging
+  interactive?: boolean; // Enable drag & drop
+  highlightLegal?: boolean; // Show legal move indicators
+  allowDragging?: boolean; // Enable pointer dragging
   dragActivationDistance?: number; // Pixels before drag starts
-  allowDragOffBoard?: boolean;     // Allow cancel by dropping outside
-  allowAutoScroll?: boolean;       // Scroll container during drag
-  
+  allowDragOffBoard?: boolean; // Allow cancel by dropping outside
+  allowAutoScroll?: boolean; // Scroll container during drag
+
   // Animations
-  showAnimations?: boolean;        // Toggle animations
-  animation?: {                    // Animation configuration
-    duration?: number;             // Duration in milliseconds
-    easing?: AnimationEasing;      // Name or custom easing function
+  showAnimations?: boolean; // Toggle animations
+  animation?: {
+    // Animation configuration
+    duration?: number; // Duration in milliseconds
+    easing?: AnimationEasing; // Name or custom easing function
   };
-  animationDurationInMs?: number;  // Legacy duration alias
+  animationDurationInMs?: number; // Legacy duration alias
   animationEasing?: AnimationEasing; // Legacy easing alias
-  
+
   // Arrows & Annotations
-  allowDrawingArrows?: boolean;    // Enable right-click arrows
-  clearArrowsOnClick?: boolean;    // Clear arrows on left click
-  arrows?: Arrow[];                // Controlled arrows state
+  allowDrawingArrows?: boolean; // Enable right-click arrows
+  clearArrowsOnClick?: boolean; // Clear arrows on left click
+  arrows?: Arrow[]; // Controlled arrows state
   onArrowsChange?: (arrows: Arrow[]) => void;
   arrowOptions?: {
     color?: string;
     width?: number;
     opacity?: number;
   };
-  
+
   // Advanced
-  rulesAdapter?: RulesAdapter;     // Custom chess rules
-  canDragPiece?: (params: {
-    square: Square;
-    piece: string;
-    board: NeoChessBoard;
-  }) => boolean;
-  
+  rulesAdapter?: RulesAdapter; // Custom chess rules
+  canDragPiece?: (params: { square: Square; piece: string; board: NeoChessBoard }) => boolean;
+
   // Events
   onMove?: (move: MoveEvent) => void;
   onIllegal?: (attempt: IllegalMoveEvent) => void;
   onUpdate?: (state: UpdateEvent) => void;
   onPromotionRequired?: (request: PromotionRequest) => void;
-  
+
   // Styling
   style?: React.CSSProperties;
   className?: string;
@@ -344,18 +328,22 @@ class NeoChessBoard {
   setPosition(fen: string, immediate?: boolean): void;
   getMoveHistory(): string[];
   submitMove(notation: string): boolean;
-  
+
   // Board State
   getOrientation(): 'white' | 'black';
   getTurn(): 'w' | 'b';
   getPieceAt(square: Square): string | null;
   getPieceSquares(piece: Piece): Square[];
-  
+
   // Move Handling
-  attemptMove(from: Square, to: Square, options?: {
-    promotion?: 'q' | 'r' | 'b' | 'n';
-  }): boolean;
-  
+  attemptMove(
+    from: Square,
+    to: Square,
+    options?: {
+      promotion?: 'q' | 'r' | 'b' | 'n';
+    },
+  ): boolean;
+
   // Promotion
   previewPromotionPiece(piece: 'q' | 'r' | 'b' | 'n' | null): void;
   isPromotionPending(): boolean;
@@ -365,7 +353,7 @@ class NeoChessBoard {
     color: 'w' | 'b';
     mode: 'move' | 'premove';
   } | null;
-  
+
   // Event System
   on<T>(event: string, handler: (data: T) => void): () => void;
 
@@ -379,7 +367,13 @@ class NeoChessBoard {
 
   // Runtime configuration
   configure(configuration: {
-    drag?: { threshold?: number; snap?: boolean; ghost?: boolean; ghostOpacity?: number; cancelOnEsc?: boolean };
+    drag?: {
+      threshold?: number;
+      snap?: boolean;
+      ghost?: boolean;
+      ghostOpacity?: number;
+      cancelOnEsc?: boolean;
+    };
     animation?: { durationMs?: number; easing?: AnimationEasing };
     promotion?: { autoQueen?: boolean; ui?: 'dialog' | 'inline' };
   }): void;
@@ -401,7 +395,7 @@ Neo Chess Board offers three ways to handle pawn promotion:
 ```typescript
 board.on('promotion', (request) => {
   // Show your custom UI
-  showPromotionDialog().then(piece => {
+  showPromotionDialog().then((piece) => {
     request.resolve(piece); // 'q', 'r', 'b', or 'n'
   });
 });
@@ -414,7 +408,7 @@ const board = new NeoChessBoard(element, {
   onPromotionRequired(request) {
     // Handle promotion
     request.resolve('q');
-  }
+  },
 });
 ```
 
@@ -559,12 +553,9 @@ const board = new NeoChessBoard(element, {
   onMove: ({ from, to }) => {
     const move = game.move({ from, to });
     if (move) {
-      rules.getPgnNotation().addMove(
-        rules.moveNumber(),
-        move.san,
-        'Good move!',
-        `{%cal G${from}${to}}`
-      );
+      rules
+        .getPgnNotation()
+        .addMove(rules.moveNumber(), move.san, 'Good move!', `{%cal G${from}${to}}`);
     }
   },
 });
@@ -595,7 +586,7 @@ const board = new NeoChessBoard(element, {
     createAccessibilityExtension({
       enableKeyboard: true,
       regionLabel: 'Interactive chessboard',
-    })
+    }),
   ],
 });
 ```
@@ -655,11 +646,7 @@ function ChessGame() {
 
       <div className="game-notation">
         <h3>PGN</h3>
-        <textarea 
-          value={pgn.getPGN()} 
-          readOnly 
-          rows={10}
-        />
+        <textarea value={pgn.getPGN()} readOnly rows={10} />
       </div>
     </div>
   );
@@ -694,6 +681,84 @@ Tests cover:
 - ✅ Accessibility features
 
 See [`tests/README.md`](tests/README.md) for details on the test structure and how to add new tests.
+
+## 🤖 AI & Analysis Features
+
+### Real-time Engine Analysis
+
+```typescript
+const board = new NeoChessBoard(element, {
+  extensions: [
+    createEngineExtension({
+      depth: 20,
+      movetimeMs: 1000,
+      onResult: (result) => console.log('Best move:', result.bestMove),
+    }),
+  ],
+});
+```
+
+### AI Opponent (Stockfish)
+
+```typescript
+const board = new NeoChessBoard(element, {
+  extensions: [
+    createAIPlayerExtension({
+      aiColor: 'black',
+      movetimeMs: 1000,
+      onMoveComplete: (move) => console.log('AI played:', move),
+    }),
+  ],
+});
+```
+
+### Stockfish Agent (Manual Control)
+
+```typescript
+import { ChessGame } from 'neo-chess-board';
+import { StockfishAgent } from 'neo-chess-board';
+
+const game = new ChessGame();
+const agent = new StockfishAgent(game, '/stockfish.js', 20);
+
+agent.on('analysisUpdate', (analysis) => {
+  console.log('Depth:', analysis.depth);
+  console.log('Best move:', analysis.bestMove);
+  console.log('Score:', analysis.score);
+});
+
+game.move({ from: 'e2', to: 'e4' });
+agent.terminate();
+```
+
+## 🏁 Chess960 (Fischer Random Chess)
+
+```typescript
+import { generateChess960StartPosition, isValidChess960Start } from 'neo-chess-board';
+
+// Generate a random Chess960 position
+const randomFEN = generateChess960StartPosition();
+
+// Or use a specific Chess960 index (0-959)
+const specificFEN = generateChess960StartPosition(518);
+
+// Validate Chess960 position
+const isValid = isValidChess960Start(fen);
+
+board.setPosition(randomFEN);
+```
+
+## 🔌 Built-in Extensions
+
+| Extension                    | Purpose                   | Use Case                    |
+| ---------------------------- | ------------------------- | --------------------------- |
+| **PromotionDialogExtension** | UI for pawn promotion     | Automatic promotion dialogs |
+| **ArrowHighlightExtension**  | Draw and manage arrows    | Annotate games with arrows  |
+| **ClockExtension**           | Display game clock        | Show time controls on board |
+| **EngineExtension**          | Real-time engine analysis | Get computer analysis       |
+| **AIPlayerExtension**        | Play against AI           | Stockfish opponent          |
+| **CameraEffectsExtension**   | Visual effects            | Zoom, pan, shake animations |
+| **AccessibilityExtension**   | Screen reader support     | Accessibility compliance    |
 
 ## 🏗️ Architecture
 
