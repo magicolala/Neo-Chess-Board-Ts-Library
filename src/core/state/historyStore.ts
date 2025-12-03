@@ -52,7 +52,12 @@ export function undo(state: HistoryStoreState): {
     return { state };
   }
 
-  const previous = cloneMoveState(state.past.at(-1));
+  const previousEntry = state.past.at(-1);
+  if (!previousEntry) {
+    return { state };
+  }
+
+  const previous = cloneMoveState(previousEntry);
   const remainingPast = state.past.slice(0, -1).map((entry) => cloneMoveState(entry));
   const future = [
     cloneMoveState(state.present),
@@ -121,7 +126,7 @@ export function canRedo(state: HistoryStoreState): boolean {
 
 export function getHistory(state: HistoryStoreState): string[] {
   const timeline = [...state.past.slice(1), state.present];
-  return timeline.map((entry) => entry.san ?? entry.move?.san).filter(Boolean);
+  return timeline.map((entry) => entry.san ?? entry.move?.san).filter(Boolean) as string[];
 }
 
 export function getVerboseHistory(state: HistoryStoreState): RulesMoveDetail[] {
@@ -130,7 +135,7 @@ export function getVerboseHistory(state: HistoryStoreState): RulesMoveDetail[] {
     .map((entry) =>
       entry.move && entry.move.san ? ({ ...entry.move } as RulesMoveDetail) : undefined,
     )
-    .filter(Boolean);
+    .filter(Boolean) as RulesMoveDetail[];
 }
 
 export function getLastMoveState(state: HistoryStoreState): MoveState | undefined {
