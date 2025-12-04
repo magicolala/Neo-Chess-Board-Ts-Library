@@ -152,6 +152,14 @@ function calculateDeep(fen: string, options?: { includeAllPieces?: boolean }): M
  * Gère les messages reçus du thread principal
  */
 globalThis.addEventListener('message', (event: MessageEvent<LegalMovesWorkerMessage>) => {
+  if (event.origin && event.origin !== globalThis.origin) {
+    globalThis.postMessage({
+      type: 'error',
+      error: `Untrusted message origin: ${event.origin}`,
+    } satisfies LegalMovesWorkerResponse);
+    return;
+  }
+
   const { type, id, fen, square, options } = event.data;
 
   try {

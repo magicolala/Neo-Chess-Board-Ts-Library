@@ -235,6 +235,14 @@ function validatePgn(pgn: string): boolean {
  * Gère les messages reçus du thread principal
  */
 globalThis.addEventListener('message', (event: MessageEvent<PgnParserWorkerMessage>) => {
+  if (event.origin && event.origin !== globalThis.origin) {
+    globalThis.postMessage({
+      type: 'error',
+      error: `Untrusted message origin: ${event.origin}`,
+    } as PgnParserWorkerResponse);
+    return;
+  }
+
   const { type, id, pgn, pgns, options } = event.data;
 
   try {
