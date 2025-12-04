@@ -65,7 +65,7 @@ const normalizeTheme = (theme: Theme): Theme => {
 };
 
 export type ThemeName = keyof typeof THEMES;
-export type CustomThemeName = ThemeName | (string & {});
+export type CustomThemeName = ThemeName | (string & { __customThemeName?: true });
 
 export const registerTheme = (name: string, theme: Theme): Theme => {
   const normalized = normalizeTheme(theme);

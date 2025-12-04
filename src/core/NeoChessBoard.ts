@@ -697,9 +697,7 @@ export class NeoChessBoard {
     this.eventManager.attach();
     this.resize();
 
-    if (options.pieceSet) {
-      this.setPieceSet(options.pieceSet);
-    }
+    this._initializePieceSetAsync(options.pieceSet);
   }
 
   // ============================================================================
@@ -1239,6 +1237,16 @@ export class NeoChessBoard {
       const value = theme[key];
       return typeof value === 'string' && value.length > 0;
     });
+  }
+
+  private _initializePieceSetAsync(pieceSet?: PieceSet | null): void {
+    if (!pieceSet) {
+      return;
+    }
+
+    Promise.resolve()
+      .then(() => this.setPieceSet(pieceSet))
+      .catch((error) => console.error('Failed to apply initial piece set', error));
   }
 
   public async setPieceSet(pieceSet?: PieceSet | null): Promise<void> {
