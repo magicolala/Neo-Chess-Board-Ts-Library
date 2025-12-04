@@ -1415,41 +1415,69 @@ export class NeoChessBoard {
 
     let shouldRender = false;
 
-    if (typeof drag.threshold === 'number' && Number.isFinite(drag.threshold)) {
-      this.setDragActivationDistance(drag.threshold);
-    }
-
-    if (typeof drag.snap === 'boolean') {
-      const snapChanged = this.dragSnapToSquare !== drag.snap;
-      this.dragSnapToSquare = drag.snap;
-      if (snapChanged && this._dragging) {
-        if (drag.snap && this._hoverSq) {
-          const center = this._squareCenter(this._hoverSq);
-          this._dragging.x = center.x;
-          this._dragging.y = center.y;
-        }
-        shouldRender = true;
-      }
-    }
-
-    if (typeof drag.ghost === 'boolean' && this.dragGhostPiece !== drag.ghost) {
-      this.dragGhostPiece = drag.ghost;
-      shouldRender = true;
-    }
-
-    if (typeof drag.ghostOpacity === 'number' && Number.isFinite(drag.ghostOpacity)) {
-      const clampedOpacity = clamp(drag.ghostOpacity, 0, 1);
-      if (this.dragGhostOpacity !== clampedOpacity) {
-        this.dragGhostOpacity = clampedOpacity;
-        shouldRender = true;
-      }
-    }
-
-    if (typeof drag.cancelOnEsc === 'boolean') {
-      this.dragCancelOnEsc = drag.cancelOnEsc;
-    }
+    this._setDragThreshold(drag.threshold);
+    shouldRender = this._applyDragSnap(drag.snap) || shouldRender;
+    shouldRender = this._applyGhostPieceOption(drag.ghost) || shouldRender;
+    shouldRender = this._applyGhostOpacity(drag.ghostOpacity) || shouldRender;
+    this._applyCancelOnEsc(drag.cancelOnEsc);
 
     return shouldRender;
+  }
+
+  private _setDragThreshold(threshold?: number): void {
+    if (typeof threshold === 'number' && Number.isFinite(threshold)) {
+      this.setDragActivationDistance(threshold);
+    }
+  }
+
+  private _applyDragSnap(snap?: boolean): boolean {
+    if (typeof snap !== 'boolean') {
+      return false;
+    }
+
+    const snapChanged = this.dragSnapToSquare !== snap;
+    this.dragSnapToSquare = snap;
+
+    if (!snapChanged || !this._dragging) {
+      return false;
+    }
+
+    if (snap && this._hoverSq) {
+      const center = this._squareCenter(this._hoverSq);
+      this._dragging.x = center.x;
+      this._dragging.y = center.y;
+    }
+
+    return true;
+  }
+
+  private _applyGhostPieceOption(ghost?: boolean): boolean {
+    if (typeof ghost !== 'boolean' || this.dragGhostPiece === ghost) {
+      return false;
+    }
+
+    this.dragGhostPiece = ghost;
+    return true;
+  }
+
+  private _applyGhostOpacity(ghostOpacity?: number): boolean {
+    if (typeof ghostOpacity !== 'number' || !Number.isFinite(ghostOpacity)) {
+      return false;
+    }
+
+    const clampedOpacity = clamp(ghostOpacity, 0, 1);
+    if (this.dragGhostOpacity === clampedOpacity) {
+      return false;
+    }
+
+    this.dragGhostOpacity = clampedOpacity;
+    return true;
+  }
+
+  private _applyCancelOnEsc(cancelOnEsc?: boolean): void {
+    if (typeof cancelOnEsc === 'boolean') {
+      this.dragCancelOnEsc = cancelOnEsc;
+    }
   }
 
   public setAutoScrollEnabled(allow: boolean): void {
