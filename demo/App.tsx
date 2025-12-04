@@ -1071,21 +1071,6 @@ const AppContent: React.FC = () => {
   const highlightCount = activePlyInfo?.annotations?.circles?.length ?? 0;
   const evaluationForSelectedPly =
     activePlyInfo?.annotations?.evaluation ?? evaluationsByPly[selectedPly];
-  const renderCommentContent = useCallback(() => {
-    if (commentForSelectedPly) {
-      return (
-        <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-          {commentForSelectedPly}
-        </p>
-      );
-    }
-
-    if (selectedPly > 0) {
-      return <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>;
-    }
-
-    return <p className="text-sm text-gray-500 italic">{translate('comments.noMoveSelected')}</p>;
-  }, [commentForSelectedPly, selectedPly, translate]);
   const annotationBadges: string[] = [];
 
   if (arrowCount > 0) {
