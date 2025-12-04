@@ -3156,43 +3156,66 @@ export class NeoChessBoard {
 
   private _handleRightMouseUp(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
-    let handledByDrawingManager = false;
-    if (this.drawingManager && pt) {
-      handledByDrawingManager = this.drawingManager.handleRightMouseUp(pt.x, pt.y);
-    }
+    const handledByDrawingManager = Boolean(
+      this.drawingManager && pt && this.drawingManager.handleRightMouseUp(pt.x, pt.y),
+    );
 
     if (!handledByDrawingManager && pt) {
-      const activePremove = this.drawingManager?.getPremove();
-      const queuedForWhite = this._premoveQueues.w.length > 0;
-      const queuedForBlack = this._premoveQueues.b.length > 0;
-
-      if (activePremove || queuedForWhite || queuedForBlack) {
-        const activeColor = this.drawingManager?.getActivePremoveColor?.();
-        const colorsToClear = new Set<'white' | 'black'>();
-
-        if (activeColor === 'w') {
-          colorsToClear.add('white');
-        } else if (activeColor === 'b') {
-          colorsToClear.add('black');
-        } else {
-          if (queuedForWhite) colorsToClear.add('white');
-          if (queuedForBlack) colorsToClear.add('black');
-        }
-
-        if (colorsToClear.size === 0) {
-          this.clearPremove();
-        } else if (colorsToClear.size === 2) {
-          this.clearPremove('both');
-        } else {
-          this.clearPremove(colorsToClear.has('white') ? 'white' : 'black');
-        }
-      } else if (this.rightClickHighlights) {
+      const handledByPremove = this._handleRightClickPremoveClear();
+      if (!handledByPremove && this.rightClickHighlights) {
         const square = this._xyToSquare(pt.x, pt.y);
         this.drawingManager?.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
       }
     }
 
     this.renderAll();
+  }
+
+  private _handleRightClickPremoveClear(): boolean {
+    const activePremove = this.drawingManager?.getPremove();
+    const queuedForWhite = this._premoveQueues.w.length > 0;
+    const queuedForBlack = this._premoveQueues.b.length > 0;
+
+    if (!activePremove && !queuedForWhite && !queuedForBlack) {
+      return false;
+    }
+
+    const activeColor = this.drawingManager?.getActivePremoveColor?.();
+    const colorsToClear = this._determineRightClickClearColors(
+      activeColor,
+      queuedForWhite,
+      queuedForBlack,
+    );
+
+    this._clearPremoveColors(colorsToClear);
+    return true;
+  }
+
+  private _determineRightClickClearColors(
+    activeColor: 'w' | 'b' | undefined,
+    queuedForWhite: boolean,
+    queuedForBlack: boolean,
+  ): Set<'white' | 'black'> {
+    const colorsToClear = new Set<'white' | 'black'>();
+    if (activeColor === 'w') {
+      colorsToClear.add('white');
+    } else if (activeColor === 'b') {
+      colorsToClear.add('black');
+    } else {
+      if (queuedForWhite) colorsToClear.add('white');
+      if (queuedForBlack) colorsToClear.add('black');
+    }
+    return colorsToClear;
+  }
+
+  private _clearPremoveColors(colorsToClear: Set<'white' | 'black'>): void {
+    if (colorsToClear.size === 0) {
+      this.clearPremove();
+    } else if (colorsToClear.size === 2) {
+      this.clearPremove('both');
+    } else {
+      this.clearPremove(colorsToClear.has('white') ? 'white' : 'black');
+    }
   }
 
   private _handleMouseMove(e: PointerEvent, pt: Point | null): void {
