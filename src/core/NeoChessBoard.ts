@@ -969,12 +969,12 @@ export class NeoChessBoard {
     }
 
     const lastMove = this.rules.getLastMove?.();
-    if (lastMove && (lastMove as RulesMoveDetail).from && (lastMove as RulesMoveDetail).to) {
+    if (lastMove?.from && lastMove?.to) {
       this._lastMove = {
-        from: (lastMove as RulesMoveDetail).from as Square,
-        to: (lastMove as RulesMoveDetail).to as Square,
+        from: lastMove.from,
+        to: lastMove.to,
       };
-      this._emitMoveEvent(this._lastMove.from, this._lastMove.to, fen, lastMove as RulesMoveDetail);
+      this._emitMoveEvent(this._lastMove.from, this._lastMove.to, fen, lastMove);
     }
 
     this._emitUpdateEvent();

@@ -841,15 +841,15 @@ describe('NeoChessBoard Core', () => {
 
   describe('Configuration', () => {
     it('should accept theme configuration', () => {
-      expect(() => {
-        new NeoChessBoard(container, { theme: 'midnight' });
-      }).not.toThrow();
+      const themedBoard = new NeoChessBoard(container, { theme: 'midnight' });
+      expect(themedBoard).toBeInstanceOf(NeoChessBoard);
+      themedBoard.destroy();
     });
 
     it('should accept orientation configuration', () => {
-      expect(() => {
-        new NeoChessBoard(container, { orientation: 'black' });
-      }).not.toThrow();
+      const blackBoard = new NeoChessBoard(container, { orientation: 'black' });
+      expect(getOrientation(blackBoard)).toBe('black');
+      blackBoard.destroy();
     });
 
     it('should follow side to move when autoFlip is enabled', () => {

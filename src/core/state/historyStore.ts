@@ -140,7 +140,7 @@ export function getVerboseHistory(state: HistoryStoreState): RulesMoveDetail[] {
 
 export function getLastMoveState(state: HistoryStoreState): MoveState | undefined {
   const withMove = [...state.past.slice(1), state.present].filter(
-    (entry) => entry.move || entry.san,
+    (entry) => entry.move ?? entry.san,
   );
   return withMove.at(-1);
 }

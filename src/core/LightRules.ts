@@ -273,8 +273,8 @@ export class LightRules implements RulesAdapter {
     }
 
     return {
-      from: moveState.move.from as Square,
-      to: moveState.move.to as Square,
+      from: moveState.move.from,
+      to: moveState.move.to,
       san: moveState.move.san,
     } satisfies RulesMoveDetail;
   }
