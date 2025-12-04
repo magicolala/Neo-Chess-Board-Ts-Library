@@ -620,6 +620,9 @@
 }
 
 .playground__dropzone {
+  display: block;
+  width: 100%;
+  appearance: none;
   position: relative;
   border: 1.5px dashed rgba(99, 102, 241, 0.4);
   border-radius: calc(var(--playground-radius) - 8px);
@@ -663,6 +666,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
 }
 
 .playground__example-button {
@@ -753,6 +760,10 @@
   display: grid;
   grid-auto-flow: column;
   gap: 0.5rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
 }
 
 .playground__pgn-navigation-shortcuts {

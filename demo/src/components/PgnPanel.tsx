@@ -347,7 +347,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     [handleFileContent],
   );
 
-  const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback(
+  const handleDrop: React.DragEventHandler<HTMLButtonElement> = useCallback(
     (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -358,7 +358,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     [handleFileContent],
   );
 
-  const handleDragOver: React.DragEventHandler<HTMLDivElement> = useCallback(
+  const handleDragOver: React.DragEventHandler<HTMLButtonElement> = useCallback(
     (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -369,7 +369,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
     [isDragging],
   );
 
-  const handleDragLeave: React.DragEventHandler<HTMLDivElement> = useCallback((event) => {
+  const handleDragLeave: React.DragEventHandler<HTMLButtonElement> = useCallback((event) => {
     event.preventDefault();
     event.stopPropagation();
     setIsDragging(false);
@@ -457,37 +457,29 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
 
   return (
     <div className="playground__pgn-panel">
-      <div
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pgn"
+        className="playground__dropzone-input"
+        onChange={handleInputChange}
+      />
+      <button
+        type="button"
         className={
           isDragging ? 'playground__dropzone playground__dropzone--active' : 'playground__dropzone'
         }
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        role="button"
-        tabIndex={0}
         onClick={handleSelectFileClick}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            handleSelectFileClick();
-          }
-        }}
         aria-label="Import PGN"
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pgn"
-          className="playground__dropzone-input"
-          onChange={handleInputChange}
-          aria-hidden="true"
-        />
         <span className="playground__dropzone-label">Import PGN</span>
         <span className="playground__dropzone-hint">Click or drop a .pgn file</span>
-      </div>
+      </button>
 
-      <div className="playground__example-buttons" role="group" aria-label="PGN examples">
+      <fieldset className="playground__example-buttons" aria-label="PGN examples">
         {EXAMPLE_PGNS.map((example) => (
           <button
             key={example.id}
@@ -499,7 +491,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             {loadingExample === example.id ? 'Loading…' : example.label}
           </button>
         ))}
-      </div>
+      </fieldset>
 
       <div className="playground__pgn-navigation">
         <div className="playground__pgn-navigation-header">
@@ -518,11 +510,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
             {isAutoplaying ? <IconPause /> : <IconPlay />}
           </button>
         </div>
-        <div
-          className="playground__pgn-navigation-buttons"
-          role="group"
-          aria-label="Move navigation"
-        >
+        <fieldset className="playground__pgn-navigation-buttons" aria-label="Move navigation">
           <button
             type="button"
             className="playground__icon-button playground__pgn-nav-button"
@@ -563,7 +551,7 @@ const PgnPanel: React.FC<PgnPanelProps> = ({
           >
             <IconLast />
           </button>
-        </div>
+        </fieldset>
         <p className="playground__pgn-navigation-shortcuts" role="note">
           {keyboardShortcutHint}
         </p>
