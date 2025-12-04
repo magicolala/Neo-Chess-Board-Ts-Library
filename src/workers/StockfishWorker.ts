@@ -54,6 +54,16 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
   let analysisDepth = 0;
   let analysisTimer: ReturnType<typeof setTimeout> | null = null;
 
+  const deriveDeterministicScore = (fen: string, depth: number): number => {
+    // Simple hash-based score to keep mock output deterministic without using pseudo-randomness
+    let hash = 0;
+    for (let i = 0; i < fen.length; i += 1) {
+      hash = (hash * 31 + fen.charCodeAt(i) + depth) >>> 0;
+    }
+    const normalizedHash = hash % 100;
+    return normalizedHash - 50;
+  };
+
   return {
     postMessage: (message: string) => {
       const [command] = message.split(' ');
@@ -105,7 +115,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
           }
 
           analysisDepth += 1;
-          const score = Math.floor(Math.random() * 100) - 50; // Score simulé
+          const score = deriveDeterministicScore(_currentFen, analysisDepth);
           const pv = analysisDepth === 1 ? 'e2e4' : 'e2e4 e7e5';
 
           self.postMessage({
