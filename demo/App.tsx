@@ -820,25 +820,82 @@ const AppContent: React.FC = () => {
     clearEvaluations,
   ]);
 
-  const loadPgn = useCallback(
-    async (rawPgn: string) => {
+  const normalizeInputPgn = useCallback(
+    (rawPgn: string) => {
       const trimmed = rawPgn.trim();
       if (!trimmed) {
         setPgnError(translate('pgn.error.empty'));
+        return null;
+      }
+
+      return normalizePgn(trimmed);
+    },
+    [translate],
+  );
+
+  const prepareForPgnLoad = useCallback(() => {
+    setIsAutoPlaying(false);
+    clearAutoplayTimer();
+    setPgnError(null);
+  }, [clearAutoplayTimer]);
+
+  const loadPgnIntoRules = useCallback(
+    (normalizedPgn: string) => {
+      const board = boardRef.current?.getBoard() ?? null;
+      const success = chessRules.loadPgn(normalizedPgn);
+      const boardResult = board?.loadPgnWithAnnotations(normalizedPgn);
+
+      return { board, success, boardResult };
+    },
+    [boardRef, chessRules],
+  );
+
+  const resolveInitialTimelineFen = useCallback(() => {
+    const initialFen = timelineInitialFenRef.current;
+    if (typeof initialFen === 'string' && initialFen.trim().length > 0) {
+      return initialFen;
+    }
+    return chessRules.getFEN();
+  }, [chessRules]);
+
+  const applyLoadedPgn = useCallback(
+    (board: ReturnType<NeoChessRef['getBoard']> | null) => {
+      const initialTimelineFen = resolveInitialTimelineFen();
+      rebuildRulesFromTimeline(0);
+      setFen(initialTimelineFen);
+      board?.loadFEN?.(initialTimelineFen, !shouldAnimateMoves);
+      board?.showPgnAnnotationsForPly?.(0);
+      syncOrientationWithFen(initialTimelineFen);
+      try {
+        const statusRules = new ChessJsRules(initialTimelineFen);
+        setStatus(buildStatusSnapshot(statusRules));
+      } catch (statusError) {
+        console.error('Unable to derive status from the initial timeline FEN:', statusError);
+        updateStatusSnapshot();
+      }
+      return initialTimelineFen;
+    },
+    [
+      rebuildRulesFromTimeline,
+      resolveInitialTimelineFen,
+      shouldAnimateMoves,
+      syncOrientationWithFen,
+      updateStatusSnapshot,
+    ],
+  );
+
+  const loadPgn = useCallback(
+    async (rawPgn: string) => {
+      const normalizedPgn = normalizeInputPgn(rawPgn);
+      if (!normalizedPgn) {
         return;
       }
 
-      const normalizedPgn = normalizePgn(trimmed);
-
       setIsPgnLoading(true);
-      try {
-        setIsAutoPlaying(false);
-        clearAutoplayTimer();
-        setPgnError(null);
+      prepareForPgnLoad();
 
-        const success = chessRules.loadPgn(normalizedPgn);
-        const board = boardRef.current?.getBoard();
-        const boardResult = board?.loadPgnWithAnnotations(normalizedPgn);
+      try {
+        const { board, success, boardResult } = loadPgnIntoRules(normalizedPgn);
 
         if (!success) {
           setPgnError(translate('pgn.error.load'));
@@ -851,25 +908,7 @@ const AppContent: React.FC = () => {
 
         const normalizedOutput = chessRules.toPgn(false);
         syncEvaluationsFromRules();
-
-        const initialTimelineFen =
-          typeof timelineInitialFenRef.current === 'string' &&
-          timelineInitialFenRef.current.trim().length > 0
-            ? timelineInitialFenRef.current
-            : chessRules.getFEN();
-
-        rebuildRulesFromTimeline(0);
-        setFen(initialTimelineFen);
-        board?.loadFEN?.(initialTimelineFen, !shouldAnimateMoves);
-        board?.showPgnAnnotationsForPly?.(0);
-        syncOrientationWithFen(initialTimelineFen);
-        try {
-          const statusRules = new ChessJsRules(initialTimelineFen);
-          setStatus(buildStatusSnapshot(statusRules));
-        } catch (statusError) {
-          console.error('Unable to derive status from the initial timeline FEN:', statusError);
-          updateStatusSnapshot();
-        }
+        applyLoadedPgn(board);
         setPgnText(normalizedOutput);
       } catch (error) {
         console.error('Error while loading the PGN:', error);
@@ -879,15 +918,13 @@ const AppContent: React.FC = () => {
       }
     },
     [
-      boardRef,
+      applyLoadedPgn,
       chessRules,
-      clearAutoplayTimer,
-      rebuildRulesFromTimeline,
+      loadPgnIntoRules,
+      normalizeInputPgn,
+      prepareForPgnLoad,
       syncEvaluationsFromRules,
-      syncOrientationWithFen,
-      shouldAnimateMoves,
       translate,
-      updateStatusSnapshot,
     ],
   );
 

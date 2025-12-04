@@ -943,7 +943,9 @@ export class PgnNotation {
    */
   getMoveAnnotations(moveNumber: number, isWhite: boolean): PgnMoveAnnotations | undefined {
     const move = this.moves.find((m) => m.moveNumber === moveNumber);
-    if (!move) return undefined;
+    if (move === undefined) {
+      return undefined;
+    }
 
     return isWhite ? move.whiteAnnotations : move.blackAnnotations;
   }
