@@ -1,8 +1,11 @@
 import { elements } from './dom-elements.js';
 import { showStatus } from './ui-updaters.js';
-import { applyEvaluationsFromRules, clearEvaluations } from './evaluation-handling.js';
+import {
+  applyEvaluationsFromRules,
+  clearEvaluations,
+  refreshEvaluationForFen,
+} from './evaluation-handling.js';
 import { setOrientation, syncOrientationWithFen } from './board-utils.js';
-import { refreshEvaluationForFen } from './evaluation-handling.js';
 
 export const loadPgn = async (pgn, board, chessRules) => {
   const trimmed = pgn.trim();
