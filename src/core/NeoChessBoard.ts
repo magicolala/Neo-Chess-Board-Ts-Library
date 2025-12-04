@@ -1062,9 +1062,7 @@ export class NeoChessBoard {
     return true;
   }
 
-  private _resolvePgnParseIssues(
-    parseIssues?: ParsedPgnResult['parseIssues'],
-  ): PgnParseError[] {
+  private _resolvePgnParseIssues(parseIssues?: ParsedPgnResult['parseIssues']): PgnParseError[] {
     if (parseIssues && parseIssues.length > 0) {
       return parseIssues.map(
         (issue) => new PgnParseError(issue.message, issue.code, { details: issue.details }),
