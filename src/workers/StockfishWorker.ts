@@ -136,6 +136,14 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
  * Gère les messages reçus du thread principal
  */
 globalThis.addEventListener('message', async (event: MessageEvent) => {
+  if (event.origin && event.origin !== globalThis.origin) {
+    globalThis.postMessage({
+      type: 'error',
+      content: `Untrusted message origin: ${event.origin}`,
+    });
+    return;
+  }
+
   const { type, command, stockfishPath } = event.data as {
     type?: string;
     command?: string;
