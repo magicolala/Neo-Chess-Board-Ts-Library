@@ -244,8 +244,12 @@ export class ClockManager {
       previousSide.delayRemaining = previousSide.delay;
     }
 
-    const nextActive: ClockColor | null =
-      previousActive === 'w' ? 'b' : previousActive === 'b' ? 'w' : this.config.active;
+    let nextActive: ClockColor | null = this.config.active;
+    if (previousActive === 'w') {
+      nextActive = 'b';
+    } else if (previousActive === 'b') {
+      nextActive = 'w';
+    }
 
     if (nextActive && !(nextActive === 'w' ? this.state.white : this.state.black).isFlagged) {
       this.state.active = nextActive;
@@ -428,12 +432,14 @@ export class ClockManager {
       nextSides.b.delay = values.b;
     }
 
-    const active =
-      update.active === undefined
-        ? current.active
-        : update.active === 'w' || update.active === 'b'
-          ? update.active
-          : null;
+    let active: ClockColor | null;
+    if (update.active === undefined) {
+      active = current.active;
+    } else if (update.active === 'w' || update.active === 'b') {
+      active = update.active;
+    } else {
+      active = null;
+    }
 
     let paused = current.paused;
     if (update.paused !== undefined) {
@@ -454,7 +460,12 @@ export class ClockManager {
     const black = this.createSideState(config.sides.b);
 
     const active = config.active ?? null;
-    const activeSide = active === 'w' ? white : active === 'b' ? black : null;
+    let activeSide: InternalClockSideState | null = null;
+    if (active === 'w') {
+      activeSide = white;
+    } else if (active === 'b') {
+      activeSide = black;
+    }
     const resolvedActive = activeSide?.isFlagged ? null : (active as ClockColor | null);
 
     return {
