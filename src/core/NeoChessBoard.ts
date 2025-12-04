@@ -166,6 +166,7 @@ type SquarePointerEventName =
   | 'squareMouseUp'
   | 'squareRightClick';
 type SquareTransitionEventName = 'squareMouseOver' | 'squareMouseOut';
+type ParsedPgnResult = Awaited<ReturnType<PgnParserWorkerManager['parsePgn']>>;
 
 interface ExtensionState {
   id: string;
@@ -1024,6 +1025,56 @@ export class NeoChessBoard {
     return pgn.trim();
   }
 
+  private _shouldUsePgnWorker(pgnString: string): boolean {
+    const pgnSize = new Blob([pgnString]).size;
+    return (
+      this._useWorkerForPgnParsing &&
+      this._pgnParserWorkerManager?.isAvailable() &&
+      pgnSize >= this._pgnWorkerThreshold
+    );
+  }
+
+  private async _parsePgnWithWorker(pgnString: string): Promise<ParsedPgnResult | null> {
+    if (!this._pgnParserWorkerManager) {
+      return null;
+    }
+
+    try {
+      return await this._pgnParserWorkerManager.parsePgn(pgnString, { includeAnnotations: true });
+    } catch (workerError) {
+      console.warn('Worker parsing failed, falling back to sync:', workerError);
+      return null;
+    }
+  }
+
+  private _loadParsedPgnResult(
+    pgnString: string,
+    parseIssues?: ParsedPgnResult['parseIssues'],
+  ): boolean {
+    const success = this._loadPgnInRules(pgnString);
+    if (!success) {
+      return false;
+    }
+
+    this._displayPgnAnnotations(pgnString);
+    this._updateStateAfterPgnLoad();
+    this.lastPgnLoadIssues = this._resolvePgnParseIssues(parseIssues);
+    return true;
+  }
+
+  private _resolvePgnParseIssues(
+    parseIssues?: ParsedPgnResult['parseIssues'],
+  ): PgnParseError[] {
+    if (parseIssues && parseIssues.length > 0) {
+      return parseIssues.map(
+        (issue) => new PgnParseError(issue.message, issue.code, { details: issue.details }),
+      );
+    }
+
+    const notation = this._getPgnNotation();
+    return notation ? notation.getParseIssues() : [];
+  }
+
   public loadPgnWithAnnotations(pgnString: string): boolean {
     // Synchronous version - always uses main thread
     // For Worker-based parsing, use loadPgnWithAnnotationsAsync()
@@ -1065,38 +1116,12 @@ export class NeoChessBoard {
   public async loadPgnWithAnnotationsAsync(pgnString: string): Promise<boolean> {
     this.lastPgnLoadIssues = [];
     try {
-      const pgnSize = new Blob([pgnString]).size;
-      const shouldUseWorker =
-        this._useWorkerForPgnParsing &&
-        this._pgnParserWorkerManager?.isAvailable() &&
-        pgnSize >= this._pgnWorkerThreshold;
+      const parsedResult = this._shouldUsePgnWorker(pgnString)
+        ? await this._parsePgnWithWorker(pgnString)
+        : null;
 
-      if (shouldUseWorker) {
-        try {
-          const parsedResult = await this._pgnParserWorkerManager!.parsePgn(pgnString, {
-            includeAnnotations: true,
-          });
-
-          // Load the PGN into rules (still synchronous, but parsing was async)
-          const success = this._loadPgnInRules(pgnString);
-          if (success) {
-            this._displayPgnAnnotations(pgnString);
-            this._updateStateAfterPgnLoad();
-            if (parsedResult.parseIssues.length > 0) {
-              this.lastPgnLoadIssues = parsedResult.parseIssues.map(
-                (issue) => new PgnParseError(issue.message, issue.code, { details: issue.details }),
-              );
-            } else {
-              const notation = this._getPgnNotation();
-              this.lastPgnLoadIssues = notation ? notation.getParseIssues() : [];
-            }
-            return true;
-          }
-          return false;
-        } catch (workerError) {
-          console.warn('Worker parsing failed, falling back to sync:', workerError);
-          // Fall through to synchronous parsing
-        }
+      if (parsedResult) {
+        return this._loadParsedPgnResult(pgnString, parsedResult.parseIssues);
       }
 
       // Fallback to synchronous parsing
