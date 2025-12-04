@@ -27,91 +27,89 @@ const getInfinityLabel = (value: number): string => {
   return '0.00';
 };
 
-export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluation => {
-  if (value === null || value === undefined) {
+const buildNoValue = (raw: EvaluationInput): ParsedEvaluation => ({
+  hasValue: false,
+  numeric: null,
+  label: '—',
+  mate: false,
+  sign: 0,
+  raw: raw ?? null,
+});
+
+const parseNumericValue = (value: number, raw: EvaluationInput): ParsedEvaluation => {
+  const sign = Math.sign(value) as Sign;
+  if (!Number.isFinite(value)) {
     return {
-      hasValue: false,
-      numeric: null,
-      label: '—',
+      hasValue: true,
+      numeric: sign === 0 ? 0 : sign * 100,
+      label: getInfinityLabel(value),
       mate: false,
-      sign: 0,
-      raw: value ?? null,
+      sign,
+      raw,
     };
   }
 
-  if (typeof value === 'number') {
-    const sign = Math.sign(value) as Sign;
-    if (!Number.isFinite(value)) {
-      return {
-        hasValue: true,
-        numeric: sign === 0 ? 0 : sign * 100,
-        label: getInfinityLabel(value),
-        mate: false,
-        sign,
-        raw: value,
-      };
-    }
+  return {
+    hasValue: true,
+    numeric: value,
+    label: formatNumericValue(value),
+    mate: false,
+    sign,
+    raw,
+  };
+};
 
-    return {
-      hasValue: true,
-      numeric: value,
-      label: formatNumericValue(value),
-      mate: false,
-      sign,
-      raw: value,
-    };
+const parseMateLabel = (trimmed: string, raw: EvaluationInput): ParsedEvaluation | null => {
+  if (!/^[-+]?#/.test(trimmed)) {
+    return null;
+  }
+
+  const negative = trimmed.startsWith('-');
+  const positive = trimmed.startsWith('+');
+  const sign = (negative ? -1 : 1) as -1 | 1;
+  const normalizedLabel = positive ? trimmed.slice(1) : trimmed;
+
+  return {
+    hasValue: true,
+    numeric: sign * 100,
+    label: normalizedLabel,
+    mate: true,
+    sign,
+    raw,
+  };
+};
+
+const parseNumericString = (trimmed: string, raw: EvaluationInput): ParsedEvaluation | null => {
+  const parsedNumber = Number.parseFloat(trimmed);
+  if (Number.isNaN(parsedNumber)) {
+    return null;
+  }
+
+  return parseNumericValue(parsedNumber, raw);
+};
+
+export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluation => {
+  if (value === null || value === undefined) {
+    return buildNoValue(value);
+  }
+
+  if (typeof value === 'number') {
+    return parseNumericValue(value, value);
   }
 
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return {
-      hasValue: false,
-      numeric: null,
-      label: '—',
-      mate: false,
-      sign: 0,
-      raw: value,
-    };
+    return buildNoValue(value);
   }
 
-  if (/^[-+]?#/.test(trimmed)) {
-    const negative = trimmed.startsWith('-');
-    const positive = trimmed.startsWith('+');
-    const sign = negative ? -1 : 1;
-    const normalizedLabel = positive ? trimmed.slice(1) : trimmed;
-
-    return {
-      hasValue: true,
-      numeric: sign * 100,
-      label: normalizedLabel,
-      mate: true,
-      sign: sign as -1 | 1,
-      raw: value,
-    };
+  const mateResult = parseMateLabel(trimmed, value);
+  if (mateResult) {
+    return mateResult;
   }
 
-  const parsedNumber = Number.parseFloat(trimmed);
-  if (!Number.isNaN(parsedNumber)) {
-    const sign = Math.sign(parsedNumber) as Sign;
-    if (!Number.isFinite(parsedNumber)) {
-      return {
-        hasValue: true,
-        numeric: sign === 0 ? 0 : sign * 100,
-        label: getInfinityLabel(parsedNumber),
-        mate: false,
-        sign,
-        raw: value,
-      };
-    }
-
-    return {
-      hasValue: true,
-      numeric: parsedNumber,
-      label: formatNumericValue(parsedNumber),
-      mate: false,
-      sign,
-      raw: value,
-    };
+  const numericResult = parseNumericString(trimmed, value);
+  if (numericResult) {
+    return numericResult;
   }
 
   return {
