@@ -46,6 +46,114 @@ export class PgnNotation {
     return history.length > 0 && typeof history[0] !== 'string';
   }
 
+  private captureCurrentMoveState(): Map<
+    number,
+    {
+      whiteComment?: string;
+      blackComment?: string;
+      whiteAnnotations?: PgnMoveAnnotations;
+      blackAnnotations?: PgnMoveAnnotations;
+      evaluation?: PgnMove['evaluation'];
+    }
+  > {
+    const preservedMoves = new Map<
+      number,
+      {
+        whiteComment?: string;
+        blackComment?: string;
+        whiteAnnotations?: PgnMoveAnnotations;
+        blackAnnotations?: PgnMoveAnnotations;
+        evaluation?: PgnMove['evaluation'];
+      }
+    >();
+
+    for (const move of this.moves) {
+      preservedMoves.set(move.moveNumber, {
+        whiteComment: move.whiteComment,
+        blackComment: move.blackComment,
+        whiteAnnotations: this.cloneAnnotations(move.whiteAnnotations),
+        blackAnnotations: this.cloneAnnotations(move.blackAnnotations),
+        evaluation: move.evaluation ? { ...move.evaluation } : undefined,
+      });
+    }
+
+    return preservedMoves;
+  }
+
+  private parseUsingAvailableSources(chess: ChessLike): void {
+    if (this.rulesAdapter && typeof this.rulesAdapter.getPGN === 'function') {
+      this.parsePgnMoves(this.rulesAdapter.getPGN());
+      return;
+    }
+
+    if (typeof chess.pgn === 'function') {
+      this.parsePgnMoves(chess.pgn());
+      return;
+    }
+
+    this.importFromDetailedHistory(chess.history({ verbose: true }));
+  }
+
+  private importFromSimpleHistory(history: ReturnType<ChessLike['history']>): void {
+    this.moves = [];
+    for (let i = 0; i < history.length; i += 2) {
+      const moveNumber = Math.floor(i / 2) + 1;
+      const whiteMove = history[i] as string | undefined;
+      const blackMove = history[i + 1] as string | undefined;
+      this.addMove(moveNumber, whiteMove, blackMove);
+    }
+  }
+
+  private importFromDetailedHistory(history: ReturnType<ChessLike['history']>): void {
+    this.moves = [];
+
+    if (PgnNotation.isVerboseHistory(history)) {
+      this.importVerboseHistory(history);
+    } else {
+      this.importFromSimpleHistory(history);
+    }
+  }
+
+  private importVerboseHistory(history: VerboseHistoryEntry[]): void {
+    for (const [index, move] of history.entries()) {
+      const moveNumber = Math.floor(index / 2) + 1;
+      const isWhite = index % 2 === 0;
+
+      if (isWhite) {
+        this.addMove(moveNumber, move.san);
+        continue;
+      }
+
+      const existingMove = this.moves.find((m) => m.moveNumber === moveNumber);
+      if (existingMove) {
+        existingMove.black = move.san;
+        continue;
+      }
+
+      this.addMove(moveNumber, undefined, move.san);
+    }
+  }
+
+  private updateResultFromChess(chess: ChessLike): void {
+    if (chess.isCheckmate()) {
+      const turn = chess.turn();
+      this.setResult((turn === 'w' ? '0-1' : '1-0') as '0-1' | '1-0');
+      return;
+    }
+
+    if (
+      chess.isDraw?.() ||
+      chess.isStalemate() ||
+      chess.isThreefoldRepetition() ||
+      chess.isInsufficientMaterial()
+    ) {
+      this.setResult('1/2-1/2');
+      return;
+    }
+
+    this.setResult('*');
+  }
+
   constructor(rulesAdapter?: RulesAdapter) {
     this.rulesAdapter = rulesAdapter;
     this.metadata = {
@@ -133,93 +241,18 @@ export class PgnNotation {
    * Import moves from a chess.js game
    */
   importFromChessJs(chess: ChessLike): void {
-    const preservedMoves = new Map<
-      number,
-      {
-        whiteComment?: string;
-        blackComment?: string;
-        whiteAnnotations?: PgnMoveAnnotations;
-        blackAnnotations?: PgnMoveAnnotations;
-        evaluation?: PgnMove['evaluation'];
-      }
-    >();
-
-    for (const move of this.moves) {
-      preservedMoves.set(move.moveNumber, {
-        whiteComment: move.whiteComment,
-        blackComment: move.blackComment,
-        whiteAnnotations: this.cloneAnnotations(move.whiteAnnotations),
-        blackAnnotations: this.cloneAnnotations(move.blackAnnotations),
-        evaluation: move.evaluation ? { ...move.evaluation } : undefined,
-      });
-    }
+    const preservedMoves = this.captureCurrentMoveState();
 
     try {
-      if (this.rulesAdapter && typeof this.rulesAdapter.getPGN === 'function') {
-        const pgnString = this.rulesAdapter.getPGN();
-        this.parsePgnMoves(pgnString);
-      } else if (typeof chess.pgn === 'function') {
-        const pgnString = chess.pgn();
-        this.parsePgnMoves(pgnString);
-      } else {
-        const detailedHistory = chess.history({ verbose: true });
-        this.moves = [];
-
-        if (PgnNotation.isVerboseHistory(detailedHistory)) {
-          for (const [i, move] of detailedHistory.entries()) {
-            const moveNumber = Math.floor(i / 2) + 1;
-            const isWhite = i % 2 === 0;
-
-            if (isWhite) {
-              this.addMove(moveNumber, move.san);
-            } else {
-              const existingMove = this.moves.find((m) => m.moveNumber === moveNumber);
-              if (existingMove) {
-                existingMove.black = move.san;
-              } else {
-                this.addMove(moveNumber, undefined, move.san);
-              }
-            }
-          }
-        } else {
-          const historyStrings = detailedHistory as string[];
-          for (let i = 0; i < historyStrings.length; i += 2) {
-            const moveNumber = Math.floor(i / 2) + 1;
-            const whiteMove = historyStrings[i];
-            const blackMove = historyStrings[i + 1];
-            this.addMove(moveNumber, whiteMove, blackMove);
-          }
-        }
-      }
+      this.parseUsingAvailableSources(chess);
     } catch (error) {
       // Final fallback: use simple history (might be in wrong format but at least something)
       console.warn('Failed to import proper PGN notation, using fallback:', error);
-      const history = chess.history();
-      this.moves = [];
-      for (let i = 0; i < history.length; i += 2) {
-        const moveNumber = Math.floor(i / 2) + 1;
-        const whiteMove = history[i] as string | undefined;
-        const blackMove = history[i + 1] as string | undefined;
-        this.addMove(moveNumber, whiteMove, blackMove);
-      }
+      this.importFromSimpleHistory(chess.history());
     }
 
     this.restorePreservedMoveState(preservedMoves);
-
-    // Set result based on game state
-    if (chess.isCheckmate()) {
-      const turn = chess.turn();
-      this.setResult((turn === 'w' ? '0-1' : '1-0') as '0-1' | '1-0');
-    } else if (
-      chess.isDraw?.() ||
-      chess.isStalemate() ||
-      chess.isThreefoldRepetition() ||
-      chess.isInsufficientMaterial()
-    ) {
-      this.setResult('1/2-1/2');
-    } else {
-      this.setResult('*');
-    }
+    this.updateResultFromChess(chess);
   }
 
   /**
@@ -320,80 +353,26 @@ export class PgnNotation {
    * Generate the complete PGN string
    */
   toPgn(includeHeaders: boolean = true): string {
-    let pgn = '';
+    const parts: string[] = [];
 
     if (includeHeaders) {
-      // Add headers
-      const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
-
-      // Add required headers first
-      for (const header of requiredHeaders) {
-        if (this.metadata[header]) {
-          pgn += `[${header} "${this.metadata[header]}"]\n`;
-        }
-      }
-
-      // Add optional headers
-      for (const [key, value] of Object.entries(this.metadata)) {
-        if (!requiredHeaders.includes(key) && value) {
-          pgn += `[${key} "${value}"]\n`;
-        }
-      }
-
-      pgn += '\n'; // Empty line after headers
+      parts.push(this.buildHeaders());
     }
 
-    // If no moves and no headers, return just the result (which should be '*')
     if (this.moves.length === 0 && !includeHeaders) {
       return this.result;
     }
 
-    // Add moves
-    let lineLength = 0;
-    const maxLineLength = 80;
-
-    for (const move of this.moves) {
-      let moveText = `${move.moveNumber}.`;
-
-      if (move.white) {
-        moveText += ` ${move.white}`;
-        if (move.whiteComment) {
-          moveText += ` {${move.whiteComment}}`;
-        }
-      }
-
-      if (move.black) {
-        moveText += ` ${move.black}`;
-        if (move.blackComment) {
-          moveText += ` {${move.blackComment}}`;
-        }
-      }
-
-      // Check if we need a new line
-      if (lineLength + moveText.length + 1 > maxLineLength) {
-        pgn += '\n';
-        lineLength = 0;
-      }
-
-      if (lineLength > 0) {
-        pgn += ' ';
-        lineLength++;
-      }
-
-      pgn += moveText;
-      lineLength += moveText.length;
+    const movesText = this.formatMovesWithoutAnnotations();
+    if (movesText) {
+      parts.push(movesText);
     }
 
-    // Add result only if the game is over
     if (this.result !== '*') {
-      if (lineLength > 0 && this.moves.length > 0) {
-        // Only add space if there are moves
-        pgn += ' ';
-      }
-      pgn += this.result;
+      parts.push(this.result);
     }
 
-    return pgn.trim();
+    return parts.join(' ').trim();
   }
 
   /**
@@ -403,6 +382,160 @@ export class PgnNotation {
     this.moves = [];
     this.result = '*';
     this.metadata.Result = '*';
+  }
+
+  private buildHeaders(): string {
+    const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
+    const lines: string[] = [];
+
+    for (const header of requiredHeaders) {
+      const value = this.metadata[header];
+      if (value) {
+        lines.push(`[${header} "${value}"]`);
+      }
+    }
+
+    for (const [key, value] of Object.entries(this.metadata)) {
+      if (!requiredHeaders.includes(key) && value) {
+        lines.push(`[${key} "${value}"]`);
+      }
+    }
+
+    return `${lines.join('\n')}\n`;
+  }
+
+  private formatMovesWithoutAnnotations(): string {
+    const segments: string[] = [];
+    let lineLength = 0;
+    const maxLineLength = 80;
+
+    for (const move of this.moves) {
+      const moveText = this.formatSingleMove(move);
+      if (!moveText) {
+        continue;
+      }
+
+      if (lineLength + moveText.length + 1 > maxLineLength) {
+        segments.push('\n');
+        lineLength = 0;
+      }
+
+      if (lineLength > 0) {
+        segments.push(' ');
+        lineLength++;
+      }
+
+      segments.push(moveText);
+      lineLength += moveText.length;
+    }
+
+    return segments.join('');
+  }
+
+  private formatSingleMove(move: PgnMove): string | undefined {
+    if (!move.white && !move.black) {
+      return undefined;
+    }
+
+    let moveText = `${move.moveNumber}.`;
+
+    if (move.white) {
+      moveText += this.appendMoveWithComment(move.white, move.whiteComment);
+    }
+
+    if (move.black) {
+      moveText += this.appendMoveWithComment(move.black, move.blackComment);
+    }
+
+    return moveText;
+  }
+
+  private appendMoveWithComment(move: string, comment?: string): string {
+    const trimmedComment = comment?.trim();
+    if (!trimmedComment) {
+      return ` ${move}`;
+    }
+    const wrappedComment =
+      trimmedComment.startsWith('{') && trimmedComment.endsWith('}')
+        ? trimmedComment
+        : `{${trimmedComment}}`;
+    return ` ${move} ${wrappedComment}`;
+  }
+
+  private buildAnnotationComment(
+    annotations?: PgnMoveAnnotations,
+    fallback?: string,
+  ): string | undefined {
+    if (!annotations) {
+      return fallback;
+    }
+
+    const annotationParts: string[] = [];
+    const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
+      annotations.arrows || [],
+      annotations.circles || [],
+    );
+    if (visualAnnotations) {
+      annotationParts.push(visualAnnotations);
+    }
+    if (annotations.evaluation !== undefined) {
+      annotationParts.push(PgnNotation.formatEvaluation(annotations.evaluation));
+    }
+    const textComment = annotations.textComment?.trim();
+    if (textComment) {
+      annotationParts.push(textComment);
+    }
+
+    const fullComment = annotationParts.join(' ').trim();
+    return fullComment || fallback;
+  }
+
+  private formatMovesWithAnnotations(): string {
+    const segments: string[] = [];
+    let lineLength = 0;
+    const maxLineLength = 80;
+
+    for (const move of this.moves) {
+      const moveText = this.formatAnnotatedMove(move);
+      if (!moveText) {
+        continue;
+      }
+
+      if (lineLength + moveText.length + 1 > maxLineLength) {
+        segments.push('\n');
+        lineLength = 0;
+      }
+
+      if (lineLength > 0) {
+        segments.push(' ');
+        lineLength++;
+      }
+
+      segments.push(moveText);
+      lineLength += moveText.length;
+    }
+
+    return segments.join('');
+  }
+
+  private formatAnnotatedMove(move: PgnMove): string | undefined {
+    if (!move.white && !move.black) {
+      return undefined;
+    }
+
+    let moveText = `${move.moveNumber}.`;
+
+    if (move.white) {
+      const whiteComment = this.buildAnnotationComment(move.whiteAnnotations, move.whiteComment);
+      moveText += this.appendMoveWithComment(move.white, whiteComment);
+    }
+
+    if (move.black) {
+      const blackComment = this.buildAnnotationComment(move.blackAnnotations, move.blackComment);
+      moveText += this.appendMoveWithComment(move.black, blackComment);
+    }
+
+    return moveText;
   }
 
   /**
@@ -510,110 +643,6 @@ export class PgnNotation {
     this.moves = [];
 
     const movePattern = /(\d+)\.(?!\d)(\.{2})?/g;
-    const registerIssue = (
-      code: PgnParseErrorCode,
-      message: string,
-      details?: Record<string, unknown>,
-    ) => {
-      this.parseIssues.push(new PgnParseError(message, code, { details }));
-    };
-
-    const mergeAnnotationIssueDetails = (
-      issue: PgnParseError,
-      moveNumber: number,
-      color: 'white' | 'black',
-    ): Record<string, unknown> => {
-      const baseDetails: Record<string, unknown> = issue.details ? { ...issue.details } : {};
-      baseDetails.moveNumber = moveNumber;
-      baseDetails.color = color;
-      return baseDetails;
-    };
-
-    const extractMoveSection = (
-      startIndex: number,
-      moveNumber: number,
-      color: 'white' | 'black',
-    ): { san?: string; comments: string[]; nextIndex: number } => {
-      let index = startIndex;
-      const comments: string[] = [];
-      const length = movesText.length;
-
-      const skipWhitespace = () => {
-        while (index < length && /\s/.test(movesText[index]!)) {
-          index++;
-        }
-      };
-
-      const collectComments = () => {
-        while (true) {
-          skipWhitespace();
-          if (index >= length || movesText[index] !== '{') {
-            break;
-          }
-
-          const closingIndex = movesText.indexOf('}', index + 1);
-          if (closingIndex === -1) {
-            const remaining = movesText.slice(index + 1).trim();
-            if (remaining) {
-              comments.push(remaining);
-            }
-            registerIssue(
-              'PGN_PARSE_UNTERMINATED_COMMENT',
-              'Unterminated PGN comment detected while parsing annotations.',
-              { moveNumber, color, index },
-            );
-            index = length;
-            break;
-          }
-
-          const content = movesText.slice(index + 1, closingIndex).trim();
-          if (content) {
-            comments.push(content);
-          }
-          index = closingIndex + 1;
-        }
-      };
-
-      collectComments();
-      skipWhitespace();
-
-      if (index >= length) {
-        return { san: undefined, comments, nextIndex: index };
-      }
-
-      const rest = movesText.slice(index);
-
-      const resultTokenMatch = /^(1-0|0-1|1\/2-1\/2|\*)/.exec(rest);
-      if (/^(\d+)\.(?!\d)(\.{2})?/.test(rest) || resultTokenMatch) {
-        if (resultTokenMatch) {
-          registerIssue(
-            'PGN_PARSE_RESULT_IN_MOVE',
-            'Game result token encountered before move text.',
-            { moveNumber, color, rawComment: resultTokenMatch[1] },
-          );
-        }
-        return { san: undefined, comments, nextIndex: index };
-      }
-
-      const sanMatch = rest.match(/^([^\s{]+)/);
-      if (!sanMatch) {
-        if (rest.trim()) {
-          registerIssue(
-            'PGN_PARSE_MOVE_TEXT_MISSING',
-            'Unable to parse move text segment in PGN.',
-            { moveNumber, color, rawComment: rest.trim().slice(0, 20) },
-          );
-        }
-        return { san: undefined, comments, nextIndex: index };
-      }
-
-      const san = sanMatch[1];
-      index += san.length;
-
-      collectComments();
-
-      return { san, comments, nextIndex: index };
-    };
 
     let match: RegExpExecArray | null;
 
@@ -622,97 +651,29 @@ export class PgnNotation {
       const startsWithBlack = Boolean(match[2]);
       let currentIndex = movePattern.lastIndex;
 
-      let pgnMove = this.moves.find((move) => move.moveNumber === moveNumber);
-      if (pgnMove) {
-        if (!pgnMove.whiteAnnotations) {
-          pgnMove.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
-        }
-        if (!pgnMove.blackAnnotations) {
-          pgnMove.blackAnnotations = { arrows: [], circles: [], textComment: '' };
-        }
-      } else {
-        pgnMove = {
-          moveNumber,
-          whiteAnnotations: { arrows: [], circles: [], textComment: '' },
-          blackAnnotations: { arrows: [], circles: [], textComment: '' },
-        };
-        this.moves.push(pgnMove);
-      }
+      const pgnMove = this.ensureMoveWithAnnotations(moveNumber);
 
       if (!startsWithBlack) {
-        const whiteSection = extractMoveSection(currentIndex, moveNumber, 'white');
-        currentIndex = whiteSection.nextIndex;
-
-        if (whiteSection.san) {
-          pgnMove.white = whiteSection.san;
-          if (whiteSection.comments.length > 0) {
-            const normalizedComment = this.normalizeCommentParts(whiteSection.comments);
-            if (normalizedComment) {
-              const parsed = PgnAnnotationParser.parseComment(normalizedComment);
-              pgnMove.whiteComment = normalizedComment;
-              pgnMove.whiteAnnotations = {
-                arrows: parsed.arrows,
-                circles: parsed.highlights,
-                textComment: parsed.textComment,
-                evaluation: parsed.evaluation,
-              };
-              this.updateMoveEvaluation(pgnMove, 'white', parsed.evaluation);
-              if (parsed.issues?.length) {
-                for (const issue of parsed.issues) {
-                  const issueCode = issue.code as PgnParseErrorCode;
-                  this.parseIssues.push(
-                    new PgnParseError(issue.message, issueCode, {
-                      details: mergeAnnotationIssueDetails(issue, moveNumber, 'white'),
-                    }),
-                  );
-                }
-              }
-            }
-          }
-        } else if (whiteSection.comments.length > 0) {
-          registerIssue(
-            'PGN_PARSE_MOVE_TEXT_MISSING',
-            'Comment found without preceding white move.',
-            { moveNumber, color: 'white', rawComment: whiteSection.comments.join(' ') },
-          );
-        }
-      }
-
-      const blackSection = extractMoveSection(currentIndex, moveNumber, 'black');
-
-      if (blackSection.san) {
-        pgnMove.black = blackSection.san;
-        if (blackSection.comments.length > 0) {
-          const normalizedComment = this.normalizeCommentParts(blackSection.comments);
-          if (normalizedComment) {
-            const parsed = PgnAnnotationParser.parseComment(normalizedComment);
-            pgnMove.blackComment = normalizedComment;
-            pgnMove.blackAnnotations = {
-              arrows: parsed.arrows,
-              circles: parsed.highlights,
-              textComment: parsed.textComment,
-              evaluation: parsed.evaluation,
-            };
-            this.updateMoveEvaluation(pgnMove, 'black', parsed.evaluation);
-            if (parsed.issues?.length) {
-              for (const issue of parsed.issues) {
-                const issueCode = issue.code as PgnParseErrorCode;
-                this.parseIssues.push(
-                  new PgnParseError(issue.message, issueCode, {
-                    details: mergeAnnotationIssueDetails(issue, moveNumber, 'black'),
-                  }),
-                );
-              }
-            }
-          }
-        }
-      } else if (blackSection.comments.length > 0) {
-        registerIssue(
-          'PGN_PARSE_MOVE_TEXT_MISSING',
-          'Comment found without preceding black move.',
-          { moveNumber, color: 'black', rawComment: blackSection.comments.join(' ') },
+        const whiteSection = this.extractMoveSection(
+          movesText,
+          currentIndex,
+          moveNumber,
+          'white',
+          this.registerIssue.bind(this),
         );
+        currentIndex = whiteSection.nextIndex;
+        this.applyMoveSection(pgnMove, whiteSection, 'white', moveNumber);
       }
+
+      const blackSection = this.extractMoveSection(
+        movesText,
+        currentIndex,
+        moveNumber,
+        'black',
+        this.registerIssue.bind(this),
+      );
+
+      this.applyMoveSection(pgnMove, blackSection, 'black', moveNumber);
     }
   }
 
@@ -760,126 +721,221 @@ export class PgnNotation {
     return `{${normalizedContent}}`;
   }
 
+  private registerIssue(
+    code: PgnParseErrorCode,
+    message: string,
+    details?: Record<string, unknown>,
+  ): void {
+    this.parseIssues.push(new PgnParseError(message, code, { details }));
+  }
+
+  private ensureMoveWithAnnotations(moveNumber: number): PgnMove {
+    let pgnMove = this.moves.find((move) => move.moveNumber === moveNumber);
+    if (pgnMove) {
+      if (!pgnMove.whiteAnnotations) {
+        pgnMove.whiteAnnotations = { arrows: [], circles: [], textComment: '' };
+      }
+      if (!pgnMove.blackAnnotations) {
+        pgnMove.blackAnnotations = { arrows: [], circles: [], textComment: '' };
+      }
+      return pgnMove;
+    }
+
+    pgnMove = {
+      moveNumber,
+      whiteAnnotations: { arrows: [], circles: [], textComment: '' },
+      blackAnnotations: { arrows: [], circles: [], textComment: '' },
+    };
+    this.moves.push(pgnMove);
+    return pgnMove;
+  }
+
+  private mergeAnnotationIssueDetails(
+    issue: PgnParseError,
+    moveNumber: number,
+    color: 'white' | 'black',
+  ): Record<string, unknown> {
+    const baseDetails: Record<string, unknown> = issue.details ? { ...issue.details } : {};
+    baseDetails.moveNumber = moveNumber;
+    baseDetails.color = color;
+    return baseDetails;
+  }
+
+  private applyParsedAnnotations(
+    pgnMove: PgnMove,
+    color: 'white' | 'black',
+    parsed: ReturnType<typeof PgnAnnotationParser.parseComment>,
+    moveNumber: number,
+  ): void {
+    if (color === 'white') {
+      pgnMove.whiteAnnotations = {
+        arrows: parsed.arrows,
+        circles: parsed.highlights,
+        textComment: parsed.textComment,
+        evaluation: parsed.evaluation,
+      };
+    } else {
+      pgnMove.blackAnnotations = {
+        arrows: parsed.arrows,
+        circles: parsed.highlights,
+        textComment: parsed.textComment,
+        evaluation: parsed.evaluation,
+      };
+    }
+    this.updateMoveEvaluation(pgnMove, color, parsed.evaluation);
+    if (parsed.issues?.length) {
+      for (const issue of parsed.issues) {
+        const issueCode = issue.code as PgnParseErrorCode;
+        this.parseIssues.push(
+          new PgnParseError(issue.message, issueCode, {
+            details: this.mergeAnnotationIssueDetails(issue, moveNumber, color),
+          }),
+        );
+      }
+    }
+  }
+
+  private applyMoveSection(
+    pgnMove: PgnMove,
+    section: { san?: string; comments: string[] },
+    color: 'white' | 'black',
+    moveNumber: number,
+  ): void {
+    if (section.san) {
+      if (color === 'white') {
+        pgnMove.white = section.san;
+      } else {
+        pgnMove.black = section.san;
+      }
+      if (section.comments.length > 0) {
+        const normalizedComment = this.normalizeCommentParts(section.comments);
+        if (!normalizedComment) {
+          return;
+        }
+        const parsed = PgnAnnotationParser.parseComment(normalizedComment);
+        if (color === 'white') {
+          pgnMove.whiteComment = normalizedComment;
+        } else {
+          pgnMove.blackComment = normalizedComment;
+        }
+        this.applyParsedAnnotations(pgnMove, color, parsed, moveNumber);
+      }
+      return;
+    }
+
+    if (section.comments.length > 0) {
+      this.registerIssue('PGN_PARSE_MOVE_TEXT_MISSING', 'Comment found without preceding move.', {
+        moveNumber,
+        color,
+        rawComment: section.comments.join(' '),
+      });
+    }
+  }
+
+  private extractMoveSection(
+    movesText: string,
+    startIndex: number,
+    moveNumber: number,
+    color: 'white' | 'black',
+    registerIssue: (
+      code: PgnParseErrorCode,
+      message: string,
+      details?: Record<string, unknown>,
+    ) => void,
+  ): { san?: string; comments: string[]; nextIndex: number } {
+    let index = startIndex;
+    const comments: string[] = [];
+    const length = movesText.length;
+
+    const skipWhitespace = () => {
+      while (index < length && /\s/.test(movesText[index]!)) {
+        index++;
+      }
+    };
+
+    const collectComments = () => {
+      while (true) {
+        skipWhitespace();
+        if (index >= length || movesText[index] !== '{') {
+          break;
+        }
+
+        const closingIndex = movesText.indexOf('}', index + 1);
+        if (closingIndex === -1) {
+          const remaining = movesText.slice(index + 1).trim();
+          if (remaining) {
+            comments.push(remaining);
+          }
+          registerIssue(
+            'PGN_PARSE_UNTERMINATED_COMMENT',
+            'Unterminated PGN comment detected while parsing annotations.',
+            { moveNumber, color, index },
+          );
+          index = length;
+          break;
+        }
+
+        const content = movesText.slice(index + 1, closingIndex).trim();
+        if (content) {
+          comments.push(content);
+        }
+        index = closingIndex + 1;
+      }
+    };
+
+    collectComments();
+    skipWhitespace();
+
+    if (index >= length) {
+      return { san: undefined, comments, nextIndex: index };
+    }
+
+    const rest = movesText.slice(index);
+
+    const resultTokenMatch = /^(1-0|0-1|1\/2-1\/2|\*)/.exec(rest);
+    if (/^(\d+)\.(?!\d)(\.{2})?/.test(rest) || resultTokenMatch) {
+      if (resultTokenMatch) {
+        registerIssue(
+          'PGN_PARSE_RESULT_IN_MOVE',
+          'Game result token encountered before move text.',
+          { moveNumber, color, rawComment: resultTokenMatch[1] },
+        );
+      }
+      return { san: undefined, comments, nextIndex: index };
+    }
+
+    const sanMatch = rest.match(/^([^\s{]+)/);
+    if (!sanMatch) {
+      if (rest.trim()) {
+        registerIssue('PGN_PARSE_MOVE_TEXT_MISSING', 'Unable to parse move text segment in PGN.', {
+          moveNumber,
+          color,
+          rawComment: rest.trim().slice(0, 20),
+        });
+      }
+      return { san: undefined, comments, nextIndex: index };
+    }
+
+    const san = sanMatch[1];
+    index += san.length;
+
+    collectComments();
+
+    return { san, comments, nextIndex: index };
+  }
+
   /**
    * Generate PGN with visual annotations embedded in comments
    */
   toPgnWithAnnotations(): string {
-    let pgn = '';
+    const movesWithAnnotations = this.formatMovesWithAnnotations();
+    const parts: string[] = [
+      this.buildHeaders(),
+      ...(movesWithAnnotations ? [movesWithAnnotations] : []),
+      ...(this.result !== '*' ? [this.result] : []),
+    ];
 
-    // Add headers
-    const requiredHeaders = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result'];
-
-    // Add required headers first
-    for (const header of requiredHeaders) {
-      if (this.metadata[header]) {
-        pgn += `[${header} "${this.metadata[header]}"]\n`;
-      }
-    }
-
-    // Add optional headers
-    for (const [key, value] of Object.entries(this.metadata)) {
-      if (!requiredHeaders.includes(key) && value) {
-        pgn += `[${key} "${value}"]\n`;
-      }
-    }
-
-    pgn += '\n'; // Empty line after headers
-
-    // Add moves with annotations
-    let lineLength = 0;
-    const maxLineLength = 80;
-
-    for (const move of this.moves) {
-      let moveText = `${move.moveNumber}.`;
-
-      if (move.white) {
-        moveText += ` ${move.white}`;
-
-        let fullWhiteComment = '';
-        if (move.whiteAnnotations) {
-          const annotationParts: string[] = [];
-          const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
-            move.whiteAnnotations.arrows || [],
-            move.whiteAnnotations.circles || [],
-          );
-          if (visualAnnotations) {
-            annotationParts.push(visualAnnotations);
-          }
-          if (move.whiteAnnotations.evaluation !== undefined) {
-            annotationParts.push(PgnNotation.formatEvaluation(move.whiteAnnotations.evaluation));
-          }
-          const textComment = move.whiteAnnotations.textComment?.trim();
-          if (textComment) {
-            annotationParts.push(textComment);
-          }
-          fullWhiteComment = annotationParts.join(' ').trim();
-        }
-        // If there's a whiteComment but no whiteAnnotations, use it as a fallback
-        else if (move.whiteComment) {
-          fullWhiteComment = move.whiteComment;
-        }
-
-        if (fullWhiteComment) {
-          moveText += ` {${fullWhiteComment}}`;
-        }
-      }
-
-      if (move.black) {
-        moveText += ` ${move.black}`;
-
-        let fullBlackComment = '';
-        if (move.blackAnnotations) {
-          const annotationParts: string[] = [];
-          const visualAnnotations = PgnAnnotationParser.fromDrawingObjects(
-            move.blackAnnotations.arrows || [],
-            move.blackAnnotations.circles || [],
-          );
-          if (visualAnnotations) {
-            annotationParts.push(visualAnnotations);
-          }
-          if (move.blackAnnotations.evaluation !== undefined) {
-            annotationParts.push(PgnNotation.formatEvaluation(move.blackAnnotations.evaluation));
-          }
-          const textComment = move.blackAnnotations.textComment?.trim();
-          if (textComment) {
-            annotationParts.push(textComment);
-          }
-          fullBlackComment = annotationParts.join(' ').trim();
-        }
-        // If there's a blackComment but no blackAnnotations, use it as a fallback
-        else if (move.blackComment) {
-          fullBlackComment = move.blackComment;
-        }
-
-        if (fullBlackComment) {
-          moveText += ` {${fullBlackComment}}`;
-        }
-      }
-
-      // Check if we need a new line
-      if (lineLength + moveText.length + 1 > maxLineLength) {
-        pgn += '\n';
-        lineLength = 0;
-      }
-
-      if (lineLength > 0) {
-        pgn += ' ';
-        lineLength++;
-      }
-
-      pgn += moveText;
-      lineLength += moveText.length;
-    }
-
-    // Add result only if the game is over
-    if (this.result !== '*') {
-      if (lineLength > 0) {
-        pgn += ' ';
-      }
-      pgn += this.result;
-    }
-
-    return pgn.trim();
+    return parts.join(' ').trim();
   }
 
   /**
