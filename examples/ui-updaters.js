@@ -34,9 +34,9 @@ export const renderStatus = () => {
   elements.statusMessage.dataset.state = state.statusState.type;
 };
 
-export const showStatus = (key, type = 'info', replacements) => {
+export const showStatus = (key, type, replacements) => {
   state.statusState.key = key;
-  state.statusState.type = type;
+  state.statusState.type = type ?? 'info';
   state.statusState.replacements = replacements;
   renderStatus();
 };

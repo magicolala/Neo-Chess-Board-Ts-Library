@@ -58,9 +58,7 @@ class PromotionDialogController {
       this.detachBus();
       this.detachBus = null;
     }
-    if (this.overlay && this.overlay.parentElement) {
-      this.overlay.remove();
-    }
+    this.overlay?.remove();
     this.overlay = null;
     this.dialog = null;
     this.buttons = [];
@@ -89,11 +87,11 @@ class PromotionDialogController {
     button.style.transform = scale;
   }
 
-  private handleButtonPointerDown = (button: HTMLButtonElement) => {
+  private readonly handleButtonPointerDown = (button: HTMLButtonElement) => {
     this.setScale(button, 'scale(0.97)');
   };
 
-  private handleButtonPointerReset = (button: HTMLButtonElement) => {
+  private readonly handleButtonPointerReset = (button: HTMLButtonElement) => {
     this.setScale(button, 'scale(1)');
   };
 

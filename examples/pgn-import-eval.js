@@ -130,9 +130,9 @@ const renderStatus = () => {
   statusMessage.dataset.state = statusState.type;
 };
 
-const showStatus = (key, type = 'info', replacements) => {
+const showStatus = (key, type, replacements) => {
   statusState.key = key;
-  statusState.type = type;
+  statusState.type = type ?? 'info';
   statusState.replacements = replacements;
   renderStatus();
 };
