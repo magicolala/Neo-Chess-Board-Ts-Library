@@ -73,6 +73,9 @@ interface TimelineMove {
   promotion?: string;
 }
 
+const normalizePromotion = (promotion: unknown): string | undefined =>
+  typeof promotion === 'string' ? promotion : undefined;
+
 interface PlyAnnotationInfo {
   moveNumber: number;
   color: 'white' | 'black';
@@ -431,7 +434,7 @@ const AppContent: React.FC = () => {
     const verboseHistory = chessRules.getHistory().map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion,
+      promotion: normalizePromotion(move.promotion),
     }));
 
     let timelineRules: ChessJsRules;
@@ -659,7 +662,7 @@ const AppContent: React.FC = () => {
         timelineMovesRef.current = chessRules.getHistory().map((move) => ({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         }));
         setCurrentEvaluation(undefined);
         setCurrentPly(fallbackPly);
@@ -1492,7 +1495,7 @@ const AppContent: React.FC = () => {
                     timelineMovesRef.current = chessRules.getHistory().map((move) => ({
                       from: move.from,
                       to: move.to,
-                      promotion: move.promotion,
+                      promotion: normalizePromotion(move.promotion),
                     }));
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);

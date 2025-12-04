@@ -1,7 +1,7 @@
 import { Chess } from 'chess.js';
 import type { PromotionPiece, MoveNotation, RulesAdapter, Square } from './types';
 
-const COORDINATE_MOVE_REGEX = /^([a-h][1-8])\s*[- ]?\s*([a-h][1-8])(?:=?(q|r|b|n))?$/i;
+const COORDINATE_MOVE_REGEX = /^([a-h][1-8])\s*[- ]?\s*([a-h][1-8])(?:=?([qrbn]))?$/i;
 
 export type NormalizedNotationMove = {
   from: Square;
