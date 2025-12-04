@@ -132,8 +132,8 @@ const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
 ];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
-const COORDINATE_MOVE_REGEX =
-  /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/;
+const COORDINATE_SANITIZE_REGEX = /[-=\s]/g;
+const COORDINATE_MOVE_REGEX = /^([a-h][1-8])([a-h][1-8])([qrbnQRBN])?$/;
 const PGN_COMMENT_REGEX = /\s*\{[^{}]*\}\s*/g;
 const MULTIPLE_SPACE_REGEX = /[ \t]{2,}/g;
 const SPACED_NEWLINE_REGEX = / ?\n ?/g;
@@ -3348,7 +3348,10 @@ export class NeoChessBoard {
     const cleaned = notation.trim();
     if (!cleaned) return null;
 
-    const match = COORDINATE_MOVE_REGEX.exec(cleaned);
+    const compact = cleaned.replaceAll(COORDINATE_SANITIZE_REGEX, '');
+    if (compact.length < 4 || compact.length > 5) return null;
+
+    const match = COORDINATE_MOVE_REGEX.exec(compact);
     if (!match) return null;
 
     return {
