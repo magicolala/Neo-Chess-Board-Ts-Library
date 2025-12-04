@@ -3,14 +3,17 @@
 ## Changes Made
 
 ### 1. ✅ Removed Unused Import (Line 14)
+
 **Violation Fixed**: `sonarjs/no-unused-vars`
 
 **Before:**
+
 ```tsx
 import { NeoChessBoard, Square } from '../src/react';
 ```
 
 **After:**
+
 ```tsx
 import { NeoChessBoard } from '../src/react';
 ```
@@ -18,20 +21,21 @@ import { NeoChessBoard } from '../src/react';
 ---
 
 ### 2. ✅ Extracted Nested Ternary (Original Line 1026)
+
 **Violation Fixed**: `sonarjs/no-nested-conditional`
 
 **Action**: Extracted complex nested ternary at line 1026 into a reusable helper function `getEvaluationSummary()`
 
 **Before:**
+
 ```tsx
 const evaluationSnapshot = useMemo(
   () => interpretEvaluationValue(currentEvaluation),
   [currentEvaluation],
 );
-const evaluation =
-  !evaluationSnapshot.hasValue
-    ? translate('evaluation.waitingData')
-    : currentPly > 0
+const evaluation = !evaluationSnapshot.hasValue
+  ? translate('evaluation.waitingData')
+  : currentPly > 0
     ? translate('evaluation.lastScoreWithMove', {
         score: evaluationSnapshot.label,
         move: formatPlyDescriptor(currentPly),
@@ -40,6 +44,7 @@ const evaluation =
 ```
 
 **After:**
+
 ```tsx
 const getEvaluationSummary = () => {
   if (!evaluationSnapshot.hasValue) {
@@ -60,26 +65,29 @@ const evaluation = getEvaluationSummary();
 ---
 
 ### 3. ✅ Extracted Nested Ternary in Comments Section (Original Line 1816)
+
 **Violation Fixed**: `sonarjs/no-nested-conditional`
 
 **Action**: Extracted triple-nested conditional for rendering comment section into helper function `renderCommentSection()`
 
 **Before:**
+
 ```tsx
-{commentForSelectedPly ? (
-  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-    {commentForSelectedPly}
-  </p>
-) : selectedPly > 0 ? (
-  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
-) : (
-  <p className="text-sm text-gray-500 italic">
-    {translate('comments.noMoveSelected')}
-  </p>
-)}
+{
+  commentForSelectedPly ? (
+    <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+      {commentForSelectedPly}
+    </p>
+  ) : selectedPly > 0 ? (
+    <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
+  ) : (
+    <p className="text-sm text-gray-500 italic">{translate('comments.noMoveSelected')}</p>
+  );
+}
 ```
 
 **After:**
+
 ```tsx
 const renderCommentSection = (
   commentText: string | undefined,
@@ -98,17 +106,21 @@ const renderCommentSection = (
 };
 
 // In JSX:
-{renderCommentSection(commentForSelectedPly, selectedPly, translate)}
+{
+  renderCommentSection(commentForSelectedPly, selectedPly, translate);
+}
 ```
 
 ---
 
 ### 4. ✅ Extracted Default Board Options (New Helper)
+
 **Benefit**: Reduces cognitive complexity in AppContent
 
 **Action**: Created `getDefaultBoardOptions()` helper to encapsulate large object initialization
 
 **Code:**
+
 ```tsx
 const getDefaultBoardOptions = (): BoardFeatureOptions => ({
   showArrows: true,
@@ -133,13 +145,16 @@ const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>(() =>
 ---
 
 ### 5. 🟨 Reduced Cognitive Complexity (AppContent Function)
+
 **Status**: Partially Resolved
 
 **Metric**: 31 → 28 (improved by 3 points)
+
 - **Target**: 25 (still 3 points above threshold)
 - **Reduction**: 10% improvement from initial violation
 
 **Actions Taken**:
+
 1. Extracted nested ternaries (saved ~2 points)
 2. Extracted board options initialization (saved ~1 point)
 3. Created helper functions for rendering logic
@@ -148,13 +163,13 @@ const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>(() =>
 
 ## Metrics Summary
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| App.tsx Violations | 5 | 1 | -80% ✅ |
-| Cognitive Complexity (AppContent) | 31 | 28 | -3 (-9%) 🟨 |
-| Total Project Warnings | 85 | 61 | -24 (-28%) 📈 |
-| Test Suite Status | ✅ 598/598 | ✅ 598/598 | Maintained ✅ |
-| Build Errors | 0 | 0 | Maintained ✅ |
+| Metric                            | Before     | After      | Change        |
+| --------------------------------- | ---------- | ---------- | ------------- |
+| App.tsx Violations                | 5          | 1          | -80% ✅       |
+| Cognitive Complexity (AppContent) | 31         | 28         | -3 (-9%) 🟨   |
+| Total Project Warnings            | 85         | 61         | -24 (-28%) 📈 |
+| Test Suite Status                 | ✅ 598/598 | ✅ 598/598 | Maintained ✅ |
+| Build Errors                      | 0          | 0          | Maintained ✅ |
 
 ---
 
