@@ -52,63 +52,96 @@ export const renderOrientationStatus = () => {
   });
 };
 
-export const renderEvaluation = () => {
-  const parsed = state.currentEvaluation;
-  const orientedValue = parsed?.hasValue
-    ? state.orientation === 'black'
-      ? (parsed.numeric ?? 0) * -1
-      : parsed.numeric
-    : null;
-  const fillPercent = parsed?.hasValue
-    ? ((clamp(orientedValue ?? 0, -10, 10) + 10) / 20) * 100
-    : 50;
+const getOrientedValue = (evaluation, orientation) => {
+  if (!evaluation?.hasValue) {
+    return null;
+  }
+  const numeric = evaluation.numeric ?? 0;
+  return orientation === 'black' ? numeric * -1 : numeric;
+};
 
-  elements.evalFill.style.height = `${fillPercent}%`;
-  elements.evalScore.textContent = parsed?.label ?? '—';
-  elements.evalBar.setAttribute('aria-valuenow', String(parsed?.numeric ?? 0));
+const getFillPercentFromValue = (value) => {
+  if (value === null) {
+    return 50;
+  }
+  const clamped = clamp(value, -10, 10);
+  return ((clamped + 10) / 20) * 100;
+};
 
-  const isBlackPerspective = state.orientation === 'black';
-  elements.evalTopLabel.textContent = i18n.translate(
-    isBlackPerspective ? 'common.black' : 'common.white',
-  );
-  elements.evalBottomLabel.textContent = i18n.translate(
-    isBlackPerspective ? 'common.white' : 'common.black',
-  );
+const getEvalLabels = (orientation) => {
+  const isBlackPerspective = orientation === 'black';
+  return {
+    top: i18n.translate(isBlackPerspective ? 'common.black' : 'common.white'),
+    bottom: i18n.translate(isBlackPerspective ? 'common.white' : 'common.black'),
+  };
+};
 
-  let primaryKey = 'evaluation.summary.primary.none';
-  if (parsed?.hasValue) {
-    if (parsed.mate) {
-      primaryKey =
-        parsed.sign >= 0
-          ? 'evaluation.summary.primary.mateWhite'
-          : 'evaluation.summary.primary.mateBlack';
-    } else if (parsed.numeric === null) {
-      primaryKey = 'evaluation.summary.primary.custom';
-    } else if (Math.abs(parsed.numeric) < 0.01) {
-      primaryKey = 'evaluation.summary.primary.balanced';
-    } else {
-      primaryKey =
-        parsed.sign > 0
-          ? 'evaluation.summary.primary.advantageWhite'
-          : 'evaluation.summary.primary.advantageBlack';
-    }
+const getPrimarySummaryKey = (parsed) => {
+  if (!parsed?.hasValue) {
+    return 'evaluation.summary.primary.none';
   }
 
-  elements.evalSummaryPrimary.textContent = i18n.translate(primaryKey);
+  if (parsed.mate) {
+    return parsed.sign >= 0
+      ? 'evaluation.summary.primary.mateWhite'
+      : 'evaluation.summary.primary.mateBlack';
+  }
+
+  if (parsed.numeric === null) {
+    return 'evaluation.summary.primary.custom';
+  }
+
+  if (Math.abs(parsed.numeric) < 0.01) {
+    return 'evaluation.summary.primary.balanced';
+  }
+
+  return parsed.sign > 0
+    ? 'evaluation.summary.primary.advantageWhite'
+    : 'evaluation.summary.primary.advantageBlack';
+};
+
+const getSecondarySummary = (parsed, currentPly) => {
   if (!parsed?.hasValue) {
-    elements.evalSummarySecondary.innerHTML = i18n.translate(
-      'evaluation.summary.secondary.instructions',
-    );
-  } else if (state.currentPly > 0) {
-    elements.evalSummarySecondary.textContent = i18n.translate(
-      'evaluation.summary.secondary.afterMove',
-      {
-        descriptor: formatPlyDescriptor(state.currentPly),
-      },
-    );
+    return {
+      value: i18n.translate('evaluation.summary.secondary.instructions'),
+      useHtml: true,
+    };
+  }
+
+  if (currentPly > 0) {
+    return {
+      value: i18n.translate('evaluation.summary.secondary.afterMove', {
+        descriptor: formatPlyDescriptor(currentPly),
+      }),
+      useHtml: false,
+    };
+  }
+
+  return {
+    value: i18n.translate('evaluation.summary.secondary.initial'),
+    useHtml: false,
+  };
+};
+
+export const renderEvaluation = () => {
+  const parsed = state.currentEvaluation;
+  const orientedValue = getOrientedValue(parsed, state.orientation);
+  const fillPercent = getFillPercentFromValue(orientedValue);
+
+  elements.evalFill.style.height = `${fillPercent}%`;
+  elements.evalScore.textContent = parsed?.label ?? 'ƒ?"';
+  elements.evalBar.setAttribute('aria-valuenow', String(parsed?.numeric ?? 0));
+
+  const labels = getEvalLabels(state.orientation);
+  elements.evalTopLabel.textContent = labels.top;
+  elements.evalBottomLabel.textContent = labels.bottom;
+
+  const primaryKey = getPrimarySummaryKey(parsed);
+  elements.evalSummaryPrimary.textContent = i18n.translate(primaryKey);
+  const secondary = getSecondarySummary(parsed, state.currentPly);
+  if (secondary.useHtml) {
+    elements.evalSummarySecondary.innerHTML = secondary.value;
   } else {
-    elements.evalSummarySecondary.textContent = i18n.translate(
-      'evaluation.summary.secondary.initial',
-    );
+    elements.evalSummarySecondary.textContent = secondary.value;
   }
 };
