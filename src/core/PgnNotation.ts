@@ -932,7 +932,7 @@ export class PgnNotation {
     const parts: string[] = [
       this.buildHeaders(),
       ...(movesWithAnnotations ? [movesWithAnnotations] : []),
-      ...(this.result !== '*' ? [this.result] : []),
+      ...(this.result === '*' ? [] : [this.result]),
     ];
 
     return parts.join(' ').trim();

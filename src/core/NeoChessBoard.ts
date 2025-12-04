@@ -231,6 +231,7 @@ export class NeoChessBoard {
   private lightSquareStyleOptions?: SquareStyleOptions;
   private darkSquareStyleOptions?: SquareStyleOptions;
   private squareStylesMap?: Partial<Record<Square, SquareStyleOptions>>;
+  private boardInlineStyle?: InlineStyle;
   private lightNotationStyle?: NotationStyleOptions;
   private darkNotationStyle?: NotationStyleOptions;
   private alphaNotationStyle?: NotationStyleOptions;
@@ -424,74 +425,10 @@ export class NeoChessBoard {
     this.root = root;
     this.initialOptions = { ...options };
 
-    // Initialize visual configuration
-    this.theme = resolveTheme(options.theme ?? 'classic');
-    const desiredOrientation = options.boardOrientation ?? options.orientation;
-    this.orientation = desiredOrientation ?? 'white';
-    this._setBoardGeometry(
-      options.chessboardColumns ?? DEFAULT_BOARD_FILES,
-      options.chessboardRows ?? DEFAULT_BOARD_RANKS,
-    );
-    this.boardId = options.id ?? undefined;
-    const boardStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
-    this.baseSquareStyle = options.squareStyle ? { ...options.squareStyle } : undefined;
-    this.lightSquareStyleOptions = options.lightSquareStyle
-      ? { ...options.lightSquareStyle }
-      : undefined;
-    this.darkSquareStyleOptions = options.darkSquareStyle
-      ? { ...options.darkSquareStyle }
-      : undefined;
-    this.squareStylesMap = options.squareStyles
-      ? Object.entries(options.squareStyles).reduce<Partial<Record<Square, SquareStyleOptions>>>(
-          (acc, [sqKey, style]) => {
-            if (style) {
-              acc[sqKey as Square] = { ...style };
-            }
-            return acc;
-          },
-          {},
-        )
-      : undefined;
-    this.lightNotationStyle = options.lightSquareNotationStyle
-      ? { ...options.lightSquareNotationStyle }
-      : undefined;
-    this.darkNotationStyle = options.darkSquareNotationStyle
-      ? { ...options.darkSquareNotationStyle }
-      : undefined;
-    this.alphaNotationStyle = options.alphaNotationStyle
-      ? { ...options.alphaNotationStyle }
-      : undefined;
-    this.numericNotationStyle = options.numericNotationStyle
-      ? { ...options.numericNotationStyle }
-      : undefined;
-    this.customSquareRenderer = options.squareRenderer;
-    this.customPieceRenderers = options.pieces ? { ...options.pieces } : undefined;
-    const animationOptions = options.animation;
-    const animationDurationCandidates = [
-      animationOptions?.duration,
-      animationOptions?.durationMs,
-      options.animationDurationInMs,
-      options.animationMs,
-    ];
-    const resolvedAnimationDuration = animationDurationCandidates.find(
-      (value): value is number => typeof value === 'number' && Number.isFinite(value),
-    );
-    this.animationMs =
-      typeof resolvedAnimationDuration === 'number'
-        ? Math.max(0, resolvedAnimationDuration)
-        : DEFAULT_ANIMATION_MS;
+    this._configureVisualOptions(options);
+    const { premoveSettings, allowPremoves, variant, initialFen } = this._resolveGameSetup(options);
+    this.animationMs = this._resolveAnimationMs(options);
     this.showAnimations = options.showAnimations !== false;
-
-    const premoveSettings: BoardPremoveSettings = options.premove ?? {};
-    const allowPremovesDefault = options.allowPremoves !== false;
-    const allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
-    const variant = options.variant ?? 'standard';
-
-    // Generate Chess960 starting position if variant is chess960 and no FEN provided
-    let initialFen = options.fen ?? options.position;
-    if (variant === 'chess960' && !initialFen) {
-      initialFen = generateChess960Start();
-    }
 
     this.game = new ChessGame({
       fen: initialFen,
@@ -562,6 +499,7 @@ export class NeoChessBoard {
     const defaultEasing = resolveAnimationEasing(undefined, DEFAULT_ANIMATION_EASING_NAME);
     this.animationEasingName = defaultEasing.name;
     this.animationEasingFn = defaultEasing.fn;
+    const animationOptions = options.animation;
     const hasAnimationEasing =
       animationOptions && Object.prototype.hasOwnProperty.call(animationOptions, 'easing');
     const initialEasing = hasAnimationEasing ? animationOptions?.easing : options.animationEasing;
@@ -616,7 +554,7 @@ export class NeoChessBoard {
     this.domManager = new BoardDomManager({
       root: this.root,
       boardId: this.boardId,
-      boardInlineStyle: boardStyle,
+      boardInlineStyle: this.boardInlineStyle,
       filesCount: this.filesCount,
       ranksCount: this.ranksCount,
       fileLabels: this.fileLabels,
@@ -698,6 +636,88 @@ export class NeoChessBoard {
     this.resize();
 
     this._initializePieceSetAsync(options.pieceSet);
+  }
+
+  private _configureVisualOptions(options: BoardOptions): void {
+    this.theme = resolveTheme(options.theme ?? 'classic');
+    const desiredOrientation = options.boardOrientation ?? options.orientation;
+    this.orientation = desiredOrientation ?? 'white';
+    this._setBoardGeometry(
+      options.chessboardColumns ?? DEFAULT_BOARD_FILES,
+      options.chessboardRows ?? DEFAULT_BOARD_RANKS,
+    );
+    this.boardId = options.id ?? undefined;
+    this.boardInlineStyle = options.boardStyle ? { ...options.boardStyle } : undefined;
+    this.baseSquareStyle = options.squareStyle ? { ...options.squareStyle } : undefined;
+    this.lightSquareStyleOptions = options.lightSquareStyle
+      ? { ...options.lightSquareStyle }
+      : undefined;
+    this.darkSquareStyleOptions = options.darkSquareStyle
+      ? { ...options.darkSquareStyle }
+      : undefined;
+    this.squareStylesMap = options.squareStyles
+      ? Object.entries(options.squareStyles).reduce<Partial<Record<Square, SquareStyleOptions>>>(
+          (acc, [sqKey, style]) => {
+            if (style) {
+              acc[sqKey as Square] = { ...style };
+            }
+            return acc;
+          },
+          {},
+        )
+      : undefined;
+    this.lightNotationStyle = options.lightSquareNotationStyle
+      ? { ...options.lightSquareNotationStyle }
+      : undefined;
+    this.darkNotationStyle = options.darkSquareNotationStyle
+      ? { ...options.darkSquareNotationStyle }
+      : undefined;
+    this.alphaNotationStyle = options.alphaNotationStyle
+      ? { ...options.alphaNotationStyle }
+      : undefined;
+    this.numericNotationStyle = options.numericNotationStyle
+      ? { ...options.numericNotationStyle }
+      : undefined;
+    this.customSquareRenderer = options.squareRenderer;
+    this.customPieceRenderers = options.pieces ? { ...options.pieces } : undefined;
+  }
+
+  private _resolveGameSetup(options: BoardOptions): {
+    premoveSettings: BoardPremoveSettings;
+    allowPremoves: boolean;
+    variant: string;
+    initialFen?: string;
+  } {
+    const premoveSettings: BoardPremoveSettings = options.premove ?? {};
+    const allowPremovesDefault = options.allowPremoves !== false;
+    const allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
+    const variant = options.variant ?? 'standard';
+    const initialFen = this._resolveInitialFen(options, variant);
+    return { premoveSettings, allowPremoves, variant, initialFen };
+  }
+
+  private _resolveInitialFen(options: BoardOptions, variant: string): string | undefined {
+    const provided = options.fen ?? options.position;
+    if (variant === 'chess960' && !provided) {
+      return generateChess960Start();
+    }
+    return provided;
+  }
+
+  private _resolveAnimationMs(options: BoardOptions): number {
+    const animationOptions = options.animation;
+    const animationDurationCandidates = [
+      animationOptions?.duration,
+      animationOptions?.durationMs,
+      options.animationDurationInMs,
+      options.animationMs,
+    ];
+    const resolvedAnimationDuration = animationDurationCandidates.find(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value),
+    );
+    return typeof resolvedAnimationDuration === 'number'
+      ? Math.max(0, resolvedAnimationDuration)
+      : DEFAULT_ANIMATION_MS;
   }
 
   // ============================================================================
@@ -1330,12 +1350,7 @@ export class NeoChessBoard {
     }
 
     const { duration, durationMs, easing } = animation;
-    const resolvedDuration =
-      typeof duration === 'number' && Number.isFinite(duration)
-        ? duration
-        : typeof durationMs === 'number' && Number.isFinite(durationMs)
-          ? durationMs
-          : undefined;
+    const resolvedDuration = this._resolveDurationValue(duration, durationMs);
 
     if (typeof resolvedDuration === 'number') {
       this.animationMs = Math.max(0, resolvedDuration);
@@ -1363,6 +1378,16 @@ export class NeoChessBoard {
 
     this.animationEasingName = resolved.name;
     this.animationEasingFn = resolved.fn;
+  }
+
+  private _resolveDurationValue(duration?: number, durationMs?: number): number | undefined {
+    if (typeof duration === 'number' && Number.isFinite(duration)) {
+      return duration;
+    }
+    if (typeof durationMs === 'number' && Number.isFinite(durationMs)) {
+      return durationMs;
+    }
+    return undefined;
   }
 
   public setDraggingEnabled(enabled: boolean): void {
@@ -2311,13 +2336,7 @@ export class NeoChessBoard {
   }
 
   private _positionPieceElement(element: HTMLDivElement, square: Square): void {
-    const size = this.dpr ? this.square / this.dpr : this.square;
-    const { x, y } = this._sqToXY(square);
-    const cssX = this.dpr ? x / this.dpr : x;
-    const cssY = this.dpr ? y / this.dpr : y;
-    element.style.width = `${size}px`;
-    element.style.height = `${size}px`;
-    element.style.transform = `translate(${cssX}px, ${cssY}px)`;
+    this._positionElement(element, square);
   }
 
   private _cleanupDomPieces(active: Set<Square>): void {
@@ -2367,6 +2386,16 @@ export class NeoChessBoard {
     return layers.reduce<SquareStyleOptions>((acc, style) => ({ ...acc, ...style }), {});
   }
 
+  private _positionElement(element: HTMLDivElement, square: Square): void {
+    const size = this.dpr ? this.square / this.dpr : this.square;
+    const { x, y } = this._sqToXY(square);
+    const cssX = this.dpr ? x / this.dpr : x;
+    const cssY = this.dpr ? y / this.dpr : y;
+    element.style.width = `${size}px`;
+    element.style.height = `${size}px`;
+    element.style.transform = `translate(${cssX}px, ${cssY}px)`;
+  }
+
   private _renderSquareOverlays(): void {
     if (!this.squareLayer) {
       return;
@@ -2394,13 +2423,7 @@ export class NeoChessBoard {
   }
 
   private _positionSquareElement(element: HTMLDivElement, square: Square): void {
-    const size = this.dpr ? this.square / this.dpr : this.square;
-    const { x, y } = this._sqToXY(square);
-    const cssX = this.dpr ? x / this.dpr : x;
-    const cssY = this.dpr ? y / this.dpr : y;
-    element.style.width = `${size}px`;
-    element.style.height = `${size}px`;
-    element.style.transform = `translate(${cssX}px, ${cssY}px)`;
+    this._positionElement(element, square);
   }
 
   private _clearSquareOverlay(): void {
@@ -2987,14 +3010,9 @@ export class NeoChessBoard {
 
   private _handleLeftMouseUp(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
-
     const square = pt ? this._xyToSquare(pt.x, pt.y) : null;
-    if (square) {
-      this._updatePointerSquare(square, e);
-      this._emitSquarePointerEvent('squareMouseUp', square, e);
-    } else {
-      this._updatePointerSquare(null, e);
-    }
+
+    this._updatePointerAfterMouseUp(square, e);
 
     if (this.drawingManager?.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
       this.renderAll();
@@ -3003,31 +3021,51 @@ export class NeoChessBoard {
     }
 
     if (!this._dragging) {
-      if (this.drawingManager?.handleLeftClick()) {
-        this.renderAll();
-      }
-      if (square && e.button === 0) {
-        this._emitSquarePointerEvent('squareClick', square, e);
-        const clickedPiece = this._pieceAt(square);
-        if (clickedPiece) {
-          this.bus.emit('pieceClick', { square, piece: clickedPiece, event: e });
-        }
-        if (this.interactive) {
-          this._handleClickMove(square);
-        }
-      }
+      this._handleClickRelease(square, e);
       this._pendingDrag = null;
       return;
     }
 
-    const dropPoint =
-      pt ??
-      (!this.allowDragOffBoard && this._dragging
-        ? { x: this._dragging.x, y: this._dragging.y }
-        : null);
+    const dropPoint = this._resolveDropPoint(pt);
 
     this._handleDragEnd(e, dropPoint);
     this._pendingDrag = null;
+  }
+
+  private _updatePointerAfterMouseUp(square: Square | null, e: PointerEvent): void {
+    if (square) {
+      this._updatePointerSquare(square, e);
+      this._emitSquarePointerEvent('squareMouseUp', square, e);
+    } else {
+      this._updatePointerSquare(null, e);
+    }
+  }
+
+  private _resolveDropPoint(pt: Point | null): Point | null {
+    if (pt) {
+      return pt;
+    }
+    if (!this.allowDragOffBoard && this._dragging) {
+      return { x: this._dragging.x, y: this._dragging.y };
+    }
+    return null;
+  }
+
+  private _handleClickRelease(square: Square | null, e: PointerEvent): void {
+    if (this.drawingManager?.handleLeftClick()) {
+      this.renderAll();
+    }
+    if (!square || e.button !== 0) {
+      return;
+    }
+    this._emitSquarePointerEvent('squareClick', square, e);
+    const clickedPiece = this._pieceAt(square);
+    if (clickedPiece) {
+      this.bus.emit('pieceClick', { square, piece: clickedPiece, event: e });
+    }
+    if (this.interactive) {
+      this._handleClickMove(square);
+    }
   }
 
   private _handleRightMouseDown(e: PointerEvent): void {
@@ -3094,20 +3132,7 @@ export class NeoChessBoard {
       this._updatePointerSquare(square, e);
     }
 
-    if (this._pendingDrag && this.allowDragging) {
-      const distance = Math.hypot(
-        e.clientX - this._pendingDrag.startClientX,
-        e.clientY - this._pendingDrag.startClientY,
-      );
-
-      if (distance >= this.dragActivationDistance) {
-        const activationPoint = pt ?? {
-          x: this._pendingDrag.startX,
-          y: this._pendingDrag.startY,
-        };
-        this._activatePendingDrag(activationPoint, e);
-      }
-    }
+    this._maybeActivatePendingDrag(e, pt);
 
     if (pt && this.drawingManager?.handleMouseMove(pt.x, pt.y)) {
       this.renderAll();
@@ -3135,6 +3160,26 @@ export class NeoChessBoard {
     } else if (!pt) {
       this._updateCursor('default');
     }
+  }
+
+  private _maybeActivatePendingDrag(e: PointerEvent, pt: Point | null): void {
+    if (!this._pendingDrag || !this.allowDragging) {
+      return;
+    }
+    const distance = Math.hypot(
+      e.clientX - this._pendingDrag.startClientX,
+      e.clientY - this._pendingDrag.startClientY,
+    );
+
+    if (distance < this.dragActivationDistance) {
+      return;
+    }
+
+    const activationPoint = pt ?? {
+      x: this._pendingDrag.startX,
+      y: this._pendingDrag.startY,
+    };
+    this._activatePendingDrag(activationPoint, e);
   }
 
   private _activatePendingDrag(pt: Point, event: PointerEvent): void {
@@ -4252,7 +4297,12 @@ export class NeoChessBoard {
         continue;
       }
 
-      const code = value === 'white' ? 'w' : value === 'black' ? 'b' : value;
+      let code: Color | PremoveColorOption | undefined = value;
+      if (value === 'white') {
+        code = 'w';
+      } else if (value === 'black') {
+        code = 'b';
+      }
       if ((code === 'w' || code === 'b') && !result.includes(code)) {
         result.push(code);
       }
@@ -4609,7 +4659,8 @@ export class NeoChessBoard {
     sprite: PieceSpriteSource | PieceSprite,
     defaultScale: number,
   ): Promise<ResolvedPieceSprite | null> {
-    const config: PieceSprite =
+    let config: PieceSprite;
+    config =
       typeof sprite === 'object' && sprite !== null && 'image' in (sprite as PieceSprite)
         ? (sprite as PieceSprite)
         : ({ image: sprite } as PieceSprite);
