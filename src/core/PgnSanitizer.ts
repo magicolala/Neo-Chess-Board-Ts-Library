@@ -28,38 +28,36 @@ function stripVariations(moves: string): string {
   let inComment = false;
 
   for (const char of moves) {
+    // Handle comment end
     if (inComment) {
       result += char;
-      if (char === '}') {
-        inComment = false;
-      }
+      if (char === '}') inComment = false;
       continue;
     }
 
-    if (depth > 0) {
-      if (char === '(') {
-        depth++;
-      } else if (char === ')') {
-        depth = Math.max(0, depth - 1);
-      }
+    // Handle variation start
+    if (char === '(') {
+      depth++;
       continue;
     }
 
+    // Handle variation end
+    if (char === ')') {
+      if (depth > 0) depth--;
+      continue;
+    }
+
+    // Skip if inside variation
+    if (depth > 0) continue;
+
+    // Handle comment start
     if (char === '{') {
       inComment = true;
       result += char;
       continue;
     }
 
-    if (char === '(') {
-      depth++;
-      continue;
-    }
-
-    if (char === ')') {
-      continue;
-    }
-
+    // Keep default character
     result += char;
   }
 

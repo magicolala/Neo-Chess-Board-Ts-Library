@@ -108,10 +108,7 @@ const piece = data as ChessPiece;
 
 ```typescript
 // ✅ CORRECT: Focused, composable components
-export const ChessBoard: React.FC<ChessBoardProps> = ({ 
-  position, 
-  onMove 
-}) => {
+export const ChessBoard: React.FC<ChessBoardProps> = ({ position, onMove }) => {
   // Single responsibility: render board
 };
 
@@ -147,7 +144,7 @@ describe('ChessBoard', () => {
     );
     expect(getByTestId('piece-e1')).toBeInTheDocument();
   });
-  
+
   it('should call onMove when valid move is made', () => {
     const onMove = jest.fn();
     // Test implementation
@@ -205,31 +202,34 @@ mkdocs_docs/
 
 ### Documentation Style
 
-```markdown
+````markdown
 ## ChessBoard Component
 
 **Description**: Renders an interactive chess board with piece movement.
 
 **Props**:
+
 - `fen` (string, optional): FEN notation for initial position
 - `onMove` ((from: Position, to: Position) => void): Move callback
 - `orientation` ('white' | 'black', default: 'white'): Board orientation
 
 **Example**:
+
 ```tsx
 import { ChessBoard } from 'neo-chess-board';
 
 function App() {
   return (
-    <ChessBoard 
+    <ChessBoard
       fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
       onMove={(from, to) => console.log(`${from} -> ${to}`)}
     />
   );
 }
 ```
+````
 
-```
+````
 
 ## 🔄 Build System
 
@@ -246,7 +246,7 @@ npm run build:demo
 
 # Both (default)
 npm run build
-```
+````
 
 ### Build Verification
 
@@ -388,17 +388,21 @@ refactor(hooks): simplify useChessGame hook
 
 ```markdown
 ## Changes
+
 Brief description of what changed and why.
 
 ## Testing
+
 - [ ] Unit tests added/updated
 - [ ] Manual testing in demo application
 - [ ] Coverage: XX% → YY%
 
 ## Breaking Changes
+
 List any breaking changes (if applicable).
 
 ## Related Issues
+
 Closes #123
 ```
 
@@ -418,6 +422,32 @@ Closes #123
 - **Move Validation**: < 5ms per move
 - **FEN Parsing**: < 10ms per position
 
+## 🎯 SonarQube Rules Configuration
+
+### Active SonarJS Rules
+
+All SonarJS rules are **ENABLED as warnings** to maintain code quality while allowing builds to succeed:
+
+| Rule                           | Threshold       | Status  | Notes                                         |
+| ------------------------------ | --------------- | ------- | --------------------------------------------- |
+| `cognitive-complexity`         | 25 per function | ⚠️ warn | Refactor functions exceeding complexity       |
+| `no-nested-conditional`        | N/A             | ⚠️ warn | Extract nested ternary to variables           |
+| `no-nested-functions`          | 4 levels        | ⚠️ warn | Move nested functions to module level         |
+| `no-identical-functions`       | N/A             | ⚠️ warn | Consolidate duplicate function logic          |
+| `constructor-for-side-effects` | N/A             | ⚠️ warn | Use constructors only for object creation     |
+| `pseudo-random`                | N/A             | ⚠️ warn | Math.random() acceptable for non-crypto usage |
+| `slow-regex`                   | N/A             | ⭕ off  | Disabled - PGN patterns use controlled input  |
+
+### Current Violations: 85 warnings
+
+**Distribution**:
+
+- Cognitive Complexity: 13 functions (range: 25-67)
+- Nested Conditionals: 35+ ternary operations
+- Nested Functions: 9 locations (5+ levels deep)
+- Identical Functions: 2 instances
+- Constructor-for-side-effects: 3 test locations
+
 ## 🛡️ Security & Safety
 
 ### Input Validation
@@ -433,7 +463,7 @@ export function parseFEN(fen: string): Board {
 
 // ❌ INCORRECT: Trust user input
 export function parseFEN(fen: string): Board {
-  return eval(fen);  // NEVER DO THIS
+  return eval(fen); // NEVER DO THIS
 }
 ```
 

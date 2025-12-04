@@ -404,6 +404,62 @@ export function getRelativeCoords<T extends Square | readonly Square[]>(
     : RelativeCoord;
 }
 
+/**
+ * Parse une ligne de FEN et la place dans le plateau
+ */
+function parseFenRow(
+  rowString: string,
+  rowIndex: number,
+  board: (string | null)[][],
+  files: number,
+): void {
+  let fileIndex = 0;
+  let charIndex = 0;
+
+  while (charIndex < rowString.length && fileIndex < files) {
+    const char = rowString[charIndex];
+
+    if (/\d/.test(char)) {
+      // Compte les cases vides consécutives
+      let digitEnd = charIndex + 1;
+      while (digitEnd < rowString.length && /\d/.test(rowString[digitEnd])) {
+        digitEnd++;
+      }
+
+      const emptyCount = Number.parseInt(rowString.slice(charIndex, digitEnd), 10);
+      fileIndex += emptyCount;
+      charIndex = digitEnd;
+      continue;
+    }
+
+    // C'est une pièce
+    const targetRank = board.length - 1 - rowIndex;
+    if (fileIndex < files && targetRank >= 0) {
+      board[targetRank][fileIndex] = char;
+    }
+    fileIndex++;
+    charIndex++;
+  }
+}
+
+/**
+ * Parse le plateau (la première partie du FEN)
+ */
+function parseFenBoard(boardString: string, files: number, ranks: number): (string | null)[][] {
+  const board: (string | null)[][] = Array.from({ length: ranks }, () =>
+    Array.from({ length: files }, () => null),
+  );
+
+  const rows = boardString.split('/');
+  const rowCount = Math.min(rows.length, ranks);
+
+  for (let r = 0; r < rowCount; r++) {
+    parseFenRow(rows[r], r, board, files);
+  }
+
+  return board;
+}
+
 export function parseFEN(
   fen: string,
   dimensions: { files?: number; ranks?: number } = {},
@@ -411,38 +467,8 @@ export function parseFEN(
   const files = Math.max(1, Math.floor(dimensions.files ?? 8));
   const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
   const parts = validateFenString(fen);
-  const board: (string | null)[][] = Array.from({ length: ranks }, () =>
-    Array.from({ length: files }, () => null),
-  );
 
-  const rows = parts[0].split('/');
-  const rowCount = Math.min(rows.length, ranks);
-  for (let r = 0; r < rowCount; r++) {
-    const row = rows[r];
-    let f = 0;
-    let columnIndex = 0;
-
-    while (columnIndex < row.length && f < files) {
-      const char = row[columnIndex];
-      if (/\d/.test(char)) {
-        let lookahead = columnIndex + 1;
-        while (lookahead < row.length && /\d/.test(row[lookahead])) {
-          lookahead += 1;
-        }
-        const digits = row.slice(columnIndex, lookahead);
-        f += Number.parseInt(digits, 10);
-        columnIndex = lookahead;
-        continue;
-      }
-
-      const targetRank = ranks - 1 - r;
-      if (f < files) {
-        board[targetRank][f] = char;
-      }
-      f += 1;
-      columnIndex += 1;
-    }
-  }
+  const board = parseFenBoard(parts[0], files, ranks);
 
   return {
     board,

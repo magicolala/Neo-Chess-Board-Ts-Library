@@ -6,26 +6,50 @@ import type { NeoChessRef } from './NeoChessBoard';
 
 export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
 
-export interface UseNeoChessBoardOptions {
-  fen?: string;
-  position?: string;
-  options?: UpdatableBoardOptions;
+/** Handlers pour les événements de mouvement et validation */
+export interface MoveHandlers {
   onMove?: (event: BoardEventMap['move']) => void;
   onIllegal?: (event: BoardEventMap['illegal']) => void;
   onUpdate?: (event: BoardEventMap['update']) => void;
+}
+
+/** Handlers pour les événements de clic/interaction sur les cases */
+export interface SquareHandlers {
   onSquareClick?: (event: BoardEventMap['squareClick']) => void;
   onSquareMouseDown?: (event: BoardEventMap['squareMouseDown']) => void;
   onSquareMouseUp?: (event: BoardEventMap['squareMouseUp']) => void;
   onSquareRightClick?: (event: BoardEventMap['squareRightClick']) => void;
   onSquareMouseOver?: (event: BoardEventMap['squareMouseOver']) => void;
   onSquareMouseOut?: (event: BoardEventMap['squareMouseOut']) => void;
+}
+
+/** Handlers pour les événements de pièces */
+export interface PieceHandlers {
   onPieceClick?: (event: BoardEventMap['pieceClick']) => void;
   onPieceDrag?: (event: BoardEventMap['pieceDrag']) => void;
   onPieceDrop?: (event: BoardEventMap['pieceDrop']) => void;
+}
+
+/** Handlers pour les événements d'horloge */
+export interface ClockHandlers {
   onClockChange?: (state: ClockState) => void;
   onClockStart?: () => void;
   onClockPause?: () => void;
   onClockFlag?: (event: BoardEventMap['clock:flag']) => void;
+}
+
+/** Configuration complète pour le hook useNeoChessBoard */
+export interface UseNeoChessBoardOptions
+  extends MoveHandlers,
+    SquareHandlers,
+    PieceHandlers,
+    ClockHandlers {
+  /** Position FEN initiale */
+  fen?: string;
+  /** Position ou alias (e.g., 'start') */
+  position?: string;
+  /** Options additionnelles du board */
+  options?: UpdatableBoardOptions;
 }
 
 export interface UseNeoChessBoardResult {
@@ -124,53 +148,44 @@ function useBoardOption<T>(
   }, [apply, boardRef, isReady, shouldApply, value]);
 }
 
-export function useNeoChessBoard({
-  fen,
-  position,
-  options,
-  onMove,
-  onIllegal,
-  onUpdate,
-  onSquareClick,
-  onSquareMouseDown,
-  onSquareMouseUp,
-  onSquareRightClick,
-  onSquareMouseOver,
-  onSquareMouseOut,
-  onPieceClick,
-  onPieceDrag,
-  onPieceDrop,
-  onClockChange,
-  onClockStart,
-  onClockPause,
-  onClockFlag,
-}: UseNeoChessBoardOptions): UseNeoChessBoardResult {
-  const resolvedOptions = options ?? {};
+/**
+ * Crée un objet consolidé de handlers à partir de l'interface
+ */
+function createEventHandlers(options: UseNeoChessBoardOptions) {
+  return {
+    // Move handlers
+    onMove: options.onMove,
+    onIllegal: options.onIllegal,
+    onUpdate: options.onUpdate,
+    // Square handlers
+    onSquareClick: options.onSquareClick,
+    onSquareMouseDown: options.onSquareMouseDown,
+    onSquareMouseUp: options.onSquareMouseUp,
+    onSquareRightClick: options.onSquareRightClick,
+    onSquareMouseOver: options.onSquareMouseOver,
+    onSquareMouseOut: options.onSquareMouseOut,
+    // Piece handlers
+    onPieceClick: options.onPieceClick,
+    onPieceDrag: options.onPieceDrag,
+    onPieceDrop: options.onPieceDrop,
+    // Clock handlers
+    onClockChange: options.onClockChange,
+    onClockStart: options.onClockStart,
+    onClockPause: options.onClockPause,
+    onClockFlag: options.onClockFlag,
+  };
+}
+
+export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessBoardResult {
+  const resolvedOptions = options.options ?? {};
   const containerRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<Chessboard | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const fenRef = useLatestRef(fen);
-  const positionRef = useLatestRef(position);
+  const fenRef = useLatestRef(options.fen);
+  const positionRef = useLatestRef(options.position);
   const optionsRef = useLatestRef(resolvedOptions);
-  const handlersRef = useLatestRef({
-    onMove,
-    onIllegal,
-    onUpdate,
-    onSquareClick,
-    onSquareMouseDown,
-    onSquareMouseUp,
-    onSquareRightClick,
-    onSquareMouseOver,
-    onSquareMouseOut,
-    onPieceClick,
-    onPieceDrag,
-    onPieceDrop,
-    onClockChange,
-    onClockStart,
-    onClockPause,
-    onClockFlag,
-  });
+  const handlersRef = useLatestRef(createEventHandlers(options));
 
   const lastClockConfigRef = useRef<string | null>(serializeClockConfig(resolvedOptions.clock));
   const lastClockCallbacksRef = useRef<ClockConfig['callbacks'] | undefined>(
@@ -238,7 +253,7 @@ export function useNeoChessBoard({
   }, [handlersRef, isReady]);
 
   useEffect(() => {
-    const resolvedFen = fen === undefined ? position : fen;
+    const resolvedFen = options.fen === undefined ? options.position : options.fen;
 
     if (!isReady || resolvedFen === undefined) {
       return;
@@ -252,7 +267,7 @@ export function useNeoChessBoard({
     if (board.getPosition() !== resolvedFen) {
       board.setFEN(resolvedFen);
     }
-  }, [fen, position, isReady]);
+  }, [options.fen, options.position, isReady]);
 
   const applyTheme = useCallback((board: Chessboard, nextTheme: BoardOptions['theme']) => {
     if (!nextTheme) {

@@ -59,6 +59,81 @@ function calculateMovesFrom(fen: string, square: Square): Move[] {
 }
 
 /**
+ * Crée une règle avec FEN modifié (trait changé)
+ */
+function createTempRulesWithTurnChange(fen: string, targetColor: 'w' | 'b'): LightRules {
+  const tempRules = new LightRules();
+  const currentTurn = fen.split(' ')[1];
+
+  if (currentTurn === targetColor) {
+    tempRules.setFEN(fen);
+  } else {
+    const fenParts = fen.split(' ');
+    fenParts[1] = targetColor;
+    const modifiedFen = fenParts.join(' ');
+    tempRules.setFEN(modifiedFen);
+  }
+
+  return tempRules;
+}
+
+/**
+ * Calcule les coups d'une pièce spécifique
+ */
+function calculateMovesForPiece(
+  rules: LightRules,
+  fen: string,
+  square: Square,
+  piece: string,
+): Move[] {
+  const pieceColor = piece === piece.toUpperCase() ? 'w' : 'b';
+  const tempRules = createTempRulesWithTurnChange(fen, pieceColor);
+  return tempRules.movesFrom(square);
+}
+
+/**
+ * Calcule les coups de toutes les pièces (incluant celles hors du trait)
+ */
+function calculateAllPiecesMoves(rules: LightRules, fen: string): Move[] {
+  const allMoves: Move[] = [];
+  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+  const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
+
+  for (const file of files) {
+    for (const rank of ranks) {
+      const square = `${file}${rank}` as Square;
+      const piece = rules.pieceAt(square);
+
+      if (piece) {
+        const moves = calculateMovesForPiece(rules, fen, square, piece);
+        allMoves.push(...moves);
+      }
+    }
+  }
+
+  return allMoves;
+}
+
+/**
+ * Calcule les coups des pièces au trait uniquement
+ */
+function calculateCurrentTurnMoves(rules: LightRules): Move[] {
+  const allMoves: Move[] = [];
+  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+  const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
+
+  for (const file of files) {
+    for (const rank of ranks) {
+      const square = `${file}${rank}` as Square;
+      const moves = rules.movesFrom(square);
+      allMoves.push(...moves);
+    }
+  }
+
+  return allMoves;
+}
+
+/**
  * Calcule les coups légaux de manière approfondie
  * (tous les coups de toutes les pièces avec informations détaillées)
  */
@@ -66,47 +141,11 @@ function calculateDeep(fen: string, options?: { includeAllPieces?: boolean }): M
   const rules = new LightRules();
   rules.setFEN(fen);
 
-  const allMoves: Move[] = [];
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
-  const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
-
   if (options?.includeAllPieces) {
-    // Calculer les coups de toutes les pièces (même celles qui ne sont pas au trait)
-    for (const file of files) {
-      for (const rank of ranks) {
-        const square = `${file}${rank}` as Square;
-        const piece = rules.pieceAt(square);
-        if (piece) {
-          // Créer une position temporaire avec le trait changé pour calculer les coups
-          const tempRules = new LightRules();
-          tempRules.setFEN(fen);
-          // Forcer le calcul en changeant temporairement le trait
-          const currentTurn = rules.turn();
-          const pieceColor = piece === piece.toUpperCase() ? 'w' : 'b';
-          if (pieceColor !== currentTurn) {
-            // Créer un FEN avec le trait changé
-            const fenParts = fen.split(' ');
-            fenParts[1] = pieceColor;
-            const tempFen = fenParts.join(' ');
-            tempRules.setFEN(tempFen);
-          }
-          const moves = tempRules.movesFrom(square);
-          allMoves.push(...moves);
-        }
-      }
-    }
-  } else {
-    // Calculer uniquement les coups des pièces au trait
-    for (const file of files) {
-      for (const rank of ranks) {
-        const square = `${file}${rank}` as Square;
-        const moves = rules.movesFrom(square);
-        allMoves.push(...moves);
-      }
-    }
+    return calculateAllPiecesMoves(rules, fen);
   }
 
-  return allMoves;
+  return calculateCurrentTurnMoves(rules);
 }
 
 /**
