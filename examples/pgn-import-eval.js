@@ -156,60 +156,73 @@ const renderOrientationStatus = () => {
   });
 };
 
+const getOrientedValue = (evaluation, orientation) => {
+  if (!evaluation?.hasValue) {
+    return null;
+  }
+  const numericValue = evaluation.numeric ?? 0;
+  return orientation === 'black' ? -numericValue : evaluation.numeric;
+};
+
+const getFillPercent = (evaluation, orientedValue) => {
+  if (!evaluation?.hasValue) {
+    return 50;
+  }
+  return ((clamp(orientedValue ?? 0, -10, 10) + 10) / 20) * 100;
+};
+
+const updateOrientationLabels = (orientation) => {
+  const isBlackPerspective = orientation === 'black';
+  evalTopLabel.textContent = translate(isBlackPerspective ? 'common.black' : 'common.white');
+  evalBottomLabel.textContent = translate(isBlackPerspective ? 'common.white' : 'common.black');
+};
+
+const getPrimarySummaryKey = (evaluation) => {
+  if (!evaluation?.hasValue) {
+    return 'evaluation.summary.primary.none';
+  }
+  if (evaluation.mate) {
+    return evaluation.sign >= 0
+      ? 'evaluation.summary.primary.mateWhite'
+      : 'evaluation.summary.primary.mateBlack';
+  }
+  if (evaluation.numeric === null) {
+    return 'evaluation.summary.primary.custom';
+  }
+  if (Math.abs(evaluation.numeric) < 0.01) {
+    return 'evaluation.summary.primary.balanced';
+  }
+  return evaluation.sign > 0
+    ? 'evaluation.summary.primary.advantageWhite'
+    : 'evaluation.summary.primary.advantageBlack';
+};
+
+const updateSecondarySummary = (evaluation, currentPly) => {
+  if (!evaluation?.hasValue) {
+    evalSummarySecondary.innerHTML = translate('evaluation.summary.secondary.instructions');
+    return;
+  }
+  if (currentPly > 0) {
+    evalSummarySecondary.textContent = translate('evaluation.summary.secondary.afterMove', {
+      descriptor: formatPlyDescriptor(currentPly),
+    });
+    return;
+  }
+  evalSummarySecondary.textContent = translate('evaluation.summary.secondary.initial');
+};
+
 const renderEvaluation = () => {
   const parsed = state.currentEvaluation;
-  let orientedValue = null;
-  if (parsed?.hasValue) {
-    orientedValue = state.orientation === 'black' ? (parsed.numeric ?? 0) * -1 : parsed.numeric;
-  }
-
-  let fillPercent = 50;
-  if (parsed?.hasValue) {
-    fillPercent = ((clamp(orientedValue ?? 0, -10, 10) + 10) / 20) * 100;
-  }
+  const orientedValue = getOrientedValue(parsed, state.orientation);
+  const fillPercent = getFillPercent(parsed, orientedValue);
 
   evalFill.style.height = `${fillPercent}%`;
   evalScore.textContent = parsed?.label ?? '—';
   evalBar.setAttribute('aria-valuenow', String(parsed?.numeric ?? 0));
 
-  const isBlackPerspective = state.orientation === 'black';
-  if (isBlackPerspective) {
-    evalTopLabel.textContent = translate('common.black');
-    evalBottomLabel.textContent = translate('common.white');
-  } else {
-    evalTopLabel.textContent = translate('common.white');
-    evalBottomLabel.textContent = translate('common.black');
-  }
-
-  let primaryKey = 'evaluation.summary.primary.none';
-  if (parsed?.hasValue) {
-    if (parsed.mate) {
-      primaryKey =
-        parsed.sign >= 0
-          ? 'evaluation.summary.primary.mateWhite'
-          : 'evaluation.summary.primary.mateBlack';
-    } else if (parsed.numeric === null) {
-      primaryKey = 'evaluation.summary.primary.custom';
-    } else if (Math.abs(parsed.numeric) < 0.01) {
-      primaryKey = 'evaluation.summary.primary.balanced';
-    } else if (parsed.sign > 0) {
-      primaryKey = 'evaluation.summary.primary.advantageWhite';
-    } else {
-      primaryKey = 'evaluation.summary.primary.advantageBlack';
-    }
-  }
-
-  evalSummaryPrimary.textContent = translate(primaryKey);
-
-  if (!parsed?.hasValue) {
-    evalSummarySecondary.innerHTML = translate('evaluation.summary.secondary.instructions');
-  } else if (state.currentPly > 0) {
-    evalSummarySecondary.textContent = translate('evaluation.summary.secondary.afterMove', {
-      descriptor: formatPlyDescriptor(state.currentPly),
-    });
-  } else {
-    evalSummarySecondary.textContent = translate('evaluation.summary.secondary.initial');
-  }
+  updateOrientationLabels(state.orientation);
+  evalSummaryPrimary.textContent = translate(getPrimarySummaryKey(parsed));
+  updateSecondarySummary(parsed, state.currentPly);
 };
 
 const clearEvaluations = () => {
