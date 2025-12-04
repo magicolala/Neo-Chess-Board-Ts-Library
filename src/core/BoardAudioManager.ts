@@ -175,14 +175,10 @@ export class BoardAudioManager {
   }
 
   private playAudioElement(sound: HTMLAudioElement): void {
-    try {
-      sound.currentTime = 0;
-      sound.play().catch((error) => {
-        console.debug('Sound not played:', error?.message ?? error);
-      });
-    } catch (error) {
-      console.debug('Error playing sound:', error);
-    }
+    sound.currentTime = 0;
+    sound.play().catch((error) => {
+      console.debug('Sound not played:', error?.message ?? error);
+    });
   }
 
   private createAudioElement(url: string): HTMLAudioElement | null {
