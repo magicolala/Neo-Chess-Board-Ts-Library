@@ -73,6 +73,9 @@ interface TimelineMove {
   promotion?: string;
 }
 
+const normalizePromotion = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
 interface PlyAnnotationInfo {
   moveNumber: number;
   color: 'white' | 'black';
@@ -431,7 +434,7 @@ const AppContent: React.FC = () => {
     const verboseHistory = chessRules.getHistory().map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion,
+      promotion: normalizePromotion(move.promotion),
     }));
 
     let timelineRules: ChessJsRules;
@@ -461,7 +464,7 @@ const AppContent: React.FC = () => {
       const result = timelineRules.move({
         from: move.from,
         to: move.to,
-        promotion: move.promotion,
+        promotion: normalizePromotion(move.promotion),
       });
       if (result.ok) {
         const plyIndex = index + 1;
@@ -513,7 +516,7 @@ const AppContent: React.FC = () => {
         const response = chessRules.move({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         });
 
         if (!response.ok) {
@@ -659,7 +662,7 @@ const AppContent: React.FC = () => {
         timelineMovesRef.current = chessRules.getHistory().map((move) => ({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         }));
         setCurrentEvaluation(undefined);
         setCurrentPly(fallbackPly);
@@ -923,15 +926,16 @@ const AppContent: React.FC = () => {
     });
   }, [fen, chessRules, getOrientationFromFen]);
 
-  const addRandomArrow = useCallback(() => {
-    if (!boardRef.current) return;
+  const randomSquare = useCallback((): Square => {
     const files: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const ranks: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
-    const randomSquare = (): Square => {
-      const file = pickRandomElement(files);
-      const rank = pickRandomElement(ranks);
-      return `${file}${rank}` as Square;
-    };
+    const file = pickRandomElement(files);
+    const rank = pickRandomElement(ranks);
+    return `${file}${rank}` as Square;
+  }, []);
+
+  const addRandomArrow = useCallback(() => {
+    if (!boardRef.current) return;
     const from = randomSquare();
     let to = randomSquare();
     while (to === from) {
@@ -940,17 +944,10 @@ const AppContent: React.FC = () => {
     const colors: readonly string[] = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
     const color = pickRandomElement(colors);
     boardRef.current.addArrow({ from, to, color });
-  }, []);
+  }, [randomSquare]);
 
   const addRandomHighlight = useCallback(() => {
     if (!boardRef.current) return;
-    const files: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
-    const randomSquare = (): Square => {
-      const file = pickRandomElement(files);
-      const rank = pickRandomElement(ranks);
-      return `${file}${rank}` as Square;
-    };
     const square = randomSquare();
     const types: ReadonlyArray<'move' | 'capture' | 'check' | 'selected'> = [
       'move',
@@ -965,7 +962,7 @@ const AppContent: React.FC = () => {
     } else {
       boardRef.current.addHighlight(square, type);
     }
-  }, []);
+  }, [randomSquare]);
 
   const clearAll = useCallback(() => {
     if (!boardRef.current) return;
@@ -978,14 +975,20 @@ const AppContent: React.FC = () => {
     [currentEvaluation],
   );
   const halfMovesRemaining = Math.max(0, 100 - status.halfMoves);
-  const evaluationSummary = evaluationSnapshot.hasValue
-    ? currentPly > 0
-      ? translate('evaluation.lastScoreWithMove', {
-          score: evaluationSnapshot.label,
-          move: formatPlyDescriptor(currentPly),
-        })
-      : translate('evaluation.lastScore', { score: evaluationSnapshot.label })
-    : translate('evaluation.waitingData');
+  const evaluationSummary = (() => {
+    if (!evaluationSnapshot.hasValue) {
+      return translate('evaluation.waitingData');
+    }
+
+    if (currentPly > 0) {
+      return translate('evaluation.lastScoreWithMove', {
+        score: evaluationSnapshot.label,
+        move: formatPlyDescriptor(currentPly),
+      });
+    }
+
+    return translate('evaluation.lastScore', { score: evaluationSnapshot.label });
+  })();
 
   const selectedTimelineEntry = useMemo(
     () => plyTimeline.find((entry) => entry.ply === selectedPly),
@@ -998,6 +1001,21 @@ const AppContent: React.FC = () => {
   const highlightCount = activePlyInfo?.annotations?.circles?.length ?? 0;
   const evaluationForSelectedPly =
     activePlyInfo?.annotations?.evaluation ?? evaluationsByPly[selectedPly];
+  const renderCommentContent = useCallback(() => {
+    if (commentForSelectedPly) {
+      return (
+        <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+          {commentForSelectedPly}
+        </p>
+      );
+    }
+
+    if (selectedPly > 0) {
+      return <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>;
+    }
+
+    return <p className="text-sm text-gray-500 italic">{translate('comments.noMoveSelected')}</p>;
+  }, [commentForSelectedPly, selectedPly, translate]);
   const annotationBadges: string[] = [];
 
   if (arrowCount > 0) {
@@ -1089,38 +1107,51 @@ const AppContent: React.FC = () => {
     },
   ] as const;
 
-  const gameTagClass = status.isCheckmate
-    ? 'bg-red-500/15 text-red-300 border-red-400/30'
-    : status.isStalemate || status.inCheck
-      ? 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30'
-      : status.isGameOver
-        ? 'bg-blue-500/15 text-blue-300 border-blue-400/30'
-        : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
-  const gameTagLabel = status.isCheckmate
-    ? translate('status.tags.checkmate')
-    : status.isStalemate
-      ? translate('status.tags.stalemate')
-      : status.inCheck
-        ? translate('status.tags.check')
-        : status.isGameOver
-          ? translate('status.tags.gameOver')
-          : translate('status.tags.inProgress');
-  const fiftyTagClass =
-    status.halfMoves >= 100
-      ? 'bg-red-500/15 text-red-300 border-red-400/30'
-      : status.halfMoves >= 80
-        ? 'bg-amber-500/15 text-amber-300 border-amber-400/30'
-        : 'bg-sky-500/15 text-sky-300 border-sky-400/30';
-  const fiftyTagLabel =
-    status.halfMoves >= 100
-      ? translate('status.tags.fiftyReached')
-      : status.halfMoves >= 80
-        ? translate('status.tags.fiftyWarning', {
-            halfMoves: halfMovesRemaining,
-          })
-        : translate('status.tags.fiftyInfo', {
-            halfMoves: halfMovesRemaining,
-          });
+  let gameTagClass: string;
+  if (status.isCheckmate) {
+    gameTagClass = 'bg-red-500/15 text-red-300 border-red-400/30';
+  } else if (status.isStalemate || status.inCheck) {
+    gameTagClass = 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30';
+  } else if (status.isGameOver) {
+    gameTagClass = 'bg-blue-500/15 text-blue-300 border-blue-400/30';
+  } else {
+    gameTagClass = 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+  }
+
+  let gameTagLabel: string;
+  if (status.isCheckmate) {
+    gameTagLabel = translate('status.tags.checkmate');
+  } else if (status.isStalemate) {
+    gameTagLabel = translate('status.tags.stalemate');
+  } else if (status.inCheck) {
+    gameTagLabel = translate('status.tags.check');
+  } else if (status.isGameOver) {
+    gameTagLabel = translate('status.tags.gameOver');
+  } else {
+    gameTagLabel = translate('status.tags.inProgress');
+  }
+
+  let fiftyTagClass: string;
+  if (status.halfMoves >= 100) {
+    fiftyTagClass = 'bg-red-500/15 text-red-300 border-red-400/30';
+  } else if (status.halfMoves >= 80) {
+    fiftyTagClass = 'bg-amber-500/15 text-amber-300 border-amber-400/30';
+  } else {
+    fiftyTagClass = 'bg-sky-500/15 text-sky-300 border-sky-400/30';
+  }
+
+  let fiftyTagLabel: string;
+  if (status.halfMoves >= 100) {
+    fiftyTagLabel = translate('status.tags.fiftyReached');
+  } else if (status.halfMoves >= 80) {
+    fiftyTagLabel = translate('status.tags.fiftyWarning', {
+      halfMoves: halfMovesRemaining,
+    });
+  } else {
+    fiftyTagLabel = translate('status.tags.fiftyInfo', {
+      halfMoves: halfMovesRemaining,
+    });
+  }
 
   if (isInitialLoading) {
     return (
@@ -1492,7 +1523,7 @@ const AppContent: React.FC = () => {
                     timelineMovesRef.current = chessRules.getHistory().map((move) => ({
                       from: move.from,
                       to: move.to,
-                      promotion: move.promotion,
+                      promotion: normalizePromotion(move.promotion),
                     }));
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);
@@ -1789,17 +1820,7 @@ const AppContent: React.FC = () => {
                     </code>
                   </div>
                 ) : null}
-                {commentForSelectedPly ? (
-                  <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-                    {commentForSelectedPly}
-                  </p>
-                ) : selectedPly > 0 ? (
-                  <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">
-                    {translate('comments.noMoveSelected')}
-                  </p>
-                )}
+                {renderCommentContent()}
                 {annotationBadges.length > 0 && (
                   <div className="pt-1 space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">

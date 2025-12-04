@@ -296,6 +296,10 @@ export interface RulesAdapter {
   }): RulesMoveResponse | null | undefined;
   move(notation: string): RulesMoveResponse | null | undefined;
   undo(): boolean;
+  redo?(): boolean;
+  canUndo?(): boolean;
+  canRedo?(): boolean;
+  getLastMove?(): RulesMoveDetail | null;
   isCheckmate?(): boolean;
   inCheck?(): boolean;
   isStalemate?(): boolean;

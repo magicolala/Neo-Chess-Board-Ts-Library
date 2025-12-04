@@ -132,8 +132,8 @@ const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
 ];
 
 const PROMOTION_CHOICES: PromotionPiece[] = ['q', 'r', 'b', 'n'];
-const COORDINATE_MOVE_REGEX =
-  /^([a-h][1-8])\s*(?:-|\s)?\s*([a-h][1-8])(?:\s*(?:=)?\s*([qrbnQRBN]))?$/;
+const COORDINATE_SANITIZE_REGEX = /[-=\s]/g;
+const COORDINATE_MOVE_REGEX = /^([a-h][1-8])([a-h][1-8])([qrbnQRBN])?$/;
 const PGN_COMMENT_REGEX = /\s*\{[^{}]*\}\s*/g;
 const MULTIPLE_SPACE_REGEX = /[ \t]{2,}/g;
 const SPACED_NEWLINE_REGEX = / ?\n ?/g;
@@ -927,6 +927,54 @@ export class NeoChessBoard {
       this.renderAll();
     } else {
       this._animateTo(newState, previousState);
+    }
+
+    this._emitUpdateEvent();
+    return true;
+  }
+
+  public redoMove(immediate = false): boolean {
+    if (typeof this.rules.redo !== 'function') {
+      return false;
+    }
+
+    const previousState = this.state;
+    const redone = this.rules.redo();
+
+    if (!redone) {
+      return false;
+    }
+
+    this._cancelPendingPromotion();
+    this._pendingPromotion = null;
+    this.drawingManager?.clearPromotionPreview();
+
+    const fen = this.rules.getFEN();
+    const newState = this._parseFEN(fen);
+
+    this.state = newState;
+    this._syncOrientationFromTurn(false);
+    this._lastMove = null;
+    this._clearInteractionState();
+    this._premove = null;
+    this._premoveQueues.w = [];
+    this._premoveQueues.b = [];
+    this._syncPremoveDisplay(undefined, false);
+
+    if (immediate || !this.showAnimations || this.animationMs <= 0) {
+      this._clearAnimation();
+      this.renderAll();
+    } else {
+      this._animateTo(newState, previousState);
+    }
+
+    const lastMove = this.rules.getLastMove?.();
+    if (lastMove?.from && lastMove?.to) {
+      this._lastMove = {
+        from: lastMove.from,
+        to: lastMove.to,
+      };
+      this._emitMoveEvent(this._lastMove.from, this._lastMove.to, fen, lastMove);
     }
 
     this._emitUpdateEvent();
@@ -3300,7 +3348,10 @@ export class NeoChessBoard {
     const cleaned = notation.trim();
     if (!cleaned) return null;
 
-    const match = COORDINATE_MOVE_REGEX.exec(cleaned);
+    const compact = cleaned.replaceAll(COORDINATE_SANITIZE_REGEX, '');
+    if (compact.length < 4 || compact.length > 5) return null;
+
+    const match = COORDINATE_MOVE_REGEX.exec(compact);
     if (!match) return null;
 
     return {

@@ -238,6 +238,21 @@ describe('ChessJsRules', () => {
       expect(rules.undo()).toBe(false);
     });
 
+    test('should redo moves and report availability flags', () => {
+      rules.move({ from: 'e2', to: 'e4' });
+      rules.move({ from: 'e7', to: 'e5' });
+
+      expect(rules.history()).toEqual(['e4', 'e5']);
+      expect(rules.canRedo?.()).toBe(false);
+      expect(rules.undo()).toBe(true);
+      expect(rules.canRedo?.()).toBe(true);
+
+      const redone = rules.redo?.();
+      expect(redone).toBe(true);
+      expect(rules.history()).toEqual(['e4', 'e5']);
+      expect(rules.turn()).toBe('w');
+    });
+
     test('should get detailed move history', () => {
       rules.move({ from: 'e2', to: 'e4' });
       const detailedHistory = rules.getHistory();
