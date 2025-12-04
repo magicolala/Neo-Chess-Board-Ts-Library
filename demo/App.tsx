@@ -11,7 +11,7 @@ import { NeoChessBoard } from '../src/react';
 import type { NeoChessRef } from '../src/react';
 import { createPromotionDialogExtension } from '../src/extensions/PromotionDialogExtension';
 import { ChessJsRules } from '../src/core/ChessJsRules';
-import type { PromotionRequest, Square, PgnMoveAnnotations } from '../src/core/types';
+import type { PromotionRequest, PgnMoveAnnotations } from '../src/core/types';
 import moveSound from './assets/souffle.ogg';
 import { LoadingButton, DotLoader, LoadingOverlay, useLoadingState } from './components/Loaders';
 import {
@@ -45,7 +45,7 @@ import {
   type TranslationKey,
   useTranslation,
 } from './i18n/translations';
-import { pickRandomElement } from './utils/random';
+import { pickRandomElement, randomSquare } from './utils/random';
 import { normalizePgn } from './utils/pgn-normalizer';
 
 const buildStatusSnapshot = (rules: ChessJsRules) => ({
@@ -100,6 +100,36 @@ const sanitizeComment = (comment?: string): string | undefined => {
 
   return cleaned.length > 0 ? cleaned : undefined;
 };
+
+const renderCommentSection = (
+  commentText: string | undefined,
+  selectedPly: number,
+  translate: (key: TranslationKey, params?: Record<string, string>) => string,
+): React.ReactNode => {
+  if (commentText) {
+    return (
+      <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">{commentText}</p>
+    );
+  }
+  if (selectedPly > 0) {
+    return <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>;
+  }
+  return <p className="text-sm text-gray-500 italic">{translate('comments.noMoveSelected')}</p>;
+};
+
+const getDefaultBoardOptions = (): BoardFeatureOptions => ({
+  showArrows: true,
+  showHighlights: true,
+  allowPremoves: true,
+  showSquareNames: true,
+  soundEnabled: true,
+  orientation: 'white',
+  highlightLegal: true,
+  autoFlip: false,
+  allowResize: true,
+  showAnimations: true,
+  animationDuration: 300,
+});
 
 const extractCommentText = (
   annotations?: PgnMoveAnnotations,
@@ -184,6 +214,64 @@ const PanelHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
+const getGameStatusTag = (gameStatus: GameStatus): { className: string; label: TranslationKey } => {
+  if (gameStatus.isCheckmate) {
+    return {
+      className: 'bg-red-500/15 text-red-300 border-red-400/30',
+      label: 'status.tags.checkmate',
+    };
+  }
+  if (gameStatus.isStalemate) {
+    return {
+      className: 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30',
+      label: 'status.tags.stalemate',
+    };
+  }
+  if (gameStatus.inCheck) {
+    return {
+      className: 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30',
+      label: 'status.tags.check',
+    };
+  }
+  if (gameStatus.isGameOver) {
+    return {
+      className: 'bg-blue-500/15 text-blue-300 border-blue-400/30',
+      label: 'status.tags.gameOver',
+    };
+  }
+  return {
+    className: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
+    label: 'status.tags.inProgress',
+  };
+};
+
+const getFiftyMoveRuleTag = (
+  gameStatus: GameStatus,
+): {
+  className: string;
+  label: TranslationKey;
+  params?: { halfMoves: number };
+} => {
+  if (gameStatus.halfMoves >= 100) {
+    return {
+      className: 'bg-red-500/15 text-red-300 border-red-400/30',
+      label: 'status.tags.fiftyReached',
+    };
+  }
+  if (gameStatus.halfMoves >= 80) {
+    return {
+      className: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
+      label: 'status.tags.fiftyWarning',
+      params: { halfMoves: 100 - gameStatus.halfMoves },
+    };
+  }
+  return {
+    className: 'bg-sky-500/15 text-sky-300 border-sky-400/30',
+    label: 'status.tags.fiftyInfo',
+    params: { halfMoves: 100 - gameStatus.halfMoves },
+  };
+};
+
 const AppContent: React.FC = () => {
   const { translate, language, setLanguage } = useTranslation();
   const whiteLabel = translate('common.white');
@@ -216,19 +304,9 @@ const AppContent: React.FC = () => {
   const [selectedPly, setSelectedPly] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000);
-  const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>({
-    showArrows: true,
-    showHighlights: true,
-    allowPremoves: true,
-    showSquareNames: true,
-    soundEnabled: true,
-    orientation: 'white',
-    highlightLegal: true,
-    autoFlip: false,
-    allowResize: true,
-    showAnimations: true,
-    animationDuration: 300,
-  });
+  const [boardOptions, setBoardOptions] = useState<BoardFeatureOptions>(() =>
+    getDefaultBoardOptions(),
+  );
   const shouldAnimateMoves = boardOptions.showAnimations && boardOptions.animationDuration > 0;
   const animationSpeedInputId = useId();
   const playbackSpeedInputId = useId();
@@ -926,14 +1004,6 @@ const AppContent: React.FC = () => {
     });
   }, [fen, chessRules, getOrientationFromFen]);
 
-  const randomSquare = useCallback((): Square => {
-    const files: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
-    const file = pickRandomElement(files);
-    const rank = pickRandomElement(ranks);
-    return `${file}${rank}` as Square;
-  }, []);
-
   const addRandomArrow = useCallback(() => {
     if (!boardRef.current) return;
     const from = randomSquare();
@@ -975,20 +1045,20 @@ const AppContent: React.FC = () => {
     [currentEvaluation],
   );
   const halfMovesRemaining = Math.max(0, 100 - status.halfMoves);
-  const evaluationSummary = (() => {
+
+  const getEvaluationSummary = () => {
     if (!evaluationSnapshot.hasValue) {
       return translate('evaluation.waitingData');
     }
-
     if (currentPly > 0) {
       return translate('evaluation.lastScoreWithMove', {
         score: evaluationSnapshot.label,
         move: formatPlyDescriptor(currentPly),
       });
     }
-
     return translate('evaluation.lastScore', { score: evaluationSnapshot.label });
-  })();
+  };
+  const evaluationSummary = getEvaluationSummary();
 
   const selectedTimelineEntry = useMemo(
     () => plyTimeline.find((entry) => entry.ply === selectedPly),
@@ -1107,51 +1177,14 @@ const AppContent: React.FC = () => {
     },
   ] as const;
 
-  let gameTagClass: string;
-  if (status.isCheckmate) {
-    gameTagClass = 'bg-red-500/15 text-red-300 border-red-400/30';
-  } else if (status.isStalemate || status.inCheck) {
-    gameTagClass = 'bg-yellow-500/15 text-yellow-300 border-yellow-400/30';
-  } else if (status.isGameOver) {
-    gameTagClass = 'bg-blue-500/15 text-blue-300 border-blue-400/30';
-  } else {
-    gameTagClass = 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
-  }
+  const gameTagInfo = getGameStatusTag(status);
+  const fiftyTagInfo = getFiftyMoveRuleTag(status);
 
-  let gameTagLabel: string;
-  if (status.isCheckmate) {
-    gameTagLabel = translate('status.tags.checkmate');
-  } else if (status.isStalemate) {
-    gameTagLabel = translate('status.tags.stalemate');
-  } else if (status.inCheck) {
-    gameTagLabel = translate('status.tags.check');
-  } else if (status.isGameOver) {
-    gameTagLabel = translate('status.tags.gameOver');
-  } else {
-    gameTagLabel = translate('status.tags.inProgress');
-  }
+  const gameTagClass = gameTagInfo.className;
+  const gameTagLabel = translate(gameTagInfo.label);
 
-  let fiftyTagClass: string;
-  if (status.halfMoves >= 100) {
-    fiftyTagClass = 'bg-red-500/15 text-red-300 border-red-400/30';
-  } else if (status.halfMoves >= 80) {
-    fiftyTagClass = 'bg-amber-500/15 text-amber-300 border-amber-400/30';
-  } else {
-    fiftyTagClass = 'bg-sky-500/15 text-sky-300 border-sky-400/30';
-  }
-
-  let fiftyTagLabel: string;
-  if (status.halfMoves >= 100) {
-    fiftyTagLabel = translate('status.tags.fiftyReached');
-  } else if (status.halfMoves >= 80) {
-    fiftyTagLabel = translate('status.tags.fiftyWarning', {
-      halfMoves: halfMovesRemaining,
-    });
-  } else {
-    fiftyTagLabel = translate('status.tags.fiftyInfo', {
-      halfMoves: halfMovesRemaining,
-    });
-  }
+  const fiftyTagClass = fiftyTagInfo.className;
+  const fiftyTagLabel = translate(fiftyTagInfo.label, fiftyTagInfo.params);
 
   if (isInitialLoading) {
     return (
@@ -1440,11 +1473,11 @@ const AppContent: React.FC = () => {
 
           {/* Center Column */}
           <div className="lg:col-span-6">
-            <GlassPanel className="p-4 sm:p-6">
+            <GlassPanel className="p-4 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
               <div
                 ref={boardContainerRef}
                 style={boardContainerStyle}
-                className="relative mx-auto group"
+                className="relative mx-auto group rounded-lg shadow-inner"
               >
                 <NeoChessBoard
                   ref={boardRef}
@@ -1820,7 +1853,7 @@ const AppContent: React.FC = () => {
                     </code>
                   </div>
                 ) : null}
-                {commentContent}
+                {renderCommentSection(commentForSelectedPly, selectedPly, translate)}
                 {annotationBadges.length > 0 && (
                   <div className="pt-1 space-y-2">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">

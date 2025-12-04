@@ -77,13 +77,15 @@ export default [
       'unicorn/no-array-sort': 'off',
       'unicorn/prefer-structured-clone': 'off',
 
-      // Sonarjs rules to disable
-      'sonarjs/no-identical-functions': 'off',
-      'sonarjs/cognitive-complexity': 'off',
-      'sonarjs/no-nested-conditional': 'off',
-      'sonarjs/no-nested-functions': 'off',
-      'sonarjs/constructor-for-side-effects': 'off',
-      'sonarjs/pseudo-random': 'off',
+      // Sonarjs rules - Configured for code quality improvement
+      'sonarjs/no-identical-functions': 'warn',
+      'sonarjs/cognitive-complexity': ['warn', 25],
+      'sonarjs/no-nested-conditional': 'warn',
+      'sonarjs/no-nested-functions': 'warn',
+      'sonarjs/constructor-for-side-effects': 'warn',
+      'sonarjs/pseudo-random': 'warn',
+      // Note: slow-regex disabled - most regex patterns in this project are safe
+      // (PGN parsing, notation, etc. use controlled input sources)
       'sonarjs/slow-regex': 'off',
     },
     settings: {

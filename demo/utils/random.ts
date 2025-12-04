@@ -1,3 +1,5 @@
+import type { Square } from '../../src/core/types';
+
 const getHexFallback = (maxExclusive: number): number => {
   const now = Date.now();
   const perf =
@@ -50,4 +52,13 @@ export const pickRandomElement = <T>(items: readonly T[]): T => {
   }
 
   return items[secureRandomIndex(items.length)];
+};
+
+const FILES: readonly string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const RANKS: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+export const randomSquare = (): Square => {
+  const file = pickRandomElement(FILES);
+  const rank = pickRandomElement(RANKS);
+  return `${file}${rank}` as Square;
 };

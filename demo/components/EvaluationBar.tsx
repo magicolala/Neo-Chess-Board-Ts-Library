@@ -14,6 +14,19 @@ export interface ParsedEvaluation {
   raw: EvaluationInput;
 }
 
+const formatNumericValue = (value: number): string => {
+  if (value === 0) {
+    return '0.00';
+  }
+  return value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
+};
+
+const getInfinityLabel = (value: number): string => {
+  if (value > 0) return '+∞';
+  if (value < 0) return '-∞';
+  return '0.00';
+};
+
 export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluation => {
   if (value === null || value === undefined) {
     return {
@@ -27,26 +40,24 @@ export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluat
   }
 
   if (typeof value === 'number') {
+    const sign = Math.sign(value) as Sign;
     if (!Number.isFinite(value)) {
-      const sign = value > 0 ? 1 : value < 0 ? -1 : 0;
       return {
         hasValue: true,
         numeric: sign === 0 ? 0 : sign * 100,
-        label: value > 0 ? '+∞' : value < 0 ? '-∞' : '0.00',
+        label: getInfinityLabel(value),
         mate: false,
-        sign: sign as Sign,
+        sign,
         raw: value,
       };
     }
 
-    const sign = value === 0 ? 0 : value > 0 ? 1 : -1;
-    const formatted = value === 0 ? '0.00' : value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
     return {
       hasValue: true,
       numeric: value,
-      label: formatted,
+      label: formatNumericValue(value),
       mate: false,
-      sign: sign as Sign,
+      sign,
       raw: value,
     };
   }
@@ -81,33 +92,24 @@ export const interpretEvaluationValue = (value?: EvaluationInput): ParsedEvaluat
 
   const parsedNumber = Number.parseFloat(trimmed);
   if (!Number.isNaN(parsedNumber)) {
+    const sign = Math.sign(parsedNumber) as Sign;
     if (!Number.isFinite(parsedNumber)) {
-      const sign = parsedNumber > 0 ? 1 : parsedNumber < 0 ? -1 : 0;
-      const label = parsedNumber > 0 ? '+∞' : parsedNumber < 0 ? '-∞' : '0.00';
       return {
         hasValue: true,
         numeric: sign === 0 ? 0 : sign * 100,
-        label,
+        label: getInfinityLabel(parsedNumber),
         mate: false,
-        sign: sign as Sign,
+        sign,
         raw: value,
       };
     }
 
-    const sign = parsedNumber === 0 ? 0 : parsedNumber > 0 ? 1 : -1;
-    const formatted =
-      parsedNumber === 0
-        ? '0.00'
-        : parsedNumber > 0
-          ? `+${parsedNumber.toFixed(2)}`
-          : parsedNumber.toFixed(2);
-
     return {
       hasValue: true,
       numeric: parsedNumber,
-      label: formatted,
+      label: formatNumericValue(parsedNumber),
       mate: false,
-      sign: sign as -1 | 0 | 1,
+      sign,
       raw: value,
     };
   }
@@ -131,6 +133,13 @@ export interface EvaluationBarProps {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
+const getOrientedValue = (numeric: number | null, isBlackPerspective: boolean): number => {
+  if (numeric === null) {
+    return 0;
+  }
+  return isBlackPerspective ? -numeric : numeric;
+};
+
 export const EvaluationBar: React.FC<EvaluationBarProps> = ({
   evaluation,
   orientation = 'white',
@@ -144,8 +153,7 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
   const blackLabel = translate('common.black');
   const topLabel = isBlackPerspective ? blackLabel : whiteLabel;
   const bottomLabel = isBlackPerspective ? whiteLabel : blackLabel;
-  const orientedValue =
-    parsed.numeric === null ? 0 : isBlackPerspective ? -parsed.numeric : parsed.numeric;
+  const orientedValue = getOrientedValue(parsed.numeric, isBlackPerspective);
   const fillPercent = parsed.hasValue ? ((clamp(orientedValue, -10, 10) + 10) / 20) * 100 : 50;
 
   const moveDescriptor = (() => {
