@@ -170,56 +170,7 @@ export class BoardAudioManager {
     }
 
     for (const [eventKey, url] of Object.entries(this.soundEventUrls)) {
-      if (!url) {
-        continue;
-      }
-
-      if (!isBoardSoundEventType(eventKey)) {
-        continue;
-      }
-
-      const type = eventKey;
-      const collection: LoadedSoundMap = {};
-      let hasSound = false;
-
-      if (typeof url === 'string') {
-        const sound = this.createAudioElement(url);
-        if (sound) {
-          collection.default = sound;
-          hasSound = true;
-        }
-      } else {
-        const colorSounds: Partial<Record<Color, HTMLAudioElement>> = {};
-        let hasColorSound = false;
-
-        const whiteUrl = url.white;
-        const blackUrl = url.black;
-
-        if (whiteUrl) {
-          const sound = this.createAudioElement(whiteUrl);
-          if (sound) {
-            colorSounds.white = sound;
-            hasColorSound = true;
-          }
-        }
-
-        if (blackUrl) {
-          const sound = this.createAudioElement(blackUrl);
-          if (sound) {
-            colorSounds.black = sound;
-            hasColorSound = true;
-          }
-        }
-
-        if (hasColorSound) {
-          collection.byColor = colorSounds;
-          hasSound = true;
-        }
-      }
-
-      if (hasSound) {
-        this.eventSounds[type] = collection;
-      }
+      this.addEventSound(eventKey, url);
     }
   }
 
@@ -247,6 +198,58 @@ export class BoardAudioManager {
       console.warn('Unable to load move sound:', error);
       return null;
     }
+  }
+
+  private addEventSound(eventKey: string, url?: BoardSoundEventUrls[BoardSoundEventType]): void {
+    if (!url || !isBoardSoundEventType(eventKey)) {
+      return;
+    }
+
+    const collection = this.buildEventSoundMap(url);
+    if (collection) {
+      this.eventSounds[eventKey] = collection;
+    }
+  }
+
+  private buildEventSoundMap(url: BoardSoundEventUrls[BoardSoundEventType]): LoadedSoundMap | null {
+    if (typeof url === 'string') {
+      return this.buildDefaultEventSound(url);
+    }
+
+    return this.buildColorEventSound(url);
+  }
+
+  private buildDefaultEventSound(url: string): LoadedSoundMap | null {
+    const sound = this.createAudioElement(url);
+    return sound ? { default: sound } : null;
+  }
+
+  private buildColorEventSound(urls: Partial<Record<Color, string>>): LoadedSoundMap | null {
+    const colorSounds: Partial<Record<Color, HTMLAudioElement>> = {};
+    let hasColorSound = false;
+
+    hasColorSound = this.tryAddColorSound(colorSounds, 'white', urls.white) || hasColorSound;
+    hasColorSound = this.tryAddColorSound(colorSounds, 'black', urls.black) || hasColorSound;
+
+    return hasColorSound ? { byColor: colorSounds } : null;
+  }
+
+  private tryAddColorSound(
+    target: Partial<Record<Color, HTMLAudioElement>>,
+    color: Color,
+    url?: string,
+  ): boolean {
+    if (!url) {
+      return false;
+    }
+
+    const sound = this.createAudioElement(url);
+    if (!sound) {
+      return false;
+    }
+
+    target[color] = sound;
+    return true;
   }
 }
 
