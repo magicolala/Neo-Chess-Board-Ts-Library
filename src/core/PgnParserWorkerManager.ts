@@ -42,6 +42,11 @@ export class PgnParserWorkerManager {
    * Initialise le Web Worker
    */
   private initWorker(): void {
+    if (typeof Worker === 'undefined') {
+      this.worker = null;
+      return;
+    }
+
     try {
       const baseUrl = globalThis.location?.href ?? 'http://localhost/';
       this.worker = new Worker(new URL('../workers/PgnParserWorker.ts', baseUrl), {

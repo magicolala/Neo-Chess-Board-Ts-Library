@@ -40,6 +40,11 @@ export class LegalMovesWorkerManager {
    * Initialise le Web Worker
    */
   private initWorker(): void {
+    if (typeof Worker === 'undefined') {
+      this.worker = null;
+      return;
+    }
+
     try {
       const baseUrl = globalThis.location?.href ?? 'about:blank';
       this.worker = new Worker(new URL('../workers/LegalMovesWorker.ts', baseUrl), {

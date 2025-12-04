@@ -365,6 +365,7 @@ export class NeoChessBoard {
   private _legalCached: Move[] | null = null;
   private _legalMovesWorkerManager?: LegalMovesWorkerManager;
   private _pgnParserWorkerManager?: PgnParserWorkerManager;
+  private static workerSupportWarned = false;
   private _useWorkerForLegalMoves: boolean;
   private _useWorkerForPgnParsing: boolean;
   private _pgnWorkerThreshold: number;
@@ -511,10 +512,22 @@ export class NeoChessBoard {
     this.controlledArrows = options.arrows;
     this.premove = this._createPremoveController();
 
-    // Initialize Web Workers for performance
-    this._useWorkerForLegalMoves = options.useWorkerForLegalMoves ?? false;
-    this._useWorkerForPgnParsing = options.useWorkerForPgnParsing ?? true;
+    // Initialize Web Workers for performance (skip when not supported, e.g. Node/JSDOM)
+    const workersSupported = typeof Worker !== 'undefined';
+    this._useWorkerForLegalMoves = workersSupported && (options.useWorkerForLegalMoves ?? false);
+    this._useWorkerForPgnParsing = workersSupported && (options.useWorkerForPgnParsing ?? true);
     this._pgnWorkerThreshold = options.pgnWorkerThreshold ?? 100 * 1024; // 100KB default
+
+    if (
+      !workersSupported &&
+      !NeoChessBoard.workerSupportWarned &&
+      (options.useWorkerForLegalMoves || options.useWorkerForPgnParsing !== false)
+    ) {
+      console.warn(
+        '[NeoChessBoard] Web Workers are not available in this environment; worker features disabled.',
+      );
+      NeoChessBoard.workerSupportWarned = true;
+    }
 
     if (this._useWorkerForLegalMoves) {
       try {
