@@ -145,42 +145,44 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
 /**
  * Gère les messages reçus du thread principal
  */
-globalThis.addEventListener('message', async (event: MessageEvent) => {
-  if (event.origin && event.origin !== globalThis.origin) {
-    globalThis.postMessage({
-      type: 'error',
-      content: `Untrusted message origin: ${event.origin}`,
-    });
-    return;
-  }
-
-  const { type, command, stockfishPath } = event.data as {
-    type?: string;
-    command?: string;
-    stockfishPath?: string;
-  };
-
-  if (type === 'init' && stockfishPath) {
-    await initStockfish(stockfishPath);
-    return;
-  }
-
-  if (type === 'command' && typeof command === 'string') {
-    if (!stockfishReady && !stockfishInstance) {
-      // Initialiser automatiquement si pas encore fait
-      await initStockfish();
-    }
-
-    if (stockfishInstance) {
-      // Envoyer la commande UCI à Stockfish
-      stockfishInstance.postMessage(command);
-    } else {
-      self.postMessage({
+globalThis.addEventListener('message', (event: MessageEvent) => {
+  (async () => {
+    if (event.origin && event.origin !== globalThis.origin) {
+      globalThis.postMessage({
         type: 'error',
-        content: 'Stockfish non initialisé',
+        content: `Untrusted message origin: ${event.origin}`,
       });
+      return;
     }
-  }
+
+    const { type, command, stockfishPath } = event.data as {
+      type?: string;
+      command?: string;
+      stockfishPath?: string;
+    };
+
+    if (type === 'init' && stockfishPath) {
+      await initStockfish(stockfishPath);
+      return;
+    }
+
+    if (type === 'command' && typeof command === 'string') {
+      if (!stockfishReady && !stockfishInstance) {
+        // Initialiser automatiquement si pas encore fait
+        await initStockfish();
+      }
+
+      if (stockfishInstance) {
+        // Envoyer la commande UCI à Stockfish
+        stockfishInstance.postMessage(command);
+      } else {
+        self.postMessage({
+          type: 'error',
+          content: 'Stockfish non initialisé',
+        });
+      }
+    }
+  })();
 });
 
 /**
