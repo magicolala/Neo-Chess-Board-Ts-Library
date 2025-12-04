@@ -58,7 +58,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
     // Simple hash-based score to keep mock output deterministic without using pseudo-randomness
     let hash = 0;
     for (let i = 0; i < fen.length; i += 1) {
-      hash = (hash * 31 + fen.charCodeAt(i) + depth) >>> 0;
+      hash = (hash * 31 + (fen.codePointAt(i) || 0) + depth) >>> 0;
     }
     const normalizedHash = hash % 100;
     return normalizedHash - 50;
