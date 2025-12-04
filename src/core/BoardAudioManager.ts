@@ -212,6 +212,10 @@ export class BoardAudioManager {
   }
 
   private buildEventSoundMap(url: BoardSoundEventUrls[BoardSoundEventType]): LoadedSoundMap | null {
+    if (!url) {
+      return null;
+    }
+
     if (typeof url === 'string') {
       return this.buildDefaultEventSound(url);
     }

@@ -87,6 +87,7 @@ import type {
   ColorInput,
   PremoveColorOption,
   PremoveColorListInput,
+  Variant,
 } from './types';
 
 // ============================================================================
@@ -264,8 +265,8 @@ export class NeoChessBoard {
   private lastPgnLoadIssues: PgnParseError[] = [];
 
   // ---- Visual Configuration ----
-  private theme: Theme;
-  private orientation: 'white' | 'black';
+  private theme: Theme = resolveTheme('classic');
+  private orientation: 'white' | 'black' = 'white';
   private sprites!: FlatSprites;
   private sizePx = DEFAULT_BOARD_SIZE;
   private square = 60;
@@ -685,18 +686,18 @@ export class NeoChessBoard {
   private _resolveGameSetup(options: BoardOptions): {
     premoveSettings: BoardPremoveSettings;
     allowPremoves: boolean;
-    variant: string;
+    variant: Variant;
     initialFen?: string;
   } {
     const premoveSettings: BoardPremoveSettings = options.premove ?? {};
     const allowPremovesDefault = options.allowPremoves !== false;
     const allowPremoves = premoveSettings.enabled !== false && allowPremovesDefault;
-    const variant = options.variant ?? 'standard';
+    const variant: Variant = options.variant === 'chess960' ? 'chess960' : 'standard';
     const initialFen = this._resolveInitialFen(options, variant);
     return { premoveSettings, allowPremoves, variant, initialFen };
   }
 
-  private _resolveInitialFen(options: BoardOptions, variant: string): string | undefined {
+  private _resolveInitialFen(options: BoardOptions, variant: Variant): string | undefined {
     const provided = options.fen ?? options.position;
     if (variant === 'chess960' && !provided) {
       return generateChess960Start();

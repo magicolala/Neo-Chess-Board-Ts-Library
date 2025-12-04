@@ -353,26 +353,36 @@ export class PgnNotation {
    * Generate the complete PGN string
    */
   toPgn(includeHeaders: boolean = true): string {
-    const parts: string[] = [];
-
-    if (includeHeaders) {
-      parts.push(this.buildHeaders());
-    }
-
     if (this.moves.length === 0 && !includeHeaders) {
       return this.result;
     }
 
+    const sections: string[] = [];
+
+    if (includeHeaders) {
+      sections.push(this.buildHeaders().trimEnd());
+    }
+
     const movesText = this.formatMovesWithoutAnnotations();
+    const bodyParts: string[] = [];
+
     if (movesText) {
-      parts.push(movesText);
+      bodyParts.push(movesText.trimEnd());
     }
 
     if (this.result !== '*') {
-      parts.push(this.result);
+      bodyParts.push(this.result);
     }
 
-    return parts.join(' ').trim();
+    if (bodyParts.length > 0) {
+      sections.push(bodyParts.join(' '));
+    }
+
+    if (sections.length === 0) {
+      return this.result;
+    }
+
+    return sections.join('\n\n').trim();
   }
 
   /**
@@ -433,18 +443,21 @@ export class PgnNotation {
   }
 
   private formatSingleMove(move: PgnMove): string | undefined {
-    if (!move.white && !move.black) {
+    const hasWhiteMove = move.white !== undefined;
+    const hasBlackMove = move.black !== undefined;
+
+    if (!hasWhiteMove && !hasBlackMove) {
       return undefined;
     }
 
     let moveText = `${move.moveNumber}.`;
 
-    if (move.white) {
-      moveText += this.appendMoveWithComment(move.white, move.whiteComment);
+    if (hasWhiteMove) {
+      moveText += this.appendMoveWithComment(move.white ?? '', move.whiteComment);
     }
 
-    if (move.black) {
-      moveText += this.appendMoveWithComment(move.black, move.blackComment);
+    if (hasBlackMove) {
+      moveText += this.appendMoveWithComment(move.black ?? '', move.blackComment);
     }
 
     return moveText;
