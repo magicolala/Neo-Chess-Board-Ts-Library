@@ -176,6 +176,20 @@ export function ChessPuzzleApp() {
 
   // Calculate progress
   const progressPercentage = (puzzle.solvedPuzzles.size / chessPuzzles.length) * 100;
+  const hasErrorHint = puzzle.hint.includes('❌');
+  const hasSuccessHint = puzzle.hint.includes('✅');
+  const statusBackground = (() => {
+    if (puzzle.solved) return '#f0fdf4';
+    if (hasErrorHint) return '#fef2f2';
+    if (hasSuccessHint) return '#f0f9ff';
+    return '#f9fafb';
+  })();
+  const statusBorderColor = (() => {
+    if (puzzle.solved) return '#bbf7d0';
+    if (hasErrorHint) return '#fecaca';
+    if (hasSuccessHint) return '#bfdbfe';
+    return '#e5e7eb';
+  })();
 
   return (
     <div
@@ -332,22 +346,8 @@ export function ChessPuzzleApp() {
                 padding: '15px',
                 borderRadius: '8px',
                 marginBottom: '20px',
-                background: puzzle.solved
-                  ? '#f0fdf4'
-                  : puzzle.hint.includes('❌')
-                    ? '#fef2f2'
-                    : puzzle.hint.includes('✅')
-                      ? '#f0f9ff'
-                      : '#f9fafb',
-                border: `1px solid ${
-                  puzzle.solved
-                    ? '#bbf7d0'
-                    : puzzle.hint.includes('❌')
-                      ? '#fecaca'
-                      : puzzle.hint.includes('✅')
-                        ? '#bfdbfe'
-                        : '#e5e7eb'
-                }`,
+                background: statusBackground,
+                border: `1px solid ${statusBorderColor}`,
               }}
             >
               <div style={{ fontWeight: '600', marginBottom: '8px' }}>
@@ -488,6 +488,16 @@ export function ChessPuzzleApp() {
             const actualIndex = chessPuzzles.findIndex((p) => p.id === puzzleItem.id);
             const isSolved = puzzle.solvedPuzzles.has(puzzleItem.id);
             const isCurrent = actualIndex === puzzle.currentPuzzleIndex;
+            const cardBorderColor = (() => {
+              if (isCurrent) return '#3b82f6';
+              if (isSolved) return '#10b981';
+              return '#e5e7eb';
+            })();
+            const cardBackground = (() => {
+              if (isCurrent) return '#eff6ff';
+              if (isSolved) return '#f0fdf4';
+              return 'white';
+            })();
 
             return (
               <div
@@ -495,9 +505,9 @@ export function ChessPuzzleApp() {
                 onClick={() => puzzle.selectPuzzle(actualIndex)}
                 style={{
                   padding: '15px',
-                  border: `2px solid ${isCurrent ? '#3b82f6' : isSolved ? '#10b981' : '#e5e7eb'}`,
+                  border: `2px solid ${cardBorderColor}`,
                   borderRadius: '8px',
-                  background: isCurrent ? '#eff6ff' : isSolved ? '#f0fdf4' : 'white',
+                  background: cardBackground,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   position: 'relative',
