@@ -55,6 +55,27 @@ type AudioMock = {
 
 type AudioConstructor = new (src?: string) => HTMLAudioElement;
 
+const emptyRectToJSON = () => ({});
+const alwaysTrue = () => true;
+
+const createMockAudio = (): AudioMock => ({
+  play: jest.fn(async () => {}),
+  addEventListener: jest.fn(),
+  preload: 'auto',
+  volume: 0.3,
+  currentTime: 0,
+});
+
+const createAudioFactoryWithInstances = (instances: Record<string, AudioMock>) =>
+  jest.fn((src: string) => {
+    const audio = createMockAudio();
+    instances[src] = audio;
+    return audio as unknown as HTMLAudioElement;
+  });
+
+const createSimpleAudioFactory = () =>
+  jest.fn(() => createMockAudio() as unknown as HTMLAudioElement);
+
 if (globalThis.PointerEvent === undefined) {
   class PointerEventPolyfill extends MouseEvent {
     constructor(type: string, init?: Record<string, unknown>) {
@@ -142,11 +163,10 @@ class FlexibleGeometryRulesAdapter implements RulesAdapter {
     }
 
     const isWhite = piece === piece.toUpperCase();
-    const promotedPiece = promotion
-      ? isWhite
-        ? promotion.toUpperCase()
-        : promotion.toLowerCase()
-      : piece;
+    let promotedPiece = piece;
+    if (promotion) {
+      promotedPiece = isWhite ? promotion.toUpperCase() : promotion.toLowerCase();
+    }
 
     this.historyStack.push({
       board: this.board.map((row) => [...row]),
@@ -293,7 +313,7 @@ const createMockElement = (tag: string): HTMLElement => {
       bottom: 400,
       x: 0,
       y: 0,
-      toJSON: () => {},
+      toJSON: emptyRectToJSON,
     }));
 
     const contextMock = {
@@ -881,7 +901,8 @@ describe('NeoChessBoard Core', () => {
 
     it('should accept interactive configuration', () => {
       expect(() => {
-        new NeoChessBoard(container, { interactive: false });
+        const tempBoard = new NeoChessBoard(container, { interactive: false });
+        tempBoard.destroy();
       }).not.toThrow();
     });
   });
@@ -990,17 +1011,7 @@ describe('NeoChessBoard Core', () => {
       beforeEach(() => {
         audioInstances = {};
         originalAudio = globalThis.Audio as AudioConstructor | undefined;
-        const audioFactory = jest.fn((src: string) => {
-          const audio: AudioMock = {
-            play: jest.fn(async () => {}),
-            addEventListener: jest.fn(),
-            preload: 'auto',
-            volume: 0.3,
-            currentTime: 0,
-          };
-          audioInstances[src] = audio;
-          return audio as unknown as HTMLAudioElement;
-        });
+        const audioFactory = createAudioFactoryWithInstances(audioInstances);
         globalThis.Audio = audioFactory as unknown as AudioConstructor;
       });
 
@@ -1204,8 +1215,8 @@ describe('NeoChessBoard Core', () => {
         };
         const originalInCheck = rules.inCheck;
         const originalIsCheckmate = rules.isCheckmate;
-        rules.inCheck = () => true;
-        rules.isCheckmate = () => true;
+        rules.inCheck = alwaysTrue;
+        rules.isCheckmate = alwaysTrue;
 
         board.setFEN('6k1/8/6K1/8/8/8/8/8 b - - 0 1', true);
 
@@ -1399,7 +1410,7 @@ describe('NeoChessBoard Core', () => {
         bottom: overlay.height || 480,
         x: 0,
         y: 0,
-        toJSON: () => ({}),
+        toJSON: emptyRectToJSON,
       }));
 
       const handler = jest.fn();
@@ -1423,13 +1434,7 @@ describe('NeoChessBoard Core', () => {
       const playSpy = jest.spyOn(audioManager, 'playSound');
 
       const originalAudio = globalThis.Audio;
-      const audioFactory = jest.fn(() => ({
-        play: jest.fn(async () => {}),
-        addEventListener: jest.fn(),
-        preload: 'auto',
-        volume: 0.3,
-        currentTime: 0,
-      }));
+      const audioFactory = createSimpleAudioFactory();
       (globalThis as typeof globalThis & { Audio?: AudioConstructor }).Audio =
         audioFactory as unknown as AudioConstructor;
 
@@ -1952,7 +1957,7 @@ describe('NeoChessBoard Core', () => {
         bottom: 200,
         x: 0,
         y: 0,
-        toJSON: () => {},
+        toJSON: emptyRectToJSON,
       }));
 
       const scrollBy = jest.fn();

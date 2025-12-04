@@ -52,6 +52,69 @@ export function createPromotionDialogExtension(
         ...options.labels,
       };
 
+      const previewPiece = (piece: PromotionPiece | null) => {
+        context.board.previewPromotionPiece(piece);
+      };
+
+      const resolveActiveRequest = (piece: PromotionPiece) => {
+        const request = activeRequest;
+        if (!request) {
+          return;
+        }
+        request.resolve(piece);
+      };
+
+      const createPromotionButton = (piece: PromotionPiece) => {
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.className = options.buttonClassName ?? 'ncb-promotion-button';
+        button.textContent = labels[piece];
+        Object.assign(button.style, {
+          padding: '10px 12px',
+          borderRadius: '8px',
+          border: '1px solid rgba(148, 163, 184, 0.4)',
+          background: 'rgba(30, 41, 59, 0.8)',
+          color: '#f8fafc',
+          cursor: 'pointer',
+          fontSize: '0.95rem',
+          fontWeight: '600',
+          transition: 'transform 0.12s ease, background 0.12s ease',
+        });
+
+        const setScale = (scale: string) => () => {
+          button.style.transform = scale;
+        };
+
+        const handleResolve = () => resolveActiveRequest(piece);
+
+        button.addEventListener('mouseenter', () => {
+          previewPiece(piece);
+        });
+        button.addEventListener('mouseleave', () => {
+          previewPiece(null);
+        });
+        button.addEventListener('focus', () => {
+          previewPiece(piece);
+        });
+        button.addEventListener('blur', () => {
+          previewPiece(null);
+        });
+        button.addEventListener('click', handleResolve);
+
+        button.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleResolve();
+          }
+        });
+
+        button.addEventListener('pointerdown', setScale('scale(0.97)'));
+        button.addEventListener('pointerup', setScale('scale(1)'));
+        button.addEventListener('pointerleave', setScale('scale(1)'));
+
+        return button;
+      };
+
       const ensureOverlay = () => {
         if (overlay) {
           return;
@@ -110,67 +173,12 @@ export function createPromotionDialogExtension(
           gap: '8px',
         });
 
-        buttons = pieces.map((piece) => {
-          const button = doc.createElement('button');
-          button.type = 'button';
-          button.className = options.buttonClassName ?? 'ncb-promotion-button';
-          button.textContent = labels[piece];
-          Object.assign(button.style, {
-            padding: '10px 12px',
-            borderRadius: '8px',
-            border: '1px solid rgba(148, 163, 184, 0.4)',
-            background: 'rgba(30, 41, 59, 0.8)',
-            color: '#f8fafc',
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            fontWeight: '600',
-            transition: 'transform 0.12s ease, background 0.12s ease',
-          });
-
-          button.addEventListener('mouseenter', () => {
-            context.board.previewPromotionPiece(piece);
-          });
-          button.addEventListener('mouseleave', () => {
-            context.board.previewPromotionPiece(null);
-          });
-          button.addEventListener('focus', () => {
-            context.board.previewPromotionPiece(piece);
-          });
-          button.addEventListener('blur', () => {
-            context.board.previewPromotionPiece(null);
-          });
-          button.addEventListener('click', () => {
-            const request = activeRequest;
-            if (!request) {
-              return;
-            }
-            request.resolve(piece);
-          });
-
-          button.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              const request = activeRequest;
-              if (!request) {
-                return;
-              }
-              request.resolve(piece);
-            }
-          });
-
-          button.addEventListener('pointerdown', () => {
-            button.style.transform = 'scale(0.97)';
-          });
-          button.addEventListener('pointerup', () => {
-            button.style.transform = 'scale(1)';
-          });
-          button.addEventListener('pointerleave', () => {
-            button.style.transform = 'scale(1)';
-          });
-
+        buttons = [];
+        for (const piece of pieces) {
+          const button = createPromotionButton(piece);
           buttonsRow.append(button);
-          return button;
-        });
+          buttons.push(button);
+        }
 
         overlay.addEventListener('click', (event) => {
           if (event.target === overlay && activeRequest) {
