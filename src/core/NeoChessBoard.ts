@@ -2219,8 +2219,12 @@ export class NeoChessBoard {
     active.add(square);
   }
 
-  private _ensurePieceElement(square: Square): HTMLDivElement {
-    let element = this.pieceElements.get(square);
+  private _ensureDomElement(
+    square: Square,
+    elementsMap: Map<Square, HTMLDivElement>,
+    layer: HTMLDivElement | undefined,
+  ): HTMLDivElement {
+    let element = elementsMap.get(square);
     if (element) {
       return element;
     }
@@ -2233,9 +2237,13 @@ export class NeoChessBoard {
     element.style.top = '0';
     element.style.pointerEvents = 'none';
     element.style.willChange = 'transform';
-    this.pieceLayer?.append(element);
-    this.pieceElements.set(square, element);
+    layer?.append(element);
+    elementsMap.set(square, element);
     return element;
+  }
+
+  private _ensurePieceElement(square: Square): HTMLDivElement {
+    return this._ensureDomElement(square, this.pieceElements, this.pieceLayer);
   }
 
   private _positionPieceElement(element: HTMLDivElement, square: Square): void {
@@ -2318,22 +2326,7 @@ export class NeoChessBoard {
   }
 
   private _ensureSquareElement(square: Square): HTMLDivElement {
-    let element = this.squareElements.get(square);
-    if (element) {
-      return element;
-    }
-
-    const doc = this.root.ownerDocument ?? document;
-    element = doc.createElement('div');
-    element.dataset.square = square;
-    element.style.position = 'absolute';
-    element.style.left = '0';
-    element.style.top = '0';
-    element.style.pointerEvents = 'none';
-    element.style.willChange = 'transform';
-    this.squareLayer?.append(element);
-    this.squareElements.set(square, element);
-    return element;
+    return this._ensureDomElement(square, this.squareElements, this.squareLayer);
   }
 
   private _positionSquareElement(element: HTMLDivElement, square: Square): void {

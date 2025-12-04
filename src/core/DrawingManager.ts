@@ -332,18 +332,8 @@ export class DrawingManager {
 
   private normalizeArrow(arrow: ArrowInput): NormalizedArrow {
     const color = arrow.color ?? this.arrowOptions.color ?? DEFAULT_ARROW_STYLE.color;
-    const width =
-      typeof arrow.width === 'number'
-        ? arrow.width
-        : typeof this.arrowOptions.width === 'number'
-          ? this.arrowOptions.width
-          : DEFAULT_ARROW_STYLE.width;
-    const opacity =
-      typeof arrow.opacity === 'number'
-        ? arrow.opacity
-        : typeof this.arrowOptions.opacity === 'number'
-          ? this.arrowOptions.opacity
-          : DEFAULT_ARROW_STYLE.opacity;
+    const width = arrow.width ?? this.arrowOptions.width ?? DEFAULT_ARROW_STYLE.width;
+    const opacity = arrow.opacity ?? this.arrowOptions.opacity ?? DEFAULT_ARROW_STYLE.opacity;
     const knightMove = arrow.knightMove ?? this.isKnightMove(arrow.from, arrow.to);
 
     return {
