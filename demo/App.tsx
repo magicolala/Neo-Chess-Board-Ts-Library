@@ -73,6 +73,9 @@ interface TimelineMove {
   promotion?: string;
 }
 
+const normalizePromotion = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
 interface PlyAnnotationInfo {
   moveNumber: number;
   color: 'white' | 'black';
@@ -509,7 +512,7 @@ const AppContent: React.FC = () => {
     const verboseHistory = chessRules.getHistory().map((move) => ({
       from: move.from,
       to: move.to,
-      promotion: move.promotion,
+      promotion: normalizePromotion(move.promotion),
     }));
 
     let timelineRules: ChessJsRules;
@@ -539,7 +542,7 @@ const AppContent: React.FC = () => {
       const result = timelineRules.move({
         from: move.from,
         to: move.to,
-        promotion: move.promotion,
+        promotion: normalizePromotion(move.promotion),
       });
       if (result.ok) {
         const plyIndex = index + 1;
@@ -591,7 +594,7 @@ const AppContent: React.FC = () => {
         const response = chessRules.move({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         });
 
         if (!response.ok) {
@@ -737,7 +740,7 @@ const AppContent: React.FC = () => {
         timelineMovesRef.current = chessRules.getHistory().map((move) => ({
           from: move.from,
           to: move.to,
-          promotion: move.promotion,
+          promotion: normalizePromotion(move.promotion),
         }));
         setCurrentEvaluation(undefined);
         setCurrentPly(fallbackPly);
@@ -1011,7 +1014,7 @@ const AppContent: React.FC = () => {
     const colors: readonly string[] = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
     const color = pickRandomElement(colors);
     boardRef.current.addArrow({ from, to, color });
-  }, []);
+  }, [randomSquare]);
 
   const addRandomHighlight = useCallback(() => {
     if (!boardRef.current) return;
@@ -1029,7 +1032,7 @@ const AppContent: React.FC = () => {
     } else {
       boardRef.current.addHighlight(square, type);
     }
-  }, []);
+  }, [randomSquare]);
 
   const clearAll = useCallback(() => {
     if (!boardRef.current) return;
@@ -1068,6 +1071,21 @@ const AppContent: React.FC = () => {
   const highlightCount = activePlyInfo?.annotations?.circles?.length ?? 0;
   const evaluationForSelectedPly =
     activePlyInfo?.annotations?.evaluation ?? evaluationsByPly[selectedPly];
+  const renderCommentContent = useCallback(() => {
+    if (commentForSelectedPly) {
+      return (
+        <p className="text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
+          {commentForSelectedPly}
+        </p>
+      );
+    }
+
+    if (selectedPly > 0) {
+      return <p className="text-sm text-gray-500 italic">{translate('comments.noComment')}</p>;
+    }
+
+    return <p className="text-sm text-gray-500 italic">{translate('comments.noMoveSelected')}</p>;
+  }, [commentForSelectedPly, selectedPly, translate]);
   const annotationBadges: string[] = [];
 
   if (arrowCount > 0) {
@@ -1538,7 +1556,7 @@ const AppContent: React.FC = () => {
                     timelineMovesRef.current = chessRules.getHistory().map((move) => ({
                       from: move.from,
                       to: move.to,
-                      promotion: move.promotion,
+                      promotion: normalizePromotion(move.promotion),
                     }));
                     updateEvaluationFromMap(nextPly, truncatedEvaluationMap);
                     boardRef.current?.getBoard()?.showPgnAnnotationsForPly?.(nextPly);

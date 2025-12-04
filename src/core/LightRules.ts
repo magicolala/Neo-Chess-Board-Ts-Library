@@ -1,5 +1,23 @@
-import type { RulesAdapter, Move, Square, Color, RulesMoveResponse } from './types';
+import type {
+  RulesAdapter,
+  Move,
+  Square,
+  Color,
+  RulesMoveResponse,
+  RulesMoveDetail,
+} from './types';
 import { FILES, RANKS, START_FEN, isWhitePiece, parseFEN, type ParsedFENState } from './utils';
+import {
+  canRedo,
+  canUndo,
+  createHistoryStore,
+  getCurrentFen,
+  getLastMoveState,
+  makeMove,
+  redo as redoHistory,
+  reset as resetHistory,
+  undo as undoHistory,
+} from './state/historyStore';
 function boardToFEN(state: ParsedFENState) {
   const rows: string[] = [];
   for (let r = 7; r >= 0; r--) {
@@ -27,7 +45,7 @@ function boardToFEN(state: ParsedFENState) {
 
 export class LightRules implements RulesAdapter {
   private state = parseFEN(START_FEN);
-  private historyStack: ParsedFENState[] = [];
+  private historyStore = createHistoryStore(START_FEN);
   public readonly supportsSanMoves = false;
   private cloneState(state: ParsedFENState): ParsedFENState {
     return {
@@ -41,14 +59,14 @@ export class LightRules implements RulesAdapter {
   }
   reset() {
     this.state = parseFEN(START_FEN);
-    this.historyStack = [];
+    this.historyStore = resetHistory(this.historyStore, boardToFEN(this.state));
   }
   setFEN(f: string) {
     this.state = parseFEN(f);
-    this.historyStack = [];
+    this.historyStore = resetHistory(this.historyStore, boardToFEN(this.state));
   }
   getFEN() {
-    return boardToFEN(this.state);
+    return getCurrentFen(this.historyStore);
   }
   turn() {
     return this.state.turn;
@@ -216,15 +234,49 @@ export class LightRules implements RulesAdapter {
       s.board[r1][f1] = isW ? promo.toUpperCase() : promo;
     }
     s.turn = s.turn === 'w' ? 'b' : 'w';
-    this.historyStack.push(this.cloneState(this.state));
+    const fen = boardToFEN(s);
+    this.historyStore = makeMove(this.historyStore, {
+      fen,
+      move: { from, to },
+    });
     this.state = s; // Update internal state
-    return { ok: true, fen: boardToFEN(s), state: s };
+    return { ok: true, fen, state: s };
   }
   undo(): boolean {
-    const previous = this.historyStack.pop();
+    const { state, previous } = undoHistory(this.historyStore);
     if (!previous) return false;
-    this.state = previous;
+    this.historyStore = state;
+    this.state = parseFEN(getCurrentFen(this.historyStore));
     return true;
+  }
+
+  redo(): boolean {
+    const { state, next } = redoHistory(this.historyStore);
+    if (!next) return false;
+    this.historyStore = state;
+    this.state = parseFEN(getCurrentFen(this.historyStore));
+    return true;
+  }
+
+  canUndo(): boolean {
+    return canUndo(this.historyStore);
+  }
+
+  canRedo(): boolean {
+    return canRedo(this.historyStore);
+  }
+
+  getLastMove(): RulesMoveDetail | null {
+    const moveState = getLastMoveState(this.historyStore);
+    if (!moveState?.move) {
+      return null;
+    }
+
+    return {
+      from: moveState.move.from,
+      to: moveState.move.to,
+      san: moveState.move.san,
+    } satisfies RulesMoveDetail;
   }
 
   isDraw(): boolean {

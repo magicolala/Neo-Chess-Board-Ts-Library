@@ -701,6 +701,32 @@ describe('NeoChessBoard Core', () => {
       expect(updateSpy).toHaveBeenCalledTimes(1);
       expect(updateSpy).toHaveBeenCalledWith({ fen: initialFen });
     });
+
+    it('should redo the last undone move and refresh the board state', () => {
+      board.setFEN(START_FEN, true);
+      const moveSpy = jest.fn();
+      const updateSpy = jest.fn();
+      board.on('move', moveSpy);
+      board.on('update', updateSpy);
+
+      const firstFen = board.getCurrentFEN();
+      const moveSuccess = board.submitMove('e4');
+      expect(moveSuccess).toBe(true);
+      const afterMoveFen = board.getCurrentFEN();
+
+      moveSpy.mockClear();
+      expect(board.undoMove(true)).toBe(true);
+      expect(board.getCurrentFEN()).toBe(firstFen);
+      expect(moveSpy).not.toHaveBeenCalled();
+
+      updateSpy.mockClear();
+      expect(board.redoMove(true)).toBe(true);
+      expect(board.getCurrentFEN()).toBe(afterMoveFen);
+      expect(updateSpy).toHaveBeenCalledWith({ fen: afterMoveFen });
+      expect(moveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ from: 'e2', to: 'e4', fen: afterMoveFen }),
+      );
+    });
   });
 
   describe('Event system', () => {
