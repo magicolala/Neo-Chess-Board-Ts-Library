@@ -353,10 +353,14 @@ export function AdvancedChessGame() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>
+                <label
+                  htmlFor="theme-select"
+                  style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}
+                >
                   Theme:
                 </label>
                 <select
+                  id="theme-select"
                   value={theme.currentTheme}
                   onChange={(e) => theme.setCurrentTheme(e.target.value)}
                   style={{ width: '100%', padding: '6px 10px' }}
@@ -391,9 +395,11 @@ export function AdvancedChessGame() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <label
+                htmlFor="show-coordinates"
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
               >
                 <input
+                  id="show-coordinates"
                   type="checkbox"
                   checked={prefs.showCoordinates}
                   onChange={(e) => prefs.setShowCoordinates(e.target.checked)}
@@ -402,9 +408,11 @@ export function AdvancedChessGame() {
               </label>
 
               <label
+                htmlFor="highlight-last-move"
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
               >
                 <input
+                  id="highlight-last-move"
                   type="checkbox"
                   checked={prefs.highlightLastMove}
                   onChange={(e) => prefs.setHighlightLastMove(e.target.checked)}
@@ -413,10 +421,14 @@ export function AdvancedChessGame() {
               </label>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>
+                <label
+                  htmlFor="animation-speed"
+                  style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}
+                >
                   Animation Speed: {prefs.animationSpeed}ms
                 </label>
                 <input
+                  id="animation-speed"
                   type="range"
                   min="100"
                   max="1000"
@@ -513,7 +525,7 @@ export function AdvancedChessGame() {
               ) : (
                 <div style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.4' }}>
                   {game.moves.map((move, index) => (
-                    <div
+                    <button
                       key={index}
                       onClick={() => game.goToMove(index)}
                       style={{
@@ -521,6 +533,12 @@ export function AdvancedChessGame() {
                         borderRadius: '3px',
                         cursor: 'pointer',
                         transition: 'background-color 0.15s',
+                        border: 'none',
+                        background: 'transparent',
+                        width: '100%',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                        fontSize: 'inherit',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#f3f4f6';
@@ -533,7 +551,7 @@ export function AdvancedChessGame() {
                       {index % 2 === 0 ? '.' : '...'} {move.san || `${move.from}-${move.to}`}
                       {move.check && ' +'}
                       {move.checkmate && ' #'}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -643,8 +661,9 @@ export function FamousGamesExample() {
 
       <div style={{ display: 'grid', gap: '10px' }}>
         {famousGames.map((famousGame, index) => (
-          <div
+          <button
             key={index}
+            onClick={() => loadFamousGame(index)}
             style={{
               padding: '15px',
               border: '1px solid #e5e7eb',
@@ -652,8 +671,10 @@ export function FamousGamesExample() {
               background: 'white',
               cursor: 'pointer',
               transition: 'all 0.2s',
+              width: '100%',
+              textAlign: 'left',
+              fontFamily: 'inherit',
             }}
-            onClick={() => loadFamousGame(index)}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
               e.currentTarget.style.transform = 'translateY(-1px)';
@@ -668,7 +689,7 @@ export function FamousGamesExample() {
             <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '5px' }}>
               Opening: {famousGame.moves.slice(0, 4).join(' ')}...
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
