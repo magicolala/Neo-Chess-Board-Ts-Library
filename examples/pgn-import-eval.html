@@ -742,76 +742,91 @@
         renderEvaluation();
       };
 
-      const syncEvaluationsFromRules = () => {
-        try {
-          const notation = chessRules.getPgnNotation();
-          const evaluationMap = {};
-          const metadata = typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
-          const fenFromMetadata = metadata?.FEN && metadata.FEN.trim().length > 0
-            ? (() => {
-                const rawSetup = metadata?.SetUp;
-                const normalizedSetup = rawSetup ? rawSetup.trim().toLowerCase() : undefined;
-                if (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true') {
-                  return metadata.FEN.trim();
-                }
-                return undefined;
-              })()
-            : undefined;
+      const extractMetadataFen = (notation) => {
+        const metadata = typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
+        const fen = metadata?.FEN?.trim();
+        if (!fen) {
+          return undefined;
+        }
+        const normalizedSetup = metadata?.SetUp ? metadata.SetUp.trim().toLowerCase() : undefined;
+        return !normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true' ? fen : undefined;
+      };
 
-          let sequentialPly = 0;
-          for (const move of notation.getMovesWithAnnotations()) {
-            if (move.evaluation?.white !== undefined) {
-              sequentialPly += 1;
-              evaluationMap[sequentialPly] = move.evaluation.white;
-            }
-            if (move.evaluation?.black !== undefined) {
-              sequentialPly += 1;
-              evaluationMap[sequentialPly] = move.evaluation.black;
-            }
+      const collectEvaluationMap = (notation) => {
+        const evaluationMap = {};
+        let sequentialPly = 0;
+
+        for (const move of notation.getMovesWithAnnotations()) {
+          if (move.evaluation?.white !== undefined) {
+            sequentialPly += 1;
+            evaluationMap[sequentialPly] = move.evaluation.white;
           }
+          if (move.evaluation?.black !== undefined) {
+            sequentialPly += 1;
+            evaluationMap[sequentialPly] = move.evaluation.black;
+          }
+        }
 
-          const verboseHistory = chessRules.getHistory().map((move) => ({
+        return evaluationMap;
+      };
+
+      const buildVerboseHistory = () =>
+        chessRules.getHistory().map((move) => ({
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+        }));
+
+      const createTimelineRules = (fenFromMetadata) => {
+        if (!fenFromMetadata) {
+          const fallback = new ChessJsRules();
+          fallback.reset();
+          return fallback;
+        }
+
+        try {
+          return new ChessJsRules(fenFromMetadata);
+        } catch (error) {
+          console.warn('Unable to rebuild PGN timeline with the provided FEN:', error);
+          const fallback = new ChessJsRules();
+          fallback.reset();
+          return fallback;
+        }
+      };
+
+      const buildFenToPlyMap = (history, fenFromMetadata) => {
+        const timelineRules = createTimelineRules(fenFromMetadata);
+        const fenMap = { [timelineRules.getFEN()]: 0 };
+
+        history.forEach((move, index) => {
+          const result = timelineRules.move({
             from: move.from,
             to: move.to,
             promotion: move.promotion,
-          }));
-
-          let timelineRules;
-          let startingFenApplied = false;
-
-          if (fenFromMetadata) {
-            try {
-              timelineRules = new ChessJsRules(fenFromMetadata);
-              startingFenApplied = true;
-            } catch (error) {
-              console.warn('Unable to rebuild PGN timeline with the provided FEN:', error);
-              timelineRules = new ChessJsRules();
-            }
-          } else {
-            timelineRules = new ChessJsRules();
-          }
-
-          if (!startingFenApplied) {
-            timelineRules.reset();
-          }
-
-          const fenMap = {};
-          fenMap[timelineRules.getFEN()] = 0;
-
-          verboseHistory.forEach((move, index) => {
-            const result = timelineRules.move({
-              from: move.from,
-              to: move.to,
-              promotion: move.promotion,
-            });
-            if (result.ok) {
-              fenMap[timelineRules.getFEN()] = index + 1;
-            }
           });
+          if (result.ok) {
+            fenMap[timelineRules.getFEN()] = index + 1;
+          }
+        });
 
-          state.evaluationsByPly = evaluationMap;
-          state.fenToPlyMap = fenMap;
-          updateEvaluationFromPly(verboseHistory.length);
+        return fenMap;
+      };
+
+      const applyEvaluationsFromRules = () => {
+        const notation = chessRules.getPgnNotation();
+        const fenFromMetadata = extractMetadataFen(notation);
+        const evaluationMap = collectEvaluationMap(notation);
+        const verboseHistory = buildVerboseHistory();
+        const fenToPlyMap = buildFenToPlyMap(verboseHistory, fenFromMetadata);
+
+        state.evaluationsByPly = evaluationMap;
+        state.fenToPlyMap = fenToPlyMap;
+        updateEvaluationFromPly(verboseHistory.length);
+      };
+
+      const syncEvaluationsFromRules = () => {
+        try {
+          applyEvaluationsFromRules();
         } catch (error) {
           console.error('Failed to synchronise PGN evaluations:', error);
           clearEvaluations();
