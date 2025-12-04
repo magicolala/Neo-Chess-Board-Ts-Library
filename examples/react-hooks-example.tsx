@@ -2,6 +2,33 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { NeoChessBoard } from '../src/react/NeoChessBoard';
 import type { Move, Theme } from '../src/core/types';
 
+const getResultFromStatus = (status: string, currentPlayer: 'white' | 'black') => {
+  if (status === 'checkmate') {
+    return currentPlayer === 'white' ? '0-1' : '1-0';
+  }
+  if (status === 'stalemate') {
+    return '1/2-1/2';
+  }
+  return '*';
+};
+
+const getStatusStyles = (status: 'playing' | 'check' | 'checkmate' | 'stalemate') => {
+  switch (status) {
+    case 'check': {
+      return { background: '#fef2f2', color: '#dc2626' };
+    }
+    case 'checkmate': {
+      return { background: '#fee2e2', color: '#dc2626' };
+    }
+    case 'stalemate': {
+      return { background: '#eff6ff', color: '#2563eb' };
+    }
+    default: {
+      return { background: '#f0fdf4', color: '#16a34a' };
+    }
+  }
+};
+
 // Custom hook for chess game state management
 function useChessGame(initialPosition = 'start') {
   const [position, setPosition] = useState(initialPosition);
@@ -167,6 +194,7 @@ export function AdvancedChessGame() {
   const game = useChessGame();
   const theme = useChessTheme();
   const prefs = useBoardPreferences();
+  const statusStyles = getStatusStyles(game.gameStatus);
 
   // Event handlers
   const handleMove = useCallback(
@@ -195,14 +223,7 @@ export function AdvancedChessGame() {
       Date: new Date().toISOString().split('T')[0],
       White: 'Player 1',
       Black: 'Player 2',
-      Result:
-        game.gameStatus === 'checkmate'
-          ? game.currentPlayer === 'white'
-            ? '0-1'
-            : '1-0'
-          : game.gameStatus === 'stalemate'
-            ? '1/2-1/2'
-            : '*',
+      Result: getResultFromStatus(game.gameStatus, game.currentPlayer),
     };
 
     // Simple PGN export (in real app, use proper PGN formatting)
@@ -315,22 +336,8 @@ export function AdvancedChessGame() {
                 padding: '8px 12px',
                 borderRadius: '6px',
                 fontWeight: '600',
-                background:
-                  game.gameStatus === 'check'
-                    ? '#fef2f2'
-                    : game.gameStatus === 'checkmate'
-                      ? '#fee2e2'
-                      : game.gameStatus === 'stalemate'
-                        ? '#eff6ff'
-                        : '#f0fdf4',
-                color:
-                  game.gameStatus === 'check'
-                    ? '#dc2626'
-                    : game.gameStatus === 'checkmate'
-                      ? '#dc2626'
-                      : game.gameStatus === 'stalemate'
-                        ? '#2563eb'
-                        : '#16a34a',
+                background: statusStyles.background,
+                color: statusStyles.color,
               }}
             >
               {game.gameStatus.charAt(0).toUpperCase() + game.gameStatus.slice(1)}
