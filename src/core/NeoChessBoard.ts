@@ -1292,40 +1292,7 @@ export class NeoChessBoard {
       return;
     }
 
-    let shouldRender = false;
-
-    if (configuration.drag) {
-      const { drag } = configuration;
-      if (typeof drag.threshold === 'number' && Number.isFinite(drag.threshold)) {
-        this.setDragActivationDistance(drag.threshold);
-      }
-      if (typeof drag.snap === 'boolean') {
-        const snapChanged = this.dragSnapToSquare !== drag.snap;
-        this.dragSnapToSquare = drag.snap;
-        if (snapChanged && this._dragging) {
-          if (drag.snap && this._hoverSq) {
-            const center = this._squareCenter(this._hoverSq);
-            this._dragging.x = center.x;
-            this._dragging.y = center.y;
-          }
-          shouldRender = true;
-        }
-      }
-      if (typeof drag.ghost === 'boolean' && this.dragGhostPiece !== drag.ghost) {
-        this.dragGhostPiece = drag.ghost;
-        shouldRender = true;
-      }
-      if (typeof drag.ghostOpacity === 'number' && Number.isFinite(drag.ghostOpacity)) {
-        const clampedOpacity = clamp(drag.ghostOpacity, 0, 1);
-        if (this.dragGhostOpacity !== clampedOpacity) {
-          this.dragGhostOpacity = clampedOpacity;
-          shouldRender = true;
-        }
-      }
-      if (typeof drag.cancelOnEsc === 'boolean') {
-        this.dragCancelOnEsc = drag.cancelOnEsc;
-      }
-    }
+    const shouldRender = this._applyDragConfiguration(configuration.drag);
 
     if (configuration.animation) {
       this.setAnimation(configuration.animation);
@@ -1335,15 +1302,12 @@ export class NeoChessBoard {
       this._updatePromotionOptions(configuration.promotion);
     }
 
-    if ('promotion' in configuration) {
-      this._updatePromotionOptions(configuration.promotion);
-    }
-
     if (shouldRender) {
       this.renderAll();
-    } else {
-      this._updateInlinePromotionPosition();
+      return;
     }
+
+    this._updateInlinePromotionPosition();
   }
 
   public setAutoFlip(autoFlip: boolean): void {
@@ -1416,6 +1380,50 @@ export class NeoChessBoard {
 
   public setAllowDragOffBoard(allow: boolean): void {
     this.allowDragOffBoard = allow;
+  }
+
+  private _applyDragConfiguration(drag?: BoardConfiguration['drag']): boolean {
+    if (!drag) {
+      return false;
+    }
+
+    let shouldRender = false;
+
+    if (typeof drag.threshold === 'number' && Number.isFinite(drag.threshold)) {
+      this.setDragActivationDistance(drag.threshold);
+    }
+
+    if (typeof drag.snap === 'boolean') {
+      const snapChanged = this.dragSnapToSquare !== drag.snap;
+      this.dragSnapToSquare = drag.snap;
+      if (snapChanged && this._dragging) {
+        if (drag.snap && this._hoverSq) {
+          const center = this._squareCenter(this._hoverSq);
+          this._dragging.x = center.x;
+          this._dragging.y = center.y;
+        }
+        shouldRender = true;
+      }
+    }
+
+    if (typeof drag.ghost === 'boolean' && this.dragGhostPiece !== drag.ghost) {
+      this.dragGhostPiece = drag.ghost;
+      shouldRender = true;
+    }
+
+    if (typeof drag.ghostOpacity === 'number' && Number.isFinite(drag.ghostOpacity)) {
+      const clampedOpacity = clamp(drag.ghostOpacity, 0, 1);
+      if (this.dragGhostOpacity !== clampedOpacity) {
+        this.dragGhostOpacity = clampedOpacity;
+        shouldRender = true;
+      }
+    }
+
+    if (typeof drag.cancelOnEsc === 'boolean') {
+      this.dragCancelOnEsc = drag.cancelOnEsc;
+    }
+
+    return shouldRender;
   }
 
   public setAutoScrollEnabled(allow: boolean): void {

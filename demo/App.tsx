@@ -142,6 +142,112 @@ const extractCommentText = (
   return sanitizeComment(fallback);
 };
 
+type PgnNotationInstance = ReturnType<ChessJsRules['getPgnNotation']>;
+type ChessHistoryMove = ReturnType<ChessJsRules['getHistory']>[number];
+
+const extractMetadataFen = (notation: PgnNotationInstance) => {
+  const metadata = typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
+  const normalizedSetup =
+    typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
+  const metadataFen = metadata?.FEN?.trim();
+  return metadataFen && (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true')
+    ? metadataFen
+    : undefined;
+};
+
+const collectEvaluationsAndAnnotations = (notation: PgnNotationInstance) => {
+  const evaluationMap: Record<number, number | string> = {};
+  const annotationMap: Record<number, PlyAnnotationInfo> = {};
+
+  for (const move of notation.getMovesWithAnnotations()) {
+    const baseIndex = (move.moveNumber - 1) * 2;
+    if (move.evaluation?.white !== undefined) {
+      evaluationMap[baseIndex + 1] = move.evaluation.white;
+    }
+    if (move.evaluation?.black !== undefined) {
+      evaluationMap[baseIndex + 2] = move.evaluation.black;
+    }
+
+    if (move.whiteAnnotations || move.whiteComment) {
+      annotationMap[baseIndex + 1] = {
+        moveNumber: move.moveNumber,
+        color: 'white',
+        san: move.white,
+        comment: extractCommentText(move.whiteAnnotations, move.whiteComment),
+        annotations: move.whiteAnnotations,
+      };
+    }
+    if (move.blackAnnotations || move.blackComment) {
+      annotationMap[baseIndex + 2] = {
+        moveNumber: move.moveNumber,
+        color: 'black',
+        san: move.black,
+        comment: extractCommentText(move.blackAnnotations, move.blackComment),
+        annotations: move.blackAnnotations,
+      };
+    }
+  }
+
+  return { evaluationMap, annotationMap };
+};
+
+const buildVerboseHistory = (history: ChessHistoryMove[]): TimelineMove[] =>
+  history.map((move) => ({
+    from: move.from,
+    to: move.to,
+    promotion: normalizePromotion(move.promotion),
+  }));
+
+const createTimelineRules = (fenFromMetadata?: string) => {
+  let timelineRules = new ChessJsRules();
+  const hasMetadataFen = typeof fenFromMetadata === 'string' && fenFromMetadata.length > 0;
+  let metadataApplied = false;
+
+  if (hasMetadataFen) {
+    try {
+      timelineRules = new ChessJsRules(fenFromMetadata);
+      metadataApplied = true;
+    } catch (error) {
+      console.warn('Unable to rebuild the PGN timeline with the initial FEN:', error);
+      timelineRules = new ChessJsRules();
+    }
+  }
+
+  if (!metadataApplied) {
+    timelineRules.reset();
+  }
+
+  return timelineRules;
+};
+
+const buildTimelineFromHistory = (history: TimelineMove[], fenFromMetadata?: string) => {
+  const timelineRules = createTimelineRules(fenFromMetadata);
+  const initialTimelineFen = timelineRules.getFEN();
+  const timelineEntries: PlyTimelineEntry[] = [{ ply: 0, fen: initialTimelineFen }];
+
+  history.forEach((move, index) => {
+    const result = timelineRules.move({
+      from: move.from,
+      to: move.to,
+      promotion: normalizePromotion(move.promotion),
+    });
+
+    if (!result.ok) {
+      return;
+    }
+
+    const plyIndex = index + 1;
+    const resultingFen = result.fen ?? timelineRules.getFEN();
+    timelineEntries.push({
+      ply: plyIndex,
+      fen: resultingFen,
+      san: result.move?.san,
+    });
+  });
+
+  return { timelineEntries, initialTimelineFen };
+};
+
 const MIN_BOARD_SIZE = 320;
 const MAX_BOARD_SIZE = 720;
 const BOARD_SIZE_STEP = 20;
@@ -468,93 +574,13 @@ const AppContent: React.FC = () => {
 
   const syncEvaluationsFromRules = useCallback(() => {
     const notation = chessRules.getPgnNotation();
-    const evaluationMap: Record<number, number | string> = {};
-    const annotationMap: Record<number, PlyAnnotationInfo> = {};
-    const metadata =
-      typeof notation.getMetadata === 'function' ? notation.getMetadata() : undefined;
-    const normalizedSetup =
-      typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
-    const metadataFen = metadata?.FEN?.trim();
-    const fenFromMetadata =
-      metadataFen && (!normalizedSetup || normalizedSetup === '1' || normalizedSetup === 'true')
-        ? metadataFen
-        : undefined;
-
-    for (const move of notation.getMovesWithAnnotations()) {
-      const baseIndex = (move.moveNumber - 1) * 2;
-      if (move.evaluation?.white !== undefined) {
-        evaluationMap[baseIndex + 1] = move.evaluation.white;
-      }
-      if (move.evaluation?.black !== undefined) {
-        evaluationMap[baseIndex + 2] = move.evaluation.black;
-      }
-
-      if (move.whiteAnnotations || move.whiteComment) {
-        annotationMap[baseIndex + 1] = {
-          moveNumber: move.moveNumber,
-          color: 'white',
-          san: move.white,
-          comment: extractCommentText(move.whiteAnnotations, move.whiteComment),
-          annotations: move.whiteAnnotations,
-        };
-      }
-      if (move.blackAnnotations || move.blackComment) {
-        annotationMap[baseIndex + 2] = {
-          moveNumber: move.moveNumber,
-          color: 'black',
-          san: move.black,
-          comment: extractCommentText(move.blackAnnotations, move.blackComment),
-          annotations: move.blackAnnotations,
-        };
-      }
-    }
-
-    const verboseHistory = chessRules.getHistory().map((move) => ({
-      from: move.from,
-      to: move.to,
-      promotion: normalizePromotion(move.promotion),
-    }));
-
-    let timelineRules: ChessJsRules;
-    let startingFenApplied = false;
-
-    if (fenFromMetadata) {
-      try {
-        timelineRules = new ChessJsRules(fenFromMetadata);
-        startingFenApplied = true;
-      } catch (error) {
-        console.warn('Unable to rebuild the PGN timeline with the initial FEN:', error);
-        timelineRules = new ChessJsRules();
-      }
-    } else {
-      timelineRules = new ChessJsRules();
-    }
-
-    if (!startingFenApplied) {
-      timelineRules.reset();
-    }
-
-    const initialTimelineFen = timelineRules.getFEN();
-    const timelineEntries: PlyTimelineEntry[] = [{ ply: 0, fen: initialTimelineFen }];
-    const fenMap: Record<string, number> = { [initialTimelineFen]: 0 };
-
-    for (const [index, move] of verboseHistory.entries()) {
-      const result = timelineRules.move({
-        from: move.from,
-        to: move.to,
-        promotion: normalizePromotion(move.promotion),
-      });
-      if (result.ok) {
-        const plyIndex = index + 1;
-        const resultingFen = result.fen ?? timelineRules.getFEN();
-        fenMap[resultingFen] = plyIndex;
-        timelineEntries.push({
-          ply: plyIndex,
-          fen: resultingFen,
-          san: result.move?.san,
-        });
-      }
-    }
+    const fenFromMetadata = extractMetadataFen(notation);
+    const { evaluationMap, annotationMap } = collectEvaluationsAndAnnotations(notation);
+    const verboseHistory = buildVerboseHistory(chessRules.getHistory());
+    const { timelineEntries, initialTimelineFen } = buildTimelineFromHistory(
+      verboseHistory,
+      fenFromMetadata,
+    );
 
     timelineInitialFenRef.current = initialTimelineFen;
     timelineMovesRef.current = verboseHistory;
