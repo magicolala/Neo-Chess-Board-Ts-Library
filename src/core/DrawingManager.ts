@@ -816,75 +816,151 @@ export class DrawingManager {
     const dx = centerToX - centerFromX;
     const dy = centerToY - centerFromY;
 
-    // Determine L-shape orientation (horizontal then vertical or vertical then horizontal)
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    let cornerX: number, cornerY: number;
-
-    // If horizontal movement is greater, go horizontally first
-    if (absDx > absDy) {
-      cornerX = centerToX;
-      cornerY = centerFromY;
-    } else {
-      // Otherwise, go vertically first
-      cornerX = centerFromX;
-      cornerY = centerToY;
-    }
-
-    // Style configuration
-    const lineWidth = this.applyArrowStyle(ctx, arrow);
-
-    // Adjustment to avoid overlapping with pieces
     const offset = this.squareSize * 0.2;
+    const lineWidth = this.applyArrowStyle(ctx, arrow);
+    const { cornerX, cornerY, startX, startY, endX, endY, finalAngle } = this.buildKnightArrowPath({
+      dx,
+      dy,
+      centerFromX,
+      centerFromY,
+      centerToX,
+      centerToY,
+      offset,
+    });
 
-    // Calculate adjusted start and end points
-    let startX = centerFromX;
-    let startY = centerFromY;
-    let endX = centerToX;
-    let endY = centerToY;
+    this.drawKnightSegments(ctx, { startX, startY, cornerX, cornerY, endX, endY });
+    this.drawArrowHead(ctx, { endX, endY, lineWidth, angle: finalAngle });
+  }
 
-    // Adjust start point
-    if (absDx > absDy) {
-      // First horizontal segment
-      startX += dx > 0 ? offset : -offset;
-      endX += dx > 0 ? -offset : offset;
-    } else {
-      // First vertical segment
-      startY += dy > 0 ? offset : -offset;
-      endY += dy > 0 ? -offset : offset;
+  private buildKnightArrowPath({
+    dx,
+    dy,
+    centerFromX,
+    centerFromY,
+    centerToX,
+    centerToY,
+    offset,
+  }: {
+    dx: number;
+    dy: number;
+    centerFromX: number;
+    centerFromY: number;
+    centerToX: number;
+    centerToY: number;
+    offset: number;
+  }): {
+    cornerX: number;
+    cornerY: number;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    finalAngle: number;
+  } {
+    const goesHorizontalFirst = Math.abs(dx) > Math.abs(dy);
+    const cornerX = goesHorizontalFirst ? centerToX : centerFromX;
+    const cornerY = goesHorizontalFirst ? centerFromY : centerToY;
+
+    const { startX, startY, endX, endY } = this.adjustKnightEndpoints({
+      goesHorizontalFirst,
+      dx,
+      dy,
+      centerFromX,
+      centerFromY,
+      centerToX,
+      centerToY,
+      offset,
+    });
+
+    const finalAngle = this.getKnightFinalAngle(goesHorizontalFirst, dx, dy);
+
+    return { cornerX, cornerY, startX, startY, endX, endY, finalAngle };
+  }
+
+  private adjustKnightEndpoints({
+    goesHorizontalFirst,
+    dx,
+    dy,
+    centerFromX,
+    centerFromY,
+    centerToX,
+    centerToY,
+    offset,
+  }: {
+    goesHorizontalFirst: boolean;
+    dx: number;
+    dy: number;
+    centerFromX: number;
+    centerFromY: number;
+    centerToX: number;
+    centerToY: number;
+    offset: number;
+  }): { startX: number; startY: number; endX: number; endY: number } {
+    if (goesHorizontalFirst) {
+      const startX = centerFromX + (dx > 0 ? offset : -offset);
+      const endX = centerToX + (dx > 0 ? -offset : offset);
+      return { startX, startY: centerFromY, endX, endY: centerToY };
     }
 
-    // Draw the L with two segments
+    const startY = centerFromY + (dy > 0 ? offset : -offset);
+    const endY = centerToY + (dy > 0 ? -offset : offset);
+    return { startX: centerFromX, startY, endX: centerToX, endY };
+  }
+
+  private getKnightFinalAngle(goesHorizontalFirst: boolean, dx: number, dy: number): number {
+    if (goesHorizontalFirst) {
+      return dy > 0 ? Math.PI / 2 : -Math.PI / 2;
+    }
+
+    return dx > 0 ? 0 : Math.PI;
+  }
+
+  private drawKnightSegments(
+    ctx: CanvasRenderingContext2D,
+    {
+      startX,
+      startY,
+      cornerX,
+      cornerY,
+      endX,
+      endY,
+    }: {
+      startX: number;
+      startY: number;
+      cornerX: number;
+      cornerY: number;
+      endX: number;
+      endY: number;
+    },
+  ): void {
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(cornerX, cornerY);
     ctx.lineTo(endX, endY);
     ctx.stroke();
+  }
 
-    // Draw the arrowhead at the end
+  private drawArrowHead(
+    ctx: CanvasRenderingContext2D,
+    {
+      endX,
+      endY,
+      lineWidth,
+      angle,
+    }: { endX: number; endY: number; lineWidth: number; angle: number },
+  ): void {
     const arrowHeadSize = lineWidth * 3;
     const arrowAngle = Math.PI / 6; // 30 degrees
-
-    // Calculate the angle of the last segment
-    let finalAngle: number;
-    if (absDx > absDy) {
-      // The last segment is vertical
-      finalAngle = dy > 0 ? Math.PI / 2 : -Math.PI / 2;
-    } else {
-      // The last segment is horizontal
-      finalAngle = dx > 0 ? 0 : Math.PI;
-    }
 
     ctx.beginPath();
     ctx.moveTo(endX, endY);
     ctx.lineTo(
-      endX - arrowHeadSize * Math.cos(finalAngle - arrowAngle),
-      endY - arrowHeadSize * Math.sin(finalAngle - arrowAngle),
+      endX - arrowHeadSize * Math.cos(angle - arrowAngle),
+      endY - arrowHeadSize * Math.sin(angle - arrowAngle),
     );
     ctx.lineTo(
-      endX - arrowHeadSize * Math.cos(finalAngle + arrowAngle),
-      endY - arrowHeadSize * Math.sin(finalAngle + arrowAngle),
+      endX - arrowHeadSize * Math.cos(angle + arrowAngle),
+      endY - arrowHeadSize * Math.sin(angle + arrowAngle),
     );
     ctx.closePath();
     ctx.fill();
@@ -1117,47 +1193,89 @@ export class DrawingManager {
 
   public setDrawingState(state: Partial<DrawingState>): void {
     this.withSuppressedArrowsChange(() => {
-      if (state.arrows !== undefined) {
-        this.state.arrows = state.arrows.map((arrow) => this.normalizeArrow(arrow));
-      }
-      if (state.highlights !== undefined) {
-        this.state.highlights = state.highlights.map((highlight) => ({ ...highlight }));
-      }
-      if (state.premove !== undefined) {
-        this.state.premove = state.premove ? { ...state.premove } : undefined;
-      }
-      if (state.premoves !== undefined) {
-        if (state.premoves) {
-          const queues: Partial<Record<Color, Premove[]>> = {};
-          for (const [color, queue] of Object.entries(state.premoves) as [Color, Premove[]][]) {
-            if (queue && queue.length > 0) {
-              queues[color] = queue.map((entry) => ({ ...entry }));
-            }
-          }
-          this.state.premoves = Object.keys(queues).length > 0 ? queues : undefined;
-        } else {
-          this.state.premoves = undefined;
-        }
-      }
-      if (state.activePremoveColor !== undefined) {
-        this.state.activePremoveColor = state.activePremoveColor ?? undefined;
-      }
-      if (state.promotionPreview !== undefined) {
-        this.state.promotionPreview = state.promotionPreview
-          ? { ...state.promotionPreview }
-          : undefined;
-      }
-      if (state.statusHighlight !== undefined) {
-        this.state.statusHighlight = state.statusHighlight
-          ? {
-              ...state.statusHighlight,
-              squares: state.statusHighlight.squares
-                ? [...state.statusHighlight.squares]
-                : undefined,
-            }
-          : null;
-      }
+      this.applyArrowsState(state.arrows);
+      this.applyHighlightsState(state.highlights);
+      this.applyPremoveState(state.premove);
+      this.applyPremoveQueuesState(state.premoves);
+      this.applyActivePremoveColor(state.activePremoveColor);
+      this.applyPromotionPreviewState(state.promotionPreview);
+      this.applyStatusHighlightState(state.statusHighlight);
     });
+  }
+
+  private applyArrowsState(arrows?: Arrow[]): void {
+    if (arrows === undefined) {
+      return;
+    }
+
+    this.state.arrows = arrows.map((arrow) => this.normalizeArrow(arrow));
+  }
+
+  private applyHighlightsState(highlights?: SquareHighlight[]): void {
+    if (highlights === undefined) {
+      return;
+    }
+
+    this.state.highlights = highlights.map((highlight) => ({ ...highlight }));
+  }
+
+  private applyPremoveState(premove?: Premove | null): void {
+    if (premove === undefined) {
+      return;
+    }
+
+    this.state.premove = premove ? { ...premove } : undefined;
+  }
+
+  private applyPremoveQueuesState(premoves?: Partial<Record<Color, Premove[]>>): void {
+    if (premoves === undefined) {
+      return;
+    }
+
+    this.state.premoves = this.clonePremoveQueues(premoves);
+  }
+
+  private clonePremoveQueues(
+    premoves: Partial<Record<Color, Premove[]>>,
+  ): Partial<Record<Color, Premove[]>> | undefined {
+    if (!premoves) {
+      return undefined;
+    }
+
+    const queues: Partial<Record<Color, Premove[]>> = {};
+    for (const [color, queue] of Object.entries(premoves) as [Color, Premove[]][]) {
+      if (queue && queue.length > 0) {
+        queues[color] = queue.map((entry) => ({ ...entry }));
+      }
+    }
+
+    return Object.keys(queues).length > 0 ? queues : undefined;
+  }
+
+  private applyActivePremoveColor(color?: Color | null): void {
+    if (color === undefined) {
+      return;
+    }
+
+    this.state.activePremoveColor = color ?? undefined;
+  }
+
+  private applyPromotionPreviewState(preview?: DrawingState['promotionPreview']): void {
+    if (preview === undefined) {
+      return;
+    }
+
+    this.state.promotionPreview = preview ? { ...preview } : undefined;
+  }
+
+  private applyStatusHighlightState(highlight?: StatusHighlight | null): void {
+    if (highlight === undefined) {
+      return;
+    }
+
+    this.state.statusHighlight = highlight
+      ? { ...highlight, squares: highlight.squares ? [...highlight.squares] : undefined }
+      : null;
   }
 
   // Utilities for interactions
@@ -1418,50 +1536,62 @@ export class DrawingManager {
     ctx.font = `${Math.floor(this.squareSize * 0.18)}px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto`;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
 
-    for (let r = 0; r < this.ranksCount; r++) {
-      for (let f = 0; f < this.filesCount; f++) {
-        const square = this.coordsToSquare(f * this.squareSize, r * this.squareSize);
-        const [x, y] = this.squareToCoords(square);
+    const isWhite = this.orientation === 'white';
+    const textOffset = this.squareSize * 0.06;
+    const fileLabelRow = isWhite ? this.ranksCount - 1 : 0;
+    const rankLabelColumn = isWhite ? 0 : this.filesCount - 1;
 
-        // Draw file names (a, b, c...)
-        if (r === (this.orientation === 'white' ? this.ranksCount - 1 : 0)) {
-          // Bottom rank for white, top rank for black
-          const boardFileIndex = this.orientation === 'white' ? f : this.filesCount - 1 - f;
-          const file = this.resolveFileLabel(boardFileIndex);
-          ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(
-            file,
-            x +
-              (this.orientation === 'white'
-                ? this.squareSize * 0.06
-                : this.squareSize - this.squareSize * 0.06),
-            y + this.squareSize - this.squareSize * 0.06,
-          );
-        }
-
-        // Draw rank names (1, 2, 3...)
-        if (f === (this.orientation === 'white' ? 0 : this.filesCount - 1)) {
-          // Left file for white, right file for black
-          const boardRankIndex = this.orientation === 'white' ? this.ranksCount - 1 - r : r;
-          const rank = this.resolveRankLabel(boardRankIndex);
-          ctx.textAlign = this.orientation === 'white' ? 'left' : 'right';
-          ctx.textBaseline = this.orientation === 'white' ? 'top' : 'bottom';
-          ctx.fillText(
-            rank,
-            x +
-              (this.orientation === 'white'
-                ? this.squareSize * 0.06
-                : this.squareSize - this.squareSize * 0.06),
-            y +
-              (this.orientation === 'white'
-                ? this.squareSize * 0.06
-                : this.squareSize - this.squareSize * 0.06),
-          );
-        }
-      }
-    }
+    this.drawFileNames(ctx, fileLabelRow, isWhite, textOffset);
+    this.drawRankNames(ctx, rankLabelColumn, isWhite, textOffset);
     ctx.restore();
+  }
+
+  private drawFileNames(
+    ctx: CanvasRenderingContext2D,
+    rowIndex: number,
+    isWhite: boolean,
+    textOffset: number,
+  ): void {
+    for (let fileIndex = 0; fileIndex < this.filesCount; fileIndex++) {
+      const x = fileIndex * this.squareSize;
+      const y = rowIndex * this.squareSize;
+      const square = this.coordsToSquare(x, y);
+      const [squareX, squareY] = this.squareToCoords(square);
+      const boardFileIndex = isWhite ? fileIndex : this.filesCount - 1 - fileIndex;
+      const fileLabel = this.resolveFileLabel(boardFileIndex);
+
+      ctx.textAlign = isWhite ? 'left' : 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(
+        fileLabel,
+        squareX + (isWhite ? textOffset : this.squareSize - textOffset),
+        squareY + this.squareSize - textOffset,
+      );
+    }
+  }
+
+  private drawRankNames(
+    ctx: CanvasRenderingContext2D,
+    columnIndex: number,
+    isWhite: boolean,
+    textOffset: number,
+  ): void {
+    for (let rankIndex = 0; rankIndex < this.ranksCount; rankIndex++) {
+      const x = columnIndex * this.squareSize;
+      const y = rankIndex * this.squareSize;
+      const square = this.coordsToSquare(x, y);
+      const [squareX, squareY] = this.squareToCoords(square);
+      const boardRankIndex = isWhite ? this.ranksCount - 1 - rankIndex : rankIndex;
+      const rankLabel = this.resolveRankLabel(boardRankIndex);
+
+      ctx.textAlign = isWhite ? 'left' : 'right';
+      ctx.textBaseline = isWhite ? 'top' : 'bottom';
+      ctx.fillText(
+        rankLabel,
+        squareX + (isWhite ? textOffset : this.squareSize - textOffset),
+        squareY + (isWhite ? textOffset : this.squareSize - textOffset),
+      );
+    }
   }
 
   // Additional helper methods for integration with NeoChessBoard
