@@ -1027,11 +1027,15 @@ export class NeoChessBoard {
 
   private _shouldUsePgnWorker(pgnString: string): boolean {
     const pgnSize = new Blob([pgnString]).size;
-    return (
-      this._useWorkerForPgnParsing &&
-      this._pgnParserWorkerManager?.isAvailable() &&
-      pgnSize >= this._pgnWorkerThreshold
-    );
+    if (!this._useWorkerForPgnParsing) {
+      return false;
+    }
+
+    if (!this._pgnParserWorkerManager?.isAvailable()) {
+      return false;
+    }
+
+    return pgnSize >= this._pgnWorkerThreshold;
   }
 
   private async _parsePgnWithWorker(pgnString: string): Promise<ParsedPgnResult | null> {
