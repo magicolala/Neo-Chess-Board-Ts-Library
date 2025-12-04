@@ -17,83 +17,12 @@
  */
 export function isValidChess960Start(fen: string): boolean {
   try {
-    const parts = fen.trim().split(/\s+/);
-    if (parts.length === 0) return false;
+    const pieces = extractBackRankPieces(fen);
+    if (!pieces) return false;
 
-    // In FEN, rank 0 is black's back rank, rank 7 is white's back rank
-    // For Chess960 validation, we check white's back rank (rank 7)
-    const ranks = parts[0].split('/');
-    if (ranks.length < 8) return false;
-    const firstRank = ranks[7]; // White back rank
-    if (!firstRank || firstRank.length < 8) return false;
-
-    // Extract pieces from first rank (expand numbers to positions)
-    const pieces: (string | null)[] = Array.from({ length: 8 }, () => null);
-    let fileIndex = 0;
-    for (const char of firstRank) {
-      if (/[prnbqkPRNBQK]/.test(char)) {
-        if (fileIndex < 8) {
-          pieces[fileIndex] = char;
-          fileIndex++;
-        }
-      } else if (/\d/.test(char)) {
-        fileIndex += Number.parseInt(char, 10);
-      }
-    }
-
-    // Check we have exactly 8 pieces
-    const pieceCount = pieces.filter((p) => p !== null).length;
-    if (pieceCount !== 8) return false;
-
-    // Check for exactly one white king
-    const whiteKing = pieces.filter((p) => p === 'K').length;
-    if (whiteKing !== 1) return false;
-
-    // Check for exactly two white rooks
-    const whiteRooks = pieces.filter((p) => p === 'R').length;
-    if (whiteRooks !== 2) return false;
-
-    // Check for exactly two white bishops
-    const whiteBishops = pieces.filter((p) => p === 'B').length;
-    if (whiteBishops !== 2) return false;
-
-    // Check for exactly one white queen
-    const whiteQueen = pieces.filter((p) => p === 'Q').length;
-    if (whiteQueen !== 1) return false;
-
-    // Check for exactly two white knights
-    const whiteKnights = pieces.filter((p) => p === 'N').length;
-    if (whiteKnights !== 2) return false;
-
-    // Check bishops are on opposite colors
-    const whiteBishopPositions: number[] = [];
-    for (let i = 0; i < 8; i++) {
-      if (pieces[i] === 'B') whiteBishopPositions.push(i);
-    }
-
-    if (whiteBishopPositions.length !== 2) return false;
-    const bishop1Color = whiteBishopPositions[0]! % 2;
-    const bishop2Color = whiteBishopPositions[1]! % 2;
-    // White bishops must be on different colors
-    if (bishop1Color === bishop2Color) return false;
-
-    // Check king is between rooks
-    const whiteRookPositions: number[] = [];
-    let whiteKingPos = -1;
-
-    for (let i = 0; i < 8; i++) {
-      if (pieces[i] === 'R') whiteRookPositions.push(i);
-      if (pieces[i] === 'K') whiteKingPos = i;
-    }
-
-    if (whiteRookPositions.length !== 2 || whiteKingPos < 0) return false;
-    whiteRookPositions.sort((a, b) => a - b);
-
-    // King must be between rooks
-    if (whiteKingPos < whiteRookPositions[0]! || whiteKingPos > whiteRookPositions[1]!)
-      return false;
-
-    return true;
+    return (
+      hasRequiredWhitePieces(pieces) && bishopsOnOppositeColors(pieces) && kingBetweenRooks(pieces)
+    );
   } catch {
     return false;
   }
@@ -108,7 +37,7 @@ export function isValidChess960Start(fen: string): boolean {
 export function generateChess960Start(rankIndex?: number): string {
   const index =
     rankIndex === undefined
-      ? Math.floor(Math.random() * 960)
+      ? getRandomChess960Index()
       : Math.max(0, Math.min(959, Math.floor(rankIndex)));
 
   // Generate the back rank arrangement
@@ -125,6 +54,73 @@ export function generateChess960Start(rankIndex?: number): string {
   ranks[0] = backRank.toLowerCase(); // Black back rank (rank 8, mirrored)
 
   return [ranks.join('/'), ...parts.slice(1)].join(' ');
+}
+
+function extractBackRankPieces(fen: string): (string | null)[] | null {
+  const parts = fen.trim().split(/\s+/);
+  if (parts.length === 0) return null;
+
+  // In FEN, rank 0 is black's back rank, rank 7 is white's back rank
+  // For Chess960 validation, we check white's back rank (rank 7)
+  const ranks = parts[0].split('/');
+  if (ranks.length < 8) return null;
+  const firstRank = ranks[7]; // White back rank
+  if (!firstRank || firstRank.length < 8) return null;
+
+  const pieces: (string | null)[] = Array.from({ length: 8 }, () => null);
+  let fileIndex = 0;
+  for (const char of firstRank) {
+    if (/[prnbqkPRNBQK]/.test(char)) {
+      if (fileIndex < 8) {
+        pieces[fileIndex] = char;
+        fileIndex++;
+      }
+    } else if (/\d/.test(char)) {
+      fileIndex += Number.parseInt(char, 10);
+    }
+  }
+
+  return pieces;
+}
+
+function hasRequiredWhitePieces(pieces: (string | null)[]): boolean {
+  const getCount = (piece: string) => pieces.filter((p) => p === piece).length;
+
+  return (
+    pieces.filter((p) => p !== null).length === 8 &&
+    getCount('K') === 1 &&
+    getCount('R') === 2 &&
+    getCount('B') === 2 &&
+    getCount('Q') === 1 &&
+    getCount('N') === 2
+  );
+}
+
+function bishopsOnOppositeColors(pieces: (string | null)[]): boolean {
+  const whiteBishopPositions: number[] = [];
+  for (let i = 0; i < 8; i++) {
+    if (pieces[i] === 'B') whiteBishopPositions.push(i);
+  }
+
+  if (whiteBishopPositions.length !== 2) return false;
+  const bishop1Color = whiteBishopPositions[0]! % 2;
+  const bishop2Color = whiteBishopPositions[1]! % 2;
+  return bishop1Color !== bishop2Color;
+}
+
+function kingBetweenRooks(pieces: (string | null)[]): boolean {
+  const whiteRookPositions: number[] = [];
+  let whiteKingPos = -1;
+
+  for (let i = 0; i < 8; i++) {
+    if (pieces[i] === 'R') whiteRookPositions.push(i);
+    if (pieces[i] === 'K') whiteKingPos = i;
+  }
+
+  if (whiteRookPositions.length !== 2 || whiteKingPos < 0) return false;
+  whiteRookPositions.sort((a, b) => a - b);
+
+  return whiteKingPos >= whiteRookPositions[0]! && whiteKingPos <= whiteRookPositions[1]!;
 }
 
 /**
@@ -167,6 +163,17 @@ function generateChess960BackRank(index: number): string {
   pieces[remainingSquares[2]] = 'R';
 
   return pieces.join('');
+}
+
+function getRandomChess960Index(): number {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj?.getRandomValues) {
+    throw new Error('Cryptographic random number generator unavailable for Chess960 index');
+  }
+
+  const buffer = new Uint32Array(1);
+  cryptoObj.getRandomValues(buffer);
+  return buffer[0] % 960;
 }
 
 /**
