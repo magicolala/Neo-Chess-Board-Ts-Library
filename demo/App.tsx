@@ -790,7 +790,8 @@ const AppContent: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isThemeChanging, setIsThemeChanging] = useState(false);
 
-  const isInitialLoading = process.env.NODE_ENV === 'test' ? false : useLoadingState(1200);
+  const initialLoadingDuration = process.env.NODE_ENV === 'test' ? 0 : 1200;
+  const isInitialLoading = useLoadingState(initialLoadingDuration);
 
   const [isManualFenChange, setIsManualFenChange] = useState(false);
 

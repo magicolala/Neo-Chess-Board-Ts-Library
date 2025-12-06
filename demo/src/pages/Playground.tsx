@@ -201,6 +201,8 @@ const formatPlyLabel = (ply: number): string => {
 };
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+const normalizeLabelForId = (prefix: string, label: string): string =>
+  `${prefix}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
 
 const renderToggle = (
   label: string,
@@ -208,18 +210,28 @@ const renderToggle = (
   checked: boolean,
   onChange: React.ChangeEventHandler<HTMLInputElement>,
   docsHref: string,
-): React.ReactElement => (
-  <label style={toggleRowStyles}>
-    <span style={toggleTextBlockStyles}>
-      <span style={toggleTitleRowStyles}>
-        <span style={toggleTitleStyles}>{label}</span>
-        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+): React.ReactElement => {
+  const controlId = normalizeLabelForId('playground-toggle', label);
+  return (
+    <label style={toggleRowStyles} htmlFor={controlId}>
+      <span style={toggleTextBlockStyles}>
+        <span style={toggleTitleRowStyles}>
+          <span style={toggleTitleStyles}>{label}</span>
+          <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+        </span>
+        <span style={toggleDescriptionStyles}>{description}</span>
       </span>
-      <span style={toggleDescriptionStyles}>{description}</span>
-    </span>
-    <input type="checkbox" style={checkboxInputStyles} checked={checked} onChange={onChange} />
-  </label>
-);
+      <input
+        id={controlId}
+        type="checkbox"
+        style={checkboxInputStyles}
+        checked={checked}
+        onChange={onChange}
+        aria-label={label}
+      />
+    </label>
+  );
+};
 
 const renderSelect = (
   label: string,
@@ -228,24 +240,33 @@ const renderSelect = (
   options: Array<{ value: string; label: string }>,
   onChange: React.ChangeEventHandler<HTMLSelectElement>,
   docsHref: string,
-): React.ReactElement => (
-  <label style={toggleRowStyles}>
-    <span style={toggleTextBlockStyles}>
-      <span style={toggleTitleRowStyles}>
-        <span style={toggleTitleStyles}>{label}</span>
-        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+): React.ReactElement => {
+  const controlId = normalizeLabelForId('playground-select', label);
+  return (
+    <label style={toggleRowStyles} htmlFor={controlId}>
+      <span style={toggleTextBlockStyles}>
+        <span style={toggleTitleRowStyles}>
+          <span style={toggleTitleStyles}>{label}</span>
+          <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+        </span>
+        <span style={toggleDescriptionStyles}>{description}</span>
       </span>
-      <span style={toggleDescriptionStyles}>{description}</span>
-    </span>
-    <select value={value} onChange={onChange} style={selectInputStyles}>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  </label>
-);
+      <select
+        id={controlId}
+        value={value}
+        onChange={onChange}
+        style={selectInputStyles}
+        aria-label={label}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+};
 
 const renderSlider = (
   label: string,
@@ -255,27 +276,32 @@ const renderSlider = (
   options: { min: number; max: number; step: number },
   onChange: React.ChangeEventHandler<HTMLInputElement>,
   docsHref: string,
-): React.ReactElement => (
-  <label style={sliderContainerStyles}>
-    <span style={sliderHeaderStyles}>
-      <span style={sliderTitleGroupStyles}>
-        <span style={toggleTitleStyles}>{label}</span>
-        <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+): React.ReactElement => {
+  const controlId = normalizeLabelForId('playground-slider', label);
+  return (
+    <label style={sliderContainerStyles} htmlFor={controlId}>
+      <span style={sliderHeaderStyles}>
+        <span style={sliderTitleGroupStyles}>
+          <span style={toggleTitleStyles}>{label}</span>
+          <OptionHelp href={docsHref} label={`Open documentation for ${label}`} />
+        </span>
+        <span style={sliderValueStyles}>{valueLabel}</span>
       </span>
-      <span style={sliderValueStyles}>{valueLabel}</span>
-    </span>
-    <span style={toggleDescriptionStyles}>{description}</span>
-    <input
-      type="range"
-      style={rangeInputStyles}
-      value={value}
-      min={options.min}
-      max={options.max}
-      step={options.step}
-      onChange={onChange}
-    />
-  </label>
-);
+      <span style={toggleDescriptionStyles}>{description}</span>
+      <input
+        id={controlId}
+        type="range"
+        style={rangeInputStyles}
+        value={value}
+        min={options.min}
+        max={options.max}
+        step={options.step}
+        onChange={onChange}
+        aria-label={label}
+      />
+    </label>
+  );
+};
 
 const buildOptionsSections = ({
   state,
@@ -2021,6 +2047,7 @@ const PlaygroundView: React.FC = () => {
                   ref={dirtyCanvasRef}
                   className="playground__dirty-overlay"
                   aria-hidden="true"
+                  tabIndex={-1}
                 />
               ) : null}
               {showFpsBadge ? (

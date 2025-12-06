@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useId } from 'react';
 import { NeoChessBoard } from '../src/react/NeoChessBoard';
 import type { Move } from '../src/core/types';
 
@@ -158,6 +158,7 @@ export function ChessPuzzleApp() {
   const puzzle = usePuzzleGame();
   const [showSolution, setShowSolution] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const difficultyFilterId = useId();
 
   // Filter puzzles by difficulty
   const filteredPuzzles =
@@ -244,8 +245,11 @@ export function ChessPuzzleApp() {
 
         {/* Difficulty filter */}
         <div style={{ textAlign: 'center' }}>
-          <label style={{ marginRight: '10px', fontWeight: '600' }}>Filter by difficulty:</label>
+          <label htmlFor={difficultyFilterId} style={{ marginRight: '10px', fontWeight: '600' }}>
+            Filter by difficulty:
+          </label>
           <select
+            id={difficultyFilterId}
             value={selectedDifficulty}
             onChange={(e) => setSelectedDifficulty(e.target.value)}
             style={{
@@ -500,7 +504,8 @@ export function ChessPuzzleApp() {
             })();
 
             return (
-              <div
+              <button
+                type="button"
                 key={puzzleItem.id}
                 onClick={() => puzzle.selectPuzzle(actualIndex)}
                 style={{
@@ -511,6 +516,8 @@ export function ChessPuzzleApp() {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   position: 'relative',
+                  width: '100%',
+                  textAlign: 'left',
                 }}
                 onMouseEnter={(e) => {
                   if (!isCurrent) {
@@ -524,6 +531,7 @@ export function ChessPuzzleApp() {
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
+                aria-pressed={isCurrent}
               >
                 {isSolved && (
                   <div
@@ -605,9 +613,9 @@ export function ChessPuzzleApp() {
                   Solution: {puzzleItem.solution.length} move
                   {puzzleItem.solution.length > 1 ? 's' : ''}
                 </div>
-              </div>
-            );
-          })}
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -693,6 +701,13 @@ export function PuzzleCreator() {
   });
 
   const [testMode, setTestMode] = useState(false);
+  const formId = useId();
+  const titleInputId = `${formId}-title`;
+  const descriptionInputId = `${formId}-description`;
+  const fenInputId = `${formId}-fen`;
+  const difficultyInputId = `${formId}-difficulty`;
+  const solutionGroupId = `${formId}-solution`;
+  const tagsGroupId = `${formId}-tags`;
 
   const handleSolutionChange = (index: number, value: string) => {
     const newSolution = [...customPuzzle.solution];
@@ -756,10 +771,14 @@ export function PuzzleCreator() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <label
+                htmlFor={titleInputId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 Title:
               </label>
               <input
+                id={titleInputId}
                 type="text"
                 value={customPuzzle.title}
                 onChange={(e) => setCustomPuzzle((prev) => ({ ...prev, title: e.target.value }))}
@@ -769,10 +788,14 @@ export function PuzzleCreator() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <label
+                htmlFor={descriptionInputId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 Description:
               </label>
               <textarea
+                id={descriptionInputId}
                 value={customPuzzle.description}
                 onChange={(e) =>
                   setCustomPuzzle((prev) => ({ ...prev, description: e.target.value }))
@@ -784,10 +807,14 @@ export function PuzzleCreator() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <label
+                htmlFor={fenInputId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 FEN Position:
               </label>
               <textarea
+                id={fenInputId}
                 value={customPuzzle.fen}
                 onChange={(e) => setCustomPuzzle((prev) => ({ ...prev, fen: e.target.value }))}
                 rows={2}
@@ -796,10 +823,14 @@ export function PuzzleCreator() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+              <label
+                htmlFor={difficultyInputId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 Difficulty:
               </label>
               <select
+                id={difficultyInputId}
                 value={customPuzzle.difficulty}
                 onChange={(e) =>
                   setCustomPuzzle((prev) => ({
@@ -813,13 +844,16 @@ export function PuzzleCreator() {
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
                 <option value="master">Master</option>
-              </select>
-            </div>
+                </select>
+              </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+            <div role="group" aria-labelledby={solutionGroupId}>
+              <div
+                id={solutionGroupId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 Solution Moves:
-              </label>
+              </div>
               {customPuzzle.solution.map((move, index) => (
                 <input
                   key={index}
@@ -827,6 +861,7 @@ export function PuzzleCreator() {
                   value={move}
                   onChange={(e) => handleSolutionChange(index, e.target.value)}
                   placeholder={`Move ${index + 1} (e.g., Nf3, Qh5+, O-O)`}
+                  aria-label={`Solution move ${index + 1}`}
                   style={{
                     width: '100%',
                     padding: '6px',
@@ -837,10 +872,13 @@ export function PuzzleCreator() {
               ))}
             </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+            <div role="group" aria-labelledby={tagsGroupId}>
+              <div
+                id={tagsGroupId}
+                style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}
+              >
                 Tags:
-              </label>
+              </div>
               {customPuzzle.tags.map((tag, index) => (
                 <input
                   key={index}
@@ -848,6 +886,7 @@ export function PuzzleCreator() {
                   value={tag}
                   onChange={(e) => handleTagChange(index, e.target.value)}
                   placeholder={`Tag ${index + 1} (e.g., tactics, endgame)`}
+                  aria-label={`Tag ${index + 1}`}
                   style={{ width: '100%', padding: '6px', marginBottom: '5px' }}
                 />
               ))}

@@ -173,6 +173,15 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
   resizeMaxWidth,
   onResizeMaxWidthChange,
 }) => {
+  const componentId = React.useId();
+  const fpsToggleId = `${id ?? componentId}-fps-toggle`;
+  const dirtyToggleId = `${id ?? componentId}-dirty-toggle`;
+  const resizeToggleId = `${id ?? componentId}-resize-toggle`;
+  const intervalInputId = `${id ?? componentId}-resize-interval`;
+  const animationInputId = `${id ?? componentId}-resize-animation`;
+  const minWidthInputId = `${id ?? componentId}-min-width`;
+  const maxWidthInputId = `${id ?? componentId}-max-width`;
+
   const handleFpsToggle = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
     (event) => {
       onShowFpsBadgeChange(event.target.checked);
@@ -249,7 +258,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             playground is running.
           </p>
         </div>
-        <label style={toggleRowStyles}>
+        <label style={toggleRowStyles} htmlFor={fpsToggleId}>
           <span style={toggleTextBlockStyles}>
             <span style={toggleTitleStyles}>Show FPS badge</span>
             <span style={toggleDescriptionStyles}>
@@ -261,9 +270,10 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             style={checkboxInputStyles}
             checked={showFpsBadge}
             onChange={handleFpsToggle}
+            id={fpsToggleId}
           />
         </label>
-        <label style={toggleRowStyles}>
+        <label style={toggleRowStyles} htmlFor={dirtyToggleId}>
           <span style={toggleTextBlockStyles}>
             <span style={toggleTitleStyles}>Highlight dirty rectangles</span>
             <span style={toggleDescriptionStyles}>
@@ -275,6 +285,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             style={checkboxInputStyles}
             checked={showDirtyOverlay}
             onChange={handleDirtyToggle}
+            id={dirtyToggleId}
           />
         </label>
       </section>
@@ -289,7 +300,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
           </p>
         </div>
 
-        <label style={toggleRowStyles}>
+        <label style={toggleRowStyles} htmlFor={resizeToggleId}>
           <span style={toggleTextBlockStyles}>
             <span style={toggleTitleStyles}>Enable resize loop</span>
             <span style={toggleDescriptionStyles}>
@@ -301,6 +312,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             style={checkboxInputStyles}
             checked={resizeLoopEnabled}
             onChange={handleResizeToggle}
+            id={resizeToggleId}
           />
         </label>
 
@@ -318,6 +330,8 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             onChange={handleIntervalChange}
             style={rangeInputStyles}
             disabled={!resizeLoopEnabled}
+            id={intervalInputId}
+            aria-label="Interval between resizes"
           />
         </div>
 
@@ -335,11 +349,13 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             onChange={handleAnimationChange}
             style={rangeInputStyles}
             disabled={!resizeLoopEnabled}
+            id={animationInputId}
+            aria-label="Resize animation duration"
           />
         </div>
 
         <div style={numberInputRowStyles}>
-          <label style={numberInputFieldStyles}>
+          <label style={numberInputFieldStyles} htmlFor={minWidthInputId}>
             <span style={numberInputLabelStyles}>Minimum width</span>
             <span style={numberInputDescriptionStyles}>
               Smallest board dimension reached during the loop.
@@ -358,6 +374,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
               onChange={handleMinWidthChange}
               disabled={!resizeLoopEnabled}
               aria-describedby={id ? `${id}-min-width-display` : undefined}
+              id={minWidthInputId}
             />
             <span
               id={id ? `${id}-min-width-display` : undefined}
@@ -367,7 +384,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
             </span>
           </label>
 
-          <label style={numberInputFieldStyles}>
+          <label style={numberInputFieldStyles} htmlFor={maxWidthInputId}>
             <span style={numberInputLabelStyles}>Maximum width</span>
             <span style={numberInputDescriptionStyles}>
               Largest board dimension reached during the loop.
@@ -386,6 +403,7 @@ const PerfPanel: React.FC<PerfPanelProps> = ({
               onChange={handleMaxWidthChange}
               disabled={!resizeLoopEnabled}
               aria-describedby={id ? `${id}-max-width-display` : undefined}
+              id={maxWidthInputId}
             />
             <span
               id={id ? `${id}-max-width-display` : undefined}

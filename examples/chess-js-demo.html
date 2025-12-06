@@ -485,7 +485,7 @@
           Site: 'Local Demo',
           White: 'Player White',
           Black: 'Player Black',
-          Date: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
+          Date: new Date().toISOString().split('T')[0].replaceAll('-', '.'),
           WhiteElo: '1500',
           BlackElo: '1500',
           TimeControl: '300+3',
@@ -559,7 +559,7 @@
                   isWhite ? 'history.movePrefix.white' : 'history.movePrefix.black',
                   { moveNumber: moveNum },
                 );
-                return isWhite ? `${prefix} ${move}` : `${prefix} ${move}`;
+                return `${prefix} ${move}`;
               })
               .join(' ');
           }
