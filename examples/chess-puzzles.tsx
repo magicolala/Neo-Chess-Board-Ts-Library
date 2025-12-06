@@ -613,9 +613,9 @@ export function ChessPuzzleApp() {
                   Solution: {puzzleItem.solution.length} move
                   {puzzleItem.solution.length > 1 ? 's' : ''}
                 </div>
-                </button>
-              );
-            })}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -844,8 +844,8 @@ export function PuzzleCreator() {
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
                 <option value="master">Master</option>
-                </select>
-              </div>
+              </select>
+            </div>
 
             <div role="group" aria-labelledby={solutionGroupId}>
               <div

@@ -79,6 +79,20 @@ const parseOrientationParam = (value: string | null): PlaygroundOrientation | un
   return undefined;
 };
 
+const parseThemeParam = (value: string | null): ThemeName | undefined => {
+  if (!value || !VALID_THEMES.has(value as ThemeName)) {
+    return undefined;
+  }
+
+  return value as ThemeName;
+};
+
+const parsePieceSetParam = (value: string | null): string | undefined =>
+  value && VALID_PIECE_SETS.has(value) ? value : undefined;
+
+const parsePromotionUiParam = (value: string | null): PlaygroundState['promotionUi'] | undefined =>
+  value === 'inline' || value === 'dialog' ? value : undefined;
+
 const isDefaultState = (state: PlaygroundState): boolean =>
   state.theme === PLAYGROUND_DEFAULT_STATE.theme &&
   state.pieceSetId === PLAYGROUND_DEFAULT_STATE.pieceSetId &&
@@ -91,6 +105,39 @@ const isDefaultState = (state: PlaygroundState): boolean =>
   state.dragActivationDistance === PLAYGROUND_DEFAULT_STATE.dragActivationDistance &&
   state.promotionUi === PLAYGROUND_DEFAULT_STATE.promotionUi &&
   state.autoQueen === PLAYGROUND_DEFAULT_STATE.autoQueen;
+
+const parseStateFromParams = (
+  params: URLSearchParams,
+): { state: Partial<PlaygroundState>; hasState: boolean } => {
+  const state: Partial<PlaygroundState> = {};
+  let hasState = false;
+
+  const assign = <K extends keyof PlaygroundState>(
+    key: K,
+    value: PlaygroundState[K] | undefined,
+  ): void => {
+    if (value === undefined) {
+      return;
+    }
+
+    state[key] = value;
+    hasState = true;
+  };
+
+  assign('theme', parseThemeParam(params.get(PARAM_KEYS.theme)));
+  assign('pieceSetId', parsePieceSetParam(params.get(PARAM_KEYS.pieceSet)));
+  assign('showCoordinates', parseBooleanParam(params.get(PARAM_KEYS.showCoordinates)));
+  assign('highlightLegal', parseBooleanParam(params.get(PARAM_KEYS.highlightLegal)));
+  assign('interactive', parseBooleanParam(params.get(PARAM_KEYS.interactive)));
+  assign('autoFlip', parseBooleanParam(params.get(PARAM_KEYS.autoFlip)));
+  assign('allowDrawingArrows', parseBooleanParam(params.get(PARAM_KEYS.allowDrawingArrows)));
+  assign('animationDurationInMs', parseNumberParam(params.get(PARAM_KEYS.animationDurationInMs)));
+  assign('dragActivationDistance', parseNumberParam(params.get(PARAM_KEYS.dragActivationDistance)));
+  assign('promotionUi', parsePromotionUiParam(params.get(PARAM_KEYS.promotionUi)));
+  assign('autoQueen', parseBooleanParam(params.get(PARAM_KEYS.autoQueen)));
+
+  return { state, hasState };
+};
 
 export interface PlaygroundPermalinkPayload {
   orientation: PlaygroundOrientation;
@@ -178,74 +225,7 @@ export const parsePlaygroundPermalink = (search: string): PlaygroundPermalinkSna
     snapshot.orientation = orientation;
   }
 
-  const state: Partial<PlaygroundState> = {};
-  let hasState = false;
-
-  const theme = params.get(PARAM_KEYS.theme);
-  if (theme && VALID_THEMES.has(theme as ThemeName)) {
-    state.theme = theme as ThemeName;
-    hasState = true;
-  }
-
-  const pieceSet = params.get(PARAM_KEYS.pieceSet);
-  if (pieceSet && VALID_PIECE_SETS.has(pieceSet)) {
-    state.pieceSetId = pieceSet;
-    hasState = true;
-  }
-
-  const showCoordinates = parseBooleanParam(params.get(PARAM_KEYS.showCoordinates));
-  if (typeof showCoordinates === 'boolean') {
-    state.showCoordinates = showCoordinates;
-    hasState = true;
-  }
-
-  const highlightLegal = parseBooleanParam(params.get(PARAM_KEYS.highlightLegal));
-  if (typeof highlightLegal === 'boolean') {
-    state.highlightLegal = highlightLegal;
-    hasState = true;
-  }
-
-  const interactive = parseBooleanParam(params.get(PARAM_KEYS.interactive));
-  if (typeof interactive === 'boolean') {
-    state.interactive = interactive;
-    hasState = true;
-  }
-
-  const autoFlip = parseBooleanParam(params.get(PARAM_KEYS.autoFlip));
-  if (typeof autoFlip === 'boolean') {
-    state.autoFlip = autoFlip;
-    hasState = true;
-  }
-
-  const allowDrawingArrows = parseBooleanParam(params.get(PARAM_KEYS.allowDrawingArrows));
-  if (typeof allowDrawingArrows === 'boolean') {
-    state.allowDrawingArrows = allowDrawingArrows;
-    hasState = true;
-  }
-
-  const animationDurationInMs = parseNumberParam(params.get(PARAM_KEYS.animationDurationInMs));
-  if (typeof animationDurationInMs === 'number') {
-    state.animationDurationInMs = animationDurationInMs;
-    hasState = true;
-  }
-
-  const dragActivationDistance = parseNumberParam(params.get(PARAM_KEYS.dragActivationDistance));
-  if (typeof dragActivationDistance === 'number') {
-    state.dragActivationDistance = dragActivationDistance;
-    hasState = true;
-  }
-
-  const promotionUi = params.get(PARAM_KEYS.promotionUi);
-  if (promotionUi === 'inline' || promotionUi === 'dialog') {
-    state.promotionUi = promotionUi;
-    hasState = true;
-  }
-
-  const autoQueen = parseBooleanParam(params.get(PARAM_KEYS.autoQueen));
-  if (typeof autoQueen === 'boolean') {
-    state.autoQueen = autoQueen;
-    hasState = true;
-  }
+  const { hasState, state } = parseStateFromParams(params);
 
   if (hasState) {
     snapshot.state = state;

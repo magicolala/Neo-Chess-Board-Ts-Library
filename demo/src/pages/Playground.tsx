@@ -202,7 +202,10 @@ const formatPlyLabel = (ply: number): string => {
 
 const formatThemeLabel = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 const normalizeLabelForId = (prefix: string, label: string): string =>
-  `${prefix}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+  `${prefix}-${label
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')}`;
 
 const renderToggle = (
   label: string,
@@ -532,6 +535,90 @@ interface StressTestRunState {
   originalOptions: PlaygroundState;
   originalBoardSize: number;
 }
+
+interface PgnMetadata {
+  FEN?: string;
+  SetUp?: string;
+}
+
+type VerboseHistoryEntry = {
+  from: string;
+  to: string;
+  promotion?: string;
+};
+
+const resolveStartingFenFromMetadata = (
+  metadata: PgnMetadata | undefined,
+  fallbackFen: string,
+): string => {
+  const metadataFen = typeof metadata?.FEN === 'string' ? metadata.FEN.trim() : undefined;
+  const normalizedSetUp =
+    typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
+  const isCustomStartEnabled =
+    metadataFen && (!normalizedSetUp || normalizedSetUp === '1' || normalizedSetUp === 'true');
+
+  return isCustomStartEnabled ? metadataFen : fallbackFen;
+};
+
+const buildFramesFromHistory = (history: VerboseHistoryEntry[], startingFen: string): string[] => {
+  const timelineRules = new ChessJsRules(startingFen);
+  const frames: string[] = [timelineRules.getFEN()];
+
+  for (const move of history) {
+    const response = timelineRules.move({
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion,
+    });
+
+    if (!response.ok || typeof response.fen !== 'string') {
+      break;
+    }
+
+    frames.push(response.fen);
+  }
+
+  return frames.length > 0 ? frames : [startingFen];
+};
+
+const buildTimelineFromPgn = (
+  sourcePgn: string,
+  initialFen: string,
+  currentTimeline: string[],
+  currentIndex: number,
+): { frames: string[]; sanitizedPgn: string } => {
+  const trimmed = sourcePgn.trim();
+  const fallbackStartingFen = initialFen || DEFAULT_START_FEN;
+
+  if (trimmed.length === 0) {
+    return { frames: [fallbackStartingFen], sanitizedPgn: trimmed };
+  }
+
+  try {
+    const rules = new ChessJsRules();
+    const loaded = rules.loadPgn(trimmed);
+    if (!loaded) {
+      throw new Error('Failed to load PGN into ChessJsRules.');
+    }
+
+    const notation = rules.getPgnNotation?.();
+    const metadata = notation?.getMetadata?.() as PgnMetadata | undefined;
+    const startingFen = resolveStartingFenFromMetadata(metadata, fallbackStartingFen);
+    const sanitizedPgn = notation?.toPgnWithAnnotations?.() ?? trimmed;
+    const verboseHistory = rules
+      .getChessInstance()
+      .history({ verbose: true }) as VerboseHistoryEntry[];
+    const frames = buildFramesFromHistory(verboseHistory, startingFen);
+
+    return { frames, sanitizedPgn };
+  } catch (error) {
+    console.error('Failed to rebuild PGN timeline:', error);
+    const fallbackFrame =
+      currentTimeline[currentIndex] ?? currentTimeline[0] ?? fallbackStartingFen;
+
+    return { frames: [fallbackFrame], sanitizedPgn: trimmed };
+  }
+};
 
 const PlaygroundView: React.FC = () => {
   const permalinkSnapshot = useMemo(() => {
@@ -1164,75 +1251,21 @@ const PlaygroundView: React.FC = () => {
       if (!options?.preserveAutoplay) {
         stopAutoplay({ silent: true });
       }
-      const trimmed = sourcePgn.trim();
-      let sanitizedPgn = trimmed;
-      let startingFen = initialFenRef.current ?? DEFAULT_START_FEN;
-      let frames: string[] = [];
 
-      if (trimmed.length === 0) {
-        frames = [startingFen];
-      } else {
-        try {
-          const rules = new ChessJsRules();
-          const loaded = rules.loadPgn(trimmed);
-          if (!loaded) {
-            throw new Error('Failed to load PGN into ChessJsRules.');
-          }
-
-          const notation = rules.getPgnNotation?.();
-          const metadata = notation?.getMetadata?.();
-          const metadataFen = typeof metadata?.FEN === 'string' ? metadata.FEN.trim() : undefined;
-          const normalizedSetUp =
-            typeof metadata?.SetUp === 'string' ? metadata.SetUp.trim().toLowerCase() : undefined;
-          if (
-            metadataFen &&
-            (!normalizedSetUp || normalizedSetUp === '1' || normalizedSetUp === 'true')
-          ) {
-            startingFen = metadataFen;
-          }
-
-          sanitizedPgn = notation?.toPgnWithAnnotations?.() ?? trimmed;
-
-          const verboseHistory = rules.getChessInstance().history({ verbose: true }) as Array<{
-            from: string;
-            to: string;
-            promotion?: string;
-          }>;
-
-          const timelineRules = new ChessJsRules(startingFen);
-          const nextFrames: string[] = [timelineRules.getFEN()];
-          for (const move of verboseHistory) {
-            const response = timelineRules.move({
-              from: move.from,
-              to: move.to,
-              promotion: move.promotion,
-            });
-
-            if (!response.ok || typeof response.fen !== 'string') {
-              break;
-            }
-
-            nextFrames.push(response.fen);
-          }
-
-          frames = nextFrames.length > 0 ? nextFrames : [startingFen];
-        } catch (error) {
-          console.error('Failed to rebuild PGN timeline:', error);
-          const fallback =
-            fenTimelineRef.current[plyIndexRef.current] ?? fenTimelineRef.current[0] ?? startingFen;
-          frames = [fallback];
-        }
-      }
-
-      if (frames.length === 0) {
-        frames = [startingFen];
-      }
+      const { frames, sanitizedPgn } = buildTimelineFromPgn(
+        sourcePgn,
+        initialFenRef.current ?? DEFAULT_START_FEN,
+        fenTimelineRef.current,
+        plyIndexRef.current,
+      );
 
       fenTimelineRef.current = frames;
       setFenTimeline(frames);
 
       const maxIndex = frames.length > 0 ? frames.length - 1 : 0;
-      applyPly(options?.jumpToEnd ? maxIndex : Math.min(plyIndexRef.current, maxIndex), {
+      const targetIndex = options?.jumpToEnd ? maxIndex : Math.min(plyIndexRef.current, maxIndex);
+
+      applyPly(targetIndex, {
         timelineOverride: frames,
         logLabel: options?.logLabel,
       });
