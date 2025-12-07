@@ -506,7 +506,7 @@ export class ChessJsRules implements RulesAdapter {
       for (const rank of ranks) {
         const square = `${file}${rank}`;
         const piece = this.chess.get(square as ChessSquare);
-        if (piece && piece.type === 'k' && piece.color === color) {
+        if (piece?.type === 'k' && piece.color === color) {
           return square;
         }
       }

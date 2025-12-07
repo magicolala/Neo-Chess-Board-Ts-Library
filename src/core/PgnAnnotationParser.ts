@@ -166,7 +166,7 @@ export const PgnAnnotationParser = {
     });
 
     // The remaining text in processingComment is the actual text comment
-    let textComment = processingComment.replaceAll(/\s+/g, ' ').trim();
+    const textComment = processingComment.replaceAll(/\s+/g, ' ').trim();
 
     return {
       arrows,

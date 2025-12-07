@@ -2,6 +2,7 @@ import globals from 'globals';
 import pluginJs from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginReact from 'eslint-plugin-react';
+import pluginReactHooks from 'eslint-plugin-react-hooks';
 import prettierPlugin from 'eslint-plugin-prettier';
 import sonarjs from 'eslint-plugin-sonarjs';
 import unicorn from 'eslint-plugin-unicorn';
@@ -9,7 +10,7 @@ import unicorn from 'eslint-plugin-unicorn';
 export default [
   {
     // Global ignores
-    ignores: ['dist/', 'node_modules/', 'coverage/'],
+    ignores: ['dist/', 'node_modules/', 'coverage/', 'build/', '*.config.js'],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
@@ -19,16 +20,19 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-        ecmaVersion: 12,
+        ecmaVersion: 'latest',
         sourceType: 'module',
+        project: './tsconfig.json', // Pour les règles TypeScript avancées
       },
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...globals.es2021,
       },
     },
     plugins: {
       react: pluginReact,
+      'react-hooks': pluginReactHooks,
       '@typescript-eslint': tseslint.plugin,
       prettier: prettierPlugin,
       sonarjs,
@@ -36,13 +40,29 @@ export default [
     },
     rules: {
       ...pluginJs.configs.recommended.rules,
-      ...tseslint.configs.strict.rules,
+      ...tseslint.configs.strictTypeChecked.rules,
       ...pluginReact.configs.recommended.rules,
+      ...pluginReactHooks.configs.recommended.rules,
       ...prettierPlugin.configs.recommended.rules,
       ...sonarjs.configs.recommended.rules,
       ...unicorn.configs.recommended.rules,
+
+      // === React Rules ===
       'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off', // TypeScript gère le typage
+      'react/jsx-uses-react': 'off',
+      'react/no-unescaped-entities': 'error',
+      'react/jsx-no-target-blank': ['error', { enforceDynamicLinks: 'always' }],
+      'react/jsx-key': ['error', { checkFragmentShorthand: true }],
+
+      // === React Hooks Rules ===
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+
+      // === Prettier ===
       'prettier/prettier': 'error',
+
+      // === TypeScript Rules ===
       '@typescript-eslint/consistent-type-imports': [
         'error',
         {
@@ -51,9 +71,7 @@ export default [
           disallowTypeAnnotations: false,
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      'react/no-unescaped-entities': 'error',
-      'no-useless-escape': 'error',
+      '@typescript-eslint/no-explicit-any': 'error', // error au lieu de warn
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -62,10 +80,27 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/strict-boolean-expressions': 'off', // Peut être trop strict
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+
+      // === JavaScript Rules ===
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'warn',
+      'no-useless-escape': 'error',
       'no-redeclare': 'off',
       '@typescript-eslint/no-redeclare': 'error',
       'no-unused-vars': 'off',
-      // Unicorn rules to disable
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+
+      // === Unicorn Rules (ajustées) ===
       'unicorn/prevent-abbreviations': 'off',
       'unicorn/filename-case': 'off',
       'unicorn/no-null': 'off',
@@ -76,17 +111,19 @@ export default [
       'unicorn/no-array-reduce': 'off',
       'unicorn/no-array-sort': 'off',
       'unicorn/prefer-structured-clone': 'off',
+      'unicorn/prefer-top-level-await': 'off',
+      'unicorn/no-useless-undefined': 'off',
 
-      // Sonarjs rules - Configured for code quality improvement
+      // === SonarJS Rules ===
       'sonarjs/no-identical-functions': 'warn',
-      'sonarjs/cognitive-complexity': ['warn', 25],
+      'sonarjs/cognitive-complexity': ['warn', 20], // Plus strict
       'sonarjs/no-nested-conditional': 'warn',
       'sonarjs/no-nested-functions': 'warn',
       'sonarjs/constructor-for-side-effects': 'warn',
       'sonarjs/pseudo-random': 'warn',
-      // Note: slow-regex disabled - most regex patterns in this project are safe
-      // (PGN parsing, notation, etc. use controlled input sources)
       'sonarjs/slow-regex': 'off',
+      'sonarjs/no-duplicate-string': ['warn', { threshold: 5 }],
+      'sonarjs/prefer-immediate-return': 'warn',
     },
     settings: {
       react: {
@@ -94,17 +131,35 @@ export default [
       },
     },
   },
-  // Configuration for test files and setup files
+  // Configuration pour les tests
   {
     files: [
       '**/*.test.{js,mjs,cjs,ts,jsx,tsx}',
       '**/*.spec.{js,mjs,cjs,ts,jsx,tsx}',
-      'tests/setup.ts',
+      'tests/**/*.{js,ts,tsx}',
+      '**/__tests__/**/*.{js,ts,tsx}',
     ],
     languageOptions: {
       globals: {
-        ...globals.jest, // Enable Jest globals
+        ...globals.jest,
+        ...globals.node,
       },
+    },
+    rules: {
+      // Règles plus souples pour les tests
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      'sonarjs/no-duplicate-string': 'off',
+      'sonarjs/cognitive-complexity': 'off',
+    },
+  },
+  // Configuration pour les fichiers de config
+  {
+    files: ['*.config.{js,ts,mjs}', 'vite.config.ts', 'vitest.config.ts'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
     },
   },
 ];

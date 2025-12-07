@@ -504,7 +504,7 @@ export class DrawingManager {
       this.state.premoves = undefined;
     }
 
-    if (active && active.premove) {
+    if (active?.premove) {
       this.state.premove = { ...active.premove };
       this.state.activePremoveColor = active.color;
     } else {

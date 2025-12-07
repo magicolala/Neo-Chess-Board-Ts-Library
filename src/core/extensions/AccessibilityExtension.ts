@@ -215,7 +215,7 @@ export function createAccessibilityExtension(
       moveForm.append(moveLabel, moveInput, moveButton);
 
       const enableKeyboard = options.enableKeyboard ?? DEFAULT_OPTIONS.enableKeyboard;
-      let keyboardEnabled = enableKeyboard;
+      const keyboardEnabled = enableKeyboard;
       let orientation = board.getOrientation();
       let selectedSquare: Square | null = null;
       let focusedSquare: Square | null = null;

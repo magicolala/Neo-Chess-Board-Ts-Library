@@ -1853,7 +1853,7 @@ export class NeoChessBoard {
     }
 
     if (!this.clockManager) {
-      if (!config || config.initial === undefined) {
+      if (config?.initial === undefined) {
         return;
       }
 
@@ -3526,8 +3526,7 @@ export class NeoChessBoard {
 
   private _isConflictingWithPendingPromotion(from: Square, to: Square): boolean {
     return Boolean(
-      this._pendingPromotion &&
-        this._pendingPromotion.mode === 'move' &&
+      this._pendingPromotion?.mode === 'move' &&
         (this._pendingPromotion.from !== from || this._pendingPromotion.to !== to),
     );
   }
@@ -3816,7 +3815,7 @@ export class NeoChessBoard {
 
   private _resolvePromotion(token: number, piece: PromotionPiece): void {
     const pending = this._pendingPromotion;
-    if (!pending || pending.token !== token) return;
+    if (pending?.token !== token) return;
 
     this.previewPromotionPiece(piece);
 
@@ -3837,7 +3836,7 @@ export class NeoChessBoard {
 
   private _cancelPromotionRequest(token: number): void {
     const pending = this._pendingPromotion;
-    if (!pending || pending.token !== token) return;
+    if (pending?.token !== token) return;
 
     this._pendingPromotion = null;
     this._hideInlinePromotion();
@@ -3936,7 +3935,7 @@ export class NeoChessBoard {
       return primary;
     }
 
-    if (this.inlinePromotionContainer && this.inlinePromotionContainer.isConnected) {
+    if (this.inlinePromotionContainer?.isConnected) {
       return this.inlinePromotionContainer;
     }
 
@@ -4704,10 +4703,7 @@ export class NeoChessBoard {
     const hasExistingPieces =
       Boolean(this._pieceSetRaw) || Object.keys(this.customPieceSprites).length > 0;
 
-    return (
-      (!pieceSet || !pieceSet.pieces || Object.keys(pieceSet.pieces).length === 0) &&
-      hasExistingPieces
-    );
+    return (!pieceSet?.pieces || Object.keys(pieceSet.pieces).length === 0) && hasExistingPieces;
   }
 
   private _clearPieceSet(): void {
