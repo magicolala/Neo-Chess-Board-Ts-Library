@@ -1300,8 +1300,12 @@ export class NeoChessBoard {
     });
   }
 
+  private isPieceSetDefined(pieceSet?: PieceSet | null): pieceSet is PieceSet {
+    return pieceSet != null;
+  }
+
   private _initializePieceSetAsync(pieceSet?: PieceSet | null): void {
-    if (!pieceSet) {
+    if (!this.isPieceSetDefined(pieceSet)) {
       return;
     }
 
@@ -1316,11 +1320,11 @@ export class NeoChessBoard {
       return;
     }
 
-    if (pieceSet === this._pieceSetRaw) {
+    if (!this.isPieceSetDefined(pieceSet) || pieceSet === this._pieceSetRaw) {
       return;
     }
 
-    await this._loadPieceSet(pieceSet!);
+    await this._loadPieceSet(pieceSet);
   }
 
   public setOrientation(orientation: 'white' | 'black'): void {
@@ -2240,18 +2244,12 @@ export class NeoChessBoard {
     this._recordRenderRect(layer, 'sprite', dx, dy, dWidth, dHeight);
   }
 
-  private _drawBoard(transform?: CameraTransform | null): void {
-    const { light, dark, boardBorder } = this.theme;
-    const ctx = this.ctxB;
+  private _renderBoardSquares(
+    ctx: CanvasRenderingContext2D,
+    light: string,
+    dark: string,
+  ): void {
     const s = this.square;
-    const W = this.cBoard.width;
-    const H = this.cBoard.height;
-
-    this._clearCanvas(ctx, 'board', 0, 0, W, H);
-    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cBoard, transform);
-    ctx.fillStyle = boardBorder;
-    this._fillCanvas(ctx, 'board', 0, 0, W, H);
-
     for (let r = 0; r < this.ranksCount; r++) {
       for (let f = 0; f < this.filesCount; f++) {
         const square = this._indicesToSquare(f, r);
@@ -2272,6 +2270,20 @@ export class NeoChessBoard {
         }
       }
     }
+  }
+
+  private _drawBoard(transform?: CameraTransform | null): void {
+    const { light, dark, boardBorder } = this.theme;
+    const ctx = this.ctxB;
+    const W = this.cBoard.width;
+    const H = this.cBoard.height;
+
+    this._clearCanvas(ctx, 'board', 0, 0, W, H);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cBoard, transform);
+    ctx.fillStyle = boardBorder;
+    this._fillCanvas(ctx, 'board', 0, 0, W, H);
+
+    this._renderBoardSquares(ctx, light, dark);
 
     this._renderSquareOverlays();
 
