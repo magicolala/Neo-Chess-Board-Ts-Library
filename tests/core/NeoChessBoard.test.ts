@@ -1338,7 +1338,7 @@ describe('NeoChessBoard Core', () => {
       board.setAllowPremoves(false);
 
       expect(getPrivate<boolean>(board, 'allowPremoves')).toBe(false);
-      expect(setQueuesSpy).toHaveBeenCalledWith(undefined, undefined);
+      expect(setQueuesSpy).toHaveBeenCalledWith(undefined);
       expect(renderSpy).toHaveBeenCalled();
 
       setQueuesSpy.mockRestore();

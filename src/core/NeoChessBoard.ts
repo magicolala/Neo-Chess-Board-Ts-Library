@@ -111,6 +111,7 @@ const PREMOVE_EXECUTION_DELAY = 150;
 const POST_MOVE_PREMOVE_DELAY = 50;
 
 type AnimationEasingId = AnimationEasingName | 'custom';
+type MoveAttemptResult = 'success' | 'failed' | 'pending';
 
 const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
   'light',
@@ -452,7 +453,7 @@ export class NeoChessBoard {
 
     // Initialize feature flags
     this.interactive = options.interactive !== false;
-    this.showCoords = options.showCoordinates || false;
+    this.showCoords = options.showCoordinates ?? false;
     this.highlightLegal = options.highlightLegal !== false;
     this._applyInitialPremoveSettings(premoveSettings);
     this.allowPremoves = allowPremoves;
@@ -505,7 +506,7 @@ export class NeoChessBoard {
     const animationOptions = options.animation;
     const hasAnimationEasing =
       animationOptions && Object.prototype.hasOwnProperty.call(animationOptions, 'easing');
-    const initialEasing = hasAnimationEasing ? animationOptions?.easing : options.animationEasing;
+    const initialEasing = hasAnimationEasing ? animationOptions.easing : options.animationEasing;
     this._setAnimationEasing(initialEasing);
     this.arrowOptions = options.arrowOptions;
     this.onArrowsChange = options.onArrowsChange;
@@ -921,7 +922,7 @@ export class NeoChessBoard {
     options: { promotion?: Move['promotion'] } = {},
   ): boolean {
     const outcome = this._attemptMove(from, to, options);
-    return outcome !== false;
+    return outcome !== 'failed';
   }
 
   public undoMove(immediate = false): boolean {
@@ -3494,20 +3495,20 @@ export class NeoChessBoard {
     from: Square,
     to: Square,
     options: { promotion?: Move['promotion'] } = {},
-  ): boolean | 'pending' {
+  ): MoveAttemptResult {
     if (this._isConflictingWithPendingPromotion(from, to)) {
-      return false;
+      return 'failed';
     }
 
     const piece = this._pieceAt(from);
-    if (!piece) return false;
+    if (!piece) return 'failed';
 
     const side = isWhitePiece(piece) ? 'w' : 'b';
     const promotion = options.promotion?.toLowerCase() as PromotionPiece | undefined;
 
     if (from === to) {
       this.renderAll();
-      return true;
+      return 'success';
     }
 
     if (side !== this.state.turn) {
@@ -3537,32 +3538,32 @@ export class NeoChessBoard {
     to: Square,
     side: 'w' | 'b',
     promotion?: PromotionPiece,
-  ): boolean | 'pending' {
-    if (!this.allowPremoves || !this._premoveSettings.colors[side]) return false;
+  ): MoveAttemptResult {
+    if (!this.allowPremoves || !this._premoveSettings.colors[side]) return 'failed';
 
     const piece = this._pieceAt(from)!;
     if (this._isPromotionMove(piece, to, side) && !promotion) {
       if (this.promotionOptions.autoQueen) {
         this._setPremove(from, to, 'q', side);
-        return true;
+        return 'success';
       }
       return this._beginPromotionRequest(from, to, side, 'premove');
     }
 
     this._setPremove(from, to, promotion, side);
-    return true;
+    return 'success';
   }
 
-  private _executeMove(from: Square, to: Square, promotion?: PromotionPiece): boolean {
+  private _executeMove(from: Square, to: Square, promotion?: PromotionPiece): MoveAttemptResult {
     const legal = this.rules.move({ from, to, promotion });
 
     if (legal?.ok) {
       this._processMoveSuccess(from, to, legal);
-      return true;
+      return 'success';
     }
 
     this._processMoveFailure(from, to, legal);
-    return false;
+    return 'failed';
   }
 
   private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {
@@ -3778,7 +3779,7 @@ export class NeoChessBoard {
     to: Square,
     color: 'w' | 'b',
     mode: PromotionMode,
-  ): 'pending' {
+  ): MoveAttemptResult {
     this._cancelPendingPromotion();
 
     const token = ++this._promotionToken;
@@ -4247,7 +4248,7 @@ export class NeoChessBoard {
   private _syncPremoveDisplay(preferredColor?: Color, render = false): void {
     if (!this.allowPremoves) {
       if (this.drawingManager) {
-        this.drawingManager.setPremoveQueues(undefined, undefined);
+        this.drawingManager.setPremoveQueues(undefined);
       }
       this._premove = null;
       if (render) {
@@ -4751,11 +4752,8 @@ export class NeoChessBoard {
     sprite: PieceSpriteSource | PieceSprite,
     defaultScale: number,
   ): Promise<ResolvedPieceSprite | null> {
-    let config: PieceSprite;
-    config =
-      typeof sprite === 'object' && sprite !== null && 'image' in (sprite as PieceSprite)
-        ? (sprite as PieceSprite)
-        : ({ image: sprite } as PieceSprite);
+    const config: PieceSprite =
+      typeof sprite === 'object' && 'image' in sprite ? sprite : ({ image: sprite } as PieceSprite);
 
     let source: PieceSpriteImage | null = null;
     if (typeof config.image === 'string') {
