@@ -1,5 +1,10 @@
 import { PgnAnnotationParser } from '../../src/core/PgnAnnotationParser';
+import type { PgnParseError } from '../../src/core/errors';
 import type { Arrow, SquareHighlight } from '../../src/core/types';
+
+const isInvalidArrowSquare = (issue: PgnParseError) =>
+  issue.code === 'PGN_PARSE_INVALID_ARROW_SQUARE';
+const isInvalidArrowSpec = (issue: PgnParseError) => issue.code === 'PGN_PARSE_INVALID_ARROW_SPEC';
 
 describe('PgnAnnotationParser', () => {
   describe('hasVisualAnnotations', () => {
@@ -139,40 +144,35 @@ describe('PgnAnnotationParser', () => {
         expect(result.textComment).toBe('');
       });
     });
+  });
+  describe('parseComment edge cases', () => {
+    it('should handle invalid square notation gracefully', () => {
+      const result = PgnAnnotationParser.parseComment('%cal Rz9z9,Ra1a2');
+      expect(result.arrows).toHaveLength(1); // Only the valid one
+      expect(result.arrows[0].from).toBe('a1');
+      expect(result.issues).toBeDefined();
+      expect(result.issues?.some((issue) => isInvalidArrowSquare(issue))).toBe(true);
+    });
 
-    describe('Edge cases', () => {
-      it('should handle invalid square notation gracefully', () => {
-        const result = PgnAnnotationParser.parseComment('%cal Rz9z9,Ra1a2');
-        expect(result.arrows).toHaveLength(1); // Only the valid one
-        expect(result.arrows[0].from).toBe('a1');
-        expect(result.issues).toBeDefined();
-        expect(
-          result.issues?.some((issue) => issue.code === 'PGN_PARSE_INVALID_ARROW_SQUARE'),
-        ).toBe(true);
-      });
+    it('should handle invalid color codes', () => {
+      const result = PgnAnnotationParser.parseComment('%cal Xa1a2,Ra2a3');
+      expect(result.arrows).toHaveLength(2);
+      expect(result.issues).toBeUndefined();
+    });
 
-      it('should handle invalid color codes', () => {
-        const result = PgnAnnotationParser.parseComment('%cal Xa1a2,Ra2a3');
-        expect(result.arrows).toHaveLength(2);
-        expect(result.issues).toBeUndefined();
-      });
+    it('should handle malformed annotations', () => {
+      const result = PgnAnnotationParser.parseComment('%cal R,abc,Ra1a2');
+      expect(result.arrows).toHaveLength(1); // Only the valid one
+      expect(result.arrows[0].from).toBe('a1');
+      expect(result.issues?.filter((issue) => isInvalidArrowSpec(issue))).toHaveLength(2);
+    });
 
-      it('should handle malformed annotations', () => {
-        const result = PgnAnnotationParser.parseComment('%cal R,abc,Ra1a2');
-        expect(result.arrows).toHaveLength(1); // Only the valid one
-        expect(result.arrows[0].from).toBe('a1');
-        expect(
-          result.issues?.filter((issue) => issue.code === 'PGN_PARSE_INVALID_ARROW_SPEC'),
-        ).toHaveLength(2);
-      });
-
-      it('should return empty arrays for no annotations', () => {
-        const result = PgnAnnotationParser.parseComment('Just a comment');
-        expect(result.arrows).toHaveLength(0);
-        expect(result.highlights).toHaveLength(0);
-        expect(result.textComment).toBe('Just a comment');
-        expect(result.issues).toBeUndefined();
-      });
+    it('should return empty arrays for no annotations', () => {
+      const result = PgnAnnotationParser.parseComment('Just a comment');
+      expect(result.arrows).toHaveLength(0);
+      expect(result.highlights).toHaveLength(0);
+      expect(result.textComment).toBe('Just a comment');
+      expect(result.issues).toBeUndefined();
     });
   });
 

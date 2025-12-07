@@ -342,24 +342,20 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     const computedStyle = useMemo<CSSProperties | undefined>(() => {
       const columnCountRaw = options.chessboardColumns ?? restOptions.chessboardColumns;
       const rowCountRaw = options.chessboardRows ?? restOptions.chessboardRows;
-      const columnCount = Math.max(
-        1,
-        Math.floor(
-          typeof columnCountRaw === 'number' && Number.isFinite(columnCountRaw)
-            ? columnCountRaw
-            : typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw)
-              ? rowCountRaw
-              : 8,
-        ),
-      );
-      const rowCount = Math.max(
-        1,
-        Math.floor(
-          typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw)
-            ? rowCountRaw
-            : columnCount,
-        ),
-      );
+      const hasValidColumnCount =
+        typeof columnCountRaw === 'number' && Number.isFinite(columnCountRaw);
+      const hasValidRowCount = typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw);
+
+      let columnCountCandidate: number | undefined = hasValidColumnCount
+        ? columnCountRaw
+        : undefined;
+      if (!columnCountCandidate && hasValidRowCount) {
+        columnCountCandidate = rowCountRaw;
+      }
+      const columnCount = Math.max(1, Math.floor(columnCountCandidate ?? 8));
+
+      const rowCountCandidate = hasValidRowCount ? rowCountRaw : columnCount;
+      const rowCount = Math.max(1, Math.floor(rowCountCandidate));
       const aspectRatioValue = `${columnCount} / ${rowCount}`;
 
       let merged: CSSProperties | undefined = { aspectRatio: aspectRatioValue };

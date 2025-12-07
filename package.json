@@ -79,8 +79,8 @@
     "chess.js": "^1.4.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.16",
     "@tailwindcss/cli": "^4.1.16",
+    "@tailwindcss/postcss": "^4.1.16",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -95,6 +95,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-sonarjs": "^3.0.5",
     "eslint-plugin-unicorn": "^62.0.0",
     "identity-obj-proxy": "^3.0.0",
@@ -106,9 +107,9 @@
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.16",
     "terser": "^5.43.1",
+    "ts-jest": "^29.4.1",
     "typedoc": "^0.28.14",
     "typedoc-plugin-markdown": "^4.9.0",
-    "ts-jest": "^29.4.1",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.43.0",
     "vite": "^6.3.5"

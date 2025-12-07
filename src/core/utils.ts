@@ -218,35 +218,9 @@ export interface ParsedFENState {
   fullmove: number;
 }
 
-function validateFenString(fen: string): string[] {
-  const trimmedFen = fen.trim();
-  const baseDetails: FenErrorDetails = { fen: trimmedFen || fen };
-  const fail = (code: FenErrorCode, reason: string, details?: FenErrorDetails): never => {
-    throw new InvalidFENError(`Invalid FEN: ${reason}`, code, {
-      ...baseDetails,
-      ...details,
-    });
-  };
+type FenValidationFail = (code: FenErrorCode, reason: string, details?: FenErrorDetails) => never;
 
-  if (!trimmedFen) {
-    fail('INVALID_FEN_EMPTY', 'FEN string cannot be empty.');
-  }
-
-  const parts = trimmedFen.split(/\s+/);
-  if (parts.length === 0 || parts.length > 6) {
-    fail(
-      'INVALID_FEN_FIELD_COUNT',
-      `FEN string must contain between 1 and 6 fields. Received ${parts.length}.`,
-      { fieldValue: String(parts.length) },
-    );
-  }
-
-  const boardPart = parts[0];
-  const rows = boardPart.split('/');
-  if (rows.length === 0) {
-    fail('INVALID_FEN_BOARD_EMPTY', 'FEN board description must contain at least one rank.');
-  }
-
+function validateBoardRows(rows: string[], fail: FenValidationFail): void {
   const piecePattern = /^[prnbqkPRNBQK]$/;
   let describedFiles: number | null = null;
 
@@ -257,10 +231,10 @@ function validateFenString(fen: string): string[] {
       const char = row[i]!;
       if (/\d/.test(char)) {
         let digits = char;
-        i++;
+        i += 1;
         while (i < row.length && /\d/.test(row[i]!)) {
           digits += row[i]!;
-          i++;
+          i += 1;
         }
         const emptyCount = Number.parseInt(digits, 10);
         if (!Number.isFinite(emptyCount) || emptyCount <= 0) {
@@ -273,7 +247,7 @@ function validateFenString(fen: string): string[] {
         totalSquares += emptyCount;
       } else if (piecePattern.test(char)) {
         totalSquares += 1;
-        i++;
+        i += 1;
       } else {
         fail(
           'INVALID_FEN_INVALID_PIECE',
@@ -309,6 +283,42 @@ function validateFenString(fen: string): string[] {
       );
     }
   }
+}
+
+function validateFenString(fen: string): string[] {
+  const trimmedFen = fen.trim();
+  const baseDetails: FenErrorDetails = { fen: trimmedFen || fen };
+  const fail: FenValidationFail = (
+    code: FenErrorCode,
+    reason: string,
+    details?: FenErrorDetails,
+  ) => {
+    throw new InvalidFENError(`Invalid FEN: ${reason}`, code, {
+      ...baseDetails,
+      ...details,
+    });
+  };
+
+  if (!trimmedFen) {
+    fail('INVALID_FEN_EMPTY', 'FEN string cannot be empty.');
+  }
+
+  const parts = trimmedFen.split(/\s+/);
+  if (parts.length === 0 || parts.length > 6) {
+    fail(
+      'INVALID_FEN_FIELD_COUNT',
+      `FEN string must contain between 1 and 6 fields. Received ${parts.length}.`,
+      { fieldValue: String(parts.length) },
+    );
+  }
+
+  const boardPart = parts[0];
+  const rows = boardPart.split('/');
+  if (rows.length === 0) {
+    fail('INVALID_FEN_BOARD_EMPTY', 'FEN board description must contain at least one rank.');
+  }
+
+  validateBoardRows(rows, fail);
 
   if (parts[1] && parts[1] !== 'w' && parts[1] !== 'b') {
     fail(

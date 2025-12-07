@@ -191,6 +191,15 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
 
   const containerClassName = className ? `${styles.container} ${className}` : styles.container;
   const scoreClassName = parsed.hasValue ? styles.score : styles.scoreMuted;
+  const summarySecondary = (() => {
+    if (!parsed.hasValue) {
+      return translate('evaluationBar.importHint');
+    }
+    if (ply > 0) {
+      return translate('evaluationBar.afterMove', { move: moveDescriptor });
+    }
+    return translate('evaluationBar.initial');
+  })();
 
   return (
     <div className={containerClassName}>
@@ -206,13 +215,7 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
       </div>
       <div className={styles.summary}>
         <span className={styles.summaryPrimary}>{advantageText}</span>
-        <span className={styles.summarySecondary}>
-          {parsed.hasValue
-            ? ply > 0
-              ? translate('evaluationBar.afterMove', { move: moveDescriptor })
-              : translate('evaluationBar.initial')
-            : translate('evaluationBar.importHint')}
-        </span>
+        <span className={styles.summarySecondary}>{summarySecondary}</span>
       </div>
     </div>
   );

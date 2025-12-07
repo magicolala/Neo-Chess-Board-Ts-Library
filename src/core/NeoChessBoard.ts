@@ -4777,12 +4777,12 @@ export class NeoChessBoard {
   private _loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const doc = this.root?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
-      const img =
-        typeof Image === 'undefined'
-          ? doc
-            ? (doc.createElement('img') as HTMLImageElement)
-            : null
-          : new Image();
+      let img: HTMLImageElement | null = null;
+      if (typeof Image !== 'undefined') {
+        img = new Image();
+      } else if (doc) {
+        img = doc.createElement('img') as HTMLImageElement;
+      }
 
       if (!img) {
         reject(new Error('Image loading is not supported in the current environment.'));

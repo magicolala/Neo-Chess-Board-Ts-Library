@@ -156,53 +156,84 @@ export const serializePlaygroundPermalink = (
 ): URLSearchParams => {
   const params = new URLSearchParams();
 
-  if (payload.orientation !== DEFAULT_ORIENTATION) {
-    params.set(PARAM_KEYS.orientation, encodeOrientation(payload.orientation));
-  }
+  const setIfChanged = <T>(
+    key: string,
+    value: T,
+    defaultValue: T,
+    formatter: (current: T) => string,
+  ): void => {
+    if (value !== defaultValue) {
+      params.set(key, formatter(value));
+    }
+  };
 
-  if (payload.state.theme !== PLAYGROUND_DEFAULT_STATE.theme) {
-    params.set(PARAM_KEYS.theme, payload.state.theme);
-  }
-
-  if (payload.state.pieceSetId !== PLAYGROUND_DEFAULT_STATE.pieceSetId) {
-    params.set(PARAM_KEYS.pieceSet, payload.state.pieceSetId);
-  }
-
-  if (payload.state.showCoordinates !== PLAYGROUND_DEFAULT_STATE.showCoordinates) {
-    params.set(PARAM_KEYS.showCoordinates, encodeBoolean(payload.state.showCoordinates));
-  }
-
-  if (payload.state.highlightLegal !== PLAYGROUND_DEFAULT_STATE.highlightLegal) {
-    params.set(PARAM_KEYS.highlightLegal, encodeBoolean(payload.state.highlightLegal));
-  }
-
-  if (payload.state.interactive !== PLAYGROUND_DEFAULT_STATE.interactive) {
-    params.set(PARAM_KEYS.interactive, encodeBoolean(payload.state.interactive));
-  }
-
-  if (payload.state.autoFlip !== PLAYGROUND_DEFAULT_STATE.autoFlip) {
-    params.set(PARAM_KEYS.autoFlip, encodeBoolean(payload.state.autoFlip));
-  }
-
-  if (payload.state.allowDrawingArrows !== PLAYGROUND_DEFAULT_STATE.allowDrawingArrows) {
-    params.set(PARAM_KEYS.allowDrawingArrows, encodeBoolean(payload.state.allowDrawingArrows));
-  }
-
-  if (payload.state.animationDurationInMs !== PLAYGROUND_DEFAULT_STATE.animationDurationInMs) {
-    params.set(PARAM_KEYS.animationDurationInMs, String(payload.state.animationDurationInMs));
-  }
-
-  if (payload.state.dragActivationDistance !== PLAYGROUND_DEFAULT_STATE.dragActivationDistance) {
-    params.set(PARAM_KEYS.dragActivationDistance, String(payload.state.dragActivationDistance));
-  }
-
-  if (payload.state.promotionUi !== PLAYGROUND_DEFAULT_STATE.promotionUi) {
-    params.set(PARAM_KEYS.promotionUi, payload.state.promotionUi);
-  }
-
-  if (payload.state.autoQueen !== PLAYGROUND_DEFAULT_STATE.autoQueen) {
-    params.set(PARAM_KEYS.autoQueen, encodeBoolean(payload.state.autoQueen));
-  }
+  setIfChanged(PARAM_KEYS.orientation, payload.orientation, DEFAULT_ORIENTATION, encodeOrientation);
+  setIfChanged(
+    PARAM_KEYS.theme,
+    payload.state.theme,
+    PLAYGROUND_DEFAULT_STATE.theme,
+    (value) => value,
+  );
+  setIfChanged(
+    PARAM_KEYS.pieceSet,
+    payload.state.pieceSetId,
+    PLAYGROUND_DEFAULT_STATE.pieceSetId,
+    (value) => value,
+  );
+  setIfChanged(
+    PARAM_KEYS.showCoordinates,
+    payload.state.showCoordinates,
+    PLAYGROUND_DEFAULT_STATE.showCoordinates,
+    encodeBoolean,
+  );
+  setIfChanged(
+    PARAM_KEYS.highlightLegal,
+    payload.state.highlightLegal,
+    PLAYGROUND_DEFAULT_STATE.highlightLegal,
+    encodeBoolean,
+  );
+  setIfChanged(
+    PARAM_KEYS.interactive,
+    payload.state.interactive,
+    PLAYGROUND_DEFAULT_STATE.interactive,
+    encodeBoolean,
+  );
+  setIfChanged(
+    PARAM_KEYS.autoFlip,
+    payload.state.autoFlip,
+    PLAYGROUND_DEFAULT_STATE.autoFlip,
+    encodeBoolean,
+  );
+  setIfChanged(
+    PARAM_KEYS.allowDrawingArrows,
+    payload.state.allowDrawingArrows,
+    PLAYGROUND_DEFAULT_STATE.allowDrawingArrows,
+    encodeBoolean,
+  );
+  setIfChanged(
+    PARAM_KEYS.animationDurationInMs,
+    payload.state.animationDurationInMs,
+    PLAYGROUND_DEFAULT_STATE.animationDurationInMs,
+    String,
+  );
+  setIfChanged(
+    PARAM_KEYS.dragActivationDistance,
+    payload.state.dragActivationDistance,
+    PLAYGROUND_DEFAULT_STATE.dragActivationDistance,
+    String,
+  );
+  setIfChanged(
+    PARAM_KEYS.promotionUi,
+    payload.state.promotionUi,
+    PLAYGROUND_DEFAULT_STATE.promotionUi,
+    (value) => value,
+  );
+  setIfChanged(
+    PARAM_KEYS.autoQueen,
+    payload.state.autoQueen,
+    PLAYGROUND_DEFAULT_STATE.autoQueen,
+    encodeBoolean,
+  );
 
   if (typeof payload.fen === 'string' && payload.fen.trim().length > 0) {
     params.set(PARAM_KEYS.fen, payload.fen.trim());

@@ -43,6 +43,19 @@ function boardToFEN(state: ParsedFENState) {
   }`;
 }
 
+type MoveAccumulator = Array<{ f: number; r: number; ep?: boolean }>;
+type OccupancyLookup = (file: number, rank: number) => string | null;
+type EnemyDetector = (piece: string | null) => boolean;
+
+interface MoveContext {
+  f0: number;
+  r0: number;
+  isWhite: boolean;
+  occ: OccupancyLookup;
+  enemy: EnemyDetector;
+  pushes: MoveAccumulator;
+}
+
 export class LightRules implements RulesAdapter {
   private state = parseFEN(START_FEN);
   private historyStore = createHistoryStore(START_FEN);
@@ -76,111 +89,149 @@ export class LightRules implements RulesAdapter {
     const r = RANKS.indexOf(square[1] as (typeof RANKS)[number]);
     return this.state.board[r][f];
   }
+  private collectRayMoves(context: MoveContext, df: number, dr: number): void {
+    const { f0, r0, occ, enemy, pushes } = context;
+    let file = f0 + df;
+    let rank = r0 + dr;
+    while (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
+      const target = occ(file, rank);
+      if (target) {
+        if (enemy(target)) {
+          pushes.push({ f: file, r: rank });
+        }
+        break;
+      }
+      pushes.push({ f: file, r: rank });
+      file += df;
+      rank += dr;
+    }
+  }
+  private collectSlidingMoves(
+    context: MoveContext,
+    directions: ReadonlyArray<readonly [number, number]>,
+  ): void {
+    for (const [df, dr] of directions) {
+      this.collectRayMoves(context, df, dr);
+    }
+  }
+  private collectKnightMoves(context: MoveContext): void {
+    const { f0, r0, occ, enemy, pushes } = context;
+    for (const [df, dr] of [
+      [1, 2],
+      [2, 1],
+      [-1, 2],
+      [-2, 1],
+      [1, -2],
+      [2, -1],
+      [-1, -2],
+      [-2, -1],
+    ] as const) {
+      const file = f0 + df;
+      const rank = r0 + dr;
+      if (file < 0 || file > 7 || rank < 0 || rank > 7) continue;
+      const target = occ(file, rank);
+      if (!target || enemy(target)) pushes.push({ f: file, r: rank });
+    }
+  }
+  private collectKingMoves(context: MoveContext): void {
+    const { f0, r0, occ, enemy, pushes } = context;
+    for (let df = -1; df <= 1; df += 1) {
+      for (let dr = -1; dr <= 1; dr += 1) {
+        if (!df && !dr) continue;
+        const file = f0 + df;
+        const rank = r0 + dr;
+        if (file < 0 || file > 7 || rank < 0 || rank > 7) continue;
+        const target = occ(file, rank);
+        if (!target || enemy(target)) pushes.push({ f: file, r: rank });
+      }
+    }
+  }
+  private collectPawnMoves(context: MoveContext): void {
+    const { f0, r0, isWhite, occ, enemy, pushes } = context;
+    const dir = isWhite ? 1 : -1;
+    const start = isWhite ? 1 : 6;
+    if (!occ(f0, r0 + dir)) pushes.push({ f: f0, r: r0 + dir });
+    if (r0 === start && !occ(f0, r0 + dir) && !occ(f0, r0 + 2 * dir)) {
+      pushes.push({ f: f0, r: r0 + 2 * dir });
+    }
+    for (const df of [-1, 1]) {
+      const file = f0 + df;
+      const rank = r0 + dir;
+      if (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
+        const target = occ(file, rank);
+        if (target && enemy(target)) pushes.push({ f: file, r: rank });
+      }
+    }
+    if (this.state.ep && this.state.ep !== '-') {
+      const ef = FILES.indexOf(this.state.ep[0] as (typeof FILES)[number]);
+      const er = RANKS.indexOf(this.state.ep[1] as (typeof RANKS)[number]);
+      if (er === r0 + dir && Math.abs(ef - f0) === 1) pushes.push({ f: ef, r: er, ep: true });
+    }
+  }
   movesFrom(square: Square): Move[] {
-    const p = this.pieceAt(square);
-    if (!p) return [];
-    const isW = isWhitePiece(p);
-    const me: Color = isW ? 'w' : 'b';
+    const piece = this.pieceAt(square);
+    if (!piece) return [];
+    const isWhite = isWhitePiece(piece);
+    const me: Color = isWhite ? 'w' : 'b';
     if (me !== this.state.turn) return [];
     const f0 = FILES.indexOf(square[0] as (typeof FILES)[number]);
     const r0 = RANKS.indexOf(square[1] as (typeof RANKS)[number]);
-    const occ = (F: number, R: number) => this.state.board[R][F];
-    const enemy = (pp: string | null) => pp && isWhitePiece(pp) !== isW;
-    const pushes: { f: number; r: number; ep?: boolean }[] = [];
-    const ray = (df: number, dr: number) => {
-      let F = f0 + df,
-        R = r0 + dr;
-      while (F >= 0 && F < 8 && R >= 0 && R < 8) {
-        const t = occ(F, R);
-        if (t) {
-          if (enemy(t)) pushes.push({ f: F, r: R });
-          break;
-        } else {
-          pushes.push({ f: F, r: R });
-        }
-        F += df;
-        R += dr;
-      }
-    };
-    switch (p.toLowerCase()) {
+    const occ: OccupancyLookup = (file: number, rank: number) => this.state.board[rank][file];
+    const enemy: EnemyDetector = (pp: string | null) => !!pp && isWhitePiece(pp) !== isWhite;
+    const pushes: MoveAccumulator = [];
+
+    const context: MoveContext = { f0, r0, isWhite, occ, enemy, pushes };
+    const pieceCode = piece.toLowerCase();
+
+    switch (pieceCode) {
       case 'p': {
-        const dir = isW ? 1 : -1;
-        const start = isW ? 1 : 6;
-        if (!occ(f0, r0 + dir)) pushes.push({ f: f0, r: r0 + dir });
-        if (r0 === start && !occ(f0, r0 + dir) && !occ(f0, r0 + 2 * dir))
-          pushes.push({ f: f0, r: r0 + 2 * dir });
-        for (const df of [-1, 1]) {
-          const F = f0 + df,
-            R = r0 + dir;
-          if (F >= 0 && F < 8 && R >= 0 && R < 8) {
-            const t = occ(F, R);
-            if (t && enemy(t)) pushes.push({ f: F, r: R });
-          }
-        }
-        if (this.state.ep && this.state.ep !== '-') {
-          const ef = FILES.indexOf(this.state.ep[0] as (typeof FILES)[number]);
-          const er = RANKS.indexOf(this.state.ep[1] as (typeof RANKS)[number]);
-          if (er === r0 + dir && Math.abs(ef - f0) === 1) pushes.push({ f: ef, r: er, ep: true });
-        }
+        this.collectPawnMoves(context);
         break;
       }
       case 'n': {
-        for (const [df, dr] of [
-          [1, 2],
-          [2, 1],
-          [-1, 2],
-          [-2, 1],
-          [1, -2],
-          [2, -1],
-          [-1, -2],
-          [-2, -1],
-        ] as const) {
-          const F = f0 + df,
-            R = r0 + dr;
-          if (F < 0 || F > 7 || R < 0 || R > 7) continue;
-          const t = occ(F, R);
-          if (!t || enemy(t)) pushes.push({ f: F, r: R });
-        }
-        break;
-      }
-      case 'b': {
-        ray(1, 1);
-        ray(-1, 1);
-        ray(1, -1);
-        ray(-1, -1);
-        break;
-      }
-      case 'r': {
-        ray(1, 0);
-        ray(-1, 0);
-        ray(0, 1);
-        ray(0, -1);
-        break;
-      }
-      case 'q': {
-        ray(1, 0);
-        ray(-1, 0);
-        ray(0, 1);
-        ray(0, -1);
-        ray(1, 1);
-        ray(-1, 1);
-        ray(1, -1);
-        ray(-1, -1);
+        this.collectKnightMoves(context);
         break;
       }
       case 'k': {
-        for (let df = -1; df <= 1; df++)
-          for (let dr = -1; dr <= 1; dr++) {
-            if (!df && !dr) continue;
-            const F = f0 + df,
-              R = r0 + dr;
-            if (F < 0 || F > 7 || R < 0 || R > 7) continue;
-            const t = occ(F, R);
-            if (!t || enemy(t)) pushes.push({ f: F, r: R });
-          }
+        this.collectKingMoves(context);
+        break;
+      }
+      case 'b': {
+        this.collectSlidingMoves(context, [
+          [1, 1],
+          [-1, 1],
+          [1, -1],
+          [-1, -1],
+        ]);
+        break;
+      }
+      case 'r': {
+        this.collectSlidingMoves(context, [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]);
+        break;
+      }
+      case 'q': {
+        this.collectSlidingMoves(context, [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+          [1, 1],
+          [-1, 1],
+          [1, -1],
+          [-1, -1],
+        ]);
+        break;
+      }
+      default: {
         break;
       }
     }
+
     const sq = (f: number, r: number) => (FILES[f] + RANKS[r]) as Square;
     return pushes.map(({ f, r, ep }) => ({
       from: (FILES[f0] + RANKS[r0]) as Square,

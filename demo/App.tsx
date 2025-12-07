@@ -378,6 +378,48 @@ const getFiftyMoveRuleTag = (
   };
 };
 
+type TranslateFunction = ReturnType<typeof useTranslation>['translate'];
+
+const buildAnnotationBadges = (
+  translate: TranslateFunction,
+  counts: { arrows: number; highlights: number },
+  evaluation?: number | string,
+): string[] => {
+  const badges: string[] = [];
+
+  if (counts.arrows > 0) {
+    badges.push(
+      translate(
+        counts.arrows === 1
+          ? 'comments.annotations.arrows.single'
+          : 'comments.annotations.arrows.plural',
+        { count: counts.arrows },
+      ),
+    );
+  }
+
+  if (counts.highlights > 0) {
+    badges.push(
+      translate(
+        counts.highlights === 1
+          ? 'comments.annotations.highlights.single'
+          : 'comments.annotations.highlights.plural',
+        { count: counts.highlights },
+      ),
+    );
+  }
+
+  if (evaluation !== undefined) {
+    badges.push(
+      translate('comments.annotations.evaluation', {
+        value: evaluation,
+      }),
+    );
+  }
+
+  return badges;
+};
+
 const AppContent: React.FC = () => {
   const { translate, language, setLanguage } = useTranslation();
   const whiteLabel = translate('common.white');
@@ -1135,37 +1177,11 @@ const AppContent: React.FC = () => {
   const highlightCount = activePlyInfo?.annotations?.circles?.length ?? 0;
   const evaluationForSelectedPly =
     activePlyInfo?.annotations?.evaluation ?? evaluationsByPly[selectedPly];
-  const annotationBadges: string[] = [];
-
-  if (arrowCount > 0) {
-    annotationBadges.push(
-      translate(
-        arrowCount === 1
-          ? 'comments.annotations.arrows.single'
-          : 'comments.annotations.arrows.plural',
-        { count: arrowCount },
-      ),
-    );
-  }
-
-  if (highlightCount > 0) {
-    annotationBadges.push(
-      translate(
-        highlightCount === 1
-          ? 'comments.annotations.highlights.single'
-          : 'comments.annotations.highlights.plural',
-        { count: highlightCount },
-      ),
-    );
-  }
-
-  if (evaluationForSelectedPly !== undefined) {
-    annotationBadges.push(
-      translate('comments.annotations.evaluation', {
-        value: evaluationForSelectedPly,
-      }),
-    );
-  }
+  const annotationBadges = buildAnnotationBadges(
+    translate,
+    { arrows: arrowCount, highlights: highlightCount },
+    evaluationForSelectedPly,
+  );
 
   const optionToggleDescriptors = [
     {

@@ -40,6 +40,7 @@ export class CaptureEffectManager {
   private options: ResolvedCaptureEffectOptions;
   private activeContainers = new Set<HTMLElement>();
   private cleanupTimers = new Set<ReturnType<typeof setTimeout>>();
+  private fallbackSeed = Date.now() % 2_147_483_647;
 
   constructor({ overlayRoot, getSquareBounds, options, board }: CaptureEffectManagerOptions) {
     this.overlayRoot = overlayRoot;
@@ -118,6 +119,17 @@ export class CaptureEffectManager {
     };
   }
 
+  private getRandomUnit(): number {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const buffer = new Uint32Array(1);
+      crypto.getRandomValues(buffer);
+      const MAX_UINT32 = 4_294_967_295;
+      return buffer[0] / MAX_UINT32;
+    }
+    this.fallbackSeed = (this.fallbackSeed * 48_271) % 2_147_483_647;
+    return this.fallbackSeed / 2_147_483_647;
+  }
+
   private createContainer(bounds: CaptureEffectBounds): HTMLDivElement {
     const doc = this.overlayRoot?.ownerDocument ?? document;
     const container = doc.createElement('div');
@@ -158,9 +170,9 @@ export class CaptureEffectManager {
     for (let i = 0; i < particleCount; i += 1) {
       const particle = doc.createElement('span');
       const angle = (Math.PI * 2 * i) / particleCount;
-      const distance = radius * (0.4 + Math.random() * 0.6);
+      const distance = radius * (0.4 + this.getRandomUnit() * 0.6);
       const hue = palette[i % palette.length];
-      const size = 6 + Math.random() * 10;
+      const size = 6 + this.getRandomUnit() * 10;
       Object.assign(particle.style, {
         position: 'absolute',
         left: '50%',
