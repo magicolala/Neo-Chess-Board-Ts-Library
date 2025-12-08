@@ -3194,39 +3194,54 @@ export class NeoChessBoard {
 
   private _handleRightMouseUp(e: PointerEvent): void {
     const pt = this._getPointerPosition(e);
-    const handledByDrawingManager = Boolean(
-      this.drawingManager && pt && this.drawingManager.handleRightMouseUp(pt.x, pt.y),
-    );
 
-    if (!handledByDrawingManager && pt) {
-      const handledByPremove = this._handleRightClickPremoveClear();
-      if (!handledByPremove && this.rightClickHighlights) {
-        const square = this._xyToSquare(pt.x, pt.y);
-        this.drawingManager?.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
-      }
+    if (!this._tryHandleDrawingManagerRightUp(pt)) {
+      this._handleAlternativeRightUp(pt, e);
     }
 
     this.renderAll();
   }
 
-  private _handleRightClickPremoveClear(): boolean {
+  private _tryHandleDrawingManagerRightUp(pt: Point | null): boolean {
+    return Boolean(this.drawingManager && pt && this.drawingManager.handleRightMouseUp(pt.x, pt.y));
+  }
+
+  private _handleAlternativeRightUp(pt: Point | null, e: PointerEvent): void {
+    if (!pt) {
+      return;
+    }
+
+    const handledByPremove = this._tryHandleRightClickPremoveClear();
+    if (!handledByPremove && this.rightClickHighlights) {
+      const square = this._xyToSquare(pt.x, pt.y);
+      this.drawingManager?.handleHighlightClick(square, e.shiftKey, e.ctrlKey, e.altKey);
+    }
+  }
+
+  private _tryHandleRightClickPremoveClear(): boolean {
+    if (!this._hasAnyPremoves()) {
+      return false;
+    }
+
+    const colorsToClear = this._determineColorsToClear();
+    this._clearPremoveColors(colorsToClear);
+    return true;
+  }
+
+  private _hasAnyPremoves(): boolean {
     const activePremove = this.drawingManager?.getPremove();
     const queuedForWhite = this._premoveQueues.w.length > 0;
     const queuedForBlack = this._premoveQueues.b.length > 0;
 
-    if (!activePremove && !queuedForWhite && !queuedForBlack) {
-      return false;
-    }
+    return Boolean(activePremove || queuedForWhite || queuedForBlack);
+  }
 
+  private _determineColorsToClear(): Set<'white' | 'black'> {
     const activeColor = this.drawingManager?.getActivePremoveColor?.();
-    const colorsToClear = this._determineRightClickClearColors(
-      activeColor,
-      queuedForWhite,
-      queuedForBlack,
-    );
+    const queuedForWhite = this._premoveQueues.w.length > 0;
+    const queuedForBlack = this._premoveQueues.b.length > 0;
 
-    this._clearPremoveColors(colorsToClear);
-    return true;
+    return this._determineRightClickClearColors(activeColor, queuedForWhite, queuedForBlack);
   }
 
   private _determineRightClickClearColors(

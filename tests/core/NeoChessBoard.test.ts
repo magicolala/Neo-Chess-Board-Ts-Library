@@ -1778,6 +1778,47 @@ describe('NeoChessBoard Core', () => {
       expect(board.getPremove()).toBeNull();
     });
 
+    it('invokes highlight handler on right-click when no premoves are present', () => {
+      Reflect.set(board as unknown as Record<string, unknown>, 'rightClickHighlights', true);
+
+      const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp').mockReturnValue(false);
+      const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
+
+      const rightDown = createPointerEventForSquare(2, 'c3');
+      Reflect.set(rightDown.event as unknown as Record<string, unknown>, 'shiftKey', true);
+      onPointerDown(rightDown.event);
+
+      const rightUp = createPointerEventForSquare(2, 'c3');
+      Reflect.set(rightUp.event as unknown as Record<string, unknown>, 'shiftKey', true);
+      onPointerUp(rightUp.event);
+
+      expect(rightUpSpy).toHaveBeenCalled();
+      expect(highlightSpy).toHaveBeenCalledWith('c3', true, false, false);
+
+      rightUpSpy.mockRestore();
+      highlightSpy.mockRestore();
+    });
+
+    it('prefers drawing manager handling on right-click over premove clearing or highlights', () => {
+      Reflect.set(board as unknown as Record<string, unknown>, 'rightClickHighlights', true);
+      board.premove.enable({ multi: true, color: 'white' });
+      board.setPremove({ from: 'e2', to: 'e4' }, 'white');
+
+      const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp').mockReturnValue(true);
+      const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
+
+      const rightDown = createPointerEventForSquare(2, 'e4');
+      onPointerDown(rightDown.event);
+      onPointerUp(createPointerEventForSquare(2, 'e4').event);
+
+      expect(board.premove.getQueue('white')).toHaveLength(1);
+      expect(highlightSpy).not.toHaveBeenCalled();
+      expect(rightUpSpy).toHaveBeenCalled();
+
+      rightUpSpy.mockRestore();
+      highlightSpy.mockRestore();
+    });
+
     it('allows moving a piece by selecting it and clicking the destination square', () => {
       const moveSpy = jest.fn();
       board.on('move', moveSpy);
