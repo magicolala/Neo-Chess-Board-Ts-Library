@@ -43,7 +43,12 @@ describe('NeoChessBoard.configure', () => {
     board.configure({ drag: { snap: true } });
     const methodHost = getMethodHost(board);
 
-    Reflect.set(board as unknown as Record<string, unknown>, '_dragging', {
+    const interactionState = getPrivate<{
+      startDrag: (state: { from: string; piece: string; x: number; y: number }) => void;
+      getDragging: () => { x: number; y: number } | null;
+    }>(board, 'interactionState');
+
+    interactionState.startDrag({
       from: 'e2',
       piece: 'P',
       x: 0,
@@ -57,9 +62,9 @@ describe('NeoChessBoard.configure', () => {
 
     methodHost._handleMouseMove(event, pointer);
 
-    const dragging = getPrivate<{ x: number; y: number }>(board, '_dragging');
-    expect(dragging.x).toBeCloseTo(topLeft.x + squareSize / 2);
-    expect(dragging.y).toBeCloseTo(topLeft.y + squareSize / 2);
+    const dragging = interactionState.getDragging();
+    expect(dragging?.x).toBeCloseTo(topLeft.x + squareSize / 2);
+    expect(dragging?.y).toBeCloseTo(topLeft.y + squareSize / 2);
   });
 
   it('respects cancelOnEsc configuration during drags', () => {
