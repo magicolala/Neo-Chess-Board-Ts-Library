@@ -133,7 +133,7 @@ export class PremoveManager {
   public syncDisplay(preferredColor?: Color, render = false): void {
     if (!this.allowPremoves) {
       if (this.drawingManager) {
-        this.drawingManager.setPremoveQueues(undefined, undefined);
+        this.drawingManager.setPremoveQueues(undefined);
       }
       this.premove = null;
       if (render) {
@@ -265,23 +265,35 @@ export class PremoveManager {
     const result: Color[] = [];
 
     for (const value of values) {
-      if (value === 'both') {
-        if (!result.includes('w')) result.push('w');
-        if (!result.includes('b')) result.push('b');
-        continue;
-      }
-
-      let code: Color | PremoveColorOption | undefined = value;
-      if (value === 'white') {
-        code = 'w';
-      } else if (value === 'black') {
-        code = 'b';
-      }
-      if ((code === 'w' || code === 'b') && !result.includes(code)) {
-        result.push(code);
-      }
+      this.appendColorsFromInput(value, result);
     }
 
     return result;
+  }
+
+  private appendColorsFromInput(value: PremoveColorListInput, result: Color[]): void {
+    if (value === 'both') {
+      this.addColorIfMissing(result, 'w');
+      this.addColorIfMissing(result, 'b');
+      return;
+    }
+
+    const normalized = this.normalizeSingleColor(value);
+    if (normalized) {
+      this.addColorIfMissing(result, normalized);
+    }
+  }
+
+  private normalizeSingleColor(value: PremoveColorListInput): Color | null {
+    if (value === 'white') return 'w';
+    if (value === 'black') return 'b';
+    if (value === 'w' || value === 'b') return value;
+    return null;
+  }
+
+  private addColorIfMissing(list: Color[], color: Color): void {
+    if (!list.includes(color)) {
+      list.push(color);
+    }
   }
 }
