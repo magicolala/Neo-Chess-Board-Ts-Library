@@ -23,9 +23,7 @@ const EVAL_REGEX = /(?:\[\s*)?%eval\s+([^\]\s}]+)(?:\s*\])?/gi;
 
 const NUMERIC_VALUE_REGEX = /^[-+]?((\d+(?:\.\d+)?)|(?:\.\d+))$/;
 
-type ParsedAnnotationValue =
-  | { kind: 'numeric'; value: number }
-  | { kind: 'text'; value: string };
+type ParsedAnnotationValue = { kind: 'numeric'; value: number } | { kind: 'text'; value: string };
 
 const parseAnnotationValue = (value: string): ParsedAnnotationValue => {
   const trimmed = value.trim();

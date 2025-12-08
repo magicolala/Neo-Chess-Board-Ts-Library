@@ -337,8 +337,8 @@ export function sq(
   files: readonly string[] = FILES,
   ranks: readonly string[] = RANKS,
 ): Square {
-  const fileLabel = files[file];
-  const rankLabel = ranks[rank];
+  const fileLabel = files[file] as string | undefined;
+  const rankLabel = ranks[rank] as string | undefined;
   if (fileLabel === undefined || rankLabel === undefined) {
     throw new RangeError(`Invalid square indices f=${file} r=${rank}`);
   }
@@ -625,7 +625,7 @@ export function rowIndexToChessRow({
   const labels = resolveRankLabels(count, rankLabels);
   const rankIndex = normalizedOrientation === 'white' ? count - 1 - rowIndex : rowIndex;
 
-  const rankLabel = labels[rankIndex];
+  const rankLabel = labels[rankIndex] as string | undefined;
   if (rankLabel === undefined) {
     throw new RangeError(`Rank label not found for index ${rankIndex}`);
   }
@@ -654,7 +654,7 @@ export function columnIndexToChessColumn({
   const labels = resolveFileLabels(count, fileLabels);
   const fileIndex = normalizedOrientation === 'white' ? columnIndex : count - 1 - columnIndex;
 
-  const fileLabel = labels[fileIndex];
+  const fileLabel = labels[fileIndex] as string | undefined;
   if (fileLabel === undefined) {
     throw new RangeError(`File label not found for index ${fileIndex}`);
   }

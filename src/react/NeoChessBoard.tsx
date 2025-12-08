@@ -269,7 +269,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       const mapped: PieceRendererMap = {};
       let hasRenderer = false;
       for (const [pieceKey, renderer] of Object.entries(piecesProp)) {
-        if (renderer === null || renderer === undefined) {
+        if (renderer == null) {
           continue;
         }
         hasRenderer = true;

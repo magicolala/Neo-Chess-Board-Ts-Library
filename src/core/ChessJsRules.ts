@@ -297,7 +297,7 @@ export class ChessJsRules implements RulesAdapter {
         from,
         to,
         promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
-      });
+      }) as ChessMove | null;
       return move !== null;
     } catch {
       return false;

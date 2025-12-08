@@ -4936,7 +4936,7 @@ export class NeoChessBoard {
   ): Promise<ResolvedPieceSprite | null> {
     let config: PieceSprite;
     config =
-      typeof sprite === 'object' && sprite !== null && 'image' in (sprite as PieceSprite)
+      sprite && typeof sprite === 'object' && 'image' in (sprite as PieceSprite)
         ? (sprite as PieceSprite)
         : ({ image: sprite } as PieceSprite);
 
