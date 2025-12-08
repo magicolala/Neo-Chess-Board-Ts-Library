@@ -114,6 +114,14 @@ const POST_MOVE_PREMOVE_DELAY = 50;
 
 type AnimationEasingId = AnimationEasingName | 'custom';
 
+type MoveAttemptResult =
+  | { success: true }
+  | { success: false }
+  | { success: 'pending'; token: number };
+
+const MOVE_ATTEMPT_SUCCESS: MoveAttemptResult = { success: true };
+const MOVE_ATTEMPT_FAILURE: MoveAttemptResult = { success: false };
+
 const REQUIRED_THEME_KEYS: (keyof Theme)[] = [
   'light',
   'dark',
@@ -921,7 +929,7 @@ export class NeoChessBoard {
     options: { promotion?: Move['promotion'] } = {},
   ): boolean {
     const outcome = this._attemptMove(from, to, options);
-    return outcome !== false;
+    return outcome.success !== false;
   }
 
   public undoMove(immediate = false): boolean {
@@ -1859,22 +1867,22 @@ export class NeoChessBoard {
       return;
     }
 
-      if (!this.clockManager) {
-        if (config?.initial === undefined) {
-          return;
-        }
-
-        const nextConfig: ClockConfig = {
-          initial: config.initial,
-          increment: config.increment,
-          delay: config.delay,
-          active: config.active ?? this._currentTurn(),
-          paused: config.paused,
-          callbacks: config.callbacks,
-        };
-        this._initializeClock(nextConfig);
+    if (!this.clockManager) {
+      if (config?.initial === undefined) {
         return;
       }
+
+      const nextConfig: ClockConfig = {
+        initial: config.initial,
+        increment: config.increment,
+        delay: config.delay,
+        active: config.active ?? this._currentTurn(),
+        paused: config.paused,
+        callbacks: config.callbacks,
+      };
+      this._initializeClock(nextConfig);
+      return;
+    }
 
     if (config) {
       this.clockManager.reset(config);
@@ -2022,18 +2030,18 @@ export class NeoChessBoard {
       return;
     }
 
-      const resolvedConfig: ClockConfig = {
-        ...clockConfig,
-        active: clockConfig.active ?? this._currentTurn(),
-      };
+    const resolvedConfig: ClockConfig = {
+      ...clockConfig,
+      active: clockConfig.active ?? this._currentTurn(),
+    };
 
-      const bus = this.bus as unknown as EventBus<ClockEvents>;
-      this.clockManager = new ClockManager(resolvedConfig, bus);
-    }
+    const bus = this.bus as unknown as EventBus<ClockEvents>;
+    this.clockManager = new ClockManager(resolvedConfig, bus);
+  }
 
-    private _currentTurn(): Color {
-      return this.state.turn;
-    }
+  private _currentTurn(): Color {
+    return this.state.turn;
+  }
 
   private _syncClockFromTurn(previousTurn: Color): void {
     const manager = this.clockManager;
@@ -2251,11 +2259,7 @@ export class NeoChessBoard {
     this._recordRenderRect(layer, 'sprite', dx, dy, dWidth, dHeight);
   }
 
-  private _renderBoardSquares(
-    ctx: CanvasRenderingContext2D,
-    light: string,
-    dark: string,
-  ): void {
+  private _renderBoardSquares(ctx: CanvasRenderingContext2D, light: string, dark: string): void {
     const s = this.square;
     for (let r = 0; r < this.ranksCount; r++) {
       for (let f = 0; f < this.filesCount; f++) {
@@ -3677,20 +3681,20 @@ export class NeoChessBoard {
     from: Square,
     to: Square,
     options: { promotion?: Move['promotion'] } = {},
-  ): boolean | 'pending' {
+  ): MoveAttemptResult {
     const validation = this._validateMoveAttempt(from, to, options);
     if (!validation.isValid) {
-      return false;
+      return MOVE_ATTEMPT_FAILURE;
     }
 
     if (from === to) {
       this.renderAll();
-      return true;
+      return MOVE_ATTEMPT_SUCCESS;
     }
 
     const { piece, side, promotion } = validation;
     if (!piece || !side) {
-      return false;
+      return MOVE_ATTEMPT_FAILURE;
     }
 
     if (this._isNotPlayerTurn(side)) {
@@ -3730,7 +3734,7 @@ export class NeoChessBoard {
     piece: string,
     side: Color,
     promotion?: PromotionPiece,
-  ): boolean | 'pending' {
+  ): MoveAttemptResult {
     if (this._requiresPromotionChoice(piece, to, side, promotion)) {
       return this._handlePromotionChoice(from, to, side);
     }
@@ -3747,11 +3751,7 @@ export class NeoChessBoard {
     return this._isPromotionMove(piece, to, side) && !promotion;
   }
 
-  private _handlePromotionChoice(
-    from: Square,
-    to: Square,
-    side: Color,
-  ): boolean | 'pending' {
+  private _handlePromotionChoice(from: Square, to: Square, side: Color): MoveAttemptResult {
     if (this.promotionOptions.autoQueen) {
       return this._executeMove(from, to, 'q');
     }
@@ -3771,32 +3771,32 @@ export class NeoChessBoard {
     to: Square,
     side: 'w' | 'b',
     promotion?: PromotionPiece,
-  ): boolean | 'pending' {
-    if (!this.allowPremoves || !this._premoveSettings.colors[side]) return false;
+  ): MoveAttemptResult {
+    if (!this.allowPremoves || !this._premoveSettings.colors[side]) return MOVE_ATTEMPT_FAILURE;
 
     const piece = this._pieceAt(from)!;
     if (this._isPromotionMove(piece, to, side) && !promotion) {
       if (this.promotionOptions.autoQueen) {
         this._setPremove(from, to, 'q', side);
-        return true;
+        return MOVE_ATTEMPT_SUCCESS;
       }
       return this._beginPromotionRequest(from, to, side, 'premove');
     }
 
     this._setPremove(from, to, promotion, side);
-    return true;
+    return MOVE_ATTEMPT_SUCCESS;
   }
 
-  private _executeMove(from: Square, to: Square, promotion?: PromotionPiece): boolean {
+  private _executeMove(from: Square, to: Square, promotion?: PromotionPiece): MoveAttemptResult {
     const legal = this.rules.move({ from, to, promotion });
 
     if (legal?.ok) {
       this._processMoveSuccess(from, to, legal);
-      return true;
+      return MOVE_ATTEMPT_SUCCESS;
     }
 
     this._processMoveFailure(from, to, legal);
-    return false;
+    return MOVE_ATTEMPT_FAILURE;
   }
 
   private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {
@@ -4013,7 +4013,7 @@ export class NeoChessBoard {
     to: Square,
     color: 'w' | 'b',
     mode: PromotionMode,
-  ): 'pending' {
+  ): MoveAttemptResult {
     this._cancelPendingPromotion();
 
     const token = ++this._promotionToken;
@@ -4046,7 +4046,7 @@ export class NeoChessBoard {
     pending.request = request;
     this._handlePromotionRequestUI(pending);
     this._emitPromotionRequest(request);
-    return 'pending';
+    return { success: 'pending', token };
   }
 
   private _resolvePromotion(token: number, piece: PromotionPiece): void {

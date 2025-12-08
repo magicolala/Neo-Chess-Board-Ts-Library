@@ -86,7 +86,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
       }
 
       if (command === 'position') {
-        const fenMatch = message.match(/fen\s+(.+?)(?:\s+moves|$)/);
+        const fenMatch = /fen\s+(.+?)(?:\s+moves|$)/.exec(message);
         if (fenMatch) {
           _currentFen = fenMatch[1];
         } else if (message.includes('startpos')) {
@@ -102,7 +102,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
         }
 
         // Extraire la profondeur de la commande
-        const depthMatch = message.match(/depth\s+(\d+)/);
+        const depthMatch = /depth\s+(\d+)/.exec(message);
         const targetDepth = depthMatch ? Number.parseInt(depthMatch[1], 10) : 20;
 
         // Simuler une analyse progressive

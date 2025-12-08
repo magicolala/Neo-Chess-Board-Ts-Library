@@ -160,12 +160,12 @@ describe('PgnParserWorkerManager', () => {
     // Capture posted messages and auto-respond so the manager resolves requests
     (mockWorker.postMessage as jest.Mock).mockImplementation((message: unknown) => {
       const msg = message as { id?: string; type?: string; pgn?: string; pgns?: string[] };
-      if (msg && msg.id) {
+      if (msg?.id) {
         lastRequestId = msg.id as string;
       }
 
       // Auto-respond appropriately depending on the request type
-      if (msg && msg.id) {
+      if (msg?.id) {
         switch (msg.type) {
           case 'parsePgn': {
             setTimeout(() => {

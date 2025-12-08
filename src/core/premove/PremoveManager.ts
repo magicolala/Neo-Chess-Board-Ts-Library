@@ -67,7 +67,9 @@ export class PremoveManager {
     return this.premove ? { ...this.premove } : null;
   }
 
-  public setActive(premove: { from: Square; to: Square; promotion?: Move['promotion'] } | null): void {
+  public setActive(
+    premove: { from: Square; to: Square; promotion?: Move['promotion'] } | null,
+  ): void {
     this.premove = premove ? { ...premove } : null;
   }
 

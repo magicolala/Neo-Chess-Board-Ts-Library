@@ -1,5 +1,12 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
-import type { Square, Move, RulesAdapter, RulesMoveResponse, Premove, Color } from '../../src/core/types';
+import type {
+  Square,
+  Move,
+  RulesAdapter,
+  RulesMoveResponse,
+  Premove,
+  Color,
+} from '../../src/core/types';
 
 /**
  * @fileoverview Test suite for premove functionality in NeoChessBoard.
@@ -252,7 +259,9 @@ describe('Premoves', () => {
       board.setPremove(validPremove, 'black');
       board.setPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
 
-      const executeSpy = jest.spyOn(boardPrivate, '_executePremove').mockImplementation(() => undefined);
+      const executeSpy = jest
+        .spyOn(boardPrivate, '_executePremove')
+        .mockImplementation(() => undefined);
 
       boardPrivate._executePremoveIfValid();
 

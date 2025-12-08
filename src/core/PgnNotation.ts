@@ -33,6 +33,8 @@ export interface PgnMetadata {
   [key: string]: string | undefined;
 }
 
+const PGN_HEADER_REGEX = /\[(\w+)\s+"([^"]*)"\]/;
+
 export class PgnNotation {
   private metadata: PgnMetadata;
   private moves: PgnMove[];
@@ -266,7 +268,7 @@ export class PgnNotation {
 
     // Extract and remove the result from the end if present
     const resultPattern = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/;
-    const resultMatch = cleanPgn.match(resultPattern);
+    const resultMatch = resultPattern.exec(cleanPgn);
     if (resultMatch) {
       this.setResult(resultMatch[1]);
       cleanPgn = cleanPgn.replace(resultPattern, '');
@@ -630,7 +632,7 @@ export class PgnNotation {
     for (const line of lines) {
       if (line.startsWith('[')) {
         // Header line
-        const match = line.match(/\[(\w+)\s+"([^"]*)"\]/);
+        const match = PGN_HEADER_REGEX.exec(line);
         if (match) {
           this.metadata[match[1]] = match[2];
         }
@@ -917,7 +919,7 @@ export class PgnNotation {
       return { san: undefined, comments, nextIndex: index };
     }
 
-    const sanMatch = rest.match(/^([^\s{]+)/);
+    const sanMatch = /^([^\s{]+)/.exec(rest);
     if (!sanMatch) {
       if (rest.trim()) {
         registerIssue('PGN_PARSE_MOVE_TEXT_MISSING', 'Unable to parse move text segment in PGN.', {

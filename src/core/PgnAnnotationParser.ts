@@ -23,15 +23,19 @@ const EVAL_REGEX = /(?:\[\s*)?%eval\s+([^\]\s}]+)(?:\s*\])?/gi;
 
 const NUMERIC_VALUE_REGEX = /^[-+]?((\d+(?:\.\d+)?)|(?:\.\d+))$/;
 
-const parseAnnotationValue = (value: string): number | string => {
+type ParsedAnnotationValue =
+  | { kind: 'numeric'; value: number }
+  | { kind: 'text'; value: string };
+
+const parseAnnotationValue = (value: string): ParsedAnnotationValue => {
   const trimmed = value.trim();
   if (NUMERIC_VALUE_REGEX.test(trimmed)) {
     const parsed = Number(trimmed);
     if (!Number.isNaN(parsed)) {
-      return parsed;
+      return { kind: 'numeric', value: parsed };
     }
   }
-  return trimmed;
+  return { kind: 'text', value: trimmed };
 };
 
 // Color mapping
@@ -161,7 +165,8 @@ export const PgnAnnotationParser = {
 
     // Parse evaluation (%eval)
     processingComment = processingComment.replaceAll(EVAL_REGEX, (_match, value: string) => {
-      evaluation = parseAnnotationValue(value);
+      const parsedEvaluation = parseAnnotationValue(value);
+      evaluation = parsedEvaluation.value;
       return ' ';
     });
 

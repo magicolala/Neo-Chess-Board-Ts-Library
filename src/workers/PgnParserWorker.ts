@@ -40,6 +40,8 @@ export interface PgnParserWorkerResponse {
   error?: string;
 }
 
+const PGN_HEADER_REGEX = /\[(\w+)\s+"([^"]*)"\]/;
+
 /**
  * Parse les métadonnées d'un PGN
  */
@@ -49,7 +51,7 @@ function parseMetadata(pgnString: string): PgnMetadata {
 
   for (const line of lines) {
     if (line.startsWith('[')) {
-      const match = line.match(/\[(\w+)\s+"([^"]*)"\]/);
+      const match = PGN_HEADER_REGEX.exec(line);
       if (match) {
         metadata[match[1]!] = match[2];
       }
@@ -94,13 +96,18 @@ function parseMoves(
     }
   }
 
-  const resultMatch = movesText.match(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/);
+  const resultMatch = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/.exec(movesText);
   if (resultMatch) {
     result = resultMatch[1]!;
     movesText = movesText.replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '');
   }
 
-  const tokens = movesText.match(/{[^}]*}|\S+/g) || [];
+  const tokenRegex = /{[^}]*}|\S+/g;
+  const tokens: string[] = [];
+  let tokenMatch: RegExpExecArray | null;
+  while ((tokenMatch = tokenRegex.exec(movesText)) !== null) {
+    tokens.push(tokenMatch[0]);
+  }
   let currentMoveNumber = 0;
   let isWhiteMove = true;
 

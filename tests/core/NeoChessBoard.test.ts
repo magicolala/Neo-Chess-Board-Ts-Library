@@ -1785,7 +1785,9 @@ describe('NeoChessBoard Core', () => {
     it('invokes highlight handler on right-click when no premoves are present', () => {
       Reflect.set(board as unknown as Record<string, unknown>, 'rightClickHighlights', true);
 
-      const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp').mockReturnValue(false);
+      const rightUpSpy = jest
+        .spyOn(board.drawingManager, 'handleRightMouseUp')
+        .mockReturnValue(false);
       const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
 
       const rightDown = createPointerEventForSquare(2, 'c3');
@@ -1808,7 +1810,9 @@ describe('NeoChessBoard Core', () => {
       board.premove.enable({ multi: true, color: 'white' });
       board.setPremove({ from: 'e2', to: 'e4' }, 'white');
 
-      const rightUpSpy = jest.spyOn(board.drawingManager, 'handleRightMouseUp').mockReturnValue(true);
+      const rightUpSpy = jest
+        .spyOn(board.drawingManager, 'handleRightMouseUp')
+        .mockReturnValue(true);
       const highlightSpy = jest.spyOn(board.drawingManager, 'handleHighlightClick');
 
       const rightDown = createPointerEventForSquare(2, 'e4');

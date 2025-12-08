@@ -52,17 +52,17 @@ export function buildGoCommand({
 }
 
 export function parseInfo(line: string): EngineLine | null {
-  const infoMatch = line.match(INFO_REGEX);
+  const infoMatch = INFO_REGEX.exec(line);
   if (!infoMatch) return null;
 
-  const depthMatch = line.match(DEPTH_REGEX);
-  const multipvMatch = line.match(MULTIPV_REGEX);
-  const scoreCpMatch = line.match(SCORE_CP_REGEX);
-  const scoreMateMatch = line.match(SCORE_MATE_REGEX);
-  const pvMatch = line.match(PV_REGEX);
-  const npsMatch = line.match(NPS_REGEX);
-  const nodesMatch = line.match(NODES_REGEX);
-  const timeMatch = line.match(TIME_REGEX);
+  const depthMatch = DEPTH_REGEX.exec(line);
+  const multipvMatch = MULTIPV_REGEX.exec(line);
+  const scoreCpMatch = SCORE_CP_REGEX.exec(line);
+  const scoreMateMatch = SCORE_MATE_REGEX.exec(line);
+  const pvMatch = PV_REGEX.exec(line);
+  const npsMatch = NPS_REGEX.exec(line);
+  const nodesMatch = NODES_REGEX.exec(line);
+  const timeMatch = TIME_REGEX.exec(line);
 
   const depth = depthMatch ? Number(depthMatch[1]) : 0;
   const id = multipvMatch ? Number(multipvMatch[1]) : 1;
@@ -89,7 +89,7 @@ export function parseInfo(line: string): EngineLine | null {
 }
 
 export function parseBestMove(line: string): { move: string; ponder?: string } | null {
-  const match = line.match(BESTMOVE_REGEX);
+  const match = BESTMOVE_REGEX.exec(line);
   if (!match) return null;
   const [, move, ponder] = match;
   return { move, ponder: ponder || undefined };

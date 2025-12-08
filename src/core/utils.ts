@@ -351,7 +351,7 @@ export function sqToFR(
   ranks: readonly string[] = RANKS,
 ): { f: number; r: number } {
   const normalized = square.toString().trim();
-  const fileMatch = normalized.match(/^[a-zA-Z]+/);
+  const fileMatch = /^[a-zA-Z]+/.exec(normalized);
   const rankPart = normalized.slice(fileMatch?.[0]?.length ?? 0);
   const filePart = (fileMatch?.[0] ?? '').toLowerCase();
 

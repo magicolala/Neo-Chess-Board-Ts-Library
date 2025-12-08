@@ -22,7 +22,7 @@ export default [
         },
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json', // Pour les règles TypeScript avancées
+        project: './tsconfig.eslint.json', // Pour les règles TypeScript avancées
       },
       globals: {
         ...globals.browser,
@@ -152,6 +152,15 @@ export default [
       '@typescript-eslint/no-unsafe-member-access': 'off',
       'sonarjs/no-duplicate-string': 'off',
       'sonarjs/cognitive-complexity': 'off',
+    },
+  },
+  // Configuration pour les fichiers JavaScript
+  {
+    files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
     },
   },
   // Configuration pour les fichiers de config

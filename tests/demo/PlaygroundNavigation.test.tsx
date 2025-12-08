@@ -215,7 +215,7 @@ jest.mock('../../src/core/ChessJsRules', () => {
         const from = typeof moveData === 'string' ? moveData.slice(0, 2) : moveData.from;
         const to = typeof moveData === 'string' ? moveData.slice(2, 4) : moveData.to;
         const move = SCRIPTED_MOVES[this.movePointer];
-        if (!move || move.from !== from || move.to !== to) {
+        if (move?.from !== from || move.to !== to) {
           return { ok: false, reason: 'invalid move' };
         }
         this.fen = move.fen;

@@ -108,12 +108,12 @@ describe('LegalMovesWorkerManager', () => {
     // Capture posted messages to extract request IDs used by the manager
     (mockWorker.postMessage as jest.Mock).mockImplementation((message: unknown) => {
       const msg = message as { id?: string; type?: string; [key: string]: unknown };
-      if (msg && msg.id) {
+      if (msg?.id) {
         lastRequestId = msg.id as string;
       }
 
       // Auto-respond to calculateAllMoves requests so sendRequest resolves in tests
-      if (msg && msg.id && msg.type === 'calculateAllMoves') {
+      if (msg?.id && msg.type === 'calculateAllMoves') {
         setTimeout(() => {
           if (messageHandler) {
             messageHandler({

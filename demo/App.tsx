@@ -1612,11 +1612,10 @@ const AppContent: React.FC = () => {
                                 san: previousTimeline[0]?.san,
                               },
                             ];
-                      const nextTimeline = [
+                      return [
                         ...ensuredTimeline,
                         { ply: nextPly, fen: nextFen, san: result.move?.san },
                       ];
-                      return nextTimeline;
                     });
                     timelineMovesRef.current = chessRules.getHistory().map((move) => ({
                       from: move.from,

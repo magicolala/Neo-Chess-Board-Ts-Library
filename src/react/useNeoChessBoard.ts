@@ -193,6 +193,8 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
   );
 
   useEffect(() => {
+    let mounted = true;
+
     const element = containerRef.current;
     if (!element || boardRef.current) {
       return;
@@ -207,12 +209,15 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
     boardRef.current = board;
     lastClockConfigRef.current = serializeClockConfig(optionsRef.current.clock);
     lastClockCallbacksRef.current = optionsRef.current.clock?.callbacks;
-    setIsReady(true);
+
+    if (mounted) {
+      setIsReady(true);
+    }
 
     return () => {
+      mounted = false;
       board.destroy();
       boardRef.current = null;
-      setIsReady(false);
     };
   }, [containerRef, optionsRef, fenRef, positionRef]);
 

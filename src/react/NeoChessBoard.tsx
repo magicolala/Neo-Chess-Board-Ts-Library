@@ -319,10 +319,11 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       typedOptions.boardStyle = normalizedBoardStyle;
       typedOptions.squareRenderer = normalizedSquareRenderer;
       typedOptions.pieces = normalizedPieceRenderers;
-      if (normalizedCaptureEffectRenderer) {
+      const captureRenderer = normalizedCaptureEffectRenderer;
+      if (captureRenderer) {
         typedOptions.captureEffect = restOptions.captureEffect
-          ? { ...restOptions.captureEffect, renderer: normalizedCaptureEffectRenderer }
-          : { renderer: normalizedCaptureEffectRenderer };
+          ? { ...restOptions.captureEffect, renderer: captureRenderer }
+          : { renderer: captureRenderer };
       } else if (restOptions.captureEffect) {
         typedOptions.captureEffect = { ...restOptions.captureEffect };
       }
@@ -339,9 +340,10 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       normalizedCaptureEffectRenderer,
     ]);
 
+    const columnCountRaw = options.chessboardColumns ?? restOptions.chessboardColumns;
+    const rowCountRaw = options.chessboardRows ?? restOptions.chessboardRows;
+
     const computedStyle = useMemo<CSSProperties | undefined>(() => {
-      const columnCountRaw = options.chessboardColumns ?? restOptions.chessboardColumns;
-      const rowCountRaw = options.chessboardRows ?? restOptions.chessboardRows;
       const hasValidColumnCount =
         typeof columnCountRaw === 'number' && Number.isFinite(columnCountRaw);
       const hasValidRowCount = typeof rowCountRaw === 'number' && Number.isFinite(rowCountRaw);
@@ -376,15 +378,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         merged = merged ? { ...merged, ...boardCssStyle } : { ...boardCssStyle };
       }
       return merged;
-    }, [
-      size,
-      style,
-      boardCssStyle,
-      options.chessboardColumns,
-      options.chessboardRows,
-      restOptions.chessboardColumns,
-      restOptions.chessboardRows,
-    ]);
+    }, [boardCssStyle, columnCountRaw, rowCountRaw, size, style]);
 
     const resolvedFen = fen ?? position;
 
