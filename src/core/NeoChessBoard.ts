@@ -4294,32 +4294,38 @@ export class NeoChessBoard {
   // ============================================================================
 
   private _executePremoveIfValid(): void {
-    if (!this.allowPremoves) return;
-
-    const color = this.state.turn;
-    const queue = this._premoveQueues[color];
-
-    if (queue.length === 0) {
+    if (!this._shouldExecutePremoves()) {
       this._syncPremoveDisplay(undefined, false);
       return;
     }
 
+    const color = this.state.turn;
+    this._processPremoveQueue(color);
+  }
+
+  private _shouldExecutePremoves(): boolean {
+    return this.allowPremoves && this._hasPremovesQueued();
+  }
+
+  private _hasPremovesQueued(): boolean {
+    const color = this.state.turn;
+    return this._premoveQueues[color].length > 0;
+  }
+
+  private _processPremoveQueue(color: Color): void {
+    const queue = this._premoveQueues[color];
+
     while (queue.length > 0) {
       const premove = queue[0];
-      const premoveResult = this.rules.move({
-        from: premove.from,
-        to: premove.to,
-        promotion: premove.promotion,
-      });
+      const premoveResult = this._validatePremove(premove);
 
-      if (premoveResult?.ok) {
-        setTimeout(() => {
-          this._executePremove(premove, color);
-        }, PREMOVE_EXECUTION_DELAY);
+      if (premoveResult.isValid) {
+        this._schedulePremoveExecution(premove, color);
         return;
       }
 
-      this._handleInvalidPremove(color, premove, premoveResult?.reason);
+      this._handleInvalidPremove(color, premove, premoveResult.reason);
+
       if (queue.length === 0) {
         this._syncPremoveDisplay(undefined, false);
         return;
@@ -4327,6 +4333,26 @@ export class NeoChessBoard {
     }
 
     this._syncPremoveDisplay(undefined, false);
+  }
+
+  private _validatePremove(premove: Premove): { isValid: boolean; reason?: string } {
+    const result = this.rules.move({
+      from: premove.from,
+      to: premove.to,
+      promotion: premove.promotion,
+    });
+
+    if (result?.ok) {
+      return { isValid: true };
+    }
+
+    return { isValid: false, reason: result?.reason };
+  }
+
+  private _schedulePremoveExecution(premove: Premove, color: Color): void {
+    setTimeout(() => {
+      this._executePremove(premove, color);
+    }, PREMOVE_EXECUTION_DELAY);
   }
 
   private _executePremove(premove: Premove, color: Color): void {
