@@ -1,5 +1,5 @@
 import { NeoChessBoard } from '../../src/core/NeoChessBoard';
-import type { Square, Move, RulesAdapter, RulesMoveResponse, Premove } from '../../src/core/types';
+import type { Square, Move, RulesAdapter, RulesMoveResponse, Premove, Color } from '../../src/core/types';
 
 /**
  * @fileoverview Test suite for premove functionality in NeoChessBoard.
@@ -219,6 +219,51 @@ describe('Premoves', () => {
     await wait(200);
     expect(board.getPremove()).toBeNull();
     expect(board.premove.getQueue('black')).toHaveLength(0);
+  });
+
+  it('skips execution and syncs display when premoves are disabled', () => {
+    const boardPrivate = board as unknown as {
+      _executePremoveIfValid: () => void;
+      _syncPremoveDisplay: (preferredColor?: Color, render?: boolean) => void;
+    };
+
+    const premove: Premove = { from: 'e7', to: 'e5' };
+    board.setPremove(premove, 'black');
+    board.setAllowPremoves(false);
+
+    const syncSpy = jest.spyOn(boardPrivate, '_syncPremoveDisplay');
+
+    boardPrivate._executePremoveIfValid();
+
+    expect(syncSpy).toHaveBeenCalledWith(undefined, false);
+  });
+
+  it('executes the next valid premove after clearing an invalid head of the queue', () => {
+    const boardPrivate = board as unknown as {
+      _executePremoveIfValid: () => void;
+      _executePremove: (premove: Premove, color: Color) => void;
+    };
+
+    jest.useFakeTimers();
+    try {
+      board.premove.enable({ multi: true });
+      board.setPremove({ from: 'e7', to: 'e3' }, 'black');
+      const validPremove: Premove = { from: 'e7', to: 'e5' };
+      board.setPremove(validPremove, 'black');
+      board.setPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
+
+      const executeSpy = jest.spyOn(boardPrivate, '_executePremove').mockImplementation(() => undefined);
+
+      boardPrivate._executePremoveIfValid();
+
+      expect(board.premove.getQueue('black')).toEqual([validPremove]);
+
+      jest.runOnlyPendingTimers();
+
+      expect(executeSpy).toHaveBeenCalledWith(validPremove, 'b');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should support multiple queued premoves when multi enabled', async () => {
