@@ -2284,10 +2284,7 @@ export class NeoChessBoard {
     const W = this.cBoard.width;
     const H = this.cBoard.height;
 
-    this._clearCanvas(ctx, 'board', 0, 0, W, H);
-    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cBoard, transform);
-    ctx.fillStyle = boardBorder;
-    this._fillCanvas(ctx, 'board', 0, 0, W, H);
+    const appliedTransform = this._prepareBoardCanvas(ctx, W, H, boardBorder, transform);
 
     this._renderBoardSquares(ctx, light, dark);
 
@@ -2296,53 +2293,35 @@ export class NeoChessBoard {
     this.canvasRenderer.restore(ctx, appliedTransform);
   }
 
+  private _prepareBoardCanvas(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    borderColor: string,
+    transform?: CameraTransform | null,
+  ): CameraTransform | null {
+    this._clearCanvas(ctx, 'board', 0, 0, width, height);
+    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cBoard, transform);
+    ctx.fillStyle = borderColor;
+    this._fillCanvas(ctx, 'board', 0, 0, width, height);
+    return appliedTransform;
+  }
+
   private _drawPieces(transform?: CameraTransform | null): void {
     const ctx = this.ctxP;
     const W = this.cPieces.width;
     const H = this.cPieces.height;
 
-    this._clearCanvas(ctx, 'pieces', 0, 0, W, H);
-    const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cPieces, transform);
-
+    const appliedTransform = this._preparePiecesCanvas(ctx, W, H, transform);
     const draggingSq = this.interactionState.getDragging()?.from;
     const activeDomPieces = new Set<Square>();
-    const hasCustomPieces =
-      this.customPieceRenderers && Object.keys(this.customPieceRenderers).length > 0;
+    const hasCustomPieces = this._hasCustomPieceRenderers();
 
     if (!hasCustomPieces) {
       this._clearDomPieces();
     }
 
-    for (let r = 0; r < this.ranksCount; r++) {
-      for (let f = 0; f < this.filesCount; f++) {
-        const piece = this.state.board[r][f];
-        if (!piece) continue;
-
-        const square = this._indicesToSquare(f, r);
-        const renderer = this._getCustomPieceRenderer(piece);
-
-        if (renderer) {
-          if (draggingSq === square) {
-            this._removeDomPiece(square);
-            continue;
-          }
-          this._renderDomPiece(square, piece as Piece, renderer, activeDomPieces);
-          continue;
-        }
-
-        this._removeDomPiece(square);
-
-        if (draggingSq === square) {
-          if (this.interactionState.getDragging() && this.dragGhostPiece) {
-            this._drawGhostPiece(piece, square);
-          }
-          continue;
-        }
-
-        const { x, y } = this._sqToXY(square);
-        this._drawPieceSprite(piece, x, y, 1);
-      }
-    }
+    this._renderPiecesOnBoard(draggingSq, hasCustomPieces, activeDomPieces);
 
     if (hasCustomPieces) {
       this._cleanupDomPieces(activeDomPieces);
@@ -2353,6 +2332,88 @@ export class NeoChessBoard {
     }
 
     this.canvasRenderer.restore(ctx, appliedTransform);
+  }
+
+  private _preparePiecesCanvas(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    transform?: CameraTransform | null,
+  ): CameraTransform | null {
+    this._clearCanvas(ctx, 'pieces', 0, 0, width, height);
+    return this.canvasRenderer.applyCameraTransform(ctx, this.cPieces, transform);
+  }
+
+  private _renderPiecesOnBoard(
+    draggingSq: Square | undefined,
+    hasCustomPieces: boolean,
+    activeDomPieces: Set<Square>,
+  ): void {
+    for (let r = 0; r < this.ranksCount; r++) {
+      for (let f = 0; f < this.filesCount; f++) {
+        const piece = this.state.board[r][f];
+        if (!piece) continue;
+
+        const square = this._indicesToSquare(f, r);
+        this._renderPieceEntry(piece, square, draggingSq, hasCustomPieces, activeDomPieces);
+      }
+    }
+  }
+
+  private _renderPieceEntry(
+    piece: string,
+    square: Square,
+    draggingSq: Square | undefined,
+    hasCustomPieces: boolean,
+    activeDomPieces: Set<Square>,
+  ): void {
+    const renderer = this._getCustomPieceRenderer(piece);
+
+    if (renderer) {
+      this._renderCustomPiece(square, piece as Piece, renderer, draggingSq, activeDomPieces);
+      return;
+    }
+
+    this._renderCanvasPiece(piece, square, draggingSq, hasCustomPieces);
+  }
+
+  private _renderCustomPiece(
+    square: Square,
+    piece: Piece,
+    renderer: PieceRenderer,
+    draggingSq: Square | undefined,
+    activeDomPieces: Set<Square>,
+  ): void {
+    if (draggingSq === square) {
+      this._removeDomPiece(square);
+      return;
+    }
+    this._renderDomPiece(square, piece, renderer, activeDomPieces);
+  }
+
+  private _renderCanvasPiece(
+    piece: string,
+    square: Square,
+    draggingSq: Square | undefined,
+    hasCustomPieces: boolean,
+  ): void {
+    if (hasCustomPieces) {
+      this._removeDomPiece(square);
+    }
+
+    if (draggingSq === square) {
+      if (this.interactionState.getDragging() && this.dragGhostPiece) {
+        this._drawGhostPiece(piece, square);
+      }
+      return;
+    }
+
+    const { x, y } = this._sqToXY(square);
+    this._drawPieceSprite(piece, x, y, 1);
+  }
+
+  private _hasCustomPieceRenderers(): boolean {
+    return Boolean(this.customPieceRenderers && Object.keys(this.customPieceRenderers).length > 0);
   }
 
   private _drawGhostPiece(piece: string, square: Square): void {
@@ -2574,13 +2635,24 @@ export class NeoChessBoard {
     const W = this.cOverlay.width;
     const H = this.cOverlay.height;
 
-    this._clearCanvas(ctx, 'overlay', 0, 0, W, H);
-    const appliedTransform = this.canvasRenderer.applyCameraTransform(
-      ctx,
-      this.cOverlay,
-      transform,
-    );
+    const appliedTransform = this._prepareOverlayCanvas(ctx, W, H, transform);
 
+    this._renderOverlayLayers();
+
+    this.canvasRenderer.restore(ctx, appliedTransform);
+  }
+
+  private _prepareOverlayCanvas(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    transform?: CameraTransform | null,
+  ): CameraTransform | null {
+    this._clearCanvas(ctx, 'overlay', 0, 0, width, height);
+    return this.canvasRenderer.applyCameraTransform(ctx, this.cOverlay, transform);
+  }
+
+  private _renderOverlayLayers(): void {
     this._drawLastMoveHighlight();
     this._drawCustomHighlights();
     this._drawSelectedSquare();
@@ -2590,8 +2662,6 @@ export class NeoChessBoard {
     this._drawCheckStatusHighlight();
     this._drawHoverHighlight();
     this._drawDrawingManagerElements();
-
-    this.canvasRenderer.restore(ctx, appliedTransform);
   }
 
   private _applyCameraDomTransforms(transform: CameraTransform | null): void {
