@@ -90,6 +90,7 @@ import type {
   PremoveColorListInput,
   Variant,
 } from './types';
+import { PremoveManager } from './premove/PremoveManager';
 
 // ============================================================================
 // Constants
@@ -276,10 +277,11 @@ export class NeoChessBoard {
   private showCoords: boolean;
   private highlightLegal: boolean;
   private get allowPremoves(): boolean {
-    return this.game.allowPremoves;
+    return this.premoveManager.isEnabled();
   }
 
   private set allowPremoves(value: boolean) {
+    this.premoveManager.setEnabled(value);
     this.game.allowPremoves = value;
   }
   private showArrows: boolean;
@@ -331,30 +333,33 @@ export class NeoChessBoard {
   }
 
   private get _premove(): { from: Square; to: Square; promotion?: PromotionPiece } | null {
-    const premove = this.game.premove;
-    return premove ? { ...premove } : null;
+    return this.premoveManager.getActive();
   }
 
   private set _premove(premove: { from: Square; to: Square; promotion?: PromotionPiece } | null) {
+    this.premoveManager.setActive(premove);
     this.game.premove = premove ? { ...premove } : null;
   }
 
   private get _premoveQueues(): Record<Color, Premove[]> {
-    return this.game.premoveQueues;
+    return this.premoveManager.getQueues();
   }
 
   private set _premoveQueues(queues: Record<Color, Premove[]>) {
+    this.premoveManager.setQueues(queues);
     this.game.premoveQueues = queues;
   }
 
   private get _premoveSettings(): { multi: boolean; colors: Record<Color, boolean> } {
-    return this.game.premoveSettings;
+    return this.premoveManager.getSettings();
   }
 
   private set _premoveSettings(settings: { multi: boolean; colors: Record<Color, boolean> }) {
+    this.premoveManager.setSettings(settings);
     this.game.premoveSettings = settings;
   }
   public readonly premove: BoardPremoveController;
+  private premoveManager: PremoveManager;
   private interactionState: InteractionStateManager;
   private _legalMovesWorkerManager?: LegalMovesWorkerManager;
   private _pgnParserWorkerManager?: PgnParserWorkerManager;
@@ -414,6 +419,12 @@ export class NeoChessBoard {
 
     this._configureVisualOptions(options);
     const { premoveSettings, allowPremoves, variant, initialFen } = this._resolveGameSetup(options);
+    this.premoveManager = new PremoveManager(
+      premoveSettings,
+      allowPremoves,
+      () => this._defaultPremoveColor(),
+      () => this.renderAll(),
+    );
     this.animationMs = this._resolveAnimationMs(options);
     this.showAnimations = options.showAnimations !== false;
 
@@ -432,6 +443,10 @@ export class NeoChessBoard {
         rankLabels: this.rankLabels,
       },
     });
+    this.game.premoveQueues = this._premoveQueues;
+    this.game.premoveSettings = this._premoveSettings;
+    this.game.premove = this._premove;
+    this.game.allowPremoves = this.allowPremoves;
     this.ruleEngine = new RuleEngine(() => this.rules);
 
     // Initialize feature flags
@@ -584,6 +599,7 @@ export class NeoChessBoard {
     this.squareLayer = domResult.squareLayer;
     this.pieceLayer = domResult.pieceLayer;
     this.drawingManager = domResult.drawingManager;
+    this.premoveManager.setDrawingManager(this.drawingManager);
     this.sprites = domResult.sprites;
     this.captureEffectManager = new CaptureEffectManager({
       overlayRoot: this.domOverlay ?? this.root,
@@ -4403,86 +4419,11 @@ export class NeoChessBoard {
   }
 
   private _queuePremove(color: Color, premove: Premove, render: boolean): void {
-    if (!this._premoveSettings.colors[color]) {
-      return;
-    }
-
-    const entry: Premove = premove.promotion
-      ? { from: premove.from, to: premove.to, promotion: premove.promotion }
-      : { from: premove.from, to: premove.to };
-
-    this._premoveQueues[color] = this._premoveSettings.multi
-      ? [...this._premoveQueues[color], entry]
-      : [entry];
-
-    this._syncPremoveDisplay(color, render);
+    this.premoveManager.queue(color, premove, render);
   }
 
   private _syncPremoveDisplay(preferredColor?: Color, render = false): void {
-    if (!this.allowPremoves) {
-      if (this.drawingManager) {
-        this.drawingManager.setPremoveQueues(undefined, undefined);
-      }
-      this._premove = null;
-      if (render) {
-        this.renderAll();
-      }
-      return;
-    }
-
-    const active = this._determineActivePremove(preferredColor);
-    if (this.drawingManager) {
-      this.drawingManager.setPremoveQueues(this._buildPremoveQueueState(), active ?? undefined);
-    }
-    this._premove = active ? { ...active.premove } : null;
-
-    if (render) {
-      this.renderAll();
-    }
-  }
-
-  private _buildPremoveQueueState(): Partial<Record<Color, Premove[]>> | undefined {
-    const queues: Partial<Record<Color, Premove[]>> = {};
-    for (const color of ['w', 'b'] as const) {
-      if (!this._premoveSettings.colors[color]) continue;
-      if (this._premoveQueues[color].length > 0) {
-        queues[color] = this._premoveQueues[color].map((entry) => ({ ...entry }));
-      }
-    }
-    return Object.keys(queues).length > 0 ? queues : undefined;
-  }
-
-  private _determineActivePremove(
-    preferredColor?: Color,
-  ): { color: Color; premove: Premove } | null {
-    const order: Color[] = [];
-    const seen = new Set<Color>();
-    const push = (color: Color): void => {
-      if (!seen.has(color)) {
-        seen.add(color);
-        order.push(color);
-      }
-    };
-
-    if (preferredColor) {
-      push(preferredColor);
-    } else {
-      const waiting = this._defaultPremoveColor();
-      push(waiting);
-      push(this.state.turn);
-    }
-    push('w');
-    push('b');
-
-    for (const color of order) {
-      if (!this._premoveSettings.colors[color]) continue;
-      const queue = this._premoveQueues[color];
-      if (queue.length > 0) {
-        return { color, premove: { ...queue[0] } };
-      }
-    }
-
-    return null;
+    this.premoveManager.syncDisplay(preferredColor, render);
   }
 
   private _truncateQueuesForSingle(): void {
