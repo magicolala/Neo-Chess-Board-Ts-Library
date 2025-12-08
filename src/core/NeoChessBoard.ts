@@ -34,6 +34,7 @@ import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
 import { LegalMovesWorkerManager } from './LegalMovesWorkerManager';
 import { PgnParserWorkerManager } from './PgnParserWorkerManager';
+import { InteractionStateManager, type DraggingState, type PendingDragState } from './state/InteractionStateManager';
 import { RuleEngine } from './RuleEngine';
 import type {
   Square,
@@ -188,13 +189,6 @@ interface PendingPromotionState {
 }
 
 type Point = BoardPointerEventPoint;
-
-interface DraggingState {
-  from: Square;
-  piece: string;
-  x: number;
-  y: number;
-}
 
 type PendingPromotionSummary = Pick<PendingPromotionState, 'from' | 'to' | 'color' | 'mode'>;
 
@@ -361,25 +355,13 @@ export class NeoChessBoard {
     this.game.premoveSettings = settings;
   }
   public readonly premove: BoardPremoveController;
-  private _selected: Square | null = null;
-  private _legalCached: Move[] | null = null;
+  private interactionState: InteractionStateManager;
   private _legalMovesWorkerManager?: LegalMovesWorkerManager;
   private _pgnParserWorkerManager?: PgnParserWorkerManager;
   private static workerSupportWarned = false;
   private _useWorkerForLegalMoves: boolean;
   private _useWorkerForPgnParsing: boolean;
   private _pgnWorkerThreshold: number;
-  private _dragging: DraggingState | null = null;
-  private _hoverSq: Square | null = null;
-  private _pointerSquare: Square | null = null;
-  private _pendingDrag: {
-    from: Square;
-    piece: string;
-    startClientX: number;
-    startClientY: number;
-    startX: number;
-    startY: number;
-  } | null = null;
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
   private _customHighlights: { squares: Square[] } | null = null;
   private _drawingArrow: { from: Square } | null = null;
@@ -427,6 +409,8 @@ export class NeoChessBoard {
   constructor(root: HTMLElement, options: BoardOptions = {}) {
     this.root = root;
     this.initialOptions = { ...options };
+
+    this.interactionState = new InteractionStateManager();
 
     this._configureVisualOptions(options);
     const { premoveSettings, allowPremoves, variant, initialFen } = this._resolveGameSetup(options);
@@ -629,7 +613,7 @@ export class NeoChessBoard {
 
     this.eventManager = new BoardEventManager(this.cOverlay, {
       cancelActiveDrag: () => {
-        if (!this._dragging) {
+        if (!this.interactionState.getDragging()) {
           return false;
         }
         this._clearInteractionState();
@@ -1482,14 +1466,16 @@ export class NeoChessBoard {
     const snapChanged = this.dragSnapToSquare !== snap;
     this.dragSnapToSquare = snap;
 
-    if (!snapChanged || !this._dragging) {
+    const dragging = this.interactionState.getDragging();
+    if (!snapChanged || !dragging) {
       return false;
     }
 
-    if (snap && this._hoverSq) {
-      const center = this._squareCenter(this._hoverSq);
-      this._dragging.x = center.x;
-      this._dragging.y = center.y;
+    const hoverSq = this.interactionState.getHoverSquare();
+    if (snap && hoverSq) {
+      const center = this._squareCenter(hoverSq);
+      dragging.x = center.x;
+      dragging.y = center.y;
     }
 
     return true;
@@ -1528,7 +1514,7 @@ export class NeoChessBoard {
     this.allowAutoScroll = allow;
     if (!allow) {
       this._scrollContainer = null;
-    } else if (this._dragging) {
+    } else if (this.interactionState.getDragging()) {
       this._ensureScrollContainer();
     }
   }
@@ -2302,7 +2288,7 @@ export class NeoChessBoard {
     this._clearCanvas(ctx, 'pieces', 0, 0, W, H);
     const appliedTransform = this.canvasRenderer.applyCameraTransform(ctx, this.cPieces, transform);
 
-    const draggingSq = this._dragging?.from;
+    const draggingSq = this.interactionState.getDragging()?.from;
     const activeDomPieces = new Set<Square>();
     const hasCustomPieces =
       this.customPieceRenderers && Object.keys(this.customPieceRenderers).length > 0;
@@ -2331,7 +2317,7 @@ export class NeoChessBoard {
         this._removeDomPiece(square);
 
         if (draggingSq === square) {
-          if (this._dragging && this.dragGhostPiece) {
+          if (this.interactionState.getDragging() && this.dragGhostPiece) {
             this._drawGhostPiece(piece, square);
           }
           continue;
@@ -2346,7 +2332,7 @@ export class NeoChessBoard {
       this._cleanupDomPieces(activeDomPieces);
     }
 
-    if (this._dragging) {
+    if (this.interactionState.getDragging()) {
       this._drawDraggingPiece();
     }
 
@@ -2363,9 +2349,10 @@ export class NeoChessBoard {
   }
 
   private _drawDraggingPiece(): void {
-    if (!this._dragging) return;
+    const dragging = this.interactionState.getDragging();
+    if (!dragging) return;
 
-    const { piece, x, y } = this._dragging;
+    const { piece, x, y } = dragging;
     this._drawPieceSprite(piece, x - this.square / 2, y - this.square / 2, DRAG_SCALE);
   }
 
@@ -2662,20 +2649,23 @@ export class NeoChessBoard {
   }
 
   private _drawSelectedSquare(): void {
-    if (!this._selected) return;
+    const selected = this.interactionState.getSelected();
+    if (!selected) return;
 
-    const { x, y } = this._sqToXY(this._selected);
+    const { x, y } = this._sqToXY(selected);
     this.ctxO.fillStyle = this.theme.moveFrom;
     this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
   }
 
   private _drawLegalMoves(): void {
-    if (!this.highlightLegal || !this._selected || !this._legalCached) return;
+    const selected = this.interactionState.getSelected();
+    const legalCached = this.interactionState.getLegalCached();
+    if (!this.highlightLegal || !selected || !legalCached) return;
 
     const s = this.square;
     this.ctxO.fillStyle = this.theme.dot;
 
-    for (const move of this._legalCached) {
+    for (const move of legalCached) {
       const { x, y } = this._sqToXY(move.to);
       this.ctxO.beginPath();
       this.ctxO.arc(x + s / 2, y + s / 2, s * LEGAL_MOVE_DOT_RADIUS, 0, Math.PI * 2);
@@ -2772,9 +2762,11 @@ export class NeoChessBoard {
   }
 
   private _drawHoverHighlight(): void {
-    if (!this._hoverSq || !this._dragging) return;
+    const hoverSquare = this.interactionState.getHoverSquare();
+    const dragging = this.interactionState.getDragging();
+    if (!hoverSquare || !dragging) return;
 
-    const { x, y } = this._sqToXY(this._hoverSq);
+    const { x, y } = this._sqToXY(hoverSquare);
     this.ctxO.fillStyle = this._getMoveHighlightColor();
     this._fillCanvas(this.ctxO, 'overlay', x, y, this.square, this.square);
   }
@@ -2975,16 +2967,17 @@ export class NeoChessBoard {
   }
 
   private _updatePointerSquare(square: Square | null, event: PointerEvent): void {
-    if (square === this._pointerSquare) {
+    const currentPointerSquare = this.interactionState.getPointerSquare();
+    if (square === currentPointerSquare) {
       return;
     }
 
-    const previous = this._pointerSquare;
+    const previous = currentPointerSquare;
     if (previous) {
       this._emitSquareTransitionEvent('squareMouseOut', previous, square, event);
     }
 
-    this._pointerSquare = square;
+    this.interactionState.setPointerSquare(square);
 
     if (square) {
       this._emitSquareTransitionEvent('squareMouseOver', square, previous, event);
@@ -3084,13 +3077,13 @@ export class NeoChessBoard {
 
   private _selectOrHoverPiece(square: Square, piece: string): boolean {
     if (!this._shouldSelectOnPointerDown(square, piece)) {
-      this._hoverSq = square;
+      this.interactionState.setHoverSquare(square);
       this.renderAll();
       return false;
     }
 
     this._setSelection(square, piece);
-    this._hoverSq = square;
+    this.interactionState.setHoverSquare(square);
     this.renderAll();
     return true;
   }
@@ -3101,14 +3094,14 @@ export class NeoChessBoard {
     point: Point,
     event: PointerEvent,
   ): void {
-    this._pendingDrag = {
+    this.interactionState.setPendingDrag({
       from: square,
       piece,
       startClientX: event.clientX,
       startClientY: event.clientY,
       startX: point.x,
       startY: point.y,
-    };
+    });
 
     if (this.dragActivationDistance <= 0) {
       this._activatePendingDrag(point, event);
@@ -3123,20 +3116,20 @@ export class NeoChessBoard {
 
     if (pt && this.drawingManager?.handleMouseUp(pt.x, pt.y)) {
       this.renderAll();
-      this._pendingDrag = null;
+      this.interactionState.setPendingDrag(null);
       return;
     }
 
-    if (!this._dragging) {
+    if (!this.interactionState.getDragging()) {
       this._handleClickRelease(square, e);
-      this._pendingDrag = null;
+      this.interactionState.setPendingDrag(null);
       return;
     }
 
     const dropPoint = this._resolveDropPoint(pt);
 
     this._handleDragEnd(e, dropPoint);
-    this._pendingDrag = null;
+    this.interactionState.setPendingDrag(null);
   }
 
   private _updatePointerAfterMouseUp(square: Square | null, e: PointerEvent): void {
@@ -3152,8 +3145,9 @@ export class NeoChessBoard {
     if (pt) {
       return pt;
     }
-    if (!this.allowDragOffBoard && this._dragging) {
-      return { x: this._dragging.x, y: this._dragging.y };
+    const dragging = this.interactionState.getDragging();
+    if (!this.allowDragOffBoard && dragging) {
+      return { x: dragging.x, y: dragging.y };
     }
     return null;
   }
@@ -3280,19 +3274,21 @@ export class NeoChessBoard {
 
   private _updatePointerSquareOnMove(e: PointerEvent, pt: Point | null): void {
     const square = pt ? this._xyToSquare(pt.x, pt.y) : null;
-    if (square || this._pointerSquare) {
+    const pointerSquare = this.interactionState.getPointerSquare();
+    if (square || pointerSquare) {
       this._updatePointerSquare(square, e);
     }
   }
 
   private _tryActivatePendingDrag(e: PointerEvent, pt: Point | null): void {
-    if (!this._pendingDrag || !this.allowDragging) {
+    const pendingDrag = this.interactionState.getPendingDrag();
+    if (!pendingDrag || !this.allowDragging) {
       return;
     }
 
     const distance = Math.hypot(
-      e.clientX - this._pendingDrag.startClientX,
-      e.clientY - this._pendingDrag.startClientY,
+      e.clientX - pendingDrag.startClientX,
+      e.clientY - pendingDrag.startClientY,
     );
 
     if (distance < this.dragActivationDistance) {
@@ -3300,8 +3296,8 @@ export class NeoChessBoard {
     }
 
     const activationPoint = pt ?? {
-      x: this._pendingDrag.startX,
-      y: this._pendingDrag.startY,
+      x: pendingDrag.startX,
+      y: pendingDrag.startY,
     };
     this._activatePendingDrag(activationPoint, e);
   }
@@ -3313,7 +3309,7 @@ export class NeoChessBoard {
   }
 
   private _handleActiveDragMove(e: PointerEvent, pt: Point | null): void {
-    if (!this._dragging) {
+    if (!this.interactionState.getDragging()) {
       this._updateCursorForHover(pt);
       return;
     }
@@ -3330,18 +3326,21 @@ export class NeoChessBoard {
   }
 
   private _updateDragPosition(pt: Point): void {
+    const dragging = this.interactionState.getDragging();
+    if (!dragging) return;
+
     const square = this._xyToSquare(pt.x, pt.y);
 
     if (this.dragSnapToSquare && square) {
       const center = this._squareCenter(square);
-      this._dragging!.x = center.x;
-      this._dragging!.y = center.y;
+      dragging.x = center.x;
+      dragging.y = center.y;
     } else {
-      this._dragging!.x = pt.x;
-      this._dragging!.y = pt.y;
+      dragging.x = pt.x;
+      dragging.y = pt.y;
     }
 
-    this._hoverSq = square;
+    this.interactionState.setHoverSquare(square);
   }
 
   private _updateCursorForHover(pt: Point | null): void {
@@ -3356,19 +3355,28 @@ export class NeoChessBoard {
 
   private _emitDragEvent(e: PointerEvent, pt: Point): void {
     const square = this._xyToSquare(pt.x, pt.y);
-    this._emitPieceDragEvent(e, this._dragging!.from, this._dragging!.piece, square, pt);
+    const dragging = this.interactionState.getDragging();
+    if (!dragging) {
+      return;
+    }
+    this._emitPieceDragEvent(e, dragging.from, dragging.piece, square, pt);
   }
 
   private _emitDragEventOutOfBounds(e: PointerEvent): void {
-    this._emitPieceDragEvent(e, this._dragging!.from, this._dragging!.piece, null, null);
+    const dragging = this.interactionState.getDragging();
+    if (!dragging) {
+      return;
+    }
+    this._emitPieceDragEvent(e, dragging.from, dragging.piece, null, null);
   }
 
   private _activatePendingDrag(pt: Point, event: PointerEvent): void {
-    if (!this._pendingDrag) {
+    const pendingDrag = this.interactionState.getPendingDrag();
+    if (!pendingDrag) {
       return;
     }
 
-    const { from, piece } = this._pendingDrag;
+    const { from, piece } = pendingDrag;
     const hoverSquare = this._xyToSquare(pt.x, pt.y);
     let dragX = pt.x;
     let dragY = pt.y;
@@ -3379,16 +3387,16 @@ export class NeoChessBoard {
       dragY = center.y;
     }
 
-    this._dragging = { from, piece, x: dragX, y: dragY };
-    this._pendingDrag = null;
-    this._hoverSq = hoverSquare;
+    this.interactionState.startDrag({ from, piece, x: dragX, y: dragY });
+    this.interactionState.setPendingDrag(null);
+    this.interactionState.setHoverSquare(hoverSquare);
 
     if (this.allowAutoScroll) {
       this._ensureScrollContainer();
     }
 
     this._renderPiecesAndOverlayLayers();
-    this._emitPieceDragEvent(event, from, piece, this._hoverSq, pt);
+    this._emitPieceDragEvent(event, from, piece, hoverSquare, pt);
   }
 
   private _ensureScrollContainer(): void {
@@ -3415,7 +3423,7 @@ export class NeoChessBoard {
   }
 
   private _autoScrollDuringDrag(e: PointerEvent): void {
-    if (!this.allowAutoScroll || !this._dragging) {
+    if (!this.allowAutoScroll || !this.interactionState.getDragging()) {
       return;
     }
 
@@ -3468,7 +3476,7 @@ export class NeoChessBoard {
   }
 
   private _handleEscapeKey(): void {
-    if (!this.dragCancelOnEsc && this._dragging) {
+    if (!this.dragCancelOnEsc && this.interactionState.getDragging()) {
       return;
     }
     this._clearInteractionState();
@@ -3479,21 +3487,20 @@ export class NeoChessBoard {
   }
 
   private _handleDragEnd(e: PointerEvent, pt: Point | null): void {
-    if (!this._dragging) {
+    const dragging = this.interactionState.getDragging();
+    if (!dragging) {
       return;
     }
-
-    const dragging = this._dragging;
     const drop = pt ? this._xyToSquare(pt.x, pt.y) : null;
 
     this._emitPieceDropEvent(e, dragging.from, dragging.piece, drop, pt);
 
-    this._dragging = null;
-    this._hoverSq = null;
+    this.interactionState.stopDrag();
+    this.interactionState.setHoverSquare(null);
 
     if (!drop) {
-      this._selected = null;
-      this._legalCached = null;
+      this.interactionState.setSelected(null);
+      this.interactionState.setLegalCached(null);
       this.renderAll();
       return;
     }
@@ -3554,7 +3561,7 @@ export class NeoChessBoard {
   }
 
   private _handleClickMove(target: Square): void {
-    const from = this._selected;
+    const from = this.interactionState.getSelected();
     if (!from || from === target) {
       if (from === target) {
         this.renderAll();
@@ -3839,11 +3846,12 @@ export class NeoChessBoard {
   }
 
   private _shouldSelectOnPointerDown(square: Square, piece: string): boolean {
-    if (!this._selected || this._selected === square) {
+    const selected = this.interactionState.getSelected();
+    if (!selected || selected === square) {
       return true;
     }
 
-    const current = this._pieceAt(this._selected);
+    const current = this._pieceAt(selected);
     if (!current) return true;
 
     const currentIsWhite = isWhitePiece(current);
@@ -3857,39 +3865,39 @@ export class NeoChessBoard {
 
   private _setSelection(square: Square, piece: string): void {
     const side = isWhitePiece(piece) ? 'w' : 'b';
-    this._selected = square;
+    this.interactionState.setSelected(square);
 
     if (side === this.state.turn) {
       // Use Worker if enabled and available
       if (this._useWorkerForLegalMoves && this._legalMovesWorkerManager?.isAvailable()) {
         // Calculate asynchronously with Worker
         const fen = this.rules.getFEN();
-        this._legalCached = null; // Clear cache while calculating
+        this.interactionState.setLegalCached(null); // Clear cache while calculating
         this._legalMovesWorkerManager
           .calculateMovesFrom(fen, square)
           .then((moves) => {
             // Only update if still the same selection
-            if (this._selected === square && this.rules.getFEN() === fen) {
-              this._legalCached = moves;
+            if (this.interactionState.getSelected() === square && this.rules.getFEN() === fen) {
+              this.interactionState.setLegalCached(moves);
               this.renderAll();
             }
           })
           .catch((error) => {
             console.warn('Worker calculation failed, falling back to sync:', error);
             // Fallback to synchronous calculation
-            if (this._selected === square) {
-              this._legalCached = this.rules.movesFrom(square);
+            if (this.interactionState.getSelected() === square) {
+              this.interactionState.setLegalCached(this.rules.movesFrom(square));
               this.renderAll();
             }
           });
       } else {
         // Synchronous calculation (default or fallback)
-        this._legalCached = this.rules.movesFrom(square);
+        this.interactionState.setLegalCached(this.rules.movesFrom(square));
       }
     } else if (this.allowPremoves) {
-      this._legalCached = [];
+      this.interactionState.setLegalCached([]);
     } else {
-      this._legalCached = null;
+      this.interactionState.setLegalCached(null);
     }
   }
 
@@ -3933,7 +3941,7 @@ export class NeoChessBoard {
 
     this._pendingPromotion = pending;
     this._clearSelectionState();
-    this._dragging = null;
+    this.interactionState.stopDrag();
     this.previewPromotionPiece(null);
 
     this.clockManager?.pause();
@@ -5199,17 +5207,13 @@ export class NeoChessBoard {
   // ============================================================================
 
   private _clearInteractionState(): void {
-    this._selected = null;
-    this._legalCached = null;
-    this._dragging = null;
-    this._hoverSq = null;
-    this._pendingDrag = null;
+    this.interactionState.clearAll();
   }
 
   private _clearSelectionState(): void {
-    this._selected = null;
-    this._legalCached = null;
-    this._hoverSq = null;
+    this.interactionState.setSelected(null);
+    this.interactionState.setLegalCached(null);
+    this.interactionState.setHoverSquare(null);
   }
 
   private _clearAllDrawings(): void {

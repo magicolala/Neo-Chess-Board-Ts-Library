@@ -2,6 +2,7 @@ import { NeoChessBoard } from '../../src/core/NeoChessBoard';
 import type { BoardAudioManager } from '../../src/core/BoardAudioManager';
 import type { BoardEventManager } from '../../src/core/BoardEventManager';
 import type { DrawingManager } from '../../src/core/DrawingManager';
+import type { InteractionStateManager } from '../../src/core/state/InteractionStateManager';
 import { BoardDomManager } from '../../src/core/BoardDomManager';
 import { ChessJsRules } from '../../src/core/ChessJsRules';
 import { createArrowHighlightExtension } from '../../src/extensions/ArrowHighlightExtension';
@@ -44,6 +45,9 @@ const getMethodHost = (instance: NeoChessBoard): Record<string, (...args: unknow
 
 const getEventManager = (instance: NeoChessBoard): BoardEventManager =>
   getPrivate<BoardEventManager>(instance, 'eventManager');
+
+const getInteractionState = (instance: NeoChessBoard): InteractionStateManager =>
+  getPrivate<InteractionStateManager>(instance, 'interactionState');
 
 type AudioMock = {
   play: jest.Mock<Promise<void>, []>;
@@ -706,7 +710,7 @@ describe('NeoChessBoard Core', () => {
         from: 'a2',
         to: 'a3',
       });
-      Reflect.set(board as unknown as Record<string, unknown>, '_selected', 'e2');
+      getInteractionState(board).setSelected('e2');
 
       updateSpy.mockClear();
 
@@ -714,7 +718,7 @@ describe('NeoChessBoard Core', () => {
 
       expect(undone).toBe(true);
       expect(board.getCurrentFEN()).toBe(initialFen);
-      expect(getPrivate<Square | null>(board, '_selected')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBeNull();
       expect(getPrivate<unknown>(board, '_premove')).toBeNull();
       expect(getPrivate<unknown>(board, '_lastMove')).toBeNull();
       expect(setQueuesSpy).toHaveBeenCalled();
@@ -1738,7 +1742,7 @@ describe('NeoChessBoard Core', () => {
 
       const leftDown = createPointerEventForSquare(0, 'e2');
       onPointerDown(leftDown.event);
-      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
+      expect(getInteractionState(board).getDragging()).not.toBeNull();
 
       onPointerMove(createPointerEventForSquare(0, 'e4').event);
 
@@ -1746,10 +1750,10 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(rightDown.event);
 
       expect(rightDown.preventDefault).toHaveBeenCalled();
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
-      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
-      expect(getPrivate<unknown>(board, '_legalCached')).toBeNull();
-      expect(getPrivate<unknown>(board, '_hoverSq')).toBeNull();
+      expect(getInteractionState(board).getDragging()).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBeNull();
+      expect(getInteractionState(board).getLegalCached()).toBeNull();
+      expect(getInteractionState(board).getHoverSquare()).toBeNull();
 
       onPointerUp(createPointerEventForSquare(2, 'e4').event);
 
@@ -1827,8 +1831,8 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(sourceClick.event);
       onPointerUp(sourceClick.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBe('e2');
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBe('e2');
+      expect(getInteractionState(board).getDragging()).toBeNull();
 
       const destinationClick = createPointerEventForSquare(0, 'e4');
       onPointerDown(destinationClick.event);
@@ -1838,8 +1842,8 @@ describe('NeoChessBoard Core', () => {
         'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
       );
       expect(moveSpy).toHaveBeenCalledWith(expect.objectContaining({ from: 'e2', to: 'e4' }));
-      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
-      expect(getPrivate<unknown>(board, '_legalCached')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBeNull();
+      expect(getInteractionState(board).getLegalCached()).toBeNull();
     });
 
     it('keeps the current selection when clicking an opposing piece for a capture with premoves enabled', () => {
@@ -1851,14 +1855,14 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(selectSource.event);
       onPointerUp(selectSource.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBe('e4');
+      expect(getInteractionState(board).getDragging()).toBeNull();
 
       const targetClick = createPointerEventForSquare(0, 'f5');
       onPointerDown(targetClick.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBe('e4');
+      expect(getInteractionState(board).getDragging()).toBeNull();
 
       onPointerUp(targetClick.event);
 
@@ -1866,7 +1870,7 @@ describe('NeoChessBoard Core', () => {
       const pieceAt = getPrivate<(square: Square) => string | null>(board, '_pieceAt').bind(board);
       expect(pieceAt('f5')).toBe('P');
       expect(pieceAt('e4')).toBeNull();
-      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBeNull();
     });
 
     it('still allows selecting a friendly piece after selecting an opposing one first', () => {
@@ -1876,13 +1880,13 @@ describe('NeoChessBoard Core', () => {
       onPointerDown(enemyClick.event);
       onPointerUp(enemyClick.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBe('f2');
+      expect(getInteractionState(board).getSelected()).toBe('f2');
 
       const friendlyClick = createPointerEventForSquare(0, 'e4');
       onPointerDown(friendlyClick.event);
       onPointerUp(friendlyClick.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBe('e4');
+      expect(getInteractionState(board).getSelected()).toBe('e4');
     });
 
     it('defers dragging until movement passes dragActivationDistance', () => {
@@ -1891,18 +1895,18 @@ describe('NeoChessBoard Core', () => {
       const down = createPointerEventForSquare(0, 'e2');
       onPointerDown(down.event);
 
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
-      expect(getPrivate<unknown>(board, '_pendingDrag')).not.toBeNull();
+      expect(getInteractionState(board).getDragging()).toBeNull();
+      expect(getInteractionState(board).getPendingDrag()).not.toBeNull();
 
       const smallMove = createPointerEventForSquare(0, 'e2', { dx: 10 });
       onPointerMove(smallMove.event);
 
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getInteractionState(board).getDragging()).toBeNull();
 
       const largeMove = createPointerEventForSquare(0, 'e2', { dx: 80 });
       onPointerMove(largeMove.event);
 
-      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
+      expect(getInteractionState(board).getDragging()).not.toBeNull();
 
       onPointerUp(largeMove.event);
       board.setDragActivationDistance(0);
@@ -1914,13 +1918,13 @@ describe('NeoChessBoard Core', () => {
       const disallowed = createPointerEventForSquare(0, 'e2');
       onPointerDown(disallowed.event);
 
-      expect(getPrivate<unknown>(board, '_selected')).toBeNull();
-      expect(getPrivate<unknown>(board, '_dragging')).toBeNull();
+      expect(getInteractionState(board).getSelected()).toBeNull();
+      expect(getInteractionState(board).getDragging()).toBeNull();
 
       const allowed = createPointerEventForSquare(0, 'd2');
       onPointerDown(allowed.event);
 
-      expect(getPrivate<unknown>(board, '_dragging')).not.toBeNull();
+      expect(getInteractionState(board).getDragging()).not.toBeNull();
 
       onPointerUp(allowed.event);
       board.setCanDragPiece(undefined);
