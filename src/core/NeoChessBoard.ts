@@ -3569,33 +3569,85 @@ export class NeoChessBoard {
     to: Square,
     options: { promotion?: Move['promotion'] } = {},
   ): boolean | 'pending' {
-    if (this._isConflictingWithPendingPromotion(from, to)) {
+    const validation = this._validateMoveAttempt(from, to, options);
+    if (!validation.isValid) {
       return false;
     }
-
-    const piece = this._pieceAt(from);
-    if (!piece) return false;
-
-    const side = isWhitePiece(piece) ? 'w' : 'b';
-    const promotion = options.promotion?.toLowerCase() as PromotionPiece | undefined;
 
     if (from === to) {
       this.renderAll();
       return true;
     }
 
-    if (side !== this.state.turn) {
+    const { piece, side, promotion } = validation;
+    if (!piece || !side) {
+      return false;
+    }
+
+    if (this._isNotPlayerTurn(side)) {
       return this._handlePremoveAttempt(from, to, side, promotion);
     }
 
-    if (this._isPromotionMove(piece, to, side) && !promotion) {
-      if (this.promotionOptions.autoQueen) {
-        return this._executeMove(from, to, 'q');
-      }
-      return this._beginPromotionRequest(from, to, side, 'move');
+    return this._executePlayerMove(from, to, piece, side, promotion);
+  }
+
+  private _validateMoveAttempt(
+    from: Square,
+    to: Square,
+    options: { promotion?: Move['promotion'] } = {},
+  ): { isValid: boolean; piece?: string; side?: Color; promotion?: PromotionPiece } {
+    if (this._isConflictingWithPendingPromotion(from, to)) {
+      return { isValid: false };
+    }
+
+    const piece = this._pieceAt(from);
+    if (!piece) {
+      return { isValid: false };
+    }
+
+    const side = isWhitePiece(piece) ? 'w' : 'b';
+    const promotion = options.promotion?.toLowerCase() as PromotionPiece | undefined;
+
+    return { isValid: true, piece, side, promotion };
+  }
+
+  private _isNotPlayerTurn(side: Color): boolean {
+    return side !== this.state.turn;
+  }
+
+  private _executePlayerMove(
+    from: Square,
+    to: Square,
+    piece: string,
+    side: Color,
+    promotion?: PromotionPiece,
+  ): boolean | 'pending' {
+    if (this._requiresPromotionChoice(piece, to, side, promotion)) {
+      return this._handlePromotionChoice(from, to, side);
     }
 
     return this._executeMove(from, to, promotion);
+  }
+
+  private _requiresPromotionChoice(
+    piece: string,
+    to: Square,
+    side: Color,
+    promotion?: PromotionPiece,
+  ): boolean {
+    return this._isPromotionMove(piece, to, side) && !promotion;
+  }
+
+  private _handlePromotionChoice(
+    from: Square,
+    to: Square,
+    side: Color,
+  ): boolean | 'pending' {
+    if (this.promotionOptions.autoQueen) {
+      return this._executeMove(from, to, 'q');
+    }
+
+    return this._beginPromotionRequest(from, to, side, 'move');
   }
 
   private _isConflictingWithPendingPromotion(from: Square, to: Square): boolean {
