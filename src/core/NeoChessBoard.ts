@@ -3024,72 +3024,94 @@ export class NeoChessBoard {
   }
 
   private _handleLeftMouseDown(e: PointerEvent): void {
-    const pt = this._getPointerPosition(e);
-    if (!pt) {
+    const point = this._getPointerPosition(e);
+    if (!point) {
       this._updatePointerSquare(null, e);
       return;
     }
 
-    const from = this._xyToSquare(pt.x, pt.y);
-    this._updatePointerSquare(from, e);
-    this._emitSquarePointerEvent('squareMouseDown', from, e);
+    const square = this._xyToSquare(point.x, point.y);
+    this._handleSquarePointerDown(square, point, e);
+  }
 
-    const piece = this._pieceAt(from);
+  private _handleSquarePointerDown(square: Square, point: Point, event: PointerEvent): void {
+    this._updatePointerSquare(square, event);
+    this._emitSquarePointerEvent('squareMouseDown', square, event);
+
+    const piece = this._pieceAt(square);
     if (!piece) {
       return;
     }
 
+    if (!this._canInteractWithPiece(square, piece)) {
+      return;
+    }
+
+    if (!this._selectOrHoverPiece(square, piece)) {
+      return;
+    }
+
+    if (this.allowDragging) {
+      this._queuePendingDrag(square, piece, point, event);
+    }
+  }
+
+  private _canInteractWithPiece(square: Square, piece: string): boolean {
     const side = isWhitePiece(piece) ? 'w' : 'b';
     if (side !== this.state.turn && !this.allowPremoves) {
-      return;
+      return false;
     }
 
-    if (this.canDragPiece) {
-      const currentPosition = fenStringToPositionObject(this.getPosition(), {
-        files: this.filesCount,
-        ranks: this.ranksCount,
-        fileLabels: this.fileLabels,
-        rankLabels: this.rankLabels,
-      });
-
-      const canDrag = this.canDragPiece({
-        board: this,
-        orientation: this.orientation,
-        position: currentPosition,
-        square: from,
-        piece: { pieceType: piece as Piece },
-      });
-
-      if (!canDrag) {
-        return;
-      }
+    if (!this.canDragPiece) {
+      return true;
     }
 
-    if (!this._shouldSelectOnPointerDown(from, piece)) {
-      this._hoverSq = from;
+    const currentPosition = fenStringToPositionObject(this.getPosition(), {
+      files: this.filesCount,
+      ranks: this.ranksCount,
+      fileLabels: this.fileLabels,
+      rankLabels: this.rankLabels,
+    });
+
+    return this.canDragPiece({
+      board: this,
+      orientation: this.orientation,
+      position: currentPosition,
+      square,
+      piece: { pieceType: piece as Piece },
+    });
+  }
+
+  private _selectOrHoverPiece(square: Square, piece: string): boolean {
+    if (!this._shouldSelectOnPointerDown(square, piece)) {
+      this._hoverSq = square;
       this.renderAll();
-      return;
+      return false;
     }
 
-    this._setSelection(from, piece);
-    this._hoverSq = from;
+    this._setSelection(square, piece);
+    this._hoverSq = square;
     this.renderAll();
+    return true;
+  }
 
-    if (!this.allowDragging) {
-      return;
-    }
-
+  private _queuePendingDrag(
+    square: Square,
+    piece: string,
+    point: Point,
+    event: PointerEvent,
+  ): void {
     this._pendingDrag = {
-      from,
+      from: square,
       piece,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startX: pt.x,
-      startY: pt.y,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: point.x,
+      startY: point.y,
     };
 
     if (this.dragActivationDistance <= 0) {
-      this._activatePendingDrag(pt, e);
+      this._activatePendingDrag(point, event);
     }
   }
 
