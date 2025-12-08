@@ -133,7 +133,7 @@ export class PremoveManager {
   public syncDisplay(preferredColor?: Color, render = false): void {
     if (!this.allowPremoves) {
       if (this.drawingManager) {
-        this.drawingManager.setPremoveQueues(undefined);
+        this.drawingManager.setPremoveQueues(undefined, undefined);
       }
       this.premove = null;
       if (render) {

@@ -1645,9 +1645,10 @@ export class NeoChessBoard {
 
   public setAllowPremoves(allow: boolean): void {
     this.allowPremoves = allow;
+    this.premoveManager.setEnabled(allow);
     if (!allow) {
-      this._premoveQueues.w = [];
-      this._premoveQueues.b = [];
+      this._premoveQueues = { w: [], b: [] };
+      this._premove = null;
     }
     this._syncPremoveDisplay(undefined, true);
   }
