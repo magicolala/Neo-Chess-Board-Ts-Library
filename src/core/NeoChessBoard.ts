@@ -1856,22 +1856,22 @@ export class NeoChessBoard {
       return;
     }
 
-    if (!this.clockManager) {
-      if (config?.initial === undefined) {
+      if (!this.clockManager) {
+        if (config?.initial === undefined) {
+          return;
+        }
+
+        const nextConfig: ClockConfig = {
+          initial: config.initial,
+          increment: config.increment,
+          delay: config.delay,
+          active: config.active ?? this._currentTurn(),
+          paused: config.paused,
+          callbacks: config.callbacks,
+        };
+        this._initializeClock(nextConfig);
         return;
       }
-
-      const nextConfig: ClockConfig = {
-        initial: config.initial,
-        increment: config.increment,
-        delay: config.delay,
-        active: config.active ?? this.state?.turn ?? 'w',
-        paused: config.paused,
-        callbacks: config.callbacks,
-      };
-      this._initializeClock(nextConfig);
-      return;
-    }
 
     if (config) {
       this.clockManager.reset(config);
@@ -2019,14 +2019,18 @@ export class NeoChessBoard {
       return;
     }
 
-    const resolvedConfig: ClockConfig = {
-      ...clockConfig,
-      active: clockConfig.active ?? this.state?.turn ?? 'w',
-    };
+      const resolvedConfig: ClockConfig = {
+        ...clockConfig,
+        active: clockConfig.active ?? this._currentTurn(),
+      };
 
-    const bus = this.bus as unknown as EventBus<ClockEvents>;
-    this.clockManager = new ClockManager(resolvedConfig, bus);
-  }
+      const bus = this.bus as unknown as EventBus<ClockEvents>;
+      this.clockManager = new ClockManager(resolvedConfig, bus);
+    }
+
+    private _currentTurn(): Color {
+      return this.state.turn;
+    }
 
   private _syncClockFromTurn(previousTurn: Color): void {
     const manager = this.clockManager;
@@ -3095,7 +3099,7 @@ export class NeoChessBoard {
 
     this._updatePointerAfterMouseUp(square, e);
 
-    if (this.drawingManager?.handleMouseUp(pt?.x || 0, pt?.y || 0)) {
+    if (pt && this.drawingManager?.handleMouseUp(pt.x, pt.y)) {
       this.renderAll();
       this._pendingDrag = null;
       return;
