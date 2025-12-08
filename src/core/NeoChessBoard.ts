@@ -34,7 +34,7 @@ import { PgnParseError } from './errors';
 import { CaptureEffectManager } from './CaptureEffectManager';
 import { LegalMovesWorkerManager } from './LegalMovesWorkerManager';
 import { PgnParserWorkerManager } from './PgnParserWorkerManager';
-import { InteractionStateManager, type DraggingState, type PendingDragState } from './state/InteractionStateManager';
+import { InteractionStateManager } from './state/InteractionStateManager';
 import { RuleEngine } from './RuleEngine';
 import type {
   Square,
@@ -359,8 +359,8 @@ export class NeoChessBoard {
     this.game.premoveSettings = settings;
   }
   public readonly premove: BoardPremoveController;
-  private premoveManager: PremoveManager;
-  private interactionState: InteractionStateManager;
+  private readonly premoveManager: PremoveManager;
+  private readonly interactionState: InteractionStateManager;
   private _legalMovesWorkerManager?: LegalMovesWorkerManager;
   private _pgnParserWorkerManager?: PgnParserWorkerManager;
   private static workerSupportWarned = false;
