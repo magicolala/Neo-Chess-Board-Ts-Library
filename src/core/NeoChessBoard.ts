@@ -3257,45 +3257,24 @@ export class NeoChessBoard {
   }
 
   private _handleMouseMove(e: PointerEvent, pt: Point | null): void {
+    this._updatePointerSquareOnMove(e, pt);
+    this._tryActivatePendingDrag(e, pt);
+    this._handleDrawingManagerMove(pt);
+    this._handleActiveDragMove(e, pt);
+  }
+
+  private _updatePointerSquareOnMove(e: PointerEvent, pt: Point | null): void {
     const square = pt ? this._xyToSquare(pt.x, pt.y) : null;
     if (square || this._pointerSquare) {
       this._updatePointerSquare(square, e);
     }
-
-    this._maybeActivatePendingDrag(e, pt);
-
-    if (pt && this.drawingManager?.handleMouseMove(pt.x, pt.y)) {
-      this.renderAll();
-    }
-
-    if (this._dragging && pt) {
-      if (this.dragSnapToSquare && square) {
-        const center = this._squareCenter(square);
-        this._dragging.x = center.x;
-        this._dragging.y = center.y;
-      } else {
-        this._dragging.x = pt.x;
-        this._dragging.y = pt.y;
-      }
-      this._hoverSq = square;
-      this._autoScrollDuringDrag(e);
-      this._renderPiecesAndOverlayLayers();
-      this._emitPieceDragEvent(e, this._dragging.from, this._dragging.piece, square, pt);
-    } else if (this._dragging && !pt) {
-      this._autoScrollDuringDrag(e);
-      this._emitPieceDragEvent(e, this._dragging.from, this._dragging.piece, null, null);
-    } else if (pt && this.interactive) {
-      const piece = square ? this._pieceAt(square) : null;
-      this._updateCursor(piece ? 'pointer' : 'default');
-    } else if (!pt) {
-      this._updateCursor('default');
-    }
   }
 
-  private _maybeActivatePendingDrag(e: PointerEvent, pt: Point | null): void {
+  private _tryActivatePendingDrag(e: PointerEvent, pt: Point | null): void {
     if (!this._pendingDrag || !this.allowDragging) {
       return;
     }
+
     const distance = Math.hypot(
       e.clientX - this._pendingDrag.startClientX,
       e.clientY - this._pendingDrag.startClientY,
@@ -3310,6 +3289,63 @@ export class NeoChessBoard {
       y: this._pendingDrag.startY,
     };
     this._activatePendingDrag(activationPoint, e);
+  }
+
+  private _handleDrawingManagerMove(pt: Point | null): void {
+    if (pt && this.drawingManager?.handleMouseMove(pt.x, pt.y)) {
+      this.renderAll();
+    }
+  }
+
+  private _handleActiveDragMove(e: PointerEvent, pt: Point | null): void {
+    if (!this._dragging) {
+      this._updateCursorForHover(pt);
+      return;
+    }
+
+    if (pt) {
+      this._updateDragPosition(pt);
+      this._autoScrollDuringDrag(e);
+      this._renderPiecesAndOverlayLayers();
+      this._emitDragEvent(e, pt);
+    } else {
+      this._autoScrollDuringDrag(e);
+      this._emitDragEventOutOfBounds(e);
+    }
+  }
+
+  private _updateDragPosition(pt: Point): void {
+    const square = this._xyToSquare(pt.x, pt.y);
+
+    if (this.dragSnapToSquare && square) {
+      const center = this._squareCenter(square);
+      this._dragging!.x = center.x;
+      this._dragging!.y = center.y;
+    } else {
+      this._dragging!.x = pt.x;
+      this._dragging!.y = pt.y;
+    }
+
+    this._hoverSq = square;
+  }
+
+  private _updateCursorForHover(pt: Point | null): void {
+    if (pt && this.interactive) {
+      const square = this._xyToSquare(pt.x, pt.y);
+      const piece = square ? this._pieceAt(square) : null;
+      this._updateCursor(piece ? 'pointer' : 'default');
+    } else if (!pt) {
+      this._updateCursor('default');
+    }
+  }
+
+  private _emitDragEvent(e: PointerEvent, pt: Point): void {
+    const square = this._xyToSquare(pt.x, pt.y);
+    this._emitPieceDragEvent(e, this._dragging!.from, this._dragging!.piece, square, pt);
+  }
+
+  private _emitDragEventOutOfBounds(e: PointerEvent): void {
+    this._emitPieceDragEvent(e, this._dragging!.from, this._dragging!.piece, null, null);
   }
 
   private _activatePendingDrag(pt: Point, event: PointerEvent): void {
