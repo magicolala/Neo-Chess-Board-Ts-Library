@@ -57,15 +57,15 @@ export function createAIPlayerExtension(
         }
       };
 
-      const maybePlayForEngine = (fen: string) => {
-        const turn = context.board.getTurn();
-        const aiColor = options.aiColor ?? 'black';
-        const shouldMove =
-          (turn === 'w' && aiColor === 'white') || (turn === 'b' && aiColor === 'black');
-        if (shouldMove) {
-          triggerAIMove(fen);
-        }
-      };
+    const maybePlayForEngine = (fen: string) => {
+      const turn = context.board.getTurn();
+      const aiColor = options.aiColor ?? 'black';
+      const shouldMove =
+        (turn === 'w' && aiColor === 'white') || (turn === 'b' && aiColor === 'black');
+      if (shouldMove) {
+        void triggerAIMove(fen);
+      }
+    };
 
       return {
         async onInit(ctx) {

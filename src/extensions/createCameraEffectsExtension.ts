@@ -48,11 +48,11 @@ const registerZoomOnMove = (
   if (!options.zoomOnMove) {
     return;
   }
-  const dispose = ctx.registerExtensionPoint('move', async ({ from, to }) => {
-    await ctx.board.zoomToMove(from, to, options.zoomScale ?? 1.8);
+  const dispose = ctx.registerExtensionPoint('move', ({ from, to }) => {
+    void ctx.board.zoomToMove(from, to, options.zoomScale ?? 1.8);
     if (typeof options.resetAfterMoveMs === 'number') {
       setTimeout(() => {
-        ctx.board.resetCamera(true).catch(() => {});
+        void ctx.board.resetCamera(true).catch(() => {});
       }, options.resetAfterMoveMs);
     }
   });

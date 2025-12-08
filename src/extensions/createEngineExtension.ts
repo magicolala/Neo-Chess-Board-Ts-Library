@@ -52,11 +52,15 @@ export function createEngineExtension(
           await engine.init();
           options.onReady?.(engine);
           if (options.autoStart !== false) {
-            analyze(ctx.board.getCurrentFEN());
+            void analyze(ctx.board.getCurrentFEN());
           }
 
-          ctx.registerExtensionPoint('move', ({ fen }) => analyze(fen));
-          ctx.registerExtensionPoint('update', ({ fen }) => analyze(fen));
+          ctx.registerExtensionPoint('move', ({ fen }) => {
+            void analyze(fen);
+          });
+          ctx.registerExtensionPoint('update', ({ fen }) => {
+            void analyze(fen);
+          });
         },
         onDestroy() {
           disposed = true;
