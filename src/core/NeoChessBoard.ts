@@ -3836,7 +3836,7 @@ export class NeoChessBoard {
 
   private _determineSoundEventType(legal: RulesMoveResponse): BoardSoundEventType {
     const moveDetail = legal.move as
-      | { captured?: unknown; san?: string; promotion?: unknown; flags?: string }
+      | { captured?: unknown; san?: string; promotion?: unknown }
       | undefined;
     const san = moveDetail?.san;
 
@@ -3855,9 +3855,7 @@ export class NeoChessBoard {
     }
 
     const isPromotion =
-      moveDetail?.promotion !== undefined ||
-      (typeof moveDetail?.flags === 'string' && moveDetail.flags.includes('p')) ||
-      (typeof san === 'string' && san.includes('='));
+      moveDetail?.promotion !== undefined || (typeof san === 'string' && san.includes('='));
 
     if (isPromotion) {
       return 'promote';
