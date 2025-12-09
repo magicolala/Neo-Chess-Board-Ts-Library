@@ -524,12 +524,10 @@ export class NeoChessBoard {
     this._useWorkerForLegalMoves = workersSupported && (options.useWorkerForLegalMoves ?? false);
     this._useWorkerForPgnParsing = workersSupported && (options.useWorkerForPgnParsing ?? true);
     this._pgnWorkerThreshold = options.pgnWorkerThreshold ?? 100 * 1024; // 100KB default
+    const workerFeatureRequested =
+      options.useWorkerForLegalMoves === true || options.useWorkerForPgnParsing === true;
 
-    if (
-      !workersSupported &&
-      !NeoChessBoard.workerSupportWarned &&
-      (options.useWorkerForLegalMoves || options.useWorkerForPgnParsing !== false)
-    ) {
+    if (!workersSupported && !NeoChessBoard.workerSupportWarned && workerFeatureRequested) {
       console.warn(
         '[NeoChessBoard] Web Workers are not available in this environment; worker features disabled.',
       );

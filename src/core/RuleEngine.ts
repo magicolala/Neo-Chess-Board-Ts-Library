@@ -13,7 +13,7 @@ export type NormalizedNotationMove = {
 type NotationEngineMove = {
   from: Square;
   to: Square;
-  promotion?: string | undefined;
+  promotion?: string;
   san?: string;
 };
 
@@ -22,7 +22,7 @@ type NotationMoveInput =
   | {
       from: Square;
       to: Square;
-      promotion?: string | undefined;
+      promotion?: string;
     }
   | null;
 
