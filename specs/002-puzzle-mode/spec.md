@@ -64,7 +64,7 @@ As a content creator or integrator, I want to package a set of puzzles (JSON/PGN
 
 - Puzzle solution requiring underpromotion or en passant must still be validated and surfaced correctly.
 - Player attempts to move after puzzle completion should either start the next puzzle (if configured) or lock moves with a completion message.
-- Handling PGN puzzles with alternate winning lines (multiple valid moves) requires disambiguation by allowing puzzle authors to mark acceptable variations.
+- Handling PGN puzzles with alternate winning lines (multiple valid moves) requires disambiguation by allowing puzzle authors to mark acceptable variations, and Puzzle Mode MUST honor only those declared alternates.
 - Offline/slow network fallback: puzzle definitions should load from local data without blocking the board render.
 - Resetting or skipping puzzles must clear pending promotion dialogs and clocks to avoid leaking prior state.
 
@@ -75,10 +75,10 @@ As a content creator or integrator, I want to package a set of puzzles (JSON/PGN
 - **FR-001**: System MUST expose a Puzzle Mode configuration object on both core and React APIs to enable or disable the feature without affecting default board usage.
 - **FR-002**: System MUST accept puzzle definitions (JSON or PGN with metadata) containing FEN, solution move list, difficulty label, tags, and author attribution.
 - **FR-003**: System MUST validate player moves against the ordered solution, rejecting incorrect moves with event payloads describing the failure reason.
-- **FR-004**: System MUST surface puzzle progress state (current puzzle ID, move index, attempts, solved flag) through typed getters/events so host apps can render UI.
+- **FR-004**: System MUST surface puzzle progress state (current puzzle ID, move index, attempts, solved flag) through typed getters/events so host apps can render UI or emit their own telemetry.
 - **FR-005**: System MUST provide optional hint actions (show next move origin, textual clue, or highlight) without revealing entire solutions unless explicitly requested.
 - **FR-006**: System MUST allow integrators to configure what happens on completion (auto-advance, stay on board, trigger callback) to keep UX consistent with host apps.
-- **FR-007**: System MUST persist solved puzzle IDs and attempt counts within the current browser session/storage scope so progress survives navigation refresh.
+- **FR-007**: System MUST persist solved puzzle IDs and attempt counts automatically via built-in `localStorage`, ensuring progress survives browser refreshes without requiring integrator hooks, and fall back to in-memory state with a warning event if persistence fails.
 - **FR-008**: System MUST emit accessibility-friendly announcements (ARIA live region text) when puzzles load, hints fire, or solutions complete.
 - **FR-009**: System MUST include MkDocs documentation, README highlights, and at least one demo/example page showing Puzzle Mode usage (vanilla + React).
 - **FR-010**: System MUST ship Jest tests covering puzzle validation, hint logic, persistence behavior, and event emissions, ensuring coverage targets remain above constitution thresholds.
@@ -86,9 +86,10 @@ As a content creator or integrator, I want to package a set of puzzles (JSON/PGN
 ### Key Entities *(include if feature involves data)*
 
 - **PuzzleDefinition**: Immutable data describing a single puzzle (id, title, fen, solution[], difficulty, tags, author, optional hint text or PGN reference).
+- **PuzzleVariant**: Optional alternate solution line attached to a PuzzleDefinition, containing its own ordered moves plus a label (e.g., “Line B”) to indicate acceptable branching paths.
 - **PuzzleSessionState**: Runtime state for the currently active puzzle (currentPuzzleId, moveCursor, attempts, solvedAt, hintUsage, autoAdvance setting).
 - **PuzzleCollection**: Ordered list of PuzzleDefinitions plus metadata (collection title, description, filter tags) stored client-side and provided to loaders.
-- **PuzzleEvents**: EventBus payloads emitted for `puzzle:load`, `puzzle:move`, `puzzle:hint`, `puzzle:complete`, containing both definitions and session snapshots.
+- **PuzzleEvents**: EventBus payloads emitted for `puzzle:load`, `puzzle:move`, `puzzle:hint`, `puzzle:complete`, containing both definitions and session snapshots; no built-in logging backend is provided, so integrators handle observability externally.
 
 ## Success Criteria *(mandatory)*
 
@@ -102,5 +103,17 @@ As a content creator or integrator, I want to package a set of puzzles (JSON/PGN
 ## Assumptions & Dependencies
 
 - Puzzle content will be bundled as JSON/PGN assets loaded locally or via host-provided fetchers; no remote puzzle API is required for the MVP.
-- Session persistence can rely on browser storage (localStorage/sessionStorage) when available; Node/headless usage can supply in-memory persistence hooks.
+- Puzzle progress persistence will rely on first-party localStorage writes; headless/Node environments can no-op or provide shim storage at integration time.
+- When localStorage is unavailable or quota-exceeded, Puzzle Mode falls back to in-memory progress storage for the active session and emits a `puzzle:persistence-warning` event so hosts may notify users.
 - Stockfish integration is optional; auto-evaluation for hint generation will only run when the host opts in due to performance considerations.
+- Integrators MUST keep puzzle metadata non-sensitive; storing PII (e.g., usernames) alongside progress requires an explicit opt-in field outside the core PuzzleDefinition.
+
+## Clarifications
+
+### Session 2025-12-10
+
+- Q: What persistence strategy should Puzzle Mode use for progress data? → A: Always persist with built-in localStorage without extension hooks (Option C).
+- Q: How should Puzzle Mode handle alternate winning lines? → A: Accept additional author-defined alternate lines listed in the puzzle definition (Option B).
+- Q: Does Puzzle Mode need dedicated observability hooks? → A: No additional observability; host apps infer from existing puzzle events (Option A).
+- Q: How should Puzzle Mode handle sensitive metadata/PII? → A: Assume metadata is non-sensitive and forbid PII unless integrators explicitly opt in outside PuzzleDefinition (Option B).
+- Q: What happens if localStorage persistence fails? → A: Degrade to in-memory progress and emit a warning event (Option B).

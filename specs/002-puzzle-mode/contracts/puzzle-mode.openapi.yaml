@@ -1,0 +1,209 @@
+openapi: 3.0.3
+info:
+  title: Neo Chess Board Puzzle Mode Host Contracts
+  version: 0.1.0
+  description: >
+    Conceptual REST contracts host applications MAY expose/consume when integrating
+    Puzzle Mode. These endpoints back optional services such as loading puzzle
+    collections, saving progress snapshots, and emitting analytics.
+servers:
+  - url: https://api.example.com
+    description: Example host backend (replace with real domain)
+paths:
+  /puzzle-collections:
+    get:
+      summary: List available puzzle collections
+      tags: [Collections]
+      responses:
+        '200':
+          description: Collections available to the client
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PuzzleCollection'
+  /puzzle-collections/{collectionId}:
+    get:
+      summary: Fetch a specific puzzle collection
+      tags: [Collections]
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Requested collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PuzzleCollection'
+        '404':
+          description: Collection not found
+  /puzzle-sessions:
+    post:
+      summary: Create or resume a puzzle session
+      tags: [Sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                collectionId:
+                  type: string
+                clientState:
+                  $ref: '#/components/schemas/PuzzleSessionState'
+      responses:
+        '200':
+          description: Session token and normalized state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  state:
+                    $ref: '#/components/schemas/PuzzleSessionState'
+  /puzzle-sessions/{sessionId}/attempts:
+    post:
+      summary: Record an attempt (correct or incorrect) for analytics
+      tags: [Sessions]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                puzzleId:
+                  type: string
+                move:
+                  type: string
+                result:
+                  type: string
+                  enum: [correct, incorrect]
+                durationMs:
+                  type: integer
+      responses:
+        '202':
+          description: Attempt recorded asynchronously
+  /puzzle-sessions/{sessionId}/hints:
+    post:
+      summary: Notify backend that a hint was consumed
+      tags: [Sessions]
+      parameters:
+        - name: sessionId
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                puzzleId:
+                  type: string
+                hintType:
+                  type: string
+                  enum: [text, origin-highlight]
+      responses:
+        '202':
+          description: Hint usage stored
+components:
+  schemas:
+    PuzzleCollection:
+      type: object
+      required: [id, title, puzzles]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        puzzles:
+          type: array
+          items:
+            $ref: '#/components/schemas/PuzzleDefinition'
+    PuzzleDefinition:
+      type: object
+      required: [id, title, fen, solution]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        fen:
+          type: string
+        solution:
+          type: array
+          items:
+            type: string
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/PuzzleVariant'
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        tags:
+          type: array
+          items:
+            type: string
+        author:
+          type: string
+        hint:
+          type: string
+        sourcePgn:
+          type: string
+    PuzzleVariant:
+      type: object
+      required: [id, label, moves]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        moves:
+          type: array
+          items:
+            type: string
+    PuzzleSessionState:
+      type: object
+      properties:
+        collectionId:
+          type: string
+        currentPuzzleId:
+          type: string
+        moveCursor:
+          type: integer
+        attempts:
+          type: integer
+        solvedPuzzles:
+          type: array
+          items:
+            type: string
+        hintUsage:
+          type: integer
+        autoAdvance:
+          type: boolean
+        persistedAt:
+          type: string
+          format: date-time
