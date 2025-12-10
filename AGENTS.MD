@@ -1,4 +1,4 @@
-# Neo Chess Board - LLM Agent Guidelines
+﻿# Neo Chess Board - LLM Agent Guidelines
 
 > [!IMPORTANT]
 > **Primary Reference Document**: This file is the authoritative source for LLM agents working on this codebase.
@@ -542,4 +542,4 @@ rm -rf node_modules dist && npm install
 
 **Questions?** Open an issue or check existing documentation first.
 
-**Last Updated**: 2025-01-29
+**Last Updated**: 2025-12-11
