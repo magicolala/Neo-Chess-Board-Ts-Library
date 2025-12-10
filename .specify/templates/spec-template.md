@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Constitution Alignment *(mandatory)*
+
+For every user story summarize how the feature:
+
+- Fits the official scope (TypeScript-first client-side library) and keeps runtime dependencies optional.
+- Preserves public API stability or documents the migration (Principles 3 & 10).
+- Maintains chess correctness while meeting performance/bundle limits (Principles 4 & 5).
+- Lists quality gates, coverage targets, and required documentation/demo updates (Principles 6 & 7).
+- Addresses UX/accessibility impact plus ties back to Spec Kit artifacts (Principles 8 & 9).
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

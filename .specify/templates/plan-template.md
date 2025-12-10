@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Plans MUST capture how the proposal satisfies each constitutional guardrail:
+1. **Scope Fit** (Principle 1 & Purpose): Confirms work belongs in the TypeScript-first, client-side library.
+2. **Runtime Minimalism** (Principle 2): Describes dependency impact and opt-in story for heavy features.
+3. **API Stability** (Principle 3): States whether public contracts change and the migration narrative.
+4. **Chess Correctness** (Principle 4): Lists rules/engine behaviors covered by tests.
+5. **Performance & Bundle Discipline** (Principle 5): Quantifies FPS/bundle implications and mitigation.
+6. **Quality Gates** (Principle 6): Identifies lint/test/build suites plus new coverage.
+7. **Docs & Demos** (Principle 7): Notes required MkDocs/README/demo updates.
+8. **UX & Accessibility** (Principle 8): Explains how defaults, accessibility extensions, and polish are preserved.
+9. **Spec-Driven Workflow** (Principles 9 & 10): Links to `/speckit.specify` artifacts and reuse of existing abstractions.
 
 ## Project Structure
 

@@ -12,6 +12,10 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+**Constitution Reminder**: Every story MUST include tasks for (a) lint/test/build gates, (b) docs and demo updates when public
+behavior changes, (c) performance/bundle validations for heavy features, and (d) checks that runtime dependency-free rules are
+respected in core modules.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

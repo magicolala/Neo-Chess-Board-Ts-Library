@@ -17,11 +17,11 @@ Added Sections:
 - Architectural Guardrails
 - Governance (Amendments, Versioning Policy, Compliance Review)
 Removed Sections:
-- API & Versioning (merged into Principle 3 + Governance)
+- API & Versioning (merged into Principle 3 plus Governance)
 Templates requiring updates:
-- .specify/templates/plan-template.md ✅
-- .specify/templates/spec-template.md ✅
-- .specify/templates/tasks-template.md ✅
+- .specify/templates/plan-template.md [updated]
+- .specify/templates/spec-template.md [updated]
+- .specify/templates/tasks-template.md [updated]
 Follow-up TODOs:
 - TODO(RATIFICATION_DATE): Confirm original adoption date with maintainers
 -->
@@ -50,12 +50,12 @@ Neo Chess Board is a TypeScript-first, zero-runtime-dependency chess rendering
 library that provides:
 
 - A high-performance Canvas chess board that targets 60fps interactions
-- A headless chess engine/game core (ChessGame plus adapters)
+- A headless chess engine and game core (ChessGame plus adapters)
 - Optional React bindings, Stockfish integrations, clocks, themes, and extensions
 
 ### Out-of-Scope Commitments
 
-- Backend services, persistence, or multiplayer infra
+- Backend services, persistence, or multiplayer infrastructure
 - Account systems, chat, matchmaking, analytics pipelines
 - Feature work that bypasses the core-first approach (React-only features are disallowed)
 
@@ -66,7 +66,7 @@ extension that is clearly optional.
 
 ## Principles
 
-### Principle 1 – TypeScript-First Safety
+### Principle 1 - TypeScript-First Safety
 
 - All new modules MUST be written in TypeScript with strict typing enabled.
 - Public APIs MUST declare explicit interfaces; `any` is forbidden unless justified
@@ -76,7 +76,7 @@ extension that is clearly optional.
 **Rationale**: Type-level guarantees prevent runtime regressions in a library that
 is embedded into third-party apps.
 
-### Principle 2 – Runtime Minimalism & Peer Boundaries
+### Principle 2 - Runtime Minimalism & Peer Boundaries
 
 - The core package MUST remain dependency-free at runtime; React stays a peer-only
   dependency for the bindings.
@@ -88,7 +88,7 @@ is embedded into third-party apps.
 **Rationale**: Zero dependencies keep bundle size predictable and make the library
 safe for any consumer environment.
 
-### Principle 3 – Stable Public API Contracts
+### Principle 3 - Stable Public API Contracts
 
 - Public APIs (classes, hooks, helpers, events) MUST be intentional, documented,
   and semver-governed.
@@ -99,7 +99,7 @@ safe for any consumer environment.
 **Rationale**: App teams integrate Neo Chess Board in production; API churn erodes
 trust and increases migration cost.
 
-### Principle 4 – Chess Correctness & Engine Fidelity
+### Principle 4 - Chess Correctness & Engine Fidelity
 
 - Move validation, FEN/PGN parsing, Chess960 handling, Stockfish interop, and
   clock behavior MUST be provably correct with tests replicating tricky cases.
@@ -110,7 +110,7 @@ trust and increases migration cost.
 
 **Rationale**: Visual polish is useless without accurate chess decisions.
 
-### Principle 5 – Performance & Bundle Discipline
+### Principle 5 - Performance & Bundle Discipline
 
 - Canvas rendering MUST target 60fps on mid-range hardware with dirty-region and
   caching strategies; regressions require performance notes in PRs.
@@ -122,30 +122,30 @@ trust and increases migration cost.
 **Rationale**: Consumers embed the board alongside other UI; performance regressions
 harm entire hosts.
 
-### Principle 6 – Quality Gates & Test Coverage
+### Principle 6 - Quality Gates & Test Coverage
 
 - `npm run lint`, `npm run test`, and `npm run build` MUST pass locally before a
   PR is considered mergeable.
-- Jest coverage targets stay above 80% statements/branches/functions/lines; new
-  features cannot lower coverage.
+- Jest coverage targets stay above 80 percent statements, branches, functions, and lines;
+  new features cannot lower coverage.
 - Specs and plans MUST state which behaviors will be covered by tests, and tasks
   MUST include the corresponding test files.
 
 **Rationale**: Automated gates are the only scalable way to protect a library that
 is widely reused.
 
-### Principle 7 – Documentation & Demo Accountability
+### Principle 7 - Documentation & Demo Accountability
 
 - MkDocs docs, README, and demos MUST reflect every public change before release.
-- Specs MUST answer “what needs to be documented?” and “does a demo/example need
-  to change?”; tasks MUST include Doc + Demo items when applicable.
+- Specs MUST answer "what needs to be documented?" and "does a demo or example
+  need to change?"; tasks MUST include Doc plus Demo items when applicable.
 - Breaking or notable behavioral shifts require migration notes in docs plus
   changelog entries.
 
 **Rationale**: Without up-to-date docs, downstream integrators cannot safely adopt
 new versions.
 
-### Principle 8 – UX, Accessibility & Polish
+### Principle 8 - UX, Accessibility & Polish
 
 - Default themes, piece sets, audio, and animations MUST remain visually coherent
   and configurable; no hard-coded colors where configuration exists.
@@ -157,19 +157,19 @@ new versions.
 **Rationale**: The board is often embedded in consumer-facing products; regressions
 in polish or accessibility are customer-visible defects.
 
-### Principle 9 – Spec-Driven AI Workflow
+### Principle 9 - Spec-Driven AI Workflow
 
 - Every AI-assisted change MUST originate from `/speckit.specify` and `/speckit.plan`
   outputs, with `/speckit.tasks` used for execution breakdown.
-- Files generated from templates MUST replace placeholder content; no “rewrite the
-  whole file” prompts without context.
+- Files generated from templates MUST replace placeholder content; no "rewrite the
+  whole file" prompts without context.
 - Plans MUST reuse existing abstractions (EventBus, extensions, adapters) and
   state explicitly when they diverge (with steward approval).
 
 **Rationale**: Structured specs keep AI contributions auditable and prevent scope
 drift.
 
-### Principle 10 – Incremental Contribution Discipline
+### Principle 10 - Incremental Contribution Discipline
 
 - Keep PRs small, focused, and reference the relevant Spec Kit artifacts.
 - Maintain backward compatibility; experimental ideas belong in feature flags or
@@ -188,9 +188,9 @@ drift.
 - Rendering stays Canvas-first with React as a wrapper, never the source of truth.
 - Extensions handle optional capabilities (clock UI, Stockfish workers, camera
   effects); core stays lean and composable.
-- Workers MUST use `addEventListener` for message/error handling; `onmessage`
+- Workers MUST use `addEventListener` for message and error handling; `onmessage`
   shortcuts are forbidden to maintain lint compliance.
-- Configuration flows from core → React wrappers → demos; never the reverse.
+- Configuration flows from core -> React wrappers -> demos; never the reverse.
 
 ---
 
@@ -207,17 +207,17 @@ drift.
 
 - Use semantic versioning for the constitution itself.
 - **MAJOR**: Removes or redefines a principle or governance process.
-- **MINOR**: Adds a new principle/section or materially expands guidance (this
+- **MINOR**: Adds a new principle or section or materially expands guidance (this
   amendment is MINOR).
 - **PATCH**: Clarifications, typo fixes, or wording-only tweaks.
 - Version line in Governance Metadata MUST match the Sync Impact Report.
 
 ### Compliance Review
 
-- Plans and specs MUST cite how they satisfy Principles 1–10 in the Constitution
+- Plans and specs MUST cite how they satisfy Principles 1-10 in the Constitution
   Check section.
-- During code review, maintainers MUST block any change that bypasses lint/test/
-  build gates, introduces runtime dependencies, or lacks docs/tests per the above.
+- During code review, maintainers MUST block any change that bypasses lint, test,
+  or build gates, introduces runtime dependencies, or lacks docs or tests per the above.
 - Quarterly (or before each release), run a compliance audit: confirm docs, demos,
   and templates still reflect the constitution; record findings in `/specs` or
   governance notes.
