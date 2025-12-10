@@ -4,7 +4,7 @@
  */
 
 import type { Square, Arrow, SquareHighlight } from './types';
-import { PgnParseError } from './errors';
+import { PgnParseError, type PgnParseErrorCode } from './errors';
 
 export interface ParsedAnnotations {
   arrows: Arrow[];
@@ -56,128 +56,7 @@ export const PgnAnnotationParser = {
    * Parse visual annotations from a PGN comment
    */
   parseComment(comment: string): ParsedAnnotations {
-    // Strip outer curly braces if present
-    let processingComment =
-      comment.startsWith('{') && comment.endsWith('}') ? comment.slice(1, -1) : comment;
-
-    const arrows: Arrow[] = [];
-    const highlights: Array<SquareHighlight & { color: string }> = [];
-    let evaluation: number | string | undefined;
-    const issues: PgnParseError[] = [];
-
-    // Parse arrows (%cal)
-    const arrowMatches = [...processingComment.matchAll(CAL_REGEX)]; // Use spread to get all matches at once
-    for (const match of arrowMatches) {
-      const arrowSpecs = match[1].split(',');
-      for (const spec of arrowSpecs) {
-        const trimmed = spec.trim();
-        if (trimmed.length < 5) {
-          issues.push(
-            new PgnParseError(
-              `Invalid arrow annotation segment "${trimmed}".`,
-              'PGN_PARSE_INVALID_ARROW_SPEC',
-              { details: { spec: trimmed, rawComment: comment } },
-            ),
-          );
-          continue;
-        }
-
-        const colorCode = trimmed[0];
-        const fromSquare = trimmed.slice(1, 3) as Square;
-        const toSquare = trimmed.slice(3, 5) as Square;
-
-        const fromValid = PgnAnnotationParser.isValidSquare(fromSquare);
-        const toValid = PgnAnnotationParser.isValidSquare(toSquare);
-
-        if (fromValid && toValid) {
-          arrows.push({
-            from: fromSquare,
-            to: toSquare,
-            color: PgnAnnotationParser.colorToHex(colorCode),
-          });
-        } else {
-          const invalidSquares = [
-            { valid: fromValid, square: fromSquare },
-            { valid: toValid, square: toSquare },
-          ]
-            .filter(({ valid }) => valid === false)
-            .map(({ square }) => square);
-          issues.push(
-            new PgnParseError(
-              `Arrow annotation references invalid square(s) in segment "${trimmed}".`,
-              'PGN_PARSE_INVALID_ARROW_SQUARE',
-              {
-                details: {
-                  spec: trimmed,
-                  invalidSquares,
-                  rawComment: comment,
-                },
-              },
-            ),
-          );
-        }
-      }
-      // Remove this annotation from the processingComment
-      processingComment = processingComment.replace(match[0], ' ');
-    }
-
-    // Parse circles (%csl)
-    const circleMatches = [...processingComment.matchAll(CSL_REGEX)]; // Use spread to get all matches at once
-    for (const match of circleMatches) {
-      const circleSpecs = match[1].split(',');
-      for (const spec of circleSpecs) {
-        const trimmed = spec.trim();
-        if (trimmed.length < 3) {
-          issues.push(
-            new PgnParseError(
-              `Invalid circle annotation segment "${trimmed}".`,
-              'PGN_PARSE_INVALID_CIRCLE_SPEC',
-              { details: { spec: trimmed, rawComment: comment } },
-            ),
-          );
-          continue;
-        }
-
-        const colorCode = trimmed[0];
-        const square = trimmed.slice(1, 3) as Square;
-
-        if (PgnAnnotationParser.isValidSquare(square)) {
-          highlights.push({
-            square,
-            type: 'circle',
-            color: PgnAnnotationParser.colorToHex(colorCode),
-          });
-        } else {
-          issues.push(
-            new PgnParseError(
-              `Circle annotation references invalid square in segment "${trimmed}".`,
-              'PGN_PARSE_INVALID_CIRCLE_SQUARE',
-              { details: { spec: trimmed, square, rawComment: comment } },
-            ),
-          );
-        }
-      }
-      // Remove this annotation from the processingComment
-      processingComment = processingComment.replace(match[0], ' ');
-    }
-
-    // Parse evaluation (%eval)
-    processingComment = processingComment.replaceAll(EVAL_REGEX, (_match, value: string) => {
-      const parsedEvaluation = parseAnnotationValue(value);
-      evaluation = parsedEvaluation.value;
-      return ' ';
-    });
-
-    // The remaining text in processingComment is the actual text comment
-    const textComment = processingComment.replaceAll(/\s+/g, ' ').trim();
-
-    return {
-      arrows,
-      highlights,
-      textComment: textComment || '',
-      evaluation,
-      issues: issues.length > 0 ? issues : undefined,
-    };
+    return new AnnotationParser(comment).parse();
   },
 
   /**
@@ -255,3 +134,160 @@ export const PgnAnnotationParser = {
     return SQUARE_REGEX.test(square);
   },
 };
+
+class AnnotationParser {
+  private arrows: Arrow[] = [];
+  private highlights: Array<SquareHighlight & { color: string }> = [];
+  private evaluation?: number | string;
+  private issues: PgnParseError[] = [];
+  private processingComment: string;
+
+  constructor(private readonly rawComment: string) {
+    this.processingComment = this.stripBraces(rawComment);
+  }
+
+  parse(): ParsedAnnotations {
+    this.parseArrows();
+    this.parseCircles();
+    this.parseEvaluation();
+
+    const textComment = this.processingComment.replaceAll(/\s+/g, ' ').trim();
+    return {
+      arrows: this.arrows,
+      highlights: this.highlights,
+      textComment: textComment || '',
+      evaluation: this.evaluation,
+      issues: this.issues.length > 0 ? this.issues : undefined,
+    };
+  }
+
+  private stripBraces(value: string): string {
+    return value.startsWith('{') && value.endsWith('}') ? value.slice(1, -1) : value;
+  }
+
+  private parseArrows(): void {
+    const matches = [...this.processingComment.matchAll(CAL_REGEX)];
+    for (const match of matches) {
+      this.processArrowMatch(match);
+      this.removeMatch(match[0]);
+    }
+  }
+
+  private processArrowMatch(match: RegExpMatchArray): void {
+    const specs = match[1].split(',');
+    for (const spec of specs) {
+      this.processArrowSpec(spec.trim());
+    }
+  }
+
+  private processArrowSpec(trimmed: string): void {
+    if (trimmed.length < 5) {
+      this.recordIssue(
+        'PGN_PARSE_INVALID_ARROW_SPEC',
+        `Invalid arrow annotation segment "${trimmed}".`,
+        { spec: trimmed },
+      );
+      return;
+    }
+
+    const colorCode = trimmed[0];
+    const fromSquare = trimmed.slice(1, 3) as Square;
+    const toSquare = trimmed.slice(3, 5) as Square;
+
+    const fromValid = PgnAnnotationParser.isValidSquare(fromSquare);
+    const toValid = PgnAnnotationParser.isValidSquare(toSquare);
+
+    if (fromValid && toValid) {
+      this.arrows.push({
+        from: fromSquare,
+        to: toSquare,
+        color: PgnAnnotationParser.colorToHex(colorCode),
+      });
+      return;
+    }
+
+    const invalidSquares = [
+      { valid: fromValid, square: fromSquare },
+      { valid: toValid, square: toSquare },
+    ]
+      .filter(({ valid }) => !valid)
+      .map(({ square }) => square);
+
+    this.recordIssue(
+      'PGN_PARSE_INVALID_ARROW_SQUARE',
+      `Arrow annotation references invalid square(s) in segment "${trimmed}".`,
+      { spec: trimmed, invalidSquares },
+    );
+  }
+
+  private parseCircles(): void {
+    const matches = [...this.processingComment.matchAll(CSL_REGEX)];
+    for (const match of matches) {
+      this.processCircleMatch(match);
+      this.removeMatch(match[0]);
+    }
+  }
+
+  private processCircleMatch(match: RegExpMatchArray): void {
+    const specs = match[1].split(',');
+    for (const spec of specs) {
+      this.processCircleSpec(spec.trim());
+    }
+  }
+
+  private processCircleSpec(trimmed: string): void {
+    if (trimmed.length < 3) {
+      this.recordIssue(
+        'PGN_PARSE_INVALID_CIRCLE_SPEC',
+        `Invalid circle annotation segment "${trimmed}".`,
+        { spec: trimmed },
+      );
+      return;
+    }
+
+    const colorCode = trimmed[0];
+    const square = trimmed.slice(1, 3) as Square;
+
+    if (PgnAnnotationParser.isValidSquare(square)) {
+      this.highlights.push({
+        square,
+        type: 'circle',
+        color: PgnAnnotationParser.colorToHex(colorCode),
+      });
+      return;
+    }
+
+    this.recordIssue(
+      'PGN_PARSE_INVALID_CIRCLE_SQUARE',
+      `Circle annotation references invalid square in segment "${trimmed}".`,
+      { spec: trimmed, square },
+    );
+  }
+
+  private parseEvaluation(): void {
+    this.processingComment = this.processingComment.replaceAll(EVAL_REGEX, (_match, value: string) => {
+      const parsedEvaluation = parseAnnotationValue(value);
+      this.evaluation = parsedEvaluation.value;
+      return ' ';
+    });
+  }
+
+  private removeMatch(match: string): void {
+    this.processingComment = this.processingComment.replace(match, ' ');
+  }
+
+  private recordIssue(
+    code: PgnParseErrorCode,
+    message: string,
+    details?: Record<string, unknown>,
+  ): void {
+    this.issues.push(
+      new PgnParseError(message, code, {
+        details: {
+          rawComment: this.rawComment,
+          ...details,
+        },
+      }),
+    );
+  }
+}

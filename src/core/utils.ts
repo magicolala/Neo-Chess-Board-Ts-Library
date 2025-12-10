@@ -171,33 +171,50 @@ function resolveRankLabels(totalRanks: number, rankLabels?: readonly string[]): 
   return generateRankLabels(count);
 }
 
-export function resolveBoardGeometry({
-  files,
-  ranks,
-  fileLabels,
-  rankLabels,
-  defaultFiles = 8,
-  defaultRanks = 8,
-}: ResolveBoardGeometryOptions): ResolvedBoardGeometry {
-  const sanitizedFiles = sanitizeDimension(files, defaultFiles);
-  const sanitizedRanks = sanitizeDimension(ranks, defaultRanks);
+export function resolveBoardGeometry(options: ResolveBoardGeometryOptions): ResolvedBoardGeometry {
+  const resolver = new BoardGeometryResolver(options);
+  return resolver.resolve();
+}
 
-  const resolvedFileLabels =
-    fileLabels && fileLabels.length >= sanitizedFiles
-      ? fileLabels.slice(0, sanitizedFiles)
-      : generateFileLabels(sanitizedFiles);
+class BoardGeometryResolver {
+  constructor(private options: ResolveBoardGeometryOptions) {}
 
-  const resolvedRankLabels =
-    rankLabels && rankLabels.length >= sanitizedRanks
-      ? rankLabels.slice(0, sanitizedRanks)
-      : generateRankLabels(sanitizedRanks);
+  resolve(): ResolvedBoardGeometry {
+    const files = this.resolveFiles();
+    const ranks = this.resolveRanks();
+    return {
+      files,
+      ranks,
+      fileLabels: this.resolveFileLabels(files),
+      rankLabels: this.resolveRankLabels(ranks),
+    };
+  }
 
-  return {
-    files: sanitizedFiles,
-    ranks: sanitizedRanks,
-    fileLabels: resolvedFileLabels,
-    rankLabels: resolvedRankLabels,
-  };
+  private resolveFiles(): number {
+    const fallback = this.options.defaultFiles ?? 8;
+    return sanitizeDimension(this.options.files ?? fallback, fallback);
+  }
+
+  private resolveRanks(): number {
+    const fallback = this.options.defaultRanks ?? 8;
+    return sanitizeDimension(this.options.ranks ?? fallback, fallback);
+  }
+
+  private resolveFileLabels(files: number): string[] {
+    const { fileLabels } = this.options;
+    if (fileLabels && fileLabels.length >= files) {
+      return fileLabels.slice(0, files);
+    }
+    return generateFileLabels(files);
+  }
+
+  private resolveRankLabels(ranks: number): string[] {
+    const { rankLabels } = this.options;
+    if (rankLabels && rankLabels.length >= ranks) {
+      return rankLabels.slice(0, ranks);
+    }
+    return generateRankLabels(ranks);
+  }
 }
 
 export const FILES = Object.freeze(generateFileLabels(DEFAULT_LABEL_COUNT));
@@ -474,20 +491,59 @@ export function parseFEN(
   fen: string,
   dimensions: { files?: number; ranks?: number } = {},
 ): ParsedFENState {
-  const files = Math.max(1, Math.floor(dimensions.files ?? 8));
-  const ranks = Math.max(1, Math.floor(dimensions.ranks ?? 8));
-  const parts = validateFenString(fen);
+  const parser = new FENParser(fen, dimensions);
+  return parser.parse();
+}
 
-  const board = parseFenBoard(parts[0], files, ranks);
+class FENParser {
+  private readonly parts: string[];
+  private readonly files: number;
+  private readonly ranks: number;
 
-  return {
-    board,
-    turn: (parts[1] || 'w') as Color,
-    castling: parts[2] || 'KQkq',
-    ep: parts[3] === '-' ? null : parts[3],
-    halfmove: Number.parseInt(parts[4] || '0'),
-    fullmove: Number.parseInt(parts[5] || '1'),
-  };
+  constructor(
+    private readonly fen: string,
+    dimensions: { files?: number; ranks?: number },
+  ) {
+    this.parts = validateFenString(this.fen);
+    this.files = sanitizeDimension(dimensions.files ?? 8, 8);
+    this.ranks = sanitizeDimension(dimensions.ranks ?? 8, 8);
+  }
+
+  parse(): ParsedFENState {
+    return {
+      board: this.parseBoard(),
+      turn: this.parseTurn(),
+      castling: this.parseCastling(),
+      ep: this.parseEnPassant(),
+      halfmove: this.parseHalfmove(),
+      fullmove: this.parseFullmove(),
+    };
+  }
+
+  private parseBoard(): (string | null)[][] {
+    return parseFenBoard(this.parts[0], this.files, this.ranks);
+  }
+
+  private parseTurn(): Color {
+    return (this.parts[1] || 'w') as Color;
+  }
+
+  private parseCastling(): string {
+    return this.parts[2] || 'KQkq';
+  }
+
+  private parseEnPassant(): string | null {
+    const enPassant = this.parts[3];
+    return enPassant && enPassant !== '-' ? enPassant : null;
+  }
+
+  private parseHalfmove(): number {
+    return Number.parseInt(this.parts[4] || '0', 10);
+  }
+
+  private parseFullmove(): number {
+    return Number.parseInt(this.parts[5] || '1', 10);
+  }
 }
 
 export interface FenStringToPositionObjectOptions {
