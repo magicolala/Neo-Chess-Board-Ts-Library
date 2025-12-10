@@ -18,10 +18,12 @@ Added Sections:
 - Governance (Amendments, Versioning Policy, Compliance Review)
 Removed Sections:
 - API & Versioning (merged into Principle 3 + Governance)
+
 Templates requiring updates:
-- .specify/templates/plan-template.md ✅
-- .specify/templates/spec-template.md ✅
-- .specify/templates/tasks-template.md ✅
+- .specify/templates/plan-template.md [updated] ✅
+- .specify/templates/spec-template.md [updated] ✅
+- .specify/templates/tasks-template.md [updated] ✅
+
 Follow-up TODOs:
 - TODO(RATIFICATION_DATE): Confirm original adoption date with maintainers
 -->
@@ -76,6 +78,8 @@ extension that is clearly optional.
 **Rationale**: Type-level guarantees prevent runtime regressions in a library that
 is embedded into third-party apps.
 
+---
+
 ### Principle 2 – Runtime Minimalism & Peer Boundaries
 
 - The core package MUST remain dependency-free at runtime; React stays a peer-only
@@ -88,6 +92,8 @@ is embedded into third-party apps.
 **Rationale**: Zero dependencies keep bundle size predictable and make the library
 safe for any consumer environment.
 
+---
+
 ### Principle 3 – Stable Public API Contracts
 
 - Public APIs (classes, hooks, helpers, events) MUST be intentional, documented,
@@ -99,6 +105,8 @@ safe for any consumer environment.
 **Rationale**: App teams integrate Neo Chess Board in production; API churn erodes
 trust and increases migration cost.
 
+---
+
 ### Principle 4 – Chess Correctness & Engine Fidelity
 
 - Move validation, FEN/PGN parsing, Chess960 handling, Stockfish interop, and
@@ -109,6 +117,8 @@ trust and increases migration cost.
   tests before merge.
 
 **Rationale**: Visual polish is useless without accurate chess decisions.
+
+---
 
 ### Principle 5 – Performance & Bundle Discipline
 
@@ -122,6 +132,8 @@ trust and increases migration cost.
 **Rationale**: Consumers embed the board alongside other UI; performance regressions
 harm entire hosts.
 
+---
+
 ### Principle 6 – Quality Gates & Test Coverage
 
 - `npm run lint`, `npm run test`, and `npm run build` MUST pass locally before a
@@ -134,6 +146,8 @@ harm entire hosts.
 **Rationale**: Automated gates are the only scalable way to protect a library that
 is widely reused.
 
+---
+
 ### Principle 7 – Documentation & Demo Accountability
 
 - MkDocs docs, README, and demos MUST reflect every public change before release.
@@ -144,6 +158,8 @@ is widely reused.
 
 **Rationale**: Without up-to-date docs, downstream integrators cannot safely adopt
 new versions.
+
+---
 
 ### Principle 8 – UX, Accessibility & Polish
 
@@ -157,6 +173,8 @@ new versions.
 **Rationale**: The board is often embedded in consumer-facing products; regressions
 in polish or accessibility are customer-visible defects.
 
+---
+
 ### Principle 9 – Spec-Driven AI Workflow
 
 - Every AI-assisted change MUST originate from `/speckit.specify` and `/speckit.plan`
@@ -168,6 +186,8 @@ in polish or accessibility are customer-visible defects.
 
 **Rationale**: Structured specs keep AI contributions auditable and prevent scope
 drift.
+
+---
 
 ### Principle 10 – Incremental Contribution Discipline
 
@@ -203,14 +223,17 @@ drift.
 3. Update this constitution plus impacted templates in the same PR.
 4. Obtain steward approval before merge; document rationale in PR notes.
 
+---
+
 ### Versioning Policy
 
 - Use semantic versioning for the constitution itself.
 - **MAJOR**: Removes or redefines a principle or governance process.
-- **MINOR**: Adds a new principle/section or materially expands guidance (this
-  amendment is MINOR).
+- **MINOR**: Adds a new principle/section or materially expands guidance (this amendment is MINOR).
 - **PATCH**: Clarifications, typo fixes, or wording-only tweaks.
 - Version line in Governance Metadata MUST match the Sync Impact Report.
+
+---
 
 ### Compliance Review
 
