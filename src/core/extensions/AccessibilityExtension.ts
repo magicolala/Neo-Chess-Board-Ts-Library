@@ -398,45 +398,6 @@ export function createAccessibilityExtension(
         setActiveSquare(nextSquare, true);
       };
 
-      const handleKeydown = (event: KeyboardEvent, square: Square) => {
-        if (!keyboardEnabled) {
-          return;
-        }
-        const orientationNow = board.getOrientation();
-        switch (event.key) {
-          case 'ArrowUp': {
-            event.preventDefault();
-            moveFocusBy(0, orientationNow === 'white' ? 1 : -1, square);
-            break;
-          }
-          case 'ArrowDown': {
-            event.preventDefault();
-            moveFocusBy(0, orientationNow === 'white' ? -1 : 1, square);
-            break;
-          }
-          case 'ArrowLeft': {
-            event.preventDefault();
-            moveFocusBy(orientationNow === 'white' ? -1 : 1, 0, square);
-            break;
-          }
-          case 'ArrowRight': {
-            event.preventDefault();
-            moveFocusBy(orientationNow === 'white' ? 1 : -1, 0, square);
-            break;
-          }
-          case 'Enter':
-          case ' ': // Space key
-          case 'Spacebar': {
-            event.preventDefault();
-            handleSquareActivation(square);
-            break;
-          }
-          default: {
-            break;
-          }
-        }
-      };
-
       const handleSquareActivation = (square: Square) => {
         if (!keyboardEnabled) {
           return;
@@ -470,6 +431,32 @@ export function createAccessibilityExtension(
         selectedSquare = null;
         updateSelectionState();
         setActiveSquare(square, true);
+      };
+
+      const keyboardHandlers: Record<string, (square: Square) => void> = {
+        ArrowUp: (square) =>
+          moveFocusBy(0, board.getOrientation() === 'white' ? 1 : -1, square),
+        ArrowDown: (square) =>
+          moveFocusBy(0, board.getOrientation() === 'white' ? -1 : 1, square),
+        ArrowLeft: (square) =>
+          moveFocusBy(board.getOrientation() === 'white' ? -1 : 1, 0, square),
+        ArrowRight: (square) =>
+          moveFocusBy(board.getOrientation() === 'white' ? 1 : -1, 0, square),
+        Enter: handleSquareActivation,
+        ' ': handleSquareActivation,
+        Spacebar: handleSquareActivation,
+      };
+
+      const handleKeydown = (event: KeyboardEvent, square: Square) => {
+        if (!keyboardEnabled) {
+          return;
+        }
+        const handler = keyboardHandlers[event.key];
+        if (!handler) {
+          return;
+        }
+        event.preventDefault();
+        handler(square);
       };
 
       const submitHandler = (event: Event) => {

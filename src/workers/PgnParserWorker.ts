@@ -75,121 +75,192 @@ function parseMoves(
   result: string;
   parseIssues: PgnParseError[];
 } {
-  const moves: PgnMove[] = [];
-  const parseIssues: PgnParseError[] = [];
-  let result = '*';
+  const parser = new PgnMoveParser(pgnString, includeAnnotations);
+  return parser.parse();
+}
 
-  const lines = pgnString.split('\n');
-  let movesText = '';
-  let inHeaders = true;
+class PgnMoveParser {
+  private moves: PgnMove[] = [];
+  private parseIssues: PgnParseError[] = [];
+  private result: string = '*';
+  private movesText = '';
+  private tokens: string[] = [];
+  private currentMoveNumber = 0;
+  private isWhiteMove = true;
 
-  for (const line of lines) {
-    if (line.startsWith('[')) {
-      continue;
-    }
-    if (inHeaders && line.trim() === '') {
-      inHeaders = false;
-      continue;
-    }
-    if (!inHeaders) {
-      movesText += line + ' ';
-    }
-  }
+  constructor(private pgnString: string, private includeAnnotations: boolean) {}
 
-  const resultMatch = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/.exec(movesText);
-  if (resultMatch) {
-    result = resultMatch[1]!;
-    movesText = movesText.replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/, '');
-  }
+  parse(): {
+    moves: PgnMove[];
+    result: string;
+    parseIssues: PgnParseError[];
+  } {
+    this.collectMoves();
+    this.extractResult();
+    this.tokenize();
+    this.processTokens();
 
-  const tokenRegex = /{[^}]*}|\S+/g;
-  const tokens: string[] = [];
-  let tokenMatch: RegExpExecArray | null;
-  while ((tokenMatch = tokenRegex.exec(movesText)) !== null) {
-    tokens.push(tokenMatch[0]);
-  }
-  let currentMoveNumber = 0;
-  let isWhiteMove = true;
-
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-
-    if (token.endsWith('...')) {
-      currentMoveNumber = Number.parseInt(token.slice(0, -3), 10);
-      isWhiteMove = false;
-      continue;
-    }
-
-    if (token.endsWith('.')) {
-      currentMoveNumber = Number.parseInt(token.slice(0, -1), 10);
-      isWhiteMove = true;
-      continue;
-    }
-
-    if (token.startsWith('{')) {
-      continue;
-    }
-
-    const san = token;
-    let move = moves.find((m) => m.moveNumber === currentMoveNumber);
-    if (!move) {
-      move = { moveNumber: currentMoveNumber };
-      moves.push(move);
-    }
-
-    let comment: string | undefined;
-    if (i + 1 < tokens.length && tokens[i + 1].startsWith('{')) {
-      comment = tokens[i + 1].slice(1, -1).trim();
-    }
-
-    const addAnnotations = (targetMove: PgnMove, side: 'white' | 'black') => {
-      if (comment && includeAnnotations) {
-        try {
-          const annotations = PgnAnnotationParser.parseComment(comment);
-          const annotationProp = side === 'white' ? 'whiteAnnotations' : 'blackAnnotations';
-          const commentProp = side === 'white' ? 'whiteComment' : 'blackComment';
-
-          targetMove[commentProp] = annotations.textComment;
-          targetMove[annotationProp] = {
-            arrows: annotations.arrows,
-            circles: annotations.highlights.map((h) => ({
-              square: h.square,
-              type: 'circle',
-              color: h.color,
-            })),
-            evaluation: annotations.evaluation,
-          };
-
-          if (annotations.issues) {
-            parseIssues.push(...annotations.issues);
-          }
-        } catch (error) {
-          parseIssues.push(
-            new PgnParseError(
-              `Failed to parse annotations: ${error instanceof Error ? error.message : String(error)}`,
-              'PGN_IMPORT_FAILED',
-              { details: { moveNumber: currentMoveNumber, comment } },
-            ),
-          );
-        }
-      } else if (comment) {
-        const commentProp = side === 'white' ? 'whiteComment' : 'blackComment';
-        targetMove[commentProp] = comment;
-      }
+    return {
+      moves: this.moves,
+      result: this.result,
+      parseIssues: this.parseIssues,
     };
-
-    if (isWhiteMove) {
-      move.white = san;
-      addAnnotations(move, 'white');
-    } else {
-      move.black = san;
-      addAnnotations(move, 'black');
-    }
-
-    isWhiteMove = !isWhiteMove;
   }
 
-  return { moves, result, parseIssues };
+  private collectMoves(): void {
+    const lines = this.pgnString.split('\n');
+    let inHeaders = true;
+
+    for (const line of lines) {
+      if (line.startsWith('[')) {
+        continue;
+      }
+      if (inHeaders && line.trim() === '') {
+        inHeaders = false;
+        continue;
+      }
+      if (!inHeaders) {
+        this.movesText += `${line} `;
+      }
+    }
+    this.movesText = this.movesText.trim();
+  }
+
+  private extractResult(): void {
+    const resultMatch = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/.exec(this.movesText);
+    if (!resultMatch) {
+      return;
+    }
+    this.result = resultMatch[1]!;
+    this.movesText = this.movesText.slice(0, resultMatch.index).trimEnd();
+  }
+
+  private tokenize(): void {
+    const tokenRegex = /{[^}]*}|\S+/g;
+    let tokenMatch: RegExpExecArray | null;
+    while ((tokenMatch = tokenRegex.exec(this.movesText)) !== null) {
+      this.tokens.push(tokenMatch[0]);
+    }
+  }
+
+  private processTokens(): void {
+    for (let index = 0; index < this.tokens.length; index++) {
+      const token = this.tokens[index];
+      if (this.handleEllipsis(token)) {
+        continue;
+      }
+      if (this.handleMoveNumber(token)) {
+        continue;
+      }
+      if (this.isCommentToken(token)) {
+        continue;
+      }
+
+      const comment = this.peekComment(index);
+      this.applySan(token, comment);
+    }
+  }
+
+  private handleEllipsis(token: string): boolean {
+    if (!token.endsWith('...')) {
+      return false;
+    }
+    const moveNumber = Number.parseInt(token.slice(0, -3), 10);
+    if (Number.isFinite(moveNumber)) {
+      this.currentMoveNumber = moveNumber;
+    }
+    this.isWhiteMove = false;
+    return true;
+  }
+
+  private handleMoveNumber(token: string): boolean {
+    if (!token.endsWith('.')) {
+      return false;
+    }
+    const moveNumber = Number.parseInt(token.slice(0, -1), 10);
+    if (Number.isFinite(moveNumber)) {
+      this.currentMoveNumber = moveNumber;
+    }
+    this.isWhiteMove = true;
+    return true;
+  }
+
+  private isCommentToken(token: string): boolean {
+    return token.startsWith('{') && token.endsWith('}');
+  }
+
+  private peekComment(index: number): string | undefined {
+    const nextToken = this.tokens[index + 1];
+    if (nextToken && this.isCommentToken(nextToken)) {
+      return nextToken.slice(1, -1).trim();
+    }
+    return undefined;
+  }
+
+  private applySan(token: string, comment?: string): void {
+    const move = this.ensureMoveEntry();
+    if (this.isWhiteMove) {
+      move.white = token;
+      this.attachAnnotations(move, 'white', comment);
+    } else {
+      move.black = token;
+      this.attachAnnotations(move, 'black', comment);
+    }
+    this.isWhiteMove = !this.isWhiteMove;
+  }
+
+  private ensureMoveEntry(): PgnMove {
+    let move = this.moves.find((entry) => entry.moveNumber === this.currentMoveNumber);
+    if (!move) {
+      move = { moveNumber: this.currentMoveNumber };
+      this.moves.push(move);
+    }
+    return move;
+  }
+
+  private attachAnnotations(
+    targetMove: PgnMove,
+    side: 'white' | 'black',
+    comment?: string,
+  ): void {
+    if (!comment) {
+      return;
+    }
+
+    const annotationProp = side === 'white' ? 'whiteAnnotations' : 'blackAnnotations';
+    const commentProp = side === 'white' ? 'whiteComment' : 'blackComment';
+
+    if (!this.includeAnnotations) {
+      targetMove[commentProp] = comment;
+      return;
+    }
+
+    try {
+      const annotations = PgnAnnotationParser.parseComment(comment);
+      targetMove[commentProp] = annotations.textComment;
+      targetMove[annotationProp] = {
+        arrows: annotations.arrows,
+        circles: annotations.highlights.map((highlight) => ({
+          square: highlight.square,
+          type: 'circle',
+          color: highlight.color,
+        })),
+        evaluation: annotations.evaluation,
+      };
+
+      if (annotations.issues) {
+        this.parseIssues.push(...annotations.issues);
+      }
+    } catch (error) {
+      this.parseIssues.push(
+        new PgnParseError(
+          `Failed to parse annotations: ${error instanceof Error ? error.message : String(error)}`,
+          'PGN_IMPORT_FAILED',
+          { details: { moveNumber: this.currentMoveNumber, comment } },
+        ),
+      );
+    }
+  }
 }
 
 /**
