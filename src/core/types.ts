@@ -4,6 +4,7 @@ import type { EventBus } from './EventBus';
 import type { PgnNotation } from './PgnNotation';
 import type { ClockConfig, ClockState } from '../clock/types';
 import type { CameraEffectsOptions, CameraEventPayloadMap } from '../effects/types';
+import type { PuzzleModeConfig } from '../extensions/puzzle-mode/types';
 export type { ClockCallbacks, ClockConfig, ClockState } from '../clock/types';
 
 export type Square = `${string}${number}`;
@@ -376,6 +377,7 @@ export interface BoardConfiguration {
   drag?: BoardDragConfig;
   animation?: BoardAnimationConfig;
   promotion?: PromotionOptions;
+  puzzleMode?: PuzzleModeConfig;
 }
 
 export type PieceSpriteImage =
@@ -518,6 +520,7 @@ export interface BoardOptions {
   squareRenderer?: SquareRenderer;
   pieces?: PieceRendererMap;
   promotion?: PromotionOptions;
+  puzzleMode?: PuzzleModeConfig;
   clock?: ClockConfig;
   // Web Worker options for performance
   useWorkerForLegalMoves?: boolean;

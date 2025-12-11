@@ -71,3 +71,15 @@ export interface PuzzleEventMap {
     fallback: 'memory';
   };
 }
+
+export type PuzzleEventPayload<N extends PuzzleEventType> = PuzzleEventMap[N];
+
+export interface PuzzleModeConfig {
+  collectionId: string;
+  puzzles: PuzzleDefinition[];
+  autoAdvance?: boolean;
+  allowHints?: boolean;
+  startPuzzleId?: string;
+  onComplete?: (summary: { puzzleId: string; attempts: number; durationMs?: number }) => void;
+  onEvent?: <N extends PuzzleEventType>(event: N, payload: PuzzleEventPayload<N>) => void;
+}
