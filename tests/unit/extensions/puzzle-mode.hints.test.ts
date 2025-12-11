@@ -11,6 +11,14 @@ const basePuzzle: PuzzleDefinition = {
   hint: 'Look for checks on f7.',
 };
 
+const alternatePuzzle: PuzzleDefinition = {
+  id: 'simple-mate',
+  title: 'Mate in one',
+  fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
+  solution: ['Ka2'],
+  difficulty: 'beginner',
+};
+
 describe('PuzzleHintService', () => {
   it('returns puzzle-provided text hint and tracks usage', () => {
     const session = new PuzzleSessionManager({
@@ -63,5 +71,14 @@ describe('PuzzleSessionManager attempts', () => {
     const evaluation = session.handleMove('Kh1');
     expect(evaluation.accepted).toBe(false);
     expect(session.getState().attempts).toBe(1);
+  });
+
+  it('respects provided start puzzle identifier', () => {
+    const session = new PuzzleSessionManager({
+      collectionId: 'daily',
+      puzzles: [basePuzzle, alternatePuzzle],
+      startPuzzleId: 'simple-mate',
+    });
+    expect(session.getCurrentPuzzle().id).toBe('simple-mate');
   });
 });

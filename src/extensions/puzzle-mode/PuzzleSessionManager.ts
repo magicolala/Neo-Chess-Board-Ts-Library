@@ -50,26 +50,28 @@ export class PuzzleSessionManager {
     }
 
     const persisted = this.loadPersistedState();
-    this.currentIndex = Math.max(
-      0,
-      this.puzzles.findIndex((puzzle) => puzzle.id === persisted?.currentPuzzleId),
-    );
-    if (this.currentIndex === -1) {
-      this.currentIndex = 0;
-    }
+    const requestedStartId = config.startPuzzleId;
+    const initialPuzzleId = requestedStartId ?? persisted?.currentPuzzleId ?? null;
+    const resolvedIndex = initialPuzzleId
+      ? this.puzzles.findIndex((puzzle) => puzzle.id === initialPuzzleId)
+      : -1;
+    this.currentIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
 
     const initialPuzzle = this.puzzles[this.currentIndex];
     this.controller = new PuzzleController({
       puzzle: initialPuzzle,
       variants: initialPuzzle.variants,
     });
+    const shouldResetState = Boolean(
+      requestedStartId && requestedStartId !== persisted?.currentPuzzleId,
+    );
     this.state = {
       collectionId: config.collectionId,
       currentPuzzleId: initialPuzzle.id,
       moveCursor: 0,
-      attempts: persisted?.attempts ?? 0,
+      attempts: shouldResetState ? 0 : persisted?.attempts ?? 0,
       solvedPuzzles: new Set<string>(persisted?.solvedPuzzles ?? []),
-      hintUsage: persisted?.hintUsage ?? 0,
+      hintUsage: shouldResetState ? 0 : persisted?.hintUsage ?? 0,
       autoAdvance: persisted?.autoAdvance ?? this.config.autoAdvance ?? true,
       persistedAt: persisted?.persistedAt,
     };
