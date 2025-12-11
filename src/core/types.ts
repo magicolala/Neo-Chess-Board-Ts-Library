@@ -4,7 +4,7 @@ import type { EventBus } from './EventBus';
 import type { PgnNotation } from './PgnNotation';
 import type { ClockConfig, ClockState } from '../clock/types';
 import type { CameraEffectsOptions, CameraEventPayloadMap } from '../effects/types';
-import type { PuzzleModeConfig } from '../extensions/puzzle-mode/types';
+import type { PuzzleEventMap, PuzzleModeConfig } from '../extensions/puzzle-mode/types';
 export type { ClockCallbacks, ClockConfig, ClockState } from '../clock/types';
 
 export type Square = `${string}${number}`;
@@ -226,7 +226,7 @@ export interface PremoveInvalidatedEvent {
   reason?: string;
 }
 
-export interface BoardEventMap extends CameraEventPayloadMap {
+export interface BoardEventMap extends CameraEventPayloadMap, PuzzleEventMap {
   move: { from: Square; to: Square; fen: string; captured?: string | null; san?: string };
   illegal: { from: Square; to: Square; reason: string };
   update: { fen: string };

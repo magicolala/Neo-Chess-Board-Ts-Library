@@ -39,11 +39,20 @@ export interface ClockHandlers {
 }
 
 /** Configuration complète pour le hook useNeoChessBoard */
+export interface PuzzleHandlers {
+  onPuzzleLoad?: (event: BoardEventMap['puzzle:load']) => void;
+  onPuzzleMove?: (event: BoardEventMap['puzzle:move']) => void;
+  onPuzzleHint?: (event: BoardEventMap['puzzle:hint']) => void;
+  onPuzzleComplete?: (event: BoardEventMap['puzzle:complete']) => void;
+  onPuzzlePersistenceWarning?: (event: BoardEventMap['puzzle:persistence-warning']) => void;
+}
+
 export interface UseNeoChessBoardOptions
   extends MoveHandlers,
     SquareHandlers,
     PieceHandlers,
-    ClockHandlers {
+    ClockHandlers,
+    PuzzleHandlers {
   /** Position FEN initiale */
   fen?: string;
   /** Position ou alias (e.g., 'start') */
@@ -173,6 +182,12 @@ function createEventHandlers(options: UseNeoChessBoardOptions) {
     onClockStart: options.onClockStart,
     onClockPause: options.onClockPause,
     onClockFlag: options.onClockFlag,
+    // Puzzle handlers
+    onPuzzleLoad: options.onPuzzleLoad,
+    onPuzzleMove: options.onPuzzleMove,
+    onPuzzleHint: options.onPuzzleHint,
+    onPuzzleComplete: options.onPuzzleComplete,
+    onPuzzlePersistenceWarning: options.onPuzzlePersistenceWarning,
   };
 }
 
@@ -248,6 +263,13 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       board.on('clock:start', () => handlersRef.current.onClockStart?.()),
       board.on('clock:pause', () => handlersRef.current.onClockPause?.()),
       board.on('clock:flag', (event) => handlersRef.current.onClockFlag?.(event)),
+      board.on('puzzle:load', (event) => handlersRef.current.onPuzzleLoad?.(event)),
+      board.on('puzzle:move', (event) => handlersRef.current.onPuzzleMove?.(event)),
+      board.on('puzzle:hint', (event) => handlersRef.current.onPuzzleHint?.(event)),
+      board.on('puzzle:complete', (event) => handlersRef.current.onPuzzleComplete?.(event)),
+      board.on('puzzle:persistence-warning', (event) =>
+        handlersRef.current.onPuzzlePersistenceWarning?.(event),
+      ),
     ];
 
     return () => {

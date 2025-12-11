@@ -92,6 +92,9 @@ import type {
   PuzzleModeConfig,
 } from './types';
 import { PremoveManager } from './premove/PremoveManager';
+import { PuzzleSessionManager } from '../extensions/puzzle-mode/PuzzleSessionManager';
+import { resolveCompletionBehavior } from '../extensions/puzzle-mode/completion-options';
+import { PUZZLE_EVENTS } from './logic/events/puzzle-events';
 
 // ============================================================================
 // Constants
@@ -403,6 +406,7 @@ export class NeoChessBoard {
   private inlinePromotionButtons: HTMLButtonElement[] = [];
   private inlinePromotionToken: number | null = null;
   private puzzleModeConfig?: PuzzleModeConfig;
+  private puzzleSession?: PuzzleSessionManager;
 
   // ---- Clock ----
   private get clockManager(): ClockManager | null {
@@ -665,6 +669,7 @@ export class NeoChessBoard {
   private configurePuzzleMode(config?: PuzzleModeConfig): void {
     if (!config) {
       this.puzzleModeConfig = undefined;
+      this.puzzleSession = undefined;
       return;
     }
 
@@ -684,6 +689,31 @@ export class NeoChessBoard {
       allowHints: true,
       ...config,
     };
+    this.puzzleSession = new PuzzleSessionManager(this.puzzleModeConfig);
+    this._loadPuzzleFromSession();
+  }
+
+  private _loadPuzzleFromSession(): void {
+    if (!this.puzzleSession) {
+      return;
+    }
+    const currentPuzzle = this.puzzleSession.getCurrentPuzzle();
+    if (currentPuzzle.fen) {
+      this.setFEN(currentPuzzle.fen, true);
+    }
+    this._cancelPendingPromotion();
+    this._pendingPromotion = null;
+    this.drawingManager?.clearPromotionPreview();
+    this.clockManager?.reset();
+    const snapshot = this.puzzleSession.getState();
+    this.bus.emit(PUZZLE_EVENTS.LOAD, {
+      collectionId: this.puzzleModeConfig?.collectionId ?? '',
+      puzzle: currentPuzzle,
+      session: {
+        ...snapshot,
+        solvedPuzzles: new Set(snapshot.solvedPuzzles),
+      },
+    });
   }
 
   private _configureVisualOptions(options: BoardOptions): void {
@@ -3820,12 +3850,75 @@ export class NeoChessBoard {
     const legal = this.rules.move({ from, to, promotion });
 
     if (legal?.ok) {
+      if (!this._evaluatePuzzleMove(legal)) {
+        this.rules.undo();
+        this.renderAll();
+        return MOVE_ATTEMPT_FAILURE;
+      }
       this._processMoveSuccess(from, to, legal);
       return MOVE_ATTEMPT_SUCCESS;
     }
 
     this._processMoveFailure(from, to, legal);
     return MOVE_ATTEMPT_FAILURE;
+  }
+
+  private _evaluatePuzzleMove(legal: RulesMoveResponse): boolean {
+    if (!this.puzzleSession) {
+      return true;
+    }
+    const moveDetail = legal.move as { san?: string } | undefined;
+    const san = moveDetail?.san;
+    if (!san) {
+      return true;
+    }
+    const evaluation = this.puzzleSession.handleMove(san);
+    this.bus.emit(PUZZLE_EVENTS.MOVE, {
+      puzzleId: this.puzzleSession.getCurrentPuzzle().id,
+      move: san,
+      result: evaluation.accepted ? 'correct' : 'incorrect',
+      cursor: evaluation.cursor,
+    });
+
+    if (!evaluation.accepted) {
+      return false;
+    }
+
+    if (evaluation.complete) {
+      this._handlePuzzleCompletion();
+    }
+
+    return true;
+  }
+
+  private _handlePuzzleCompletion(): void {
+    if (!this.puzzleSession) {
+      return;
+    }
+
+    const state = this.puzzleSession.getState();
+    this.bus.emit(PUZZLE_EVENTS.COMPLETE, {
+      puzzleId: state.currentPuzzleId,
+      attempts: state.attempts,
+      durationMs: undefined,
+    });
+
+    const behavior = resolveCompletionBehavior(this.puzzleModeConfig);
+
+    if (behavior.invokeCallback && typeof this.puzzleModeConfig?.onComplete === 'function') {
+      try {
+        this.puzzleModeConfig.onComplete({
+          puzzleId: state.currentPuzzleId,
+          attempts: state.attempts,
+        });
+      } catch (error) {
+        console.error('[PuzzleMode] onComplete callback failed', error);
+      }
+    }
+
+    if (behavior.autoAdvance && this.puzzleSession.autoAdvanceIfNeeded()) {
+      this._loadPuzzleFromSession();
+    }
   }
 
   private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {

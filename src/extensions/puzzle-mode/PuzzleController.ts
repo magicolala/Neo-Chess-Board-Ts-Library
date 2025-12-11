@@ -22,10 +22,11 @@ export class PuzzleController {
   constructor(options: PuzzleControllerOptions) {
     const { puzzle, variants = [] } = options;
     const canonical = puzzle.solution ?? [];
+    const mergedVariants = [...(puzzle.variants ?? []), ...variants];
     if (!Array.isArray(canonical) || canonical.length === 0) {
       throw new Error('[PuzzleController] Puzzle solutions must include at least one move.');
     }
-    this.sequences = [canonical, ...variants.map((variant) => variant.moves)];
+    this.sequences = [canonical, ...mergedVariants.map((variant) => variant.moves)];
     this.normalizedSequences = this.sequences.map((seq) =>
       seq.map((move) => PuzzleController.normalize(move)),
     );

@@ -49,17 +49,17 @@ description: "Task list for Puzzle Mode feature implementation"
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Add controller happy-path tests (`canonical`, `variant`) in `tests/unit/extensions/puzzle-mode.controller.test.ts`
-- [ ] T009 [P] [US1] Add edge-case tests (underpromotion, en passant, post-completion lock, reset clearing) in `tests/unit/extensions/puzzle-mode.edge-cases.test.ts`
+- [X] T008 [P] [US1] Add controller happy-path tests (`canonical`, `variant`) in `tests/unit/extensions/puzzle-mode.controller.test.ts`
+- [X] T009 [P] [US1] Add edge-case tests (underpromotion, en passant, post-completion lock, reset clearing) in `tests/unit/extensions/puzzle-mode.edge-cases.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `PuzzleController` state machine honoring canonical + variant lines in `src/extensions/puzzle-mode/PuzzleController.ts`
-- [ ] T011 [US1] Wire Puzzle Mode configuration into board lifecycle (`enablePuzzleMode`, puzzle events) in `src/core/logic/NeoChessBoard.ts`
-- [ ] T012 [US1] Implement completion behavior options (auto-advance, stay, callback hook) in `src/extensions/puzzle-mode/completion-options.ts`
-- [ ] T013 [US1] Ensure resets/skip clear promotion dialogs and clocks in `src/core/logic/NeoChessBoard.ts`
-- [ ] T014 [US1] Expose puzzle props/events via React wrapper `src/react/components/NeoChessBoard.tsx`
-- [ ] T015 [P] [US1] Build puzzle status overlay component (progress, remaining moves) in `src/extensions/puzzle-mode/components/PuzzleStatusOverlay.tsx`
+- [X] T010 [US1] Implement `PuzzleController` state machine honoring canonical + variant lines in `src/extensions/puzzle-mode/PuzzleController.ts`
+- [X] T011 [US1] Wire Puzzle Mode configuration into board lifecycle (`enablePuzzleMode`, puzzle events) in `src/core/logic/NeoChessBoard.ts`
+- [X] T012 [US1] Implement completion behavior options (auto-advance, stay, callback hook) in `src/extensions/puzzle-mode/completion-options.ts`
+- [X] T013 [US1] Ensure resets/skip clear promotion dialogs and clocks in `src/core/logic/NeoChessBoard.ts`
+- [X] T014 [US1] Expose puzzle props/events via React wrapper `src/react/components/NeoChessBoard.tsx`
+- [X] T015 [P] [US1] Build puzzle status overlay component (progress, remaining moves) in `src/extensions/puzzle-mode/components/PuzzleStatusOverlay.tsx`
 
 **Checkpoint**: Puzzle Mode toggles on, enforces move order, and surfaces completion behaviors + overlay.
 

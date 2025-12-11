@@ -179,6 +179,11 @@ export interface NeoChessProps
   onClockStart?: () => void;
   onClockPause?: () => void;
   onClockFlag?: (e: BoardEventMap['clock:flag']) => void;
+  onPuzzleLoad?: (event: BoardEventMap['puzzle:load']) => void;
+  onPuzzleMove?: (event: BoardEventMap['puzzle:move']) => void;
+  onPuzzleHint?: (event: BoardEventMap['puzzle:hint']) => void;
+  onPuzzleComplete?: (event: BoardEventMap['puzzle:complete']) => void;
+  onPuzzlePersistenceWarning?: (event: BoardEventMap['puzzle:persistence-warning']) => void;
 }
 
 export interface NeoChessRef {
@@ -226,6 +231,11 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onClockStart,
       onClockPause,
       onClockFlag,
+      onPuzzleLoad,
+      onPuzzleMove,
+      onPuzzleHint,
+      onPuzzleComplete,
+      onPuzzlePersistenceWarning,
       size,
       captureEffectRenderer: captureEffectRendererProp,
       ...restOptions
@@ -402,6 +412,11 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onClockStart,
       onClockPause,
       onClockFlag,
+      onPuzzleLoad,
+      onPuzzleMove,
+      onPuzzleHint,
+      onPuzzleComplete,
+      onPuzzlePersistenceWarning,
     });
 
     useEffect(() => {
