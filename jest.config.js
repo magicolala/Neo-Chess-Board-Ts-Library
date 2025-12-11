@@ -20,6 +20,8 @@ const config = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^neo-chess-board/(.*)$': '<rootDir>/src/$1',
+    '^neo-chess-board$': '<rootDir>/src/index.ts',
     [String.raw`\.(css|less|scss|sass)$`]: 'identity-obj-proxy',
     [String.raw`\.(ogg|mp3|wav|mpe?g|png|gif|eot|otf|webp|svg|ttf|woff2?|ico)$`]:
       '<rootDir>/tests/__mocks__/fileMock.js',
