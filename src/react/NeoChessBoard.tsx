@@ -433,14 +433,17 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     const handlePuzzleLoad = useCallback(
       (event: BoardEventMap['puzzle:load']) => {
         const solvedSource = event.session.solvedPuzzles;
-        const solvedSet = solvedSource instanceof Set ? solvedSource : new Set(solvedSource);
+        const solvedSet: Set<string> =
+          solvedSource instanceof Set
+            ? new Set<string>(Array.from(solvedSource))
+            : new Set<string>(Array.isArray(solvedSource) ? solvedSource : []);
         setPuzzleState({
           puzzle: event.puzzle,
           moveCursor: event.session.moveCursor,
           totalMoves: event.puzzle.solution.length,
           attempts: event.session.attempts,
           hintUsage: event.session.hintUsage ?? 0,
-          solved: new Set(solvedSet),
+          solved: solvedSet,
         });
         setAriaMessage(formatPuzzleAriaMessage({ type: 'load', title: event.puzzle.title }));
         onPuzzleLoad?.(event);
