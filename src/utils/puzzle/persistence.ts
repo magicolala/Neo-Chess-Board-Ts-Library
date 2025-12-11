@@ -11,7 +11,8 @@ function hasLocalStorage(): boolean {
   }
 }
 
-const storageAvailable = globalThis.window !== undefined && hasLocalStorage();
+const hasLocalStorageApi = 'localStorage' in globalThis;
+const storageAvailable = hasLocalStorageApi && hasLocalStorage();
 
 export function loadPuzzleSession<T>(key: string): T | null {
   const raw = storageAvailable ? globalThis.localStorage.getItem(key) : memoryStore.get(key);
