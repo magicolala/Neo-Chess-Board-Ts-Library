@@ -89,6 +89,7 @@ import type {
   PremoveColorOption,
   PremoveColorListInput,
   Variant,
+  PuzzleModeConfig,
 } from './types';
 import { PremoveManager } from './premove/PremoveManager';
 
@@ -401,6 +402,7 @@ export class NeoChessBoard {
   private inlinePromotionContainer?: HTMLDivElement;
   private inlinePromotionButtons: HTMLButtonElement[] = [];
   private inlinePromotionToken: number | null = null;
+  private puzzleModeConfig?: PuzzleModeConfig;
 
   // ---- Clock ----
   private get clockManager(): ClockManager | null {
@@ -468,6 +470,7 @@ export class NeoChessBoard {
     this.rightClickHighlights = options.rightClickHighlights !== false;
     this.allowDrawingArrows = options.allowDrawingArrows !== false;
     this.clearArrowsOnClick = options.clearArrowsOnClick === true;
+    this.configurePuzzleMode(options.puzzleMode);
     this.soundEnabled = options.soundEnabled !== false;
     const showNotationOption = options.showNotation ?? options.showSquareNames;
     this.showSquareNames = Boolean(showNotationOption);
@@ -657,6 +660,30 @@ export class NeoChessBoard {
     this.resize();
 
     this._initializePieceSetAsync(options.pieceSet);
+  }
+
+  private configurePuzzleMode(config?: PuzzleModeConfig): void {
+    if (!config) {
+      this.puzzleModeConfig = undefined;
+      return;
+    }
+
+    const hasCollection = typeof config.collectionId === 'string' && config.collectionId.length > 0;
+    const hasPuzzles = Array.isArray(config.puzzles) && config.puzzles.length > 0;
+
+    if (!hasCollection || !hasPuzzles) {
+      console.warn(
+        '[PuzzleMode] Missing collectionId or puzzles array. Puzzle Mode was not initialized.',
+      );
+      this.puzzleModeConfig = undefined;
+      return;
+    }
+
+    this.puzzleModeConfig = {
+      autoAdvance: true,
+      allowHints: true,
+      ...config,
+    };
   }
 
   private _configureVisualOptions(options: BoardOptions): void {
@@ -1371,6 +1398,10 @@ export class NeoChessBoard {
 
     if ('promotion' in configuration) {
       this._updatePromotionOptions(configuration.promotion);
+    }
+
+    if ('puzzleMode' in configuration) {
+      this.configurePuzzleMode(configuration.puzzleMode);
     }
 
     if (shouldRender) {

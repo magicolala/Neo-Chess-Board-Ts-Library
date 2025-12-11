@@ -35,7 +35,7 @@ description: "Task list for Puzzle Mode feature implementation"
 - [X] T004 Implement Puzzle Mode type definitions (`PuzzleDefinition`, `PuzzleVariant`, `PuzzleSessionState`) in `src/extensions/puzzle-mode/types.ts`
 - [X] T005 Build persistence helper with localStorage + in-memory fallback in `src/utils/puzzle/persistence.ts`
 - [X] T006 Extend EventBus typings with `puzzle:*` payloads in `src/core/logic/events/puzzle-events.ts`
-- [ ] T007 Add puzzle feature guards and configuration keys to `src/core/logic/NeoChessBoard.ts`
+- [X] T007 Add puzzle feature guards and configuration keys to `src/core/logic/NeoChessBoard.ts`
 
 **Checkpoint**: Types, persistence utilities, and events exist before story work.
 
