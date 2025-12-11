@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Puzzle Mode demo interactif de NeoChessBoard – resolvez des tactiques guidees avec la pile d'extensions complete."
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <title>NeoChessBoard – Puzzle Mode</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./chess-ui-framework.css" />
+    <style>
+      body {
+        margin: 0;
+        min-block-size: 100vh;
+        background: radial-gradient(circle at top left, #1e3a8a 15%, transparent 40%),
+          radial-gradient(circle at top right, #0ea5e9 20%, transparent 50%),
+          #020617;
+        color: #e2e8f0;
+        font-family: 'Inter', 'JetBrains Mono', system-ui, sans-serif;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

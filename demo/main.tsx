@@ -10,7 +10,10 @@ if (!rootElement) {
   throw new Error('Unable to find #root element to mount demo');
 }
 
+const isBrowser = typeof globalThis.window !== 'undefined';
+const puzzleRouteSuffixes = ['/puzzle-mode', '/puzzle-mode/', '/puzzle-mode.html'];
+const currentPath = isBrowser ? globalThis.location.pathname : '';
 const isPuzzleModeRoute =
-  globalThis.window !== undefined && globalThis.location.pathname.endsWith('/puzzle-mode');
+  isBrowser && puzzleRouteSuffixes.some((suffix) => currentPath.endsWith(suffix));
 
 createRoot(rootElement).render(isPuzzleModeRoute ? <PuzzleModeDemo /> : <App />);
