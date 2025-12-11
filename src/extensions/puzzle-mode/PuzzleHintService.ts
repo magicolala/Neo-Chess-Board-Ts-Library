@@ -65,7 +65,12 @@ export class PuzzleHintService {
     if (!matches || matches.length === 0) {
       return null;
     }
-    return matches.at(-1);
+    const lastIndex = matches.length - 1;
+    if (lastIndex < 0) {
+      return null;
+    }
+    const candidate = matches[lastIndex];
+    return candidate ?? null;
   }
 
   private static normalizeSan(san: string): string {

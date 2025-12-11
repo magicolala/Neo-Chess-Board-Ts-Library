@@ -282,7 +282,7 @@ describe('NeoChessBoard React Component', () => {
 
       unmount();
 
-      expect(unsubscribe).toHaveBeenCalledTimes(16); // All registered events including clock listeners
+      expect(unsubscribe).toHaveBeenCalledTimes(mockBoard.on.mock.calls.length);
     });
 
     it.each([
