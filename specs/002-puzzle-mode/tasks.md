@@ -96,16 +96,16 @@ description: "Task list for Puzzle Mode feature implementation"
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Add collection loader tests (filtering, pagination) `tests/unit/utils/puzzleCollections.test.ts`
+- [X] T023 [P] [US3] Add collection loader tests (filtering, pagination) `tests/unit/utils/puzzleCollections.test.ts`
 - [ ] T024 [P] [US3] Add React/demo integration test covering persistence restoration `tests/integration/react/puzzle-mode.demo.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement loader utilities + metadata normalization in `src/utils/puzzleCollections.ts`
-- [ ] T026 [US3] Update `examples/chess-puzzles.tsx` to consume Puzzle Mode APIs and show solved progress
-- [ ] T027 [US3] Build demo experience `demo/src/features/puzzle-mode/index.tsx` (filters, navigation, success metrics)
-- [ ] T028 [US3] Create progress/persistence panel component `demo/src/features/puzzle-mode/ProgressPanel.tsx`
-- [ ] T029 [US3] Document optional host API hooks (per contracts) in `demo/src/features/puzzle-mode/api-notes.tsx`
+- [X] T025 [US3] Implement loader utilities + metadata normalization in `src/utils/puzzleCollections.ts`
+- [X] T026 [US3] Update `examples/chess-puzzles.tsx` to consume Puzzle Mode APIs and show solved progress
+- [X] T027 [US3] Build demo experience `demo/src/features/puzzle-mode/index.tsx` (filters, navigation, success metrics)
+- [X] T028 [US3] Create progress/persistence panel component `demo/src/features/puzzle-mode/ProgressPanel.tsx`
+- [X] T029 [US3] Document optional host API hooks (per contracts) in `demo/src/features/puzzle-mode/api-notes.tsx`
 
 **Checkpoint**: Collections feature is demoable with persistent progress and host extension hooks.
 
