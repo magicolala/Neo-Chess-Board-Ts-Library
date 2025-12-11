@@ -24,17 +24,17 @@ description: "Task list for Puzzle Mode feature implementation"
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Seed reusable puzzle fixtures in `tests/fixtures/puzzles/daily-tactics.json` covering canonical + variant lines
-- [ ] T002 Scaffold extension directory `src/extensions/puzzle-mode/` with placeholder `index.ts`
-- [ ] T003 Create demo feature entry folder `demo/src/features/puzzle-mode/` and register route in `demo/src/main.tsx`
+- [X] T001 Seed reusable puzzle fixtures in `tests/fixtures/puzzles/daily-tactics.json` covering canonical + variant lines
+- [X] T002 Scaffold extension directory `src/extensions/puzzle-mode/` with placeholder `index.ts`
+- [X] T003 Create demo feature entry folder `demo/src/features/puzzle-mode/` and register route in `demo/src/main.tsx`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T004 Implement Puzzle Mode type definitions (`PuzzleDefinition`, `PuzzleVariant`, `PuzzleSessionState`) in `src/extensions/puzzle-mode/types.ts`
-- [ ] T005 Build persistence helper with localStorage + in-memory fallback in `src/utils/puzzle/persistence.ts`
-- [ ] T006 Extend EventBus typings with `puzzle:*` payloads in `src/core/logic/events/puzzle-events.ts`
+- [X] T004 Implement Puzzle Mode type definitions (`PuzzleDefinition`, `PuzzleVariant`, `PuzzleSessionState`) in `src/extensions/puzzle-mode/types.ts`
+- [X] T005 Build persistence helper with localStorage + in-memory fallback in `src/utils/puzzle/persistence.ts`
+- [X] T006 Extend EventBus typings with `puzzle:*` payloads in `src/core/logic/events/puzzle-events.ts`
 - [ ] T007 Add puzzle feature guards and configuration keys to `src/core/logic/NeoChessBoard.ts`
 
 **Checkpoint**: Types, persistence utilities, and events exist before story work.
