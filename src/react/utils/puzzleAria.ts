@@ -7,22 +7,28 @@ export type PuzzleAriaEvent =
 
 export function formatPuzzleAriaMessage(event: PuzzleAriaEvent): string {
   switch (event.type) {
-    case 'load':
+    case 'load': {
       return `Puzzle loaded: ${event.title}`;
-    case 'move':
+    }
+    case 'move': {
       return event.result === 'correct' ? 'Correct move entered.' : 'Incorrect move.';
-    case 'hint':
+    }
+    case 'hint': {
       if (event.hintType === 'text') {
         return event.payload ? `Hint: ${event.payload}` : 'Hint requested.';
       }
       return event.payload
         ? `Highlighting target square ${event.payload}.`
         : 'Highlight hint requested.';
-    case 'complete':
+    }
+    case 'complete': {
       return `Puzzle complete: ${event.title}`;
-    case 'warning':
+    }
+    case 'warning': {
       return event.message;
-    default:
+    }
+    default: {
       return '';
+    }
   }
 }

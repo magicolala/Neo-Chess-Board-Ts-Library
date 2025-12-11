@@ -10,6 +10,7 @@ Experience the library directly in your browser with these hosted demos:
 - ♞ [Chess.js Integration](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/chess-js-demo.html) – Demonstrates the ChessJsRules adapter synchronized with the chess.js engine.
 - 📈 [PGN + Evaluation HUD](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/pgn-import-eval.html) – Import annotated games, auto-sync the orientation, and follow the evaluation bar.
 - ⚡ [Advanced Features Showcase](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/examples/advanced-features.html) – Explore puzzles, analysis helpers, and keyboard-driven workflows.
+- ♟ [Puzzle Mode Dashboard](https://magicolala.github.io/Neo-Chess-Board-Ts-Library/demo/puzzle-mode.html) – Filter curated tactics, request hints, and inspect persistence/analytics hooks with the new HUD.
 
 ---
 
@@ -25,7 +26,7 @@ const canvas = document.getElementById('chess-board') as HTMLCanvasElement;
 const board = new NeoChessBoard(canvas);
 // Listen for moves
 board.on('move', (move) => {
-  console.log(`Move: ${move.from} → ${move.to}`);
+  console.log(`Move: ${move.from} -> ${move.to}`);
 });
 // Load a specific position
 board.loadPosition('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
@@ -48,7 +49,7 @@ function ChessGame() {
   const addMove = (event: { from: string; to: string; fen: string }) => {
     rules.current.setFEN(event.fen);
     setFen(event.fen);
-    setMoves((previous) => [...previous, `${event.from}→${event.to}`]);
+    setMoves((previous) => [...previous, `${event.from}->${event.to}`]);
   };
 
   return (
@@ -170,97 +171,68 @@ function ChessGameWithHistory() {
 ### Puzzle Mode
 
 ```typescript
-import React, { useEffect, useRef, useState } from 'react';
-import { NeoChessBoard } from '@magicolala/neo-chess-board/react';
-import { ChessJsRules } from '@magicolala/neo-chess-board';
-import type { Move as ChessMove } from 'chess.js';
+import React, { useMemo, useState } from 'react';
+import { NeoChessBoard } from 'neo-chess-board/react';
+import rawCollection from '../puzzles/daily-tactics.json';
+import { loadPuzzleCollection } from 'neo-chess-board/utils/puzzleCollections';
 
-interface ChessPuzzle {
-  fen: string;
-  solution: string[]; // SAN moves
-  description: string;
-}
+const DIFFICULTY_FILTERS = ['all', 'beginner', 'intermediate', 'advanced'] as const;
 
-const puzzles: ChessPuzzle[] = [
-  {
-    fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
-    solution: ['Ng5', 'd6', 'Nf7#'],
-    description: 'White to play and win material',
-  },
-];
+export function PuzzleCollections() {
+  const [difficulty, setDifficulty] =
+    useState<(typeof DIFFICULTY_FILTERS)[number]>('all');
+  const [activePuzzleId, setActivePuzzleId] = useState<string | undefined>(undefined);
 
-function ChessPuzzle() {
-  const [currentPuzzle, setCurrentPuzzle] = useState(0);
-  const [solutionIndex, setSolutionIndex] = useState(0);
-  const [hint, setHint] = useState('Select the best move.');
-  const [boardFen, setBoardFen] = useState(puzzles[0].fen);
-  const rules = useRef(new ChessJsRules(puzzles[0].fen));
-  const puzzle = puzzles[currentPuzzle];
+  const collectionView = useMemo(
+    () =>
+      loadPuzzleCollection(rawCollection, {
+        sortBy: 'difficulty',
+        filters: difficulty === 'all' ? undefined : { difficulty: [difficulty] },
+      }),
+    [difficulty],
+  );
 
-  useEffect(() => {
-    rules.current = new ChessJsRules(puzzle.fen);
-    setSolutionIndex(0);
-    setHint('Select the best move.');
-    setBoardFen(puzzle.fen);
-  }, [puzzle]);
-
-  const handleMove = (event: { from: string; to: string; fen: string }) => {
-    rules.current.setFEN(event.fen);
-    const verboseHistory = rules.current.getChessInstance().history({ verbose: true }) as ChessMove[];
-    const lastSan = verboseHistory.at(-1)?.san ?? `${event.from}-${event.to}`;
-    const expectedSan = puzzle.solution[solutionIndex];
-    if (lastSan === expectedSan) {
-      if (solutionIndex + 1 === puzzle.solution.length) {
-        setHint('Puzzle solved! 🎉');
-      } else {
-        setHint(`Correct! Next move ${solutionIndex + 1}/${puzzle.solution.length}`);
-      }
-      setSolutionIndex((value) => value + 1);
-      setBoardFen(event.fen);
-    } else {
-      setHint(`Try again — expected ${expectedSan}.`);
-      setBoardFen(puzzle.fen);
-      rules.current.setFEN(puzzle.fen);
-    }
-  };
+  const puzzleMode = useMemo(
+    () => ({
+      collectionId: 'daily',
+      startPuzzleId: activePuzzleId,
+      puzzles: collectionView.puzzles,
+      allowHints: true,
+      autoAdvance: true,
+    }),
+    [activePuzzleId, collectionView.puzzles],
+  );
 
   return (
-    <div>
-      <h2>Chess Puzzle {currentPuzzle + 1}</h2>
-      <p>{puzzle.description}</p>
+    <section>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        {DIFFICULTY_FILTERS.map((option) => (
+          <button key={option} onClick={() => setDifficulty(option)}>
+            {option}
+          </button>
+        ))}
+      </div>
       <NeoChessBoard
-        fen={boardFen}
-        theme="glass"
-        allowPremoves={false}
-        onMove={handleMove}
-        onUpdate={(event) => {
-          rules.current.setFEN(event.fen);
-          setBoardFen(event.fen);
+        size={520}
+        puzzleMode={puzzleMode}
+        onPuzzleComplete={({ nextPuzzleId }) => {
+          setActivePuzzleId(nextPuzzleId);
+        }}
+        onPuzzleEvent={({ type, payload }) => {
+          if (type === 'puzzle:hint') {
+            console.info('Hint used', payload);
+          }
+        }}
+        onPuzzlePersistenceWarning={({ error }) => {
+          console.warn('Puzzle progress not persisted', error);
         }}
       />
-      <div style={{ marginTop: '10px' }}>
-        <p>{hint}</p>
-        <button
-          onClick={() => {
-            rules.current.setFEN(puzzle.fen);
-            setBoardFen(puzzle.fen);
-            setSolutionIndex(0);
-            setHint('Select the best move.');
-          }}
-        >
-          Reset
-        </button>
-        <button
-          onClick={() => setCurrentPuzzle((value) => (value + 1) % puzzles.length)}
-          style={{ marginLeft: '8px' }}
-        >
-          Next Puzzle
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }
 ```
+
+> See `examples/chess-puzzles.tsx` for a feature-complete reference (progress HUD, hint counters, persistence reset, telemetry logging).
 
 ### Multi-Board Analysis
 
@@ -335,7 +307,7 @@ board.on('move', (move) => {
 });
 
 board.on('illegal', (event) => {
-  console.warn(`Illegal move ${event.from}→${event.to}: ${event.reason}`);
+  console.warn(`Illegal move ${event.from}->${event.to}: ${event.reason}`);
   showIllegalMoveWarning(event.reason);
 });
 
@@ -351,7 +323,7 @@ board.on('promotion', (request) => {
 function updateMoveList(from: string, to: string, fen: string) {
   const movesList = document.getElementById('moves-list');
   const moveElement = document.createElement('div');
-  moveElement.textContent = `${from}→${to} (${fen})`;
+  moveElement.textContent = `${from}->${to} (${fen})`;
   movesList?.appendChild(moveElement);
 }
 

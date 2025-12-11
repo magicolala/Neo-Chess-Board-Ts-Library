@@ -20,16 +20,17 @@ export function PuzzleApiNotes() {
       <h2 style={{ marginTop: 0, fontSize: '1.35rem' }}>Host integration notes</h2>
       <p style={{ marginBottom: '0.75rem', color: '#94a3b8' }}>
         Puzzle Mode emits typed events so hosts can log analytics, store progress remotely, or
-        hydrate dashboards. Each event is documented in <code>specs/002-puzzle-mode/contracts/puzzle-mode.openapi.yaml</code>.
+        hydrate dashboards. Each event is documented in{' '}
+        <code>specs/002-puzzle-mode/contracts/puzzle-mode.openapi.yaml</code>.
       </p>
       <ul style={listStyle}>
         <li>
-          <strong>Telemetry hook:</strong> pass <code>puzzleMode.onPuzzleEvent</code> or the React prop{' '}
-          <code>onPuzzleEvent</code> to receive every puzzle lifecycle event in one place.
+          <strong>Telemetry hook:</strong> pass <code>puzzleMode.onPuzzleEvent</code> or the React
+          prop <code>onPuzzleEvent</code> to receive every puzzle lifecycle event in one place.
         </li>
         <li>
-          <strong>Persistence warnings:</strong> listen to <code>puzzle:persistence-warning</code> to
-          detect private browsing quotas and offer host-side storage fallbacks.
+          <strong>Persistence warnings:</strong> listen to <code>puzzle:persistence-warning</code>{' '}
+          to detect private browsing quotas and offer host-side storage fallbacks.
         </li>
         <li>
           <strong>Attempt tracking:</strong> <code>puzzle:move</code> includes the running attempt
@@ -40,9 +41,7 @@ export function PuzzleApiNotes() {
           letting you meter assistance or bill for help requests.
         </li>
       </ul>
-      <p style={{ color: '#94a3b8' }}>
-        Example handler:
-      </p>
+      <p style={{ color: '#94a3b8' }}>Example handler:</p>
       <pre
         style={{
           background: '#0f172a',
@@ -53,7 +52,7 @@ export function PuzzleApiNotes() {
         }}
       >
         <code>
-{`puzzleMode={{
+          {`puzzleMode={{
   collectionId: 'demo-tactics',
   puzzles,
   onPuzzleEvent: ({ type, payload }) => {

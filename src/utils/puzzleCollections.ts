@@ -60,7 +60,7 @@ export function normalizePuzzleDefinition(def: PuzzleDefinition): PuzzleDefiniti
     solution: Array.isArray(def.solution) ? [...def.solution] : [],
     variants,
     difficulty,
-    tags: tags.length ? tags : undefined,
+    tags: tags.length > 0 ? tags : undefined,
     author: def.author?.trim() ?? undefined,
     hint: def.hint?.trim() ?? undefined,
     sourcePgn: def.sourcePgn?.trim() ?? undefined,
@@ -86,7 +86,7 @@ function normalizeTags(tags?: string[]): string[] {
       seen.add(trimmed);
     }
   }
-  return Array.from(seen);
+  return [...seen];
 }
 
 function normalizeDifficulty(candidate?: PuzzleDifficulty): PuzzleDifficulty {
@@ -135,10 +135,7 @@ export function filterPuzzles(
   );
 }
 
-function matchesDifficulty(
-  puzzle: PuzzleDefinition,
-  filters: PuzzleCollectionFilters,
-): boolean {
+function matchesDifficulty(puzzle: PuzzleDefinition, filters: PuzzleCollectionFilters): boolean {
   if (!filters.difficulty || filters.difficulty.length === 0) {
     return true;
   }
@@ -161,26 +158,17 @@ function matchesSearch(puzzle: PuzzleDefinition, filters: PuzzleCollectionFilter
     return true;
   }
   const lower = query.toLowerCase();
-  const haystack = [
-    puzzle.title,
-    puzzle.author,
-    puzzle.hint,
-    ...(puzzle.tags ?? []),
-  ]
+  const haystack = [puzzle.title, puzzle.author, puzzle.hint, ...(puzzle.tags ?? [])]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
   return haystack.includes(lower);
 }
 
-function sortPuzzles(
-  puzzles: PuzzleDefinition[],
-  sortBy: PuzzleCollectionLoaderOptions['sortBy'],
-) {
+function sortPuzzles(puzzles: PuzzleDefinition[], sortBy: PuzzleCollectionLoaderOptions['sortBy']) {
   if (sortBy === 'difficulty') {
     return [...puzzles].sort((a, b) => {
-      const diff =
-        DIFFICULTY_ORDER.indexOf(a.difficulty) - DIFFICULTY_ORDER.indexOf(b.difficulty);
+      const diff = DIFFICULTY_ORDER.indexOf(a.difficulty) - DIFFICULTY_ORDER.indexOf(b.difficulty);
       if (diff !== 0) {
         return diff;
       }

@@ -6,6 +6,14 @@ import type { ClockConfig, ClockState } from '../clock/types';
 import type { CameraEffectsOptions, CameraEventPayloadMap } from '../effects/types';
 import type { PuzzleEventMap, PuzzleModeConfig } from '../extensions/puzzle-mode/types';
 export type { ClockCallbacks, ClockConfig, ClockState } from '../clock/types';
+export type {
+  PuzzleEventMap,
+  PuzzleEventType,
+  PuzzleEventPayload,
+  PuzzleTelemetryEvent,
+  PuzzleTelemetryHandler,
+  PuzzleModeConfig,
+} from '../extensions/puzzle-mode/types';
 
 export type Square = `${string}${number}`;
 export type Color = 'w' | 'b';

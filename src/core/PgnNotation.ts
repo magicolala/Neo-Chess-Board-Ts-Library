@@ -588,7 +588,7 @@ export class PgnNotation {
    * Download PGN as file (browser only)
    */
   downloadPgn(filename: string = 'game.pgn'): void {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    if (globalThis.window !== undefined && typeof document !== 'undefined') {
       const blob = new Blob([this.toPgnWithAnnotations()], { type: 'application/x-chess-pgn' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

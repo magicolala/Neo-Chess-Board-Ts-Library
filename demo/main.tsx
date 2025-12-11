@@ -11,6 +11,6 @@ if (!rootElement) {
 }
 
 const isPuzzleModeRoute =
-  typeof window !== 'undefined' && window.location.pathname.endsWith('/puzzle-mode');
+  globalThis.window !== undefined && globalThis.location.pathname.endsWith('/puzzle-mode');
 
 createRoot(rootElement).render(isPuzzleModeRoute ? <PuzzleModeDemo /> : <App />);

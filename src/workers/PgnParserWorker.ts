@@ -88,7 +88,10 @@ class PgnMoveParser {
   private currentMoveNumber = 0;
   private isWhiteMove = true;
 
-  constructor(private pgnString: string, private includeAnnotations: boolean) {}
+  constructor(
+    private pgnString: string,
+    private includeAnnotations: boolean,
+  ) {}
 
   parse(): {
     moves: PgnMove[];
@@ -218,11 +221,7 @@ class PgnMoveParser {
     return move;
   }
 
-  private attachAnnotations(
-    targetMove: PgnMove,
-    side: 'white' | 'black',
-    comment?: string,
-  ): void {
+  private attachAnnotations(targetMove: PgnMove, side: 'white' | 'black', comment?: string): void {
     if (!comment) {
       return;
     }

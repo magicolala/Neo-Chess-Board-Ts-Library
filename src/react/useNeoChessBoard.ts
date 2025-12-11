@@ -253,7 +253,10 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       return;
     }
 
-    const emitPuzzleEvent = <N extends PuzzleEventType>(type: N, payload: PuzzleEventPayload<N>) => {
+    const emitPuzzleEvent = <N extends PuzzleEventType>(
+      type: N,
+      payload: PuzzleEventPayload<N>,
+    ) => {
       handlersRef.current.onPuzzleEvent?.({ type, payload });
     };
 
@@ -938,12 +941,9 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
     [boardRef],
   );
 
-  const requestPuzzleHint = useCallback(
-    (type: 'text' | 'origin-highlight' = 'text') => {
-      boardRef.current?.requestPuzzleHint(type);
-    },
-    [],
-  );
+  const requestPuzzleHint = useCallback((type: 'text' | 'origin-highlight' = 'text') => {
+    boardRef.current?.requestPuzzleHint(type);
+  }, []);
 
   const api = useMemo<NeoChessRef>(
     () => ({
@@ -960,21 +960,21 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       resetClock,
       requestPuzzleHint,
     }),
-  [
-    addArrow,
-    addHighlight,
-    addClockTime,
+    [
+      addArrow,
+      addHighlight,
+      addClockTime,
       clearArrows,
       clearHighlights,
       getBoard,
-    getClockState,
-    pauseClock,
-    resetClock,
-    setClockTime,
-    startClock,
-    requestPuzzleHint,
-  ],
-);
+      getClockState,
+      pauseClock,
+      resetClock,
+      setClockTime,
+      startClock,
+      requestPuzzleHint,
+    ],
+  );
 
   return {
     containerRef,

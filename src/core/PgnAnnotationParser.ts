@@ -265,11 +265,14 @@ class AnnotationParser {
   }
 
   private parseEvaluation(): void {
-    this.processingComment = this.processingComment.replaceAll(EVAL_REGEX, (_match, value: string) => {
-      const parsedEvaluation = parseAnnotationValue(value);
-      this.evaluation = parsedEvaluation.value;
-      return ' ';
-    });
+    this.processingComment = this.processingComment.replaceAll(
+      EVAL_REGEX,
+      (_match, value: string) => {
+        const parsedEvaluation = parseAnnotationValue(value);
+        this.evaluation = parsedEvaluation.value;
+        return ' ';
+      },
+    );
   }
 
   private removeMatch(match: string): void {

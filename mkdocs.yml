@@ -61,6 +61,7 @@ nav:
   - Clean Code: clean-code.md
   - Guides:
       - Time Controls: guides/time-controls.md
+      - Puzzle Mode: guides/puzzle-mode.md
 
 plugins:
   - search
@@ -95,6 +96,7 @@ plugins:
             Clock Manager: Gestionnaire d'horloge
             Guides: Guides
             Time Controls: Contrôles de temps
+            Puzzle Mode: Mode puzzle
   - include-markdown:
       rewrite_relative_urls: true
       comments: true

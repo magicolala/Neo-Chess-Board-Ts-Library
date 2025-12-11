@@ -55,7 +55,7 @@ export class PuzzleSessionManager {
     const resolvedIndex = initialPuzzleId
       ? this.puzzles.findIndex((puzzle) => puzzle.id === initialPuzzleId)
       : -1;
-    this.currentIndex = resolvedIndex >= 0 ? resolvedIndex : 0;
+    this.currentIndex = Math.max(resolvedIndex, 0);
 
     const initialPuzzle = this.puzzles[this.currentIndex];
     this.controller = new PuzzleController({
@@ -69,9 +69,9 @@ export class PuzzleSessionManager {
       collectionId: config.collectionId,
       currentPuzzleId: initialPuzzle.id,
       moveCursor: 0,
-      attempts: shouldResetState ? 0 : persisted?.attempts ?? 0,
-      solvedPuzzles: new Set<string>(persisted?.solvedPuzzles ?? []),
-      hintUsage: shouldResetState ? 0 : persisted?.hintUsage ?? 0,
+      attempts: shouldResetState ? 0 : (persisted?.attempts ?? 0),
+      solvedPuzzles: new Set<string>(persisted?.solvedPuzzles),
+      hintUsage: shouldResetState ? 0 : (persisted?.hintUsage ?? 0),
       autoAdvance: persisted?.autoAdvance ?? this.config.autoAdvance ?? true,
       persistedAt: persisted?.persistedAt,
     };
@@ -117,7 +117,7 @@ export class PuzzleSessionManager {
   }
 
   public getSolvedPuzzleIds(): string[] {
-    return Array.from(this.state.solvedPuzzles);
+    return [...this.state.solvedPuzzles];
   }
 
   public peekNextMove(): string | null {
@@ -160,7 +160,7 @@ export class PuzzleSessionManager {
     const nextPersistedAt = new Date().toISOString();
     const payload: PersistedPuzzleSession = {
       currentPuzzleId: this.state.currentPuzzleId,
-      solvedPuzzles: Array.from(this.state.solvedPuzzles),
+      solvedPuzzles: [...this.state.solvedPuzzles],
       autoAdvance: this.state.autoAdvance,
       attempts: this.state.attempts,
       hintUsage: this.state.hintUsage,

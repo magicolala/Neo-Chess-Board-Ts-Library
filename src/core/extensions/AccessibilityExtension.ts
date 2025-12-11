@@ -434,14 +434,10 @@ export function createAccessibilityExtension(
       };
 
       const keyboardHandlers: Record<string, (square: Square) => void> = {
-        ArrowUp: (square) =>
-          moveFocusBy(0, board.getOrientation() === 'white' ? 1 : -1, square),
-        ArrowDown: (square) =>
-          moveFocusBy(0, board.getOrientation() === 'white' ? -1 : 1, square),
-        ArrowLeft: (square) =>
-          moveFocusBy(board.getOrientation() === 'white' ? -1 : 1, 0, square),
-        ArrowRight: (square) =>
-          moveFocusBy(board.getOrientation() === 'white' ? 1 : -1, 0, square),
+        ArrowUp: (square) => moveFocusBy(0, board.getOrientation() === 'white' ? 1 : -1, square),
+        ArrowDown: (square) => moveFocusBy(0, board.getOrientation() === 'white' ? -1 : 1, square),
+        ArrowLeft: (square) => moveFocusBy(board.getOrientation() === 'white' ? -1 : 1, 0, square),
+        ArrowRight: (square) => moveFocusBy(board.getOrientation() === 'white' ? 1 : -1, 0, square),
         Enter: handleSquareActivation,
         ' ': handleSquareActivation,
         Spacebar: handleSquareActivation,

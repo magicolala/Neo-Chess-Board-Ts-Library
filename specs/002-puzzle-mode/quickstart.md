@@ -1,5 +1,7 @@
 # Puzzle Mode Quickstart
 
+Deliver curated tactics with enforced move order, hints, persistence, and React HUD controls.
+
 ## 1. Install & import
 
 ```bash
@@ -9,59 +11,81 @@ npm install neo-chess-board
 ```ts
 import 'neo-chess-board/style.css';
 import { NeoChessBoard } from 'neo-chess-board/react';
-import puzzles from './puzzles/tactics.json';
+import { loadPuzzleCollection } from 'neo-chess-board/utils/puzzleCollections';
+import rawCollection from './puzzles/daily-tactics.json';
 ```
 
-## 2. Enable Puzzle Mode
+## 2. Load and filter puzzles
 
-```tsx
-<NeoChessBoard
-  puzzleMode={{
-    collectionId: 'daily-tactics',
-    puzzles,
-    autoAdvance: true,
-    allowHints: true,
-  }}
-  onPuzzleEvent={(event) => {
-    if (event.type === 'persistence-warning') {
-      toast.warn('Progress not saved; private mode detected.');
-    }
-  }}
-/>
-```
-
-Key options:
-
-- `collectionId`: namespace for localStorage.
-- `puzzles`: array of `PuzzleDefinition` objects.
-- `autoAdvance`: automatically load next puzzle on completion.
-- `allowHints`: toggles hint controls.
-
-## 3. Provide puzzle data
-
-```json
-[
-  {
-    "id": "mate-in-two-001",
-    "title": "Mate in two",
-    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3",
-    "solution": ["Bxf7+", "Qxd8+"],
-    "variants": [
-      { "id": "line-b", "label": "Line B", "moves": ["Bxf7+", "Nxe5+"] }
-    ],
-    "difficulty": "intermediate",
-    "tags": ["tactic", "sacrifice"],
-    "author": "Neo Library",
-    "hint": "Look for checks on f7."
-  }
-]
-```
-
-## 4. Handle events
+Use the helper to normalize metadata, sort puzzles, and apply filters before rendering:
 
 ```ts
-board.on('puzzle:complete', ({ puzzleId, attempts }) => {
-  analytics.track('puzzle_complete', { puzzleId, attempts });
+const view = loadPuzzleCollection(rawCollection, {
+  sortBy: 'difficulty',
+  filters: { tags: ['tactic'] },
+  limit: 25,
+});
+```
+
+`view.puzzles` contains validated entries; `view.stats` powers dashboards (total, solved, tags).
+
+## 3. Render the React HUD
+
+```tsx
+import React, { useMemo, useState } from 'react';
+
+export function PuzzleDemo() {
+  const [difficulty, setDifficulty] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>(
+    'all',
+  );
+  const [activePuzzleId, setActivePuzzleId] = useState<string | undefined>();
+
+  const collection = useMemo(
+    () =>
+      loadPuzzleCollection(rawCollection, {
+        sortBy: 'difficulty',
+        filters: difficulty === 'all' ? undefined : { difficulty: [difficulty] },
+      }),
+    [difficulty],
+  );
+
+  return (
+    <NeoChessBoard
+      size={520}
+      puzzleMode={{
+        collectionId: 'daily',
+        startPuzzleId: activePuzzleId,
+        puzzles: collection.puzzles,
+        allowHints: true,
+        autoAdvance: true,
+      }}
+      onPuzzleComplete={({ nextPuzzleId }) => setActivePuzzleId(nextPuzzleId)}
+      onPuzzleEvent={(event) => console.log(event.type, event.payload)}
+      onPuzzlePersistenceWarning={({ error }) => {
+        toast.warn(error ?? 'Puzzle progress not saved (private mode).');
+      }}
+    />
+  );
+}
+```
+
+- The React HUD renders status, hints, and ARIA live region automatically.
+- Set `allowHints: false` to disable hint buttons globally.
+- Toggle `autoAdvance` to keep the success screen visible until you call `setActivePuzzleId` yourself.
+
+## 4. React & core events
+
+| Event / Prop                    | Purpose                                                           |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `onPuzzleComplete`              | Receive attempts + next ID before auto-advance.                   |
+| `onPuzzleEvent` / `puzzle:*`    | Single telemetry feed for load, move, hint, and completion steps. |
+| `onPuzzlePersistenceWarning`    | Surface localStorage failures; app falls back to in-memory state. |
+
+Example core usage:
+
+```ts
+board.on('puzzle:hint', ({ type, usageCount }) => {
+  analytics.track('hint_used', { type, usageCount });
 });
 
 board.on('puzzle:persistence-warning', ({ error }) => {
@@ -69,8 +93,8 @@ board.on('puzzle:persistence-warning', ({ error }) => {
 });
 ```
 
-## 5. Document & demo updates
+## 5. Demo & docs hooks
 
-- Add usage docs to `mkdocs_docs/guides/puzzle-mode.md`.
-- Extend `README.md` feature list.
-- Create demo page in `demo/src/features/puzzle-mode/` showcasing hints, persistence, and accessibility.
+- See `examples/chess-puzzles.tsx` for filters, solved tracking, and reset helpers.
+- The live demo at `demo/src/features/puzzle-mode/` exposes host telemetry hooks and persistence warnings.
+- User docs live at `mkdocs_docs/guides/puzzle-mode.md`; keep README and MkDocs examples in sync when APIs evolve.
