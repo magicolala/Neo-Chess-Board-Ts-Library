@@ -1,7 +1,4 @@
-import type {
-  PuzzleCollection,
-  PuzzleDefinition,
-} from '../../../src/extensions/puzzle-mode/types';
+import type { PuzzleCollection, PuzzleDefinition } from '../../../src/extensions/puzzle-mode/types';
 import {
   filterPuzzles,
   loadPuzzleCollection,

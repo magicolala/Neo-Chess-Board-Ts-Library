@@ -42,6 +42,7 @@ _Type-safe • Zero dependencies • Performance optimized • React ready_
 - 📈 **Evaluation bar** that reads PGN `[%eval]` annotations
 - 🔄 **Auto-flip board** to follow the active player
 - 🏹 **Visual annotations** – Draw arrows and highlight squares
+- Puzzle Mode overlay with hints, attempt tracking, and persistence-aware telemetry hooks.
 
 ### 🔧 Developer Experience
 
@@ -89,7 +90,7 @@ function ChessApp() {
       showCoordinates
       highlightLegal
       onMove={({ from, to, fen }) => {
-        console.log(`Move: ${from} → ${to}`);
+        console.log(`Move: ${from} -> ${to}`);
       }}
       style={{ width: '500px', height: '500px' }}
     />
@@ -110,8 +111,47 @@ const board = new NeoChessBoard(document.getElementById('board'), {
 });
 
 board.on('move', ({ from, to, fen }) => {
-  console.log(`Move: ${from} → ${to}`);
+  console.log(`Move: ${from} -> ${to}`);
 });
+```
+
+### Puzzle Mode (React)
+
+```tsx
+import React, { useMemo, useState } from 'react';
+import { NeoChessBoard } from 'neo-chess-board/react';
+import rawCollection from './puzzles/daily.json';
+import { loadPuzzleCollection } from 'neo-chess-board/utils/puzzleCollections';
+
+const filters = ['all', 'beginner', 'intermediate', 'advanced'] as const;
+
+export function PuzzleDemo() {
+  const [difficulty, setDifficulty] = useState<(typeof filters)[number]>('all');
+  const [activePuzzleId, setActivePuzzleId] = useState<string | undefined>();
+
+  const collection = useMemo(
+    () =>
+      loadPuzzleCollection(rawCollection, {
+        sortBy: 'difficulty',
+        filters: difficulty === 'all' ? undefined : { difficulty: [difficulty] },
+      }),
+    [difficulty],
+  );
+
+  return (
+    <NeoChessBoard
+      puzzleMode={{
+        collectionId: 'daily',
+        startPuzzleId: activePuzzleId,
+        puzzles: collection.puzzles,
+        allowHints: true,
+        autoAdvance: true,
+      }}
+      onPuzzleComplete={({ nextPuzzleId }) => setActivePuzzleId(nextPuzzleId)}
+      onPuzzlePersistenceWarning={({ error }) => console.warn(error)}
+    />
+  );
+}
 ```
 
 ### Headless logic (Node-friendly)

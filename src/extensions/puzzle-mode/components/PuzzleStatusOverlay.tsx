@@ -28,7 +28,9 @@ export function PuzzleStatusOverlay({
       <header style={{ marginBottom: '4px' }}>
         <strong>{puzzle.title}</strong> · <span>{puzzle.difficulty}</span>
       </header>
-      <p style={{ margin: 0 }}>Progress: {moveCursor}/{totalMoves} moves</p>
+      <p style={{ margin: 0 }}>
+        Progress: {moveCursor}/{totalMoves} moves
+      </p>
       <p style={{ margin: '4px 0 0' }}>Attempts: {attempts}</p>
       <p style={{ margin: '4px 0 0' }}>
         Solved: {solvedIds.length}/{solvedIds.length + (totalMoves - moveCursor > 0 ? 1 : 0)}

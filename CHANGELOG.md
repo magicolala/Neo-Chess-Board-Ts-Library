@@ -22,10 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Animation configuration object on `BoardOptions` for specifying duration and easing.
 - `NeoChessBoard#setAnimation` method for runtime animation updates.
+- Puzzle Mode: controller, session manager, hints service, React HUD controls, and telemetry/persistence events.
+- `loadPuzzleCollection` helper plus demo + example updates for curated puzzle dashboards.
+- Documentation covering Puzzle Mode (README quick start, MkDocs guide, examples) and `docs/performance.md` for bundle/60fps notes.
+- Integration test `tests/integration/react/puzzle-mode.demo.test.tsx` that exercises the live demo wiring.
 
 ### Changed
 
 - Animation easing selection now resolves named easings or custom functions instead of always using `easeOutCubic`.
+- README quick start now highlights Puzzle Mode setup and persistence hooks.
 
 ## [0.1.0] - 2024-12-31
 

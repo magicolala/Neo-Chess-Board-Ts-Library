@@ -677,7 +677,7 @@ export class NeoChessBoard {
     if (!config) {
       this.puzzleModeConfig = undefined;
       this.puzzleSession = undefined;
-       this.puzzleHintService = undefined;
+      this.puzzleHintService = undefined;
       return;
     }
 
@@ -1006,7 +1006,7 @@ export class NeoChessBoard {
     this._emitPuzzleEvent(PUZZLE_EVENTS.HINT, {
       puzzleId: this.puzzleSession.getCurrentPuzzle().id,
       hintType: hint.type,
-      hintPayload: hint.type === 'text' ? hint.message : hint.targetSquare ?? undefined,
+      hintPayload: hint.type === 'text' ? hint.message : (hint.targetSquare ?? undefined),
       hintUsage: hint.hintUsage,
     });
   }
@@ -3967,11 +3967,11 @@ export class NeoChessBoard {
     this._emitPuzzleEvent(PUZZLE_EVENTS.PERSISTENCE_WARNING, payload);
   }
 
-  private _emitPuzzleEvent<N extends PuzzleEventName>(
+  private _emitPuzzleEvent<N extends PuzzleEventName & keyof BoardEventMap>(
     event: N,
     payload: PuzzleEventPayload<N>,
   ): void {
-    this.bus.emit(event, payload);
+    this.bus.emit(event, payload as BoardEventMap[N]);
     emitPuzzleTelemetry(this.puzzleModeConfig, event, payload);
   }
 

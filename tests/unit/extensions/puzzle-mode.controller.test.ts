@@ -7,9 +7,7 @@ describe('PuzzleController - canonical + variants', () => {
     title: 'Mate in two',
     fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3',
     solution: ['Bxf7+', 'Qxd8+'],
-    variants: [
-      { id: 'line-b', label: 'Line B', moves: ['Bxf7+', 'Nxe5+'] },
-    ],
+    variants: [{ id: 'line-b', label: 'Line B', moves: ['Bxf7+', 'Nxe5+'] }],
     difficulty: 'intermediate',
   };
 

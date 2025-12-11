@@ -87,7 +87,7 @@ export function PuzzleModeDemo() {
     setHintUsage(event.hintUsage);
     const hint =
       event.hintType === 'text'
-        ? event.hintPayload ?? 'Hint requested.'
+        ? (event.hintPayload ?? 'Hint requested.')
         : event.hintPayload
           ? `Target square: ${event.hintPayload}`
           : 'Highlight hint requested.';
@@ -112,7 +112,9 @@ export function PuzzleModeDemo() {
       if (collectionView.puzzles.length === 0) {
         return;
       }
-      const currentIndex = collectionView.puzzles.findIndex((puzzle) => puzzle.id === activePuzzleId);
+      const currentIndex = collectionView.puzzles.findIndex(
+        (puzzle) => puzzle.id === activePuzzleId,
+      );
       if (currentIndex === -1) {
         setActivePuzzleId(collectionView.puzzles[0].id);
         return;
@@ -315,7 +317,9 @@ export function PuzzleModeDemo() {
                   cursor: 'pointer',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <strong>{puzzle.title}</strong>
                   <span
                     style={{
@@ -402,13 +406,17 @@ function buildPuzzles(): PuzzleDefinition[] {
 
 function difficultyBadge(difficulty: PuzzleDifficulty): string {
   switch (difficulty) {
-    case 'beginner':
+    case 'beginner': {
       return '#a3e635';
-    case 'intermediate':
+    }
+    case 'intermediate': {
       return '#fde047';
-    case 'advanced':
+    }
+    case 'advanced': {
       return '#f87171';
-    default:
+    }
+    default: {
       return '#94a3b8';
+    }
   }
 }

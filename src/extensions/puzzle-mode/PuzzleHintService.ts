@@ -1,5 +1,5 @@
 import type { PuzzleDefinition } from './types';
-import { PuzzleSessionManager } from './PuzzleSessionManager';
+import { type PuzzleSessionManager } from './PuzzleSessionManager';
 
 export type PuzzleHintResult =
   | { type: 'text'; puzzle: PuzzleDefinition; message: string; hintUsage: number }
@@ -65,17 +65,14 @@ export class PuzzleHintService {
     if (!matches || matches.length === 0) {
       return null;
     }
-    return matches[matches.length - 1];
+    return matches.at(-1);
   }
 
   private static normalizeSan(san: string): string {
-    return san.replace(/[+#?!]/g, '');
+    return san.replaceAll(/[+#?!]/g, '');
   }
 
-  private static readCastleTarget(
-    puzzle: PuzzleDefinition,
-    side: 'king' | 'queen',
-  ): string | null {
+  private static readCastleTarget(puzzle: PuzzleDefinition, side: 'king' | 'queen'): string | null {
     const activeColor = puzzle.fen?.split(' ')?.[1] === 'b' ? 'b' : 'w';
     if (side === 'king') {
       return activeColor === 'w' ? 'g1' : 'g8';

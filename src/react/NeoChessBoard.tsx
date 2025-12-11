@@ -433,8 +433,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     const handlePuzzleLoad = useCallback(
       (event: BoardEventMap['puzzle:load']) => {
         const solvedSource = event.session.solvedPuzzles;
-        const solvedSet =
-          solvedSource instanceof Set ? solvedSource : new Set(solvedSource ?? []);
+        const solvedSet = solvedSource instanceof Set ? solvedSource : new Set(solvedSource);
         setPuzzleState({
           puzzle: event.puzzle,
           moveCursor: event.session.moveCursor,
@@ -604,7 +603,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
             moveCursor={puzzleState.moveCursor}
             totalMoves={puzzleState.totalMoves}
             attempts={puzzleState.attempts}
-            solvedIds={Array.from(puzzleState.solved)}
+            solvedIds={[...puzzleState.solved]}
           />
           <PuzzleControls
             api={api}

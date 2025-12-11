@@ -91,7 +91,7 @@ export function ChessPuzzleApp() {
   const handlePuzzleHint = useCallback((event: PuzzleEventMap['puzzle:hint']) => {
     const hint =
       event.hintType === 'text'
-        ? event.hintPayload ?? 'Hint requested.'
+        ? (event.hintPayload ?? 'Hint requested.')
         : event.hintPayload
           ? `Target square highlighted: ${event.hintPayload}`
           : 'Highlight hint requested.';
@@ -105,7 +105,9 @@ export function ChessPuzzleApp() {
       next.add(event.puzzleId);
       return next;
     });
-    setStatusMessage(`Puzzle solved in ${event.attempts} attempt${event.attempts === 1 ? '' : 's'}.`);
+    setStatusMessage(
+      `Puzzle solved in ${event.attempts} attempt${event.attempts === 1 ? '' : 's'}.`,
+    );
   }, []);
 
   const handleWarning = useCallback((event: PuzzleEventMap['puzzle:persistence-warning']) => {
@@ -246,7 +248,16 @@ export function ChessPuzzleApp() {
           }}
         >
           <h2 style={{ margin: '0 0 0.5rem' }}>Available puzzles</h2>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
             {collectionView.puzzles.map((puzzle) => {
               const isActive = puzzle.id === activePuzzleId;
               const solved = solvedIds.has(puzzle.id);
@@ -266,7 +277,14 @@ export function ChessPuzzleApp() {
                       cursor: 'pointer',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
                       <strong>{puzzle.title}</strong>
                       <span
                         style={{
@@ -285,7 +303,14 @@ export function ChessPuzzleApp() {
                       {puzzle.hint ?? 'Tactical motif'}
                     </small>
                     {solved && (
-                      <span style={{ display: 'inline-block', marginTop: '0.15rem', fontSize: '0.75rem', color: '#22c55e' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginTop: '0.15rem',
+                          fontSize: '0.75rem',
+                          color: '#22c55e',
+                        }}
+                      >
                         Solved
                       </span>
                     )}

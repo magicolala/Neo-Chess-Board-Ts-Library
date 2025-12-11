@@ -3,18 +3,18 @@ const memoryStore = new Map<string, string>();
 function hasLocalStorage(): boolean {
   try {
     const testKey = '__puzzle-mode-test__';
-    window.localStorage.setItem(testKey, testKey);
-    window.localStorage.removeItem(testKey);
+    globalThis.localStorage.setItem(testKey, testKey);
+    globalThis.localStorage.removeItem(testKey);
     return true;
   } catch {
     return false;
   }
 }
 
-const storageAvailable = typeof window !== 'undefined' && hasLocalStorage();
+const storageAvailable = globalThis.window !== undefined && hasLocalStorage();
 
 export function loadPuzzleSession<T>(key: string): T | null {
-  const raw = storageAvailable ? window.localStorage.getItem(key) : memoryStore.get(key);
+  const raw = storageAvailable ? globalThis.localStorage.getItem(key) : memoryStore.get(key);
   if (!raw) {
     return null;
   }
@@ -25,11 +25,14 @@ export function loadPuzzleSession<T>(key: string): T | null {
   }
 }
 
-export function savePuzzleSession<T>(key: string, value: T): { persisted: boolean; error?: string } {
+export function savePuzzleSession<T>(
+  key: string,
+  value: T,
+): { persisted: boolean; error?: string } {
   const serialized = JSON.stringify(value);
   try {
     if (storageAvailable) {
-      window.localStorage.setItem(key, serialized);
+      globalThis.localStorage.setItem(key, serialized);
     } else {
       memoryStore.set(key, serialized);
     }
@@ -42,7 +45,7 @@ export function savePuzzleSession<T>(key: string, value: T): { persisted: boolea
 
 export function clearPuzzleSession(key: string): void {
   if (storageAvailable) {
-    window.localStorage.removeItem(key);
+    globalThis.localStorage.removeItem(key);
   } else {
     memoryStore.delete(key);
   }

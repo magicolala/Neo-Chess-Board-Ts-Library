@@ -95,6 +95,6 @@ export class PuzzleController {
   }
 
   private static normalize(move: string): string {
-    return move.trim().replace(/\s+/g, ' ');
+    return move.trim().replaceAll(/\s+/g, ' ');
   }
 }
