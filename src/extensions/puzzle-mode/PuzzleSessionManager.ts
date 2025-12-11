@@ -1,3 +1,8 @@
+import {
+  loadPuzzleSession,
+  savePuzzleSession,
+  clearPuzzleSession,
+} from '../../utils/puzzle/persistence';
 import type { PuzzleDefinition, PuzzleModeConfig, PuzzleSessionState } from './types';
 import { PuzzleController } from './PuzzleController';
 
@@ -7,33 +12,72 @@ export interface PuzzleMoveEvaluation {
   cursor: number;
 }
 
+interface PersistedPuzzleSession {
+  currentPuzzleId: string;
+  solvedPuzzles: string[];
+  autoAdvance: boolean;
+  attempts: number;
+  hintUsage: number;
+  persistedAt?: string;
+}
+
+interface PuzzleSessionManagerOptions {
+  onPersistenceWarning?: (error?: string) => void;
+}
+
+const STORAGE_PREFIX = 'puzzle-mode:';
+
 export class PuzzleSessionManager {
   private readonly config: PuzzleModeConfig;
   private readonly puzzles: PuzzleDefinition[];
+  private readonly persistenceKey: string;
+  private readonly options?: PuzzleSessionManagerOptions;
   private controller: PuzzleController;
   private currentIndex = 0;
   private state: PuzzleSessionState;
 
-  constructor(config: PuzzleModeConfig) {
+  constructor(config: PuzzleModeConfig, options?: PuzzleSessionManagerOptions) {
+    this.options = options;
     this.config = {
       autoAdvance: true,
       allowHints: true,
       ...config,
     };
+    this.persistenceKey = `${STORAGE_PREFIX}${config.collectionId}`;
     this.puzzles = [...config.puzzles];
     if (this.puzzles.length === 0) {
       throw new Error('[PuzzleSessionManager] At least one puzzle is required.');
     }
-    this.controller = new PuzzleController({ puzzle: this.puzzles[0], variants: this.puzzles[0].variants });
+
+    const persisted = this.loadPersistedState();
+    this.currentIndex = Math.max(
+      0,
+      this.puzzles.findIndex((puzzle) => puzzle.id === persisted?.currentPuzzleId),
+    );
+    if (this.currentIndex === -1) {
+      this.currentIndex = 0;
+    }
+
+    const initialPuzzle = this.puzzles[this.currentIndex];
+    this.controller = new PuzzleController({
+      puzzle: initialPuzzle,
+      variants: initialPuzzle.variants,
+    });
     this.state = {
       collectionId: config.collectionId,
-      currentPuzzleId: this.puzzles[0].id,
+      currentPuzzleId: initialPuzzle.id,
       moveCursor: 0,
-      attempts: 0,
-      solvedPuzzles: new Set<string>(),
-      hintUsage: 0,
-      autoAdvance: this.config.autoAdvance ?? true,
+      attempts: persisted?.attempts ?? 0,
+      solvedPuzzles: new Set<string>(persisted?.solvedPuzzles ?? []),
+      hintUsage: persisted?.hintUsage ?? 0,
+      autoAdvance: persisted?.autoAdvance ?? this.config.autoAdvance ?? true,
+      persistedAt: persisted?.persistedAt,
     };
+  }
+
+  public destroy(): void {
+    this.controller.reset();
+    clearPuzzleSession(this.persistenceKey);
   }
 
   public getCurrentPuzzle(): PuzzleDefinition {
@@ -50,12 +94,14 @@ export class PuzzleSessionManager {
     this.state.attempts = this.controller.getAttempts();
 
     if (!result.success) {
+      this.persistState();
       return { accepted: false, complete: false, cursor: result.cursor };
     }
 
     if (result.complete) {
       this.state.solvedPuzzles.add(this.getCurrentPuzzle().id);
     }
+    this.persistState();
 
     return { accepted: true, complete: result.complete, cursor: result.cursor };
   }
@@ -65,17 +111,27 @@ export class PuzzleSessionManager {
     this.state.moveCursor = 0;
     this.state.attempts = 0;
     this.state.hintUsage = 0;
+    this.persistState();
   }
 
   public getSolvedPuzzleIds(): string[] {
     return Array.from(this.state.solvedPuzzles);
   }
 
+  public peekNextMove(): string | null {
+    return this.controller.peekNextMove();
+  }
+
+  public recordHintUsage(): number {
+    this.state.hintUsage += 1;
+    this.persistState();
+    return this.state.hintUsage;
+  }
+
   public autoAdvanceIfNeeded(): boolean {
-    if (!this.config.autoAdvance) {
+    if (!this.state.autoAdvance) {
       return false;
     }
-
     return this.advanceToNextPuzzle();
   }
 
@@ -84,12 +140,35 @@ export class PuzzleSessionManager {
       return false;
     }
     this.currentIndex += 1;
+    const nextPuzzle = this.getCurrentPuzzle();
     this.controller = new PuzzleController({
-      puzzle: this.getCurrentPuzzle(),
-      variants: this.getCurrentPuzzle().variants,
+      puzzle: nextPuzzle,
+      variants: nextPuzzle.variants,
     });
-    this.state.currentPuzzleId = this.getCurrentPuzzle().id;
+    this.state.currentPuzzleId = nextPuzzle.id;
     this.resetCurrentPuzzle();
     return true;
+  }
+
+  private loadPersistedState(): PersistedPuzzleSession | null {
+    return loadPuzzleSession<PersistedPuzzleSession>(this.persistenceKey);
+  }
+
+  private persistState(): void {
+    const nextPersistedAt = new Date().toISOString();
+    const payload: PersistedPuzzleSession = {
+      currentPuzzleId: this.state.currentPuzzleId,
+      solvedPuzzles: Array.from(this.state.solvedPuzzles),
+      autoAdvance: this.state.autoAdvance,
+      attempts: this.state.attempts,
+      hintUsage: this.state.hintUsage,
+      persistedAt: nextPersistedAt,
+    };
+    const result = savePuzzleSession(this.persistenceKey, payload);
+    if (result.persisted) {
+      this.state.persistedAt = nextPersistedAt;
+    } else {
+      this.options?.onPersistenceWarning?.(result.error);
+    }
   }
 }

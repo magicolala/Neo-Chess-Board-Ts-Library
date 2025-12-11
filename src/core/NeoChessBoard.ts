@@ -93,8 +93,14 @@ import type {
 } from './types';
 import { PremoveManager } from './premove/PremoveManager';
 import { PuzzleSessionManager } from '../extensions/puzzle-mode/PuzzleSessionManager';
+import { PuzzleHintService } from '../extensions/puzzle-mode/PuzzleHintService';
 import { resolveCompletionBehavior } from '../extensions/puzzle-mode/completion-options';
-import { PUZZLE_EVENTS } from './logic/events/puzzle-events';
+import { emitPuzzleTelemetry } from '../extensions/puzzle-mode/events';
+import {
+  PUZZLE_EVENTS,
+  type PuzzleEventName,
+  type PuzzleEventPayload,
+} from './logic/events/puzzle-events';
 
 // ============================================================================
 // Constants
@@ -407,6 +413,7 @@ export class NeoChessBoard {
   private inlinePromotionToken: number | null = null;
   private puzzleModeConfig?: PuzzleModeConfig;
   private puzzleSession?: PuzzleSessionManager;
+  private puzzleHintService?: PuzzleHintService;
 
   // ---- Clock ----
   private get clockManager(): ClockManager | null {
@@ -670,6 +677,7 @@ export class NeoChessBoard {
     if (!config) {
       this.puzzleModeConfig = undefined;
       this.puzzleSession = undefined;
+       this.puzzleHintService = undefined;
       return;
     }
 
@@ -689,7 +697,10 @@ export class NeoChessBoard {
       allowHints: true,
       ...config,
     };
-    this.puzzleSession = new PuzzleSessionManager(this.puzzleModeConfig);
+    this.puzzleSession = new PuzzleSessionManager(this.puzzleModeConfig, {
+      onPersistenceWarning: (error) => this._handlePuzzlePersistenceWarning(error),
+    });
+    this.puzzleHintService = new PuzzleHintService(this.puzzleSession);
     this._loadPuzzleFromSession();
   }
 
@@ -706,7 +717,10 @@ export class NeoChessBoard {
     this.drawingManager?.clearPromotionPreview();
     this.clockManager?.reset();
     const snapshot = this.puzzleSession.getState();
-    this.bus.emit(PUZZLE_EVENTS.LOAD, {
+    if (this.puzzleSession && this.puzzleHintService) {
+      this.puzzleHintService = new PuzzleHintService(this.puzzleSession);
+    }
+    this._emitPuzzleEvent(PUZZLE_EVENTS.LOAD, {
       collectionId: this.puzzleModeConfig?.collectionId ?? '',
       puzzle: currentPuzzle,
       session: {
@@ -976,6 +990,25 @@ export class NeoChessBoard {
     }
 
     return this.attemptMove(parsed.from, parsed.to, { promotion: parsed.promotion });
+  }
+
+  public requestPuzzleHint(type: 'text' | 'origin-highlight' = 'text'): void {
+    if (!this.puzzleModeConfig || this.puzzleModeConfig.allowHints === false) {
+      return;
+    }
+    if (!this.puzzleSession || !this.puzzleHintService) {
+      return;
+    }
+    const hint = this.puzzleHintService.requestHint(type);
+    if (!hint) {
+      return;
+    }
+    this._emitPuzzleEvent(PUZZLE_EVENTS.HINT, {
+      puzzleId: this.puzzleSession.getCurrentPuzzle().id,
+      hintType: hint.type,
+      hintPayload: hint.type === 'text' ? hint.message : hint.targetSquare ?? undefined,
+      hintUsage: hint.hintUsage,
+    });
   }
 
   public attemptMove(
@@ -2053,6 +2086,9 @@ export class NeoChessBoard {
     this.cameraEffects?.destroy();
     this.cameraEffects = null;
     this._applyCameraDomTransforms(null);
+    this.puzzleSession?.destroy();
+    this.puzzleSession = undefined;
+    this.puzzleHintService = undefined;
   }
 
   // ============================================================================
@@ -3873,11 +3909,13 @@ export class NeoChessBoard {
       return true;
     }
     const evaluation = this.puzzleSession.handleMove(san);
-    this.bus.emit(PUZZLE_EVENTS.MOVE, {
+    const attempts = this.puzzleSession.getState().attempts;
+    this._emitPuzzleEvent(PUZZLE_EVENTS.MOVE, {
       puzzleId: this.puzzleSession.getCurrentPuzzle().id,
       move: san,
       result: evaluation.accepted ? 'correct' : 'incorrect',
       cursor: evaluation.cursor,
+      attempts,
     });
 
     if (!evaluation.accepted) {
@@ -3897,7 +3935,7 @@ export class NeoChessBoard {
     }
 
     const state = this.puzzleSession.getState();
-    this.bus.emit(PUZZLE_EVENTS.COMPLETE, {
+    this._emitPuzzleEvent(PUZZLE_EVENTS.COMPLETE, {
       puzzleId: state.currentPuzzleId,
       attempts: state.attempts,
       durationMs: undefined,
@@ -3919,6 +3957,22 @@ export class NeoChessBoard {
     if (behavior.autoAdvance && this.puzzleSession.autoAdvanceIfNeeded()) {
       this._loadPuzzleFromSession();
     }
+  }
+
+  private _handlePuzzlePersistenceWarning(error?: string): void {
+    const payload = {
+      error: error ?? 'Puzzle progress persisted in memory only.',
+      fallback: 'memory' as const,
+    };
+    this._emitPuzzleEvent(PUZZLE_EVENTS.PERSISTENCE_WARNING, payload);
+  }
+
+  private _emitPuzzleEvent<N extends PuzzleEventName>(
+    event: N,
+    payload: PuzzleEventPayload<N>,
+  ): void {
+    this.bus.emit(event, payload);
+    emitPuzzleTelemetry(this.puzzleModeConfig, event, payload);
   }
 
   private _processMoveSuccess(from: Square, to: Square, legal: RulesMoveResponse): void {

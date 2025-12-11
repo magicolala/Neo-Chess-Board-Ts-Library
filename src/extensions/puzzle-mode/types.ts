@@ -55,11 +55,13 @@ export interface PuzzleEventMap {
     move: string;
     result: 'correct' | 'incorrect';
     cursor: number;
+    attempts: number;
   };
   'puzzle:hint': {
     puzzleId: string;
     hintType: 'text' | 'origin-highlight';
     hintPayload?: string;
+    hintUsage: number;
   };
   'puzzle:complete': {
     puzzleId: string;
@@ -74,6 +76,13 @@ export interface PuzzleEventMap {
 
 export type PuzzleEventPayload<N extends PuzzleEventType> = PuzzleEventMap[N];
 
+export type PuzzleTelemetryEvent<N extends PuzzleEventType = PuzzleEventType> = {
+  type: N;
+  payload: PuzzleEventPayload<N>;
+};
+
+export type PuzzleTelemetryHandler = (event: PuzzleTelemetryEvent) => void;
+
 export interface PuzzleModeConfig {
   collectionId: string;
   puzzles: PuzzleDefinition[];
@@ -81,5 +90,9 @@ export interface PuzzleModeConfig {
   allowHints?: boolean;
   startPuzzleId?: string;
   onComplete?: (summary: { puzzleId: string; attempts: number; durationMs?: number }) => void;
+  onPuzzleEvent?: PuzzleTelemetryHandler;
+  /**
+   * @deprecated Use {@link onPuzzleEvent} for structured telemetry instead.
+   */
   onEvent?: <N extends PuzzleEventType>(event: N, payload: PuzzleEventPayload<N>) => void;
 }

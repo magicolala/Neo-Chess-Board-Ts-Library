@@ -73,16 +73,16 @@ description: "Task list for Puzzle Mode feature implementation"
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Add hint + attempt tracking unit tests `tests/unit/extensions/puzzle-mode.hints.test.ts`
-- [ ] T017 [P] [US2] Add persistence warning + ARIA event tests `tests/unit/extensions/puzzle-mode.persistence-warning.test.ts`
+- [X] T016 [P] [US2] Add hint + attempt tracking unit tests `tests/unit/extensions/puzzle-mode.hints.test.ts`
+- [X] T017 [P] [US2] Add persistence warning + ARIA event tests `tests/unit/extensions/puzzle-mode.persistence-warning.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Implement `PuzzleHintService` (origin highlight + textual hints) in `src/extensions/puzzle-mode/PuzzleHintService.ts`
-- [ ] T019 [US2] Extend `PuzzleSessionManager` for attempt counters, hint usage, and fallback warnings in `src/extensions/puzzle-mode/PuzzleSessionManager.ts`
-- [ ] T020 [US2] Add React hint controls + attempt readouts in `src/react/components/PuzzleControls.tsx`
-- [ ] T021 [US2] Emit ARIA live-region announcements for hints/completions in `src/react/components/NeoChessBoard.tsx`
-- [ ] T022 [US2] Surface telemetry hooks (`onPuzzleEvent`) for host analytics in `src/extensions/puzzle-mode/events.ts`
+- [X] T018 [US2] Implement `PuzzleHintService` (origin highlight + textual hints) in `src/extensions/puzzle-mode/PuzzleHintService.ts`
+- [X] T019 [US2] Extend `PuzzleSessionManager` for attempt counters, hint usage, and fallback warnings in `src/extensions/puzzle-mode/PuzzleSessionManager.ts`
+- [X] T020 [US2] Add React hint controls + attempt readouts in `src/react/components/PuzzleControls.tsx`
+- [X] T021 [US2] Emit ARIA live-region announcements for hints/completions in `src/react/components/NeoChessBoard.tsx`
+- [X] T022 [US2] Surface telemetry hooks (`onPuzzleEvent`) for host analytics in `src/extensions/puzzle-mode/events.ts`
 
 **Checkpoint**: Hints, attempts, persistence fallback, and ARIA messaging work end-to-end.
 
