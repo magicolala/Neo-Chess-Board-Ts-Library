@@ -1,5 +1,5 @@
 import { PuzzleController } from '../../../src/extensions/puzzle-mode/PuzzleController';
-import type { PuzzleDefinition, PuzzleVariant } from '../../../src/extensions/puzzle-mode/types';
+import type { PuzzleDefinition } from '../../../src/extensions/puzzle-mode/types';
 
 describe('PuzzleController - canonical + variants', () => {
   const basePuzzle: PuzzleDefinition = {

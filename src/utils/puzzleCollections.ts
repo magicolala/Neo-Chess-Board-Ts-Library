@@ -38,7 +38,7 @@ export interface PuzzleCollectionLoaderResult {
 export function normalizePuzzleCollection(raw: PuzzleCollection): PuzzleCollection {
   const title = (raw.title ?? 'Puzzle Collection').trim();
   const description = raw.description?.trim() ?? undefined;
-  const puzzles = (raw.puzzles ?? []).map(normalizePuzzleDefinition);
+  const puzzles = (raw.puzzles ?? []).map((puzzle) => normalizePuzzleDefinition(puzzle));
   return {
     id: raw.id,
     title,
@@ -49,7 +49,7 @@ export function normalizePuzzleCollection(raw: PuzzleCollection): PuzzleCollecti
 
 export function normalizePuzzleDefinition(def: PuzzleDefinition): PuzzleDefinition {
   const variants = Array.isArray(def.variants)
-    ? def.variants.map(normalizePuzzleVariant)
+    ? def.variants.map((variant) => normalizePuzzleVariant(variant))
     : undefined;
   const tags = normalizeTags(def.tags);
   const difficulty = normalizeDifficulty(def.difficulty);

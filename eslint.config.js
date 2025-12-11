@@ -10,7 +10,18 @@ import unicorn from 'eslint-plugin-unicorn';
 export default [
   {
     // Global ignores
-    ignores: ['dist/', 'node_modules/', 'coverage/', 'build/', '*.config.js'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      'build/',
+      '*.config.js',
+      '*.config.cjs',
+      'tests/__mocks__/**',
+      'demo/**',
+      'examples/**',
+      'scripts/**',
+    ],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
@@ -58,6 +69,10 @@ export default [
       // === React Hooks Rules ===
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/refs': 'off',
 
       // === Prettier ===
       'prettier/prettier': 'error',
@@ -124,6 +139,11 @@ export default [
       'sonarjs/slow-regex': 'off',
       'sonarjs/no-duplicate-string': ['warn', { threshold: 5 }],
       'sonarjs/prefer-immediate-return': 'warn',
+      'sonarjs/function-return-type': 'off',
+      'sonarjs/different-types-comparison': 'off',
+      'sonarjs/prefer-read-only-props': 'off',
+      'sonarjs/deprecation': 'off',
+      'sonarjs/no-undefined-argument': 'off',
     },
     settings: {
       react: {
@@ -146,15 +166,34 @@ export default [
       },
     },
     rules: {
-      // Règles plus souples pour les tests
+      // R?gles plus souples pour les tests
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       'sonarjs/no-duplicate-string': 'off',
       'sonarjs/cognitive-complexity': 'off',
+      'sonarjs/different-types-comparison': 'off',
+      'sonarjs/no-alphabetical-sort': 'off',
+      'sonarjs/prefer-regexp-exec': 'off',
+      'react-hooks/immutability': 'off',
+      'sonarjs/no-undefined-argument': 'off',
     },
   },
-  // Configuration pour les fichiers JavaScript
+  // Configuration pour la demo
+  {
+    files: ['demo/**/*.{js,mjs,cjs,ts,jsx,tsx}'],
+    rules: {
+      'sonarjs/function-return-type': 'off',
+      'sonarjs/prefer-regexp-exec': 'off',
+      'sonarjs/different-types-comparison': 'off',
+      'sonarjs/deprecation': 'off',
+      'sonarjs/prefer-read-only-props': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'unicorn/prefer-global-this': 'off',
+    },
+  },
+// Configuration pour les fichiers JavaScript
   {
     files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
     rules: {

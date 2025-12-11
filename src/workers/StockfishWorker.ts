@@ -146,7 +146,7 @@ function createMockStockfish(): { postMessage: (message: string) => void } {
  * Gère les messages reçus du thread principal
  */
 globalThis.addEventListener('message', (event: MessageEvent) => {
-  (async () => {
+  void (async () => {
     if (event.origin && event.origin !== globalThis.origin) {
       globalThis.postMessage({
         type: 'error',

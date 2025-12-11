@@ -335,7 +335,7 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
   }, []);
 
   const applyPieceSet = useCallback((board: Chessboard, nextPieceSet: BoardOptions['pieceSet']) => {
-    board.setPieceSet(nextPieceSet ?? undefined);
+    void board.setPieceSet(nextPieceSet ?? undefined);
   }, []);
 
   const applyClockConfig = useCallback((board: Chessboard, clock: BoardOptions['clock']) => {
