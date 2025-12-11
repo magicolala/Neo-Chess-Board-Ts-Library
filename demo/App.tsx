@@ -1297,6 +1297,13 @@ const AppContent: React.FC = () => {
             >
               {translate('app.themeCreatorLinkText')}
             </a>
+            <a
+              href="./puzzle-mode.html"
+              className="px-3 py-1.5 text-sm font-medium text-gray-200 hover:text-white rounded-md transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+              title={translate('app.puzzleModeLinkTitle')}
+            >
+              {translate('app.puzzleModeLinkText')}
+            </a>
             <div className="hidden sm:block w-px h-6 bg-white/10" />
             <div className="relative">
               <select
@@ -1352,6 +1359,23 @@ const AppContent: React.FC = () => {
       </header>
 
       <main className="max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 pt-[88px] pb-8">
+        <GlassPanel className="mx-auto mb-5 flex max-w-4xl items-center justify-between gap-4 border border-white/10 bg-white/0 p-5 shadow-2xl shadow-black/20 backdrop-blur-lg">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+              {translate('app.puzzleModeHighlightTitle')}
+            </p>
+            <p className="text-sm text-gray-200">
+              {translate('app.puzzleModeHighlightDescription')}
+            </p>
+          </div>
+          <a
+            href="./puzzle-mode.html"
+            className="inline-flex items-center justify-center rounded-md border border-white/20 px-3 py-1.5 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70"
+            title={translate('app.puzzleModeLinkTitle')}
+          >
+            {translate('app.puzzleModeHighlightCta')}
+          </a>
+        </GlassPanel>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-4 lg:space-y-5">
