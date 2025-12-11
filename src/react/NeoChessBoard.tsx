@@ -1,4 +1,12 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef, useEffect } from 'react';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
 import { isValidElement, type CSSProperties, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
@@ -16,6 +24,10 @@ import type {
   Square,
   SquareRendererParams,
 } from '../core/types';
+import type { PuzzleDefinition, PuzzleTelemetryEvent } from '../extensions/puzzle-mode/types';
+import { PuzzleStatusOverlay } from '../extensions/puzzle-mode/components/PuzzleStatusOverlay';
+import { PuzzleControls } from './components/PuzzleControls';
+import { formatPuzzleAriaMessage } from './utils/puzzleAria';
 import { useNeoChessBoard } from './useNeoChessBoard';
 import type { UpdatableBoardOptions } from './useNeoChessBoard';
 
@@ -30,6 +42,27 @@ type ReactPieceRenderer =
 type ReactPieceRendererMap = Partial<Record<Piece, ReactPieceRenderer>>;
 
 type ReactCaptureEffectRenderer = (params: CaptureEffectRendererParams) => ReactNode | void;
+
+interface PuzzleUiState {
+  puzzle: PuzzleDefinition;
+  moveCursor: number;
+  totalMoves: number;
+  attempts: number;
+  hintUsage: number;
+  solved: Set<string>;
+}
+
+const visuallyHiddenStyle: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+};
 
 function isPieceRendererFunction(
   renderer: ReactPieceRenderer,
@@ -184,6 +217,7 @@ export interface NeoChessProps
   onPuzzleHint?: (event: BoardEventMap['puzzle:hint']) => void;
   onPuzzleComplete?: (event: BoardEventMap['puzzle:complete']) => void;
   onPuzzlePersistenceWarning?: (event: BoardEventMap['puzzle:persistence-warning']) => void;
+  onPuzzleEvent?: (event: PuzzleTelemetryEvent) => void;
 }
 
 export interface NeoChessRef {
@@ -201,6 +235,7 @@ export interface NeoChessRef {
   setClockTime: (color: Color, milliseconds: number) => void;
   addClockTime: (color: Color, milliseconds: number) => void;
   resetClock: (config?: Partial<ClockConfig> | null) => void;
+  requestPuzzleHint?: (type?: 'text' | 'origin-highlight') => void;
 }
 
 export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
@@ -236,6 +271,7 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onPuzzleHint,
       onPuzzleComplete,
       onPuzzlePersistenceWarning,
+      onPuzzleEvent,
       size,
       captureEffectRenderer: captureEffectRendererProp,
       ...restOptions
@@ -245,6 +281,8 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
     const squareRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
     const pieceRendererRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
     const captureEffectRootsRef = useRef<Map<HTMLElement, Root>>(new Map());
+    const [puzzleState, setPuzzleState] = useState<PuzzleUiState | null>(null);
+    const [ariaMessage, setAriaMessage] = useState('');
 
     const normalizedBoardStyle = useMemo(
       () => normalizeInlineStyle(boardStyleProp),
@@ -392,6 +430,91 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
 
     const resolvedFen = fen ?? position;
 
+    const handlePuzzleLoad = useCallback(
+      (event: BoardEventMap['puzzle:load']) => {
+        const solvedSource = event.session.solvedPuzzles;
+        const solvedSet =
+          solvedSource instanceof Set ? solvedSource : new Set(solvedSource ?? []);
+        setPuzzleState({
+          puzzle: event.puzzle,
+          moveCursor: event.session.moveCursor,
+          totalMoves: event.puzzle.solution.length,
+          attempts: event.session.attempts,
+          hintUsage: event.session.hintUsage ?? 0,
+          solved: new Set(solvedSet),
+        });
+        setAriaMessage(formatPuzzleAriaMessage({ type: 'load', title: event.puzzle.title }));
+        onPuzzleLoad?.(event);
+      },
+      [onPuzzleLoad],
+    );
+
+    const handlePuzzleMove = useCallback(
+      (event: BoardEventMap['puzzle:move']) => {
+        setPuzzleState((prev) =>
+          prev
+            ? {
+                ...prev,
+                moveCursor: event.cursor,
+                attempts: event.attempts,
+              }
+            : prev,
+        );
+        setAriaMessage(formatPuzzleAriaMessage({ type: 'move', result: event.result }));
+        onPuzzleMove?.(event);
+      },
+      [onPuzzleMove],
+    );
+
+    const handlePuzzleHint = useCallback(
+      (event: BoardEventMap['puzzle:hint']) => {
+        setPuzzleState((prev) => (prev ? { ...prev, hintUsage: event.hintUsage } : prev));
+        setAriaMessage(
+          formatPuzzleAriaMessage({
+            type: 'hint',
+            hintType: event.hintType,
+            payload: event.hintPayload,
+          }),
+        );
+        onPuzzleHint?.(event);
+      },
+      [onPuzzleHint],
+    );
+
+    const handlePuzzleComplete = useCallback(
+      (event: BoardEventMap['puzzle:complete']) => {
+        setPuzzleState((prev) => {
+          if (!prev) {
+            return prev;
+          }
+          const solved = new Set(prev.solved);
+          solved.add(event.puzzleId);
+          setAriaMessage(
+            formatPuzzleAriaMessage({
+              type: 'complete',
+              title: prev.puzzle.title,
+            }),
+          );
+          return {
+            ...prev,
+            attempts: event.attempts,
+            moveCursor: prev.totalMoves,
+            solved,
+          };
+        });
+        onPuzzleComplete?.(event);
+      },
+      [onPuzzleComplete],
+    );
+
+    const handlePuzzlePersistenceWarning = useCallback(
+      (event: BoardEventMap['puzzle:persistence-warning']) => {
+        setAriaMessage(formatPuzzleAriaMessage({ type: 'warning', message: event.error }));
+        onPuzzlePersistenceWarning?.(event);
+      },
+      [onPuzzlePersistenceWarning],
+    );
+
     const { containerRef, isReady, api } = useNeoChessBoard({
       fen: resolvedFen,
       position,
@@ -412,11 +535,12 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
       onClockStart,
       onClockPause,
       onClockFlag,
-      onPuzzleLoad,
-      onPuzzleMove,
-      onPuzzleHint,
-      onPuzzleComplete,
-      onPuzzlePersistenceWarning,
+      onPuzzleLoad: handlePuzzleLoad,
+      onPuzzleMove: handlePuzzleMove,
+      onPuzzleHint: handlePuzzleHint,
+      onPuzzleComplete: handlePuzzleComplete,
+      onPuzzlePersistenceWarning: handlePuzzlePersistenceWarning,
+      onPuzzleEvent,
     });
 
     useEffect(() => {
@@ -424,6 +548,13 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
         unmountRoots(squareRendererRootsRef.current);
       }
     }, [squareRendererProp]);
+
+    useEffect(() => {
+      if (!restOptions.puzzleMode) {
+        setPuzzleState(null);
+        setAriaMessage('');
+      }
+    }, [restOptions.puzzleMode]);
 
     useEffect(() => {
       if (!piecesProp) {
@@ -456,7 +587,43 @@ export const NeoChessBoard = forwardRef<NeoChessRef, NeoChessProps>(
 
     useImperativeHandle(ref, () => api, [api]);
 
-    return <div ref={containerRef} id={elementId} className={className} style={computedStyle} />;
+    const allowHints = restOptions.puzzleMode?.allowHints !== false;
+    const puzzleUi =
+      puzzleState && restOptions.puzzleMode ? (
+        <div
+          style={{
+            marginTop: '0.75rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            alignItems: 'flex-start',
+          }}
+        >
+          <PuzzleStatusOverlay
+            puzzle={puzzleState.puzzle}
+            moveCursor={puzzleState.moveCursor}
+            totalMoves={puzzleState.totalMoves}
+            attempts={puzzleState.attempts}
+            solvedIds={Array.from(puzzleState.solved)}
+          />
+          <PuzzleControls
+            api={api}
+            attempts={puzzleState.attempts}
+            hintUsage={puzzleState.hintUsage}
+            allowHints={allowHints}
+          />
+        </div>
+      ) : null;
+
+    return (
+      <>
+        <div ref={containerRef} id={elementId} className={className} style={computedStyle} />
+        {puzzleUi}
+        <span role="status" aria-live="polite" aria-atomic="true" style={visuallyHiddenStyle}>
+          {ariaMessage}
+        </span>
+      </>
+    );
   },
 );
 

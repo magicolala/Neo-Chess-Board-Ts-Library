@@ -3,6 +3,11 @@ import type { MutableRefObject } from 'react';
 import { NeoChessBoard as Chessboard } from '../core/NeoChessBoard';
 import type { BoardEventMap, BoardOptions, ClockConfig, ClockState, Color } from '../core/types';
 import type { NeoChessRef } from './NeoChessBoard';
+import type {
+  PuzzleTelemetryEvent,
+  PuzzleEventType,
+  PuzzleEventPayload,
+} from '../extensions/puzzle-mode/types';
 
 export type UpdatableBoardOptions = Omit<BoardOptions, 'fen' | 'rulesAdapter'>;
 
@@ -45,6 +50,7 @@ export interface PuzzleHandlers {
   onPuzzleHint?: (event: BoardEventMap['puzzle:hint']) => void;
   onPuzzleComplete?: (event: BoardEventMap['puzzle:complete']) => void;
   onPuzzlePersistenceWarning?: (event: BoardEventMap['puzzle:persistence-warning']) => void;
+  onPuzzleEvent?: (event: PuzzleTelemetryEvent) => void;
 }
 
 export interface UseNeoChessBoardOptions
@@ -188,6 +194,7 @@ function createEventHandlers(options: UseNeoChessBoardOptions) {
     onPuzzleHint: options.onPuzzleHint,
     onPuzzleComplete: options.onPuzzleComplete,
     onPuzzlePersistenceWarning: options.onPuzzlePersistenceWarning,
+    onPuzzleEvent: options.onPuzzleEvent,
   };
 }
 
@@ -246,6 +253,10 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       return;
     }
 
+    const emitPuzzleEvent = <N extends PuzzleEventType>(type: N, payload: PuzzleEventPayload<N>) => {
+      handlersRef.current.onPuzzleEvent?.({ type, payload });
+    };
+
     const unsubscribers = [
       board.on('move', (event) => handlersRef.current.onMove?.(event)),
       board.on('illegal', (event) => handlersRef.current.onIllegal?.(event)),
@@ -263,13 +274,26 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       board.on('clock:start', () => handlersRef.current.onClockStart?.()),
       board.on('clock:pause', () => handlersRef.current.onClockPause?.()),
       board.on('clock:flag', (event) => handlersRef.current.onClockFlag?.(event)),
-      board.on('puzzle:load', (event) => handlersRef.current.onPuzzleLoad?.(event)),
-      board.on('puzzle:move', (event) => handlersRef.current.onPuzzleMove?.(event)),
-      board.on('puzzle:hint', (event) => handlersRef.current.onPuzzleHint?.(event)),
-      board.on('puzzle:complete', (event) => handlersRef.current.onPuzzleComplete?.(event)),
-      board.on('puzzle:persistence-warning', (event) =>
-        handlersRef.current.onPuzzlePersistenceWarning?.(event),
-      ),
+      board.on('puzzle:load', (event) => {
+        handlersRef.current.onPuzzleLoad?.(event);
+        emitPuzzleEvent('puzzle:load', event);
+      }),
+      board.on('puzzle:move', (event) => {
+        handlersRef.current.onPuzzleMove?.(event);
+        emitPuzzleEvent('puzzle:move', event);
+      }),
+      board.on('puzzle:hint', (event) => {
+        handlersRef.current.onPuzzleHint?.(event);
+        emitPuzzleEvent('puzzle:hint', event);
+      }),
+      board.on('puzzle:complete', (event) => {
+        handlersRef.current.onPuzzleComplete?.(event);
+        emitPuzzleEvent('puzzle:complete', event);
+      }),
+      board.on('puzzle:persistence-warning', (event) => {
+        handlersRef.current.onPuzzlePersistenceWarning?.(event);
+        emitPuzzleEvent('puzzle:persistence-warning', event);
+      }),
     ];
 
     return () => {
@@ -914,6 +938,13 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
     [boardRef],
   );
 
+  const requestPuzzleHint = useCallback(
+    (type: 'text' | 'origin-highlight' = 'text') => {
+      boardRef.current?.requestPuzzleHint(type);
+    },
+    [],
+  );
+
   const api = useMemo<NeoChessRef>(
     () => ({
       getBoard,
@@ -927,21 +958,23 @@ export function useNeoChessBoard(options: UseNeoChessBoardOptions): UseNeoChessB
       setClockTime,
       addClockTime,
       resetClock,
+      requestPuzzleHint,
     }),
-    [
-      addArrow,
-      addHighlight,
-      addClockTime,
+  [
+    addArrow,
+    addHighlight,
+    addClockTime,
       clearArrows,
       clearHighlights,
       getBoard,
-      getClockState,
-      pauseClock,
-      resetClock,
-      setClockTime,
-      startClock,
-    ],
-  );
+    getClockState,
+    pauseClock,
+    resetClock,
+    setClockTime,
+    startClock,
+    requestPuzzleHint,
+  ],
+);
 
   return {
     containerRef,

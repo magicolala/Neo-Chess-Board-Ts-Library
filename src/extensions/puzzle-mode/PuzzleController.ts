@@ -52,6 +52,18 @@ export class PuzzleController {
     return this.solved;
   }
 
+  public peekNextMove(): string | null {
+    if (this.solved) {
+      return null;
+    }
+    const activeLine = this.activeLines[0];
+    const sequence = typeof activeLine === 'number' ? this.sequences[activeLine] : null;
+    if (!sequence) {
+      return null;
+    }
+    return sequence[this.cursor] ?? null;
+  }
+
   public handleMove(move: string): PuzzleMoveResult {
     if (this.solved) {
       return { success: false, complete: true, cursor: this.cursor };
