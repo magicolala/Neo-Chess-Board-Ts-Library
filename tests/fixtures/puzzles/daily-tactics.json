@@ -1,0 +1,36 @@
+[
+  {
+    "id": "mate-in-two-001",
+    "title": "Mate in two",
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3",
+    "solution": ["Bxf7+", "Qxd8+"],
+    "variants": [
+      {
+        "id": "line-b",
+        "label": "Line B",
+        "moves": ["Bxf7+", "Nxe5+"]
+      }
+    ],
+    "difficulty": "intermediate",
+    "tags": ["tactic", "sacrifice"],
+    "author": "Neo Library",
+    "hint": "Look for checks on f7."
+  },
+  {
+    "id": "fork-trap-002",
+    "title": "Knight fork trap",
+    "fen": "2rq1rk1/ppp2ppp/2n2n2/3bp3/3P4/2P1PN2/PPQ2PPP/R1B2RK1 w - - 0 1",
+    "solution": ["dxe5", "Nxe5", "Rd1"],
+    "variants": [
+      {
+        "id": "line-b",
+        "label": "Line B",
+        "moves": ["dxe5", "Ng5", "Qxh7+"]
+      }
+    ],
+    "difficulty": "advanced",
+    "tags": ["fork", "tactic"],
+    "author": "Neo Library",
+    "hint": "Open the d-file and look for forks."
+  }
+]
