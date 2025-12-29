@@ -15,8 +15,6 @@ import type {
 } from '../types';
 import {
   START_FEN,
-  generateFileLabels,
-  generateRankLabels,
   parseFEN,
   resolveBoardGeometry,
 } from '../utils';
@@ -56,8 +54,6 @@ export class ChessGame {
   private _clockManager: ClockManager | null = null;
   private files: number;
   private ranks: number;
-  private fileLabels: readonly string[];
-  private rankLabels: readonly string[];
 
   constructor(options: ChessGameOptions = {}) {
     const geometry = resolveBoardGeometry({
@@ -69,8 +65,6 @@ export class ChessGame {
 
     this.files = geometry.files;
     this.ranks = geometry.ranks;
-    this.fileLabels = geometry.fileLabels ?? generateFileLabels(geometry.files);
-    this.rankLabels = geometry.rankLabels ?? generateRankLabels(geometry.ranks);
 
     this.bus = options.bus ?? new EventBus<BoardEventMap>();
     const variant = options.variant ?? 'standard';

@@ -43,7 +43,6 @@ export class CameraEffects {
   private animation: AnimationState | null = null;
   private shakeState: ActiveShake | null = null;
   private raf = 0;
-  private lastTime = 0;
   private destroyed = false;
   private shakeOffset: { x: number; y: number } = { x: 0, y: 0 };
 
@@ -155,7 +154,6 @@ export class CameraEffects {
 
   private ensureTicker(): void {
     if (this.raf) return;
-    this.lastTime = performance.now();
     const tick = (now: number) => {
       this.step(now);
       this.raf = this.isAnimating() ? requestAnimationFrame(tick) : 0;
@@ -164,7 +162,6 @@ export class CameraEffects {
   }
 
   private step(now: number): void {
-    this.lastTime = now;
     let needsRender = false;
 
     if (this.animation) {

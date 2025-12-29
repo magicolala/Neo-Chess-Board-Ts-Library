@@ -97,7 +97,7 @@ export function redo(state: HistoryStoreState): {
 }
 
 export function reset(
-  state: HistoryStoreState,
+  _state: HistoryStoreState,
   fen: string,
   initialState?: Partial<MoveState>,
 ): HistoryStoreState {

@@ -64,7 +64,7 @@ export class BoardDomManager {
       cOverlay,
     });
     const drawingManager = this.createDrawingManager(cOverlay);
-    const sprites = new FlatSprites(this.options.spriteSize, this.options.theme);
+    const sprites = new FlatSprites(this.options.theme, this.options.spriteSize);
     this.setupResizeObserver();
     this.injectStyles();
 

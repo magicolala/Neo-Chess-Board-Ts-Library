@@ -2,8 +2,8 @@ import type { Theme } from './types';
 export class FlatSprites {
   private sheet: HTMLCanvasElement | OffscreenCanvas;
   constructor(
-    private size: number,
     private colors: Theme,
+    size: number,
   ) {
     this.sheet = this.build(size);
   }

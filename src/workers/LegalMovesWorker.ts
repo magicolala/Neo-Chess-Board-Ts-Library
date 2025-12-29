@@ -80,12 +80,7 @@ function createTempRulesWithTurnChange(fen: string, targetColor: 'w' | 'b'): Lig
 /**
  * Calcule les coups d'une pièce spécifique
  */
-function calculateMovesForPiece(
-  rules: LightRules,
-  fen: string,
-  square: Square,
-  piece: string,
-): Move[] {
+function calculateMovesForPiece(fen: string, square: Square, piece: string): Move[] {
   const pieceColor = piece === piece.toUpperCase() ? 'w' : 'b';
   const tempRules = createTempRulesWithTurnChange(fen, pieceColor);
   return tempRules.movesFrom(square);
@@ -105,7 +100,7 @@ function calculateAllPiecesMoves(rules: LightRules, fen: string): Move[] {
       const piece = rules.pieceAt(square);
 
       if (piece) {
-        const moves = calculateMovesForPiece(rules, fen, square, piece);
+        const moves = calculateMovesForPiece(fen, square, piece);
         allMoves.push(...moves);
       }
     }

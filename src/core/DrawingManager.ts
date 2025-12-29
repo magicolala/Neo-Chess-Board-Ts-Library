@@ -451,21 +451,6 @@ export class DrawingManager {
     return coords.topLeft;
   }
 
-  /**
-   * Get the size of a square in pixels
-   */
-  private getSquareSize(): number {
-    return this.squareSize;
-  }
-
-  /**
-   * Get the center point of a square in pixels
-   */
-  private getSquareCenter(square: string): { x: number; y: number } {
-    const coords = this.resolveRelativeCoords(square as Square);
-    return coords.center;
-  }
-
   public getHighlights(): SquareHighlight[] {
     return this.state.highlights.map((highlight) => ({ ...highlight }));
   }

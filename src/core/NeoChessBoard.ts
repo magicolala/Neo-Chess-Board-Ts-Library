@@ -292,7 +292,6 @@ export class NeoChessBoard {
 
   // ---- Feature Flags ----
   private interactive: boolean;
-  private showCoords: boolean;
   private highlightLegal: boolean;
   private get allowPremoves(): boolean {
     return this.premoveManager.isEnabled();
@@ -387,7 +386,6 @@ export class NeoChessBoard {
   private _pgnWorkerThreshold: number;
   private _arrows: Array<{ from: Square; to: Square; color?: string }> = [];
   private _customHighlights: { squares: Square[] } | null = null;
-  private _drawingArrow: { from: Square } | null = null;
 
   // ---- Animation ----
   private _raf = 0;
@@ -472,7 +470,6 @@ export class NeoChessBoard {
 
     // Initialize feature flags
     this.interactive = options.interactive !== false;
-    this.showCoords = options.showCoordinates || false;
     this.highlightLegal = options.highlightLegal !== false;
     this._applyInitialPremoveSettings(premoveSettings);
     this.allowPremoves = allowPremoves;
@@ -2108,7 +2105,7 @@ export class NeoChessBoard {
   }
 
   private _rasterize(): void {
-    this.sprites = new FlatSprites(SPRITE_SIZE, this.theme);
+    this.sprites = new FlatSprites(this.theme, SPRITE_SIZE);
   }
 
   // ============================================================================
@@ -4962,13 +4959,7 @@ export class NeoChessBoard {
         const targetPiece = target.board[r][f];
 
         if (startPiece && (!targetPiece || startPiece !== targetPiece)) {
-          const destination = this._findPieceDestination(
-            target.board,
-            startPiece,
-            r,
-            f,
-            start.board,
-          );
+          const destination = this._findPieceDestination(target.board, startPiece, start.board);
           if (destination) {
             moving.set(
               this._indicesToSquare(f, r),
@@ -5039,8 +5030,6 @@ export class NeoChessBoard {
   private _findPieceDestination(
     board: (string | null)[][],
     piece: string,
-    r0: number,
-    f0: number,
     start: (string | null)[][],
   ): { r: number; f: number } | null {
     for (let r = 0; r < this.ranksCount; r++) {
